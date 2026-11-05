@@ -1,0 +1,19 @@
+{
+  "name": "troy-pstack",
+  "version": "0.1.0",
+  "description": "Troy's Claude Code fork of Lauren Tan's pstack 0.15.36: verification-first engineering skills, principles, and subagent workflows. Not affiliated with or endorsed by Lauren Tan or Cursor.",
+  "author": {
+    "name": "Troy"
+  },
+  "license": "MIT",
+  "keywords": [
+    "troy-pstack",
+    "pstack-fork",
+    "poteto-mode",
+    "workflow",
+    "principles",
+    "verification",
+    "subagents",
+    "unslop"
+  ]
+}

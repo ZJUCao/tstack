@@ -1,0 +1,14 @@
+{
+  "name": "troy-pstack",
+  "owner": {
+    "name": "Troy"
+  },
+  "description": "Troy's personal Claude Code plugins. Currently one: troy-pstack.",
+  "plugins": [
+    {
+      "name": "troy-pstack",
+      "source": "./",
+      "description": "Troy's Claude Code fork of Lauren Tan's pstack 0.15.36: verification-first engineering skills, principles, and subagent workflows."
+    }
+  ]
+}
