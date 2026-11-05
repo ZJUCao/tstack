@@ -25,7 +25,7 @@ mirror: "requirements.zh-CN.md"
 
 ## 3. How users interact with it
 
-<!-- template: The main flows, step by step. Every screen or command that matters gets a prototype. -->
+<!-- template: The main flows, step by step. Every screen or command that matters gets a prototype. A prototype is a clickable HTML wireframe. In a command-line project it may instead be a Markdown file with a terminal session transcript: the commands typed and the output shown. -->
 
 {{interaction}}
 
@@ -33,7 +33,7 @@ mirror: "requirements.zh-CN.md"
 
 | Prototype | Feature | File |
 | --- | --- | --- |
-| {{prototype-name}} | {{feature-id}} | `docs/prototypes/{{feature-id}}-{{slug}}.html` |
+| {{prototype-name}} | {{feature-id}} | `docs/prototypes/{{feature-id}}-{{slug}}.{{html or md}}` |
 
 ## 4. Features
 

@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05. Version 1.1 adds D1 and D2 from the F01 design, which Troy approved the same day. Q1 is still open. |
+| Status | Approved by Troy on 2026-11-05. Version 1.1 adds D1 and D2 from the F01 design, which Troy approved the same day. Version 1.2 records Troy's answer to Q1 and lets command-line projects use text transcripts as prototypes (Q9). No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -326,7 +326,7 @@ The IDs are already in topological order.
 | --- | --- | --- | --- |
 | F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Not started |
 | F02 | Language-independent checks for R01, R02, R03, R12, R16, and R19, plus a GitHub Actions workflow that runs them. The checks read each PR's stage from its title (F01 design D1) and reject documents that still hold template markers (F01 design D2). | F01 | Not started |
-| F03 | Language packs. For each language, the config for R04, R05, R06, R07, R10, and R11 and its test runner. The first languages come from Q1. | F01 | Not started |
+| F03 | Language packs. For each language, the config for R04, R05, R06, R07, R10, and R11 and its test runner. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). | F01 | Not started |
 | F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, and model. | F01 | Not started |
 | F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19. | F02, F04 | Not started |
 | F06 | Project init (`troy-init`). Marker folder, document skeleton, rules table, and progress file. After the architecture is approved, the language pack and the CI workflow. | F01, F02, F03 | Not started |
@@ -377,16 +377,16 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel.
 - Changing upstream pstack skills or poteto-mode.
 - Deployment to production, app stores, or servers. troy-mode ends at a tagged, accepted version.
 - A graphical dashboard. State lives in Markdown files.
-- Languages beyond the first ones chosen in Q1.
+- Languages other than Python, C/C++, and TypeScript/JavaScript (Q1).
 - Rewriting the git history of existing projects.
 
 ## 10. Open questions
 
-Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Q1 is still open.
+Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Troy answered Q1 and extended Q9 the same day (version 1.2).
 
 | ID | Question | Proposal |
 | --- | --- | --- |
-| Q1 | Which languages come first? Each needs its own language pack (F03). | Ask Troy. Candidates from Troy's projects: Python, TypeScript or JavaScript, C++. |
+| Q1 | Which languages come first? Each needs its own language pack (F03). | Decided by Troy: Python and C/C++ first. TypeScript/JavaScript is wanted too, at lower priority. |
 | Q2 | For how many first features does Troy merge PR 1 and PR 2? | 3 per project. Then Troy decides. |
 | Q3 | Which model does each role use? | opus for the Architect, Interface Designer, Test Manager, and Code Reviewer. sonnet for the Developer and Test Engineer. The Product Manager uses the main session's model. |
 | Q4 | Names. | `troy-mode`, `troy-init`. Agents `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, `troy-code-reviewer`. Marker folder `.troy-mode/` in the project root. |
@@ -394,7 +394,7 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | Q6 | When an existing project (for example troy-voice) adopts troy-mode, must old code meet the rules? | No. Only new and changed code. Old code is fixed when it is touched. |
 | Q7 | Which machine runs performance tests? | Troy's PC, locally, at version release. Not CI, whose runners are too noisy. |
 | Q8 | Is the progress file committed? Committing it means a PR for every update, which R01 and R02 make heavy. | Keep it local and git-ignored. The durable state is the status table, which PR 6 updates. |
-| Q9 | What format do project prototypes use? | Clickable HTML wireframes in `docs/prototypes/`, plus Mermaid diagrams in the documents. |
+| Q9 | What format do project prototypes use? | Clickable HTML wireframes in `docs/prototypes/`, plus Mermaid diagrams in the documents. A command-line project may also write a prototype as a Markdown file in `docs/prototypes/` that holds a terminal session transcript (added by Troy in 1.2). |
 | Q10 | How is troy-mode itself built? The pipeline does not exist until F07. | One PR per feature (F01 to F10) on troy-pstack, each with one commit. Check scripts are built test-first. The pilot (F11) is the first full run of the pipeline. |
 
 ## 11. Change log
@@ -404,3 +404,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 0.1 | 2026-11-05 | First draft, from Troy's discussion with Claude on 2026-11-05. |
 | 1.0 | 2026-11-05 | Approved by Troy. Proposals for Q2 to Q10 accepted. Q1 still open. |
 | 1.1 | 2026-11-05 | F01 adds PR title and description templates (D1). F02 reads PR stages from titles and rejects leftover template markers (D2). Both approved by Troy with the F01 design. Wording only: names Troy in place of pronouns. |
+| 1.2 | 2026-11-05 | Troy answered Q1: Python and C/C++ first, TypeScript/JavaScript at lower priority. Troy extended Q9: a command-line project may use a Markdown terminal transcript as a prototype. The requirements template follows. |

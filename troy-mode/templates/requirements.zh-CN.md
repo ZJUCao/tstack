@@ -25,7 +25,7 @@ mirror-of: "requirements.md"
 
 ## 3. 用户如何使用
 
-<!-- template: 主要流程，一步一步写。每个重要的界面或命令都要有原型。 -->
+<!-- template: 主要流程，一步一步写。每个重要的界面或命令都要有原型。原型是可点击的 HTML 线框图；命令行项目也可以改用 Markdown 文件，写一段终端交互的文字记录：输入的命令和显示的输出。 -->
 
 {{interaction}}
 
@@ -33,7 +33,7 @@ mirror-of: "requirements.md"
 
 | 原型 | 功能 | 文件 |
 | --- | --- | --- |
-| {{prototype-name}} | {{feature-id}} | `docs/prototypes/{{feature-id}}-{{slug}}.html` |
+| {{prototype-name}} | {{feature-id}} | `docs/prototypes/{{feature-id}}-{{slug}}.{{html or md}}` |
 
 ## 4. 功能点
 
