@@ -221,6 +221,8 @@ class Sandbox:
         self.root = self.tmp / "repo"
         shutil.copytree(_template_repo(base_files or {}, config), self.root)
         self._counter = itertools.count(1)
+        self._default_message = False
+        self._identity: dict = {}
 
     def close(self) -> None:
         """Deletes the temporary folder."""
@@ -257,11 +259,12 @@ class Sandbox:
     def merge(self, name: str) -> None:
         """Merges a branch with a merge commit, never a fast-forward."""
         self.git("merge", "--no-ff", "-q", "-m", f"Merge {name}", name)
+        self._default_message = False
 
     def commit(
         self,
         changes: Optional[Mapping[str, Content]] = None,
-        message: str = "Change",
+        message: Optional[str] = None,
         author: Optional[str] = None,
         committer: Optional[str] = None,
         renames: Sequence = (),
@@ -270,7 +273,8 @@ class Sandbox:
 
         Args:
             changes: Paths mapped to new content. None content deletes.
-            message: Commit message.
+            message: Commit message. None means a placeholder that
+                ``check_pr`` replaces by the PR title (R01 compares them).
             author: Author email, or None for the test default.
             committer: Committer email, or None for the test default.
             renames: ``(old, new)`` pairs moved with ``git mv`` first.
@@ -284,7 +288,38 @@ class Sandbox:
             else:
                 write_file(self.root, rel, content)
         self.git("add", "-A")
-        self.git("commit", "-q", "-m", message, author=author, committer=committer)
+        self._default_message = message is None
+        self._identity = {"author": author, "committer": committer}
+        text = "Change" if message is None else message
+        self.git("commit", "-q", "-m", text, author=author, committer=committer)
+
+    def _titled_head(self, head: str, title: str) -> str:
+        """Returns a head whose subject equals the title, without moving refs.
+
+        When the last commit used the placeholder message, a detached commit
+        object with the same tree and parent but the title as message is
+        created. This keeps shared sandboxes safe for concurrent checks.
+
+        Args:
+            head: The head ref the caller asked for.
+            title: The PR title.
+
+        Returns:
+            The synthetic commit's SHA, or ``head`` when no change is needed.
+        """
+        if not self._default_message or not title.strip() or "\n" in title:
+            return head
+        try:
+            sha = self.git("rev-parse", f"{head}^{{commit}}").strip()
+            parents = self.git("rev-list", "--parents", "-n", "1", sha).split()[1:]
+            if len(parents) != 1:
+                return head
+            tree = self.git("rev-parse", f"{sha}^{{tree}}").strip()
+            return self.git(
+                "commit-tree", tree, "-p", parents[0], "-m", title, **self._identity
+            ).strip()
+        except RuntimeError:
+            return head
 
     def run_checker(
         self,
@@ -323,7 +358,7 @@ class Sandbox:
         """
         args = ["pr", "--base", base, "--title", title]
         if head:
-            args += ["--head", head]
+            args += ["--head", self._titled_head(head, title)]
         if body is not None:
             body_path = self.tmp / f"body{next(self._counter)}.md"
             write_file(self.tmp, body_path.name, body)
@@ -374,7 +409,7 @@ def pr_sandbox(
     changes: Optional[Mapping[str, Content]] = None,
     base_files: Optional[Mapping[str, Content]] = None,
     config: Optional[str] = DEFAULT_CONFIG,
-    message: str = "Change",
+    message: Optional[str] = None,
     author: Optional[str] = None,
     committer: Optional[str] = None,
     renames: Sequence = (),
@@ -385,7 +420,8 @@ def pr_sandbox(
         changes: Paths mapped to new content. None content deletes.
         base_files: Files of the base commit on ``main``.
         config: Text of ``.troy-mode/config.toml``, or None for no file.
-        message: Commit message.
+        message: Commit message. None means the placeholder that
+            ``check_pr`` swaps for the PR title.
         author: Author email of the PR commit.
         committer: Committer email of the PR commit.
         renames: ``(old, new)`` pairs moved before the changes.
@@ -408,7 +444,7 @@ def run_pr(
     changes: Optional[Mapping[str, Content]] = None,
     base_files: Optional[Mapping[str, Content]] = None,
     config: Optional[str] = DEFAULT_CONFIG,
-    message: str = "Change",
+    message: Optional[str] = None,
     body: Optional[str] = None,
     author: Optional[str] = None,
     committer: Optional[str] = None,
@@ -422,7 +458,7 @@ def run_pr(
         changes: Paths mapped to new content. None content deletes.
         base_files: Files of the base commit on ``main``.
         config: Text of ``.troy-mode/config.toml``, or None for no file.
-        message: Commit message.
+        message: Commit message. Defaults to the PR title (R01).
         body: PR description text.
         author: Author email of the PR commit.
         committer: Committer email of the PR commit.
@@ -432,7 +468,8 @@ def run_pr(
     Returns:
         The outcome of the run.
     """
-    sandbox = pr_sandbox(changes, base_files, config, message, author, committer, renames)
+    subject = title if message is None else message
+    sandbox = pr_sandbox(changes, base_files, config, subject, author, committer, renames)
     try:
         return sandbox.check_pr(title, body=body, **check_kwargs)
     finally:

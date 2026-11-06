@@ -6,7 +6,7 @@ turns a rule off silently.
 """
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 CONFIG_PATH = ".troy-mode/config.toml"
 
@@ -22,12 +22,25 @@ BUILTIN_PATHS: dict[str, list[str]] = {
 }
 
 ATTRIBUTION_MODES = ("strict", "trailers")
+LANGUAGES = ("python", "cpp")
+
+LIMIT_DEFAULTS = {
+    "source_lines": 500,
+    "source_files": 5,
+    "line_coverage": 90,
+    "branch_coverage": 80,
+    "function_lines": 50,
+    "file_lines": 500,
+}
 
 _SCHEMA: dict[str, dict[str, type]] = {
     "identity": {"commit_email": str},
     "paths": {key: list for key in BUILTIN_PATHS},
-    "limits": {"source_lines": int, "source_files": int},
+    "limits": {key: int for key in LIMIT_DEFAULTS},
     "attribution": {"mode": str},
+    "tests": {"legacy": list},
+    "lang": {"name": str, "source_roots": list, "include_dirs": list, "environment": str,
+             "series": list},
 }
 
 
@@ -46,6 +59,9 @@ class Config:
         source_lines: R03 limit on changed lines in a source PR.
         source_files: R03 limit on changed files in a source PR.
         attribution_mode: "strict" or "trailers" (R19).
+        limits: Every limit by name, defaults filled in (R03, R04, R06, R11).
+        legacy_tests: Patterns for test files allowed to carry no ID (R10).
+        lang: The [lang] table as written, for the language adapters.
     """
 
     commit_email: str | None
@@ -53,6 +69,9 @@ class Config:
     source_lines: int
     source_files: int
     attribution_mode: str
+    limits: dict[str, int] = field(default_factory=lambda: dict(LIMIT_DEFAULTS))
+    legacy_tests: list[str] = field(default_factory=list)
+    lang: dict = field(default_factory=dict)
 
 
 def _check_value(section: str, key: str, value, expected: type) -> None:
@@ -82,6 +101,9 @@ def _validate(data: dict) -> None:
     mode = data.get("attribution", {}).get("mode", "strict")
     if mode not in ATTRIBUTION_MODES:
         raise ConfigError(f"[attribution] mode must be one of {', '.join(ATTRIBUTION_MODES)}")
+    name = data.get("lang", {}).get("name")
+    if name is not None and name not in LANGUAGES:
+        raise ConfigError(f"[lang] name must be one of {', '.join(LANGUAGES)}")
 
 
 def parse_config(text: str | None) -> Config:
@@ -104,11 +126,14 @@ def parse_config(text: str | None) -> Config:
     _validate(data)
     extra = data.get("paths", {})
     paths = {key: BUILTIN_PATHS[key] + list(extra.get(key, [])) for key in BUILTIN_PATHS}
-    limits = data.get("limits", {})
+    limits = {**LIMIT_DEFAULTS, **data.get("limits", {})}
     return Config(
         commit_email=data.get("identity", {}).get("commit_email"),
         paths=paths,
-        source_lines=limits.get("source_lines", 500),
-        source_files=limits.get("source_files", 5),
+        source_lines=limits["source_lines"],
+        source_files=limits["source_files"],
         attribution_mode=data.get("attribution", {}).get("mode", "strict"),
+        limits=limits,
+        legacy_tests=list(data.get("tests", {}).get("legacy", [])),
+        lang=dict(data.get("lang", {})),
     )

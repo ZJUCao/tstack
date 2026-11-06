@@ -269,6 +269,73 @@ def files_containing(repo: Path, commit: str, pattern: str, glob: str) -> list[s
     return [n[len(prefix):] if n.startswith(prefix) else n for n in names]
 
 
+def list_files(repo: Path, commit: str, folder: str) -> list[str]:
+    """Lists every file under a folder in a commit.
+
+    Args:
+        repo: Repository root.
+        commit: Commit ID.
+        folder: Repository folder, for example "docs/features".
+
+    Returns:
+        Repository paths, empty when the folder does not exist.
+    """
+    proc = run_git(repo, "ls-tree", "-r", "--name-only", "-z", commit, "--", folder, check=False)
+    if proc.returncode != 0:
+        return []
+    return [p for p in _text(proc).split("\x00") if p]
+
+
+def subjects(repo: Path, commit: str) -> list[str]:
+    """Lists the subject lines of every commit reachable from a commit.
+
+    Args:
+        repo: Repository root.
+        commit: Commit ID, usually the merge base.
+
+    Returns:
+        Subject lines, newest first.
+    """
+    out = _text(run_git(repo, "log", "--no-show-signature", "--format=%s", commit))
+    return [line for line in out.split("\n") if line]
+
+
+_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
+
+def added_lines(repo: Path, start: str, end: str, paths: list[str]) -> dict[str, set[int]]:
+    """Finds the lines added or modified in some files between two commits.
+
+    Args:
+        repo: Repository root.
+        start: The older commit.
+        end: The newer commit.
+        paths: Paths at the newer commit to look at.
+
+    Returns:
+        Line numbers at the newer commit, by path. Files with only deleted
+        lines map to an empty set.
+    """
+    if not paths:
+        return {}
+    out = _text(run_git(repo, "-c", "core.quotepath=false", "diff", "--no-ext-diff",
+                        "--no-textconv", "-U0", "--no-color", "--find-renames", start, end,
+                        "--", *paths))
+    result: dict[str, set[int]] = {}
+    current = None
+    for line in out.split("\n"):
+        if line.startswith("+++ "):
+            current = line[6:] if line.startswith("+++ b/") else None
+            if current is not None:
+                result.setdefault(current, set())
+            continue
+        hunk = _HUNK.match(line)
+        if hunk and current is not None:
+            first, count = int(hunk.group(1)), int(hunk.group(2) or "1")
+            result[current].update(range(first, first + count))
+    return result
+
+
 def author_email(repo: Path) -> str:
     """Finds the author email git would use for the next commit.
 

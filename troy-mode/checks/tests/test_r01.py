@@ -40,7 +40,7 @@ class R01Tests(CheckTestCase):
         """Commits that landed on the base after branching are not counted."""
         with Sandbox() as sb:
             sb.branch()
-            sb.commit({"docs/a.md": "a\n"}, message="Mine")
+            sb.commit({"docs/a.md": "a\n"}, message="[docs] Mine")
             sb.checkout("main")
             sb.commit({"docs/other.md": "o\n"}, message="Landed meanwhile")
             out = sb.check_pr("[docs] Mine")
