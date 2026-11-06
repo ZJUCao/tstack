@@ -1,0 +1,5 @@
+# Python tools for troy-pstack's tests and the C/C++ sample.
+# Compile the lock from the repository root with:
+#   uv pip compile troy-mode/dev/requirements-dev.in --universal --python-version 3.11 -o troy-mode/dev/requirements-dev.lock
+gcovr>=8.0
+lizard>=1.17

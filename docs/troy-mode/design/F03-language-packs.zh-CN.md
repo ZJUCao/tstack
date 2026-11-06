@@ -1,13 +1,13 @@
 # F03 设计：语言包
 
-> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.0（2026-11-05）。两者如有出入，以英文版为准。
+> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.1（2026-11-06）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.6](../requirements.zh-CN.md#72-功能列表) 中的 F03 |
-| 版本 | 1.0 |
-| 日期 | 2026-11-05 |
-| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24 |
+| 版本 | 1.1 |
+| 日期 | 2026-11-06 |
+| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。 |
 | 事实来源 | 英文版 [`F03-language-packs.md`](F03-language-packs.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -47,9 +47,14 @@ troy-mode/
       environment.yml   pyproject.toml (fragment)   config.toml (fragment)   workflow-job.yml
     cpp/
       README.md         README.zh-CN.md
-      environment.yml   CMakePresets.json   cmake/troy.cmake   Doxyfile
+      environment.yml   requirements-tools.in   CMakePresets.json   cmake/troy.cmake   Doxyfile
       .clang-format     .clang-tidy         config.toml (fragment)   workflow-job.yml
       include/troy/not_implemented.h   (the exception that mock bodies throw)
+  samples/
+    python/  cpp/      sample projects that troy-pstack's CI takes through each pack (section 10)
+  dev/
+    build_sample.py    builds a sample's git repository
+    environment.yml    requirements-dev.lock   troy-pstack's own environment (D26)
 ```
 
 每个语言包的 README 列出它的文件、这些文件在项目里放在哪里，以及第 8.3 节和第 9.4 节的命令。`troy-init`（F06）负责把选定的语言包复制进项目。
@@ -245,7 +250,7 @@ lock = ["requirements*.lock"]
 ### 9.1 工具链（D22）
 
 - CMake 3.28 或更新版本，配合 Ninja。C++20 和 C17。
-- GoogleTest，通过 CTest 运行。
+- GoogleTest 1.18.0，从发布包用项目自己的编译器编译（D25），通过 CTest 运行。
 - 检查和覆盖率使用 GCC 和 gcov，由 gcovr 输出 Cobertura XML。
 - CI 里用 Ubuntu 自带的 GCC。在 Troy 的电脑上用已经在 PATH 上的 MSYS2 GCC 15，所以本地也能跑同样的检查。
 - Visual Studio 2026（MSVC）仍然可以通过单独的 CMake 预设 `msvc` 用来构建和调试。这个预设不统计覆盖率。
@@ -261,13 +266,12 @@ dependencies:
   - uv
   - cmake
   - ninja
-  - gtest
   - doxygen
-  - clang-format
-  - clang-tools
+  - clang-format=23
+  - clang-tools=23
 ```
 
-mamba 提供非 Python 的工具。uv 从 `requirements-tools.lock` 安装 Python 工具 gcovr 和 lizard。编译器来自环境之外，见第 9.1 节。系列、共用环境和系列锁文件的做法同第 8.1 节。
+mamba 提供非 Python 的工具，其中 clang-format 和 clang-tools 固定在同一个大版本，这样 CI 和 Troy 电脑上的格式化结果一致。uv 从 `requirements-tools.lock` 安装 Python 工具 gcovr 和 lizard，这份锁文件由 `requirements-tools.in` 编译而来。编译器来自环境之外，见第 9.1 节，GoogleTest 也一样（D25）。系列、共用环境和系列锁文件的做法同第 8.1 节。
 
 ### 9.3 文档注释和格式（D21）
 
@@ -316,7 +320,7 @@ F03 分四个 PR 合入，每个 PR 一个 commit，都先写测试（D15）：
 3. **Python 语言包。** 第 8 节的文件，加上一个小的 Python 示例项目，由 CI 带着它走完整个语言包：环境、测试、覆盖率和 `troy-check code`。
 4. **C/C++ 语言包。** C/C++ 适配器和第 9 节的文件，加上一个小的 C++ 示例项目，由 CI 带着它走完语言包。
 
-troy-pstack 的 CI 在 Linux 和 Windows 上跑单元测试，在 Linux 上跑示例项目。
+troy-pstack 的 CI 在 Linux 和 Windows 上跑单元测试，在 Linux 上跑示例项目。在 Troy 的电脑上，用 troy-pstack 自己的环境 `troy-pstack` 来跑（D26）。
 
 PR 4 合并后，F03 的状态改为"已编写"。两个示例项目都在 CI 里跑通后，改为"在示例项目上跑通"。
 
@@ -330,7 +334,7 @@ PR 4 合并后，F03 的状态改为"已编写"。两个示例项目都在 CI �
 
 ## 12. 需要 Troy 决定的事项
 
-Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。
+Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2026-11-06 做第 4 部分时，Troy 又决定了 D25 和 D26。
 
 | 编号 | 待决定的事 | 提议 |
 | --- | --- | --- |
@@ -344,6 +348,8 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。
 | D22 | 检查用的 C/C++ 编译器。 | 各处都用 GCC 和 gcov，因为覆盖率需要它们：CI 用 Ubuntu 的 GCC，你的电脑用 MSYS2 GCC 15。Visual Studio 2026 的 MSVC 仍然可以用来构建和调试，只是不统计覆盖率。 |
 | D23 | "注释只用英文"（R05）对脚本来说具体指什么。 | 注释和文档注释里不出现中文、日文或韩文字符：CJK 汉字、假名、韩文字母，以及 CJK 和全角标点。其他非 ASCII 文字，例如带重音符号的名字和 → 这类符号，允许使用。 |
 | D24 | R 规则之外的 Python 工具。 | 语言包沿用 troy-voice 的默认做法：范围很广的 ruff 规则集、ruff 的格式检查，以及严格模式的 mypy。项目可以通过规则变更流程去掉它们。 |
+| D25 | GoogleTest 从哪里来。第 9.2 节原本把它放进 mamba 环境，但 conda-forge 在 Windows 上的 GoogleTest 是 MSVC 编译的，MSYS2 GCC 链接不了，这一点已在 Troy 的电脑上实测。 | `cmake/troy.cmake` 用 CMake 的 FetchContent 下载 GoogleTest 1.18.0 的发布包，校验 SHA256，再用项目自己的编译器编译。CI 和 Troy 的电脑用同一个版本。Troy 于 2026-11-06 选定这个方案，没有选各平台的包管理器，也没有选在本机改用 MSVC。 |
+| D26 | troy-pstack 自己的测试从哪里拿到 lizard（C/C++ 适配器需要它）。之前这些测试用系统 Python 跑。 | troy-pstack 自成一个系列，有自己的环境 `troy-pstack`，由 `troy-mode/dev/environment.yml` 创建，lizard 和 gcovr 按 `troy-mode/dev/requirements-dev.lock` 安装。环境里也有 C/C++ 工具，所以 C++ 示例能在 Troy 的电脑上跑。CI 安装同一份锁文件。Troy 于 2026-11-06 选定。 |
 
 需求文档 1.6 记录了批准后的修改：
 
@@ -360,3 +366,4 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。
 | 0.1 | 2026-11-05 | 初稿。 |
 | 0.2 | 2026-11-05 | Troy 批准了 D15 到 D24，D20 除外。D20 已修改：每个系列一个环境、一个锁文件（第 8.1 节）。 |
 | 1.0 | 2026-11-05 | Troy 批准，含 D15 到 D24，D20 按修改后的方案。 |
+| 1.1 | 2026-11-06 | 加入 Troy 在做第 4 部分时决定的 D25 和 D26。GoogleTest 移出环境（第 9.1、9.2 节），clang-format 和 clang-tools 固定在 23 版，第 2 节列出示例项目和 troy-pstack 自己的环境。 |

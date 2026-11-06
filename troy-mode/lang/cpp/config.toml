@@ -1,0 +1,16 @@
+# troy-mode C/C++ pack: tables for .troy-mode/config.toml (F03 design 9.5).
+# troy-init adds them and fills in the environment. A member of a series lists
+# every member's folder in series.
+
+[lang]
+name = "cpp"
+include_dirs = ["include", "src"]
+environment = "{{environment}}"
+series = ["."]
+
+[paths]
+config = [".clang-format", ".clang-tidy"]
+tests = ["**/*_test.cc", "**/*_test.cpp"]
+dependencies = ["CMakeLists.txt", "**/CMakeLists.txt", "cmake/**", "CMakePresets.json",
+                "environment.yml", "requirements*.lock", "requirements*.in"]
+lock = ["requirements*.lock"]

@@ -1,0 +1,35 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 28, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "coverage",
+      "displayName": "GCC with coverage, for troy-mode's checks",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/coverage",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "TROY_COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "msvc",
+      "displayName": "Visual Studio 2026, for building and debugging, without coverage",
+      "generator": "Visual Studio 18 2026",
+      "binaryDir": "${sourceDir}/build/msvc",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows"}
+    }
+  ],
+  "buildPresets": [
+    {"name": "coverage", "configurePreset": "coverage"},
+    {"name": "msvc", "configurePreset": "msvc", "configuration": "Debug"}
+  ],
+  "testPresets": [
+    {"name": "coverage", "configurePreset": "coverage", "output": {"outputOnFailure": true}},
+    {"name": "msvc", "configurePreset": "msvc", "configuration": "Debug",
+     "output": {"outputOnFailure": true}}
+  ]
+}

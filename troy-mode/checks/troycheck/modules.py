@@ -1,7 +1,8 @@
 """R07: module dependencies from the architecture's module table (F03 design 7).
 
 The table under "## 3." in docs/architecture.md, read at the merge base, is
-the module map. Python imports are read with the Python adapter.
+the module map. Python imports are read with the Python adapter, and C/C++
+#include "..." lines with the C/C++ adapter's scanner.
 """
 
 import posixpath
@@ -9,6 +10,8 @@ import re
 from dataclasses import dataclass, field
 
 from .context import PrContext
+from .cppadapter import EXTENSIONS
+from .cppadapter import scan as scan_cpp
 from .gitio import list_files, read_blob, read_blobs
 from .globs import matches_any
 from .pyadapter import Import, ParseError, analyze
@@ -138,6 +141,48 @@ def resolve(importer: str, imp: Import, roots: list[str], files: set[str]) -> li
     return []
 
 
+def resolve_include(importer: str, target: str, include_dirs: list[str],
+                    files: set[str]) -> str | None:
+    """Resolves #include "target" to a repository file.
+
+    Args:
+        importer: Path of the including file.
+        target: The path between the quotes.
+        include_dirs: [lang] include_dirs, tried after the importer's folder.
+        files: Every file at the head.
+
+    Returns:
+        The first existing repository file, or None for an outside header.
+    """
+    bases = [posixpath.dirname(importer)] + [d.strip("/") for d in include_dirs]
+    for base in bases:
+        path = posixpath.normpath(posixpath.join(base, target))
+        if path in files:
+            return path
+    return None
+
+
+def _targets(ctx: PrContext, path: str, text: str, files: set[str]) -> list[tuple[int, str]]:
+    """Lists (line, imported repository file) for one file in the project's language.
+
+    Raises:
+        ParseError: A Python file cannot be parsed.
+    """
+    if ctx.config.lang.get("name") == "cpp":
+        dirs = list(ctx.config.lang.get("include_dirs", []))
+        found = [(line, resolve_include(path, name, dirs, files))
+                 for line, name in scan_cpp(text).includes]
+        return [(line, target) for line, target in found if target]
+    roots = list(ctx.config.lang.get("source_roots", ["."]))
+    return [(imp.line, target) for imp in analyze(text).imports
+            for target in resolve(path, imp, roots, files)]
+
+
+def _extensions(ctx: PrContext) -> tuple[str, ...]:
+    """Returns the code file extensions of the project's language."""
+    return EXTENSIONS if ctx.config.lang.get("name") == "cpp" else (".py",)
+
+
 def _components(graph: dict[str, set[str]]) -> list[set[str]]:
     """Finds the groups of nodes that reach each other (cycles of two or more)."""
     reach = {n: set() for n in graph}
@@ -172,22 +217,20 @@ def _import_edges(ctx: PrContext, modules: list[Module],
         failures of changed files.
     """
     files = set(list_files(ctx.repo, ctx.head, "."))
-    roots = list(ctx.config.lang.get("source_roots", ["."]))
-    owned = [p for p in sorted(files) if p.endswith(".py") and module_of(p, modules)]
+    owned = [p for p in sorted(files) if p.endswith(_extensions(ctx)) and module_of(p, modules)]
     edges, fails = [], []
     for path, text in read_blobs(ctx.repo, ctx.head, owned).items():
         source = module_of(path, modules)
         try:
-            imports = analyze(text).imports
+            targets = _targets(ctx, path, text, files)
         except ParseError as exc:
             if path in changed:
                 fails.append(Detail(path, None, f"cannot be parsed as Python: {exc}"))
             continue
-        for imp in imports:
-            for target in resolve(path, imp, roots, files):
-                dest = module_of(target, modules)
-                if dest is not None and dest.name != source.name:
-                    edges.append((source, dest, path, imp.line, target))
+        for line, target in targets:
+            dest = module_of(target, modules)
+            if dest is not None and dest.name != source.name:
+                edges.append((source, dest, path, line, target))
     return edges, fails
 
 
@@ -238,7 +281,7 @@ def check_r07(ctx: PrContext) -> Result:
     modules = parse_table(text) if text else None
     if not modules:
         return Result("R07", SKIP, f"No module table in {ARCHITECTURE}.")
-    changed = {c.path for c in ctx.changes if c.status != "D" and c.path.endswith(".py")}
+    changed = {c.path for c in ctx.changes if c.status != "D" and c.path.endswith(_extensions(ctx))}
     edges, fails = _import_edges(ctx, modules, changed)
     fails = _table_fails(modules) + fails + _edge_fails(edges, changed) + _cycle_fails(edges, changed)
     if fails:

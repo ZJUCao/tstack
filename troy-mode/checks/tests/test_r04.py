@@ -2,6 +2,7 @@
 
 import unittest
 
+from cpp_builders import cfunc
 from prefetch import PrefetchedCase
 from shape_builders import (
     edit_line, func, klass, line_of, module,
@@ -240,10 +241,11 @@ class LanguageTests(PrefetchedCase):
         self.assert_rule(out, "R04", "skip")
         self.assert_exit(out, 0)
 
-    def test_cpp_language_skips_r04_in_part_two(self):
-        """The C/C++ adapter does not exist yet, so R04 is skipped."""
-        out = run_py(self.LONG, name="cpp")
-        self.assert_rule(out, "R04", "skip")
+    def test_cpp_language_runs_r04_with_the_cpp_adapter(self):
+        """With name = cpp a long C++ function fails and R04 is not skipped."""
+        out = run_py({"src/a.cpp": cfunc("Long", code=60)}, name="cpp")
+        self.assert_rule(out, "R04", "fail")
+        self.assert_exit(out, 1)
 
     def test_python_language_runs_r04(self):
         """With name = python the same file fails."""

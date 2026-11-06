@@ -1,0 +1,6 @@
+# troy-mode C/C++ pack: the Python tools (F03 design 9.2).
+# gcovr writes the Cobertura report, and troy-check's C/C++ adapter uses lizard.
+# A series compiles one lock from every member's requirements, for example:
+#   uv pip compile requirements-tools.in --universal --python-version 3.13 -o requirements-tools.lock
+gcovr>=8.0
+lizard>=1.17

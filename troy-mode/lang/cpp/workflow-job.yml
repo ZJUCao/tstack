@@ -1,0 +1,76 @@
+# troy-mode C/C++ pack: the code checks job (F03 design 9.6).
+# troy-init adds this job under "jobs:" in .github/workflows/troy-mode.yml,
+# next to the troy-check job from F02. It needs environment.yml,
+# requirements-tools.lock, and CMakePresets.json at the repository root.
+  troy-code:
+    name: troy-mode code checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        # A login shell activates the micromamba environment.
+        shell: bash -leo pipefail {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+      - name: Install from the lock
+        run: uv pip install -r requirements-tools.lock
+      - name: Configure and build
+        run: |
+          cmake --preset coverage
+          cmake --build --preset coverage
+      - name: Format and lint changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # clang-format checks every changed C/C++ file. clang-tidy checks the
+        # changed source files, and the project headers they include.
+        run: |
+          mapfile -t files < <(git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- \
+            '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx')
+          if [ "${#files[@]}" -gt 0 ]; then
+            clang-format --dry-run --Werror "${files[@]}"
+          fi
+          mapfile -t sources < <(printf '%s\n' "${files[@]}" | grep -E '\.(c|cc|cpp|cxx)$' || true)
+          if [ "${#sources[@]}" -gt 0 ]; then
+            clang-tidy -p build/coverage --quiet "${sources[@]}"
+          fi
+      - name: Tests
+        # troy-check decides which failures are allowed, so ctest's exit code
+        # is ignored.
+        run: |
+          mkdir -p reports
+          ctest --preset coverage --output-junit "$PWD/reports/junit.xml" || true
+      - name: Coverage report
+        run: |
+          gcovr --root . --filter 'include/' --filter 'src/' --exclude-throw-branches \
+            --exclude-unreachable-branches --cobertura reports/coverage.xml build/coverage
+      - name: Doc comments
+        run: doxygen .troy-mode/lang/cpp/Doxyfile
+      - name: Run troy-check code
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # As in the troy-check job: the title and description reach the shell
+        # only through environment variables, and the checker runs from the
+        # base commit when it exists there.
+        run: |
+          checks=.troy-mode/checks
+          if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/base"
+            git archive "$BASE_SHA" "$checks" | tar -x -C "$RUNNER_TEMP/base"
+            checks="$RUNNER_TEMP/base/$checks"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          python "$checks/troy_check.py" code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml \
+            --doc-warnings reports/doxygen.log

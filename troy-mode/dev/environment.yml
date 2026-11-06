@@ -1,0 +1,17 @@
+# troy-pstack's own environment, a series of one (requirements section 8).
+# It runs troy-check's tests and the C/C++ sample on Troy's PC. The C/C++
+# compiler comes from outside, as in the C/C++ pack (F03 design 9.1).
+#   mamba env create -f troy-mode/dev/environment.yml
+#   mamba activate troy-pstack
+#   uv pip install -r troy-mode/dev/requirements-dev.lock
+name: troy-pstack
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - uv
+  - cmake
+  - ninja
+  - doxygen
+  - clang-format=23
+  - clang-tools=23

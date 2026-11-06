@@ -57,8 +57,9 @@ legacy = []
 
 [lang]
 # Set by the language pack (troy-mode/lang/ in troy-pstack), for example:
-# name = "python"
-# source_roots = ["src"]
+# name = "python"                  # or "cpp"
+# source_roots = ["src"]           # Python: where imports are resolved from
+# include_dirs = ["include", "src"]  # C/C++: tried after the including file's folder
 # environment = "troy-agent-env"
 # series = ["."]
 

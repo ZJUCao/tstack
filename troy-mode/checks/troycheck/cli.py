@@ -10,13 +10,14 @@ from .classify import ALLOWED
 from .config import CONFIG_PATH, ConfigError, parse_config
 from .context import PrContext
 from .covreport import check_r11
+from .cppadapter import AdapterError
 from .gitio import GitError
 from .modules import check_r07
 from .markers import check_r20
 from .mirrors import check_r12
 from .pr_rules import check_r01, check_r02, check_r16
 from .report import Result, is_ok, render_json, render_text, write_github_outputs
-from .shape import check_r04, check_r05, check_r06, load_python
+from .shape import check_r04, check_r05, check_r06, load_code
 from .size import check_r03
 from .testpolicy import check_r09, check_r10, load_run
 from .titles import describe, parse_title
@@ -143,10 +144,11 @@ def run_code(args: argparse.Namespace) -> int:
         0 when nothing fails, 1 otherwise.
     """
     ctx = build_pr_context(args)
-    files = load_python(ctx) if ctx.config.lang.get("name") == "python" else None
+    files = load_code(ctx)
     run = load_run(ctx, args.junit)
-    results = [check_r04(ctx, files), check_r05(ctx, files), check_r06(ctx), check_r07(ctx),
-               check_r09(ctx, run), check_r10(ctx, run), check_r11(ctx, args.coverage)]
+    results = [check_r04(ctx, files), check_r05(ctx, files, args.doc_warnings),
+               check_r06(ctx), check_r07(ctx), check_r09(ctx, run), check_r10(ctx, run),
+               check_r11(ctx, args.coverage)]
     allowed = list(ALLOWED[ctx.title.kind]) if ctx.title else []
     header = [f"troy-check code: {args.title}", describe(ctx.title, allowed)]
     title = ctx.title.to_dict() if ctx.title else None
@@ -186,14 +188,14 @@ def main(argv: list[str] | None = None) -> int:
 
     Returns:
         0 when no rule fails, 1 when one fails, and 2 when the tool cannot
-        run: bad options, not a git repository, a git error, or an invalid
-        config file.
+        run: bad options, not a git repository, a git error, an invalid
+        config file, or a C/C++ project without lizard.
     """
     _utf8_stdio()
     args = build_parser().parse_args(argv)
     try:
         commands = {"pr": run_pr, "code": run_code, "commit": run_commit}
         return commands[args.command](args)
-    except (GitError, ConfigError, UsageError) as exc:
+    except (GitError, ConfigError, UsageError, AdapterError) as exc:
         print(f"troy-check: error: {exc}", file=sys.stderr)
         return EXIT_ERROR

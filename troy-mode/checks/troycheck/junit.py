@@ -97,10 +97,16 @@ def tag_of(name: str) -> IdTag | None:
 
 
 def _outcome(case: ET.Element) -> str:
-    """Finds a testcase element's outcome from its child elements."""
+    """Finds a testcase element's outcome from its children and its status.
+
+    CTest marks a test that did not run only with status="notrun" or
+    status="disabled", without a <skipped> child. A failed CTest test has a
+    <failure> child.
+    """
+    status = case.get("status", "")
     if case.find("failure") is not None or case.find("error") is not None:
         return FAILED
-    if case.find("skipped") is not None:
+    if case.find("skipped") is not None or status in ("notrun", "disabled", "skipped"):
         return SKIPPED
     return PASSED
 

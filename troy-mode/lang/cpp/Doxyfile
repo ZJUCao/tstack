@@ -1,0 +1,32 @@
+# troy-mode C/C++ pack: Doxygen as the doc comment checker (F03 design 9.3).
+# Run from the repository root:  doxygen .troy-mode/lang/cpp/Doxyfile
+# It writes no documentation. troy-check reads reports/doxygen.log and keeps
+# the warnings on changed lines (R05).
+
+PROJECT_NAME           = "troy-mode project"
+INPUT                  = include src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.c *.cc *.cpp *.cxx *.h *.hh *.hpp *.hxx
+EXCLUDE_PATTERNS       = */build/*
+OUTPUT_DIRECTORY       = build/doxygen
+FULL_PATH_NAMES        = YES
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ANON_NSPACES   = YES
+
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LOGFILE           = reports/doxygen.log
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+# Doxygen needs one output format; XML is the cheapest, and nothing reads it.
+GENERATE_XML           = YES
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
