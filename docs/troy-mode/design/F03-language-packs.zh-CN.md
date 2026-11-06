@@ -269,9 +269,10 @@ dependencies:
   - doxygen
   - clang-format=23
   - clang-tools=23
+  - clang-23
 ```
 
-mamba 提供非 Python 的工具，其中 clang-format 和 clang-tools 固定在同一个大版本，这样 CI 和 Troy 电脑上的格式化结果一致。uv 从 `requirements-tools.lock` 安装 Python 工具 gcovr 和 lizard，这份锁文件由 `requirements-tools.in` 编译而来。编译器来自环境之外，见第 9.1 节，GoogleTest 也一样（D25）。系列、共用环境和系列锁文件的做法同第 8.1 节。
+mamba 提供非 Python 的工具，其中 clang-format 和 clang-tools 固定在同一个大版本，这样 CI 和 Troy 电脑上的格式化结果一致。clang-23 包含 clang 自己的头文件（如 `stddef.h`），clang-tidy 要读这些文件，而 clang-tools 不带它们。uv 从 `requirements-tools.lock` 安装 Python 工具 gcovr 和 lizard，这份锁文件由 `requirements-tools.in` 编译而来。编译器来自环境之外，见第 9.1 节，GoogleTest 也一样（D25）。系列、共用环境和系列锁文件的做法同第 8.1 节。
 
 ### 9.3 文档注释和格式（D21）
 
@@ -366,4 +367,4 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2
 | 0.1 | 2026-11-05 | 初稿。 |
 | 0.2 | 2026-11-05 | Troy 批准了 D15 到 D24，D20 除外。D20 已修改：每个系列一个环境、一个锁文件（第 8.1 节）。 |
 | 1.0 | 2026-11-05 | Troy 批准，含 D15 到 D24，D20 按修改后的方案。 |
-| 1.1 | 2026-11-06 | 加入 Troy 在做第 4 部分时决定的 D25 和 D26。GoogleTest 移出环境（第 9.1、9.2 节），clang-format 和 clang-tools 固定在 23 版，第 2 节列出示例项目和 troy-pstack 自己的环境。 |
+| 1.1 | 2026-11-06 | 加入 Troy 在做第 4 部分时决定的 D25 和 D26。GoogleTest 移出环境（第 9.1、9.2 节），clang-format 和 clang-tools 固定在 23 版，环境加入供 clang-tidy 使用的 clang-23，第 2 节列出示例项目和 troy-pstack 自己的环境。 |
