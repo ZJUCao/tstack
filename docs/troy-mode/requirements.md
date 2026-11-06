@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05. Version 1.1 adds D1 and D2 from the F01 design, which Troy approved the same day. Version 1.2 records Troy's answer to Q1 and lets command-line projects use text transcripts as prototypes (Q9). No question is open. |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -283,7 +283,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 
 ## 6. Rules
 
-**Hard** blocks the merge. **Soft** allows the PR when its description gives a reason. **Review** is checked by a role. **Process** is followed by troy-mode itself.
+**Hard** blocks the merge. **Soft** allows the PR when its description gives a reason. **Review** is checked by a role. **Process** is followed by troy-mode itself. Troy's GitHub plan is free, and it has no branch protection for private repositories. So troy-mode's merge step enforces Hard rules: it never merges a PR whose checks fail (F02 design D14).
 
 | ID | Rule | Type | Enforced by |
 | --- | --- | --- | --- |
@@ -305,7 +305,8 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 | R16 | A new third-party dependency needs the Architect's approval. | Review | Architect. CI flags every change to dependency files. |
 | R17 | A review loop stops at 3 rounds and escalates. | Process | troy-mode |
 | R18 | Troy merges PR 1 and PR 2 of the first features (Q2). Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode |
-| R19 | Commits use the email in Troy's global CLAUDE.md. Commits and PRs carry no Claude attribution. | Hard | Hook and CI |
+| R19 | Commits use the email in Troy's global CLAUDE.md. Commit messages, PR titles, and PR descriptions carry no Claude attribution and, by default, do not mention Claude or Anthropic at all (F02 design D10). | Hard | Hook and CI |
+| R20 | A merged document or PR description holds no template markers or template guidance (F01 design D2, F02 design D11). | Hard | CI |
 
 ## 7. Features
 
@@ -324,9 +325,9 @@ The IDs are already in topological order.
 
 | ID | Feature | Depends on | Status |
 | --- | --- | --- | --- |
-| F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Not started |
-| F02 | Language-independent checks for R01, R02, R03, R12, R16, and R19, plus a GitHub Actions workflow that runs them. The checks read each PR's stage from its title (F01 design D1) and reject documents that still hold template markers (F01 design D2). | F01 | Not started |
-| F03 | Language packs. For each language, the config for R04, R05, R06, R07, R10, and R11 and its test runner. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). | F01 | Not started |
+| F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Written |
+| F02 | Language-independent checks for R01, R02, R03, R12, R16, R19, and R20, a GitHub Actions workflow that runs them, and a `commit` subcommand that F05's hooks call for R19. The checks read each PR's stage from its title (F01 design D1). R20 rejects documents and PR descriptions that still hold template markers (F01 design D2). | F01 | Not started |
+| F03 | Language packs. For each language, the config for R04, R05, R06, R07, R10, and R11 and its test runner. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). The Python pack follows the Python environment rule in section 8. | F01 | Not started |
 | F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, and model. | F01 | Not started |
 | F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19. | F02, F04 | Not started |
 | F06 | Project init (`troy-init`). Marker folder, document skeleton, rules table, and progress file. After the architecture is approved, the language pack and the CI workflow. | F01, F02, F03 | Not started |
@@ -368,6 +369,7 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel.
 - **Privacy.** troy-mode uses no service beyond GitHub and Anthropic. No secret goes into a document, a log, or the progress file.
 - **Resumable.** Any new session continues from the progress file.
 - **Language.** Documents are written in English with a Chinese mirror. Code and code comments are in English.
+- **Python environments.** In a Python project, mamba creates and manages the project's environment, and uv installs packages into it. troy-mode never creates a `.venv` folder. F03's Python pack sets this up on Troy's PC and in CI. troy-mode's own checks (F02) use only the standard library and need no environment.
 - **Auditable.** Every role's output is a PR or a review comment, so the history shows who changed what.
 
 ## 9. Out of scope (version 1)
@@ -405,3 +407,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.0 | 2026-11-05 | Approved by Troy. Proposals for Q2 to Q10 accepted. Q1 still open. |
 | 1.1 | 2026-11-05 | F01 adds PR title and description templates (D1). F02 reads PR stages from titles and rejects leftover template markers (D2). Both approved by Troy with the F01 design. Wording only: names Troy in place of pronouns. |
 | 1.2 | 2026-11-05 | Troy answered Q1: Python and C/C++ first, TypeScript/JavaScript at lower priority. Troy extended Q9: a command-line project may use a Markdown terminal transcript as a prototype. The requirements template follows. |
+| 1.3 | 2026-11-05 | Troy approved the F02 design. R19 also forbids mentioning Claude or Anthropic by default (D10). New rule R20 for template markers (D11). Section 6 says troy-mode's merge step enforces Hard rules, because Troy's GitHub plan has no branch protection for private repositories (D14). Troy added the Python environment rule: mamba and uv, no `.venv` (section 8). F01 status: Written. |

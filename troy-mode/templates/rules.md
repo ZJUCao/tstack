@@ -9,7 +9,7 @@ mirror: "rules.zh-CN.md"
 
 # {{project-name}} rules
 
-<!-- template: troy-init fills in {{project-name}} and {{init-date}}. Rules R01 to R19 come from troy-mode. This project's own rules are added below them as P01, P02, and so on, through the rule change flow (troy-mode requirements 5.8). Write None for a section, field, or table that has nothing to hold. Remove every template comment and every {{marker}} before the document merges. -->
+<!-- template: troy-init fills in {{project-name}} and {{init-date}}. Rules R01 to R20 come from troy-mode. This project's own rules are added below them as P01, P02, and so on, through the rule change flow (troy-mode requirements 5.8). Write None for a section, field, or table that has nothing to hold. Remove every template comment and every {{marker}} before the document merges. -->
 
 ## 1. Rule types
 
@@ -40,7 +40,8 @@ mirror: "rules.zh-CN.md"
 | R16 | A new third-party dependency needs the Architect's approval. | Review | Architect. CI flags every change to dependency files. | troy-mode | {{init-date}} |
 | R17 | A review loop stops at 3 rounds and escalates. | Process | troy-mode | troy-mode | {{init-date}} |
 | R18 | Troy merges PR 1 and PR 2 of the first 3 features. Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode | troy-mode | {{init-date}} |
-| R19 | Commits use the email in Troy's global CLAUDE.md. Commits and PRs carry no Claude attribution. | Hard | Hook and CI | troy-mode | {{init-date}} |
+| R19 | Commits use the email in Troy's global CLAUDE.md. Commit messages, PR titles, and PR descriptions carry no Claude attribution and do not mention Claude or Anthropic at all, unless `.troy-mode/config.toml` sets the attribution mode to `trailers`. | Hard | Hook and CI | troy-mode | {{init-date}} |
+| R20 | A merged document or PR description holds no template markers or template guidance. | Hard | CI | troy-mode | {{init-date}} |
 
 <!-- template: Add this project's own rules here, one row each, with Scope "project". Example row: | P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} | -->
 
@@ -48,4 +49,4 @@ mirror: "rules.zh-CN.md"
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | {{init-date}} | Seeded with R01 to R19 from troy-mode. |
+| 1.0 | {{init-date}} | Seeded with R01 to R20 from troy-mode. |
