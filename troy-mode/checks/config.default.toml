@@ -1,0 +1,48 @@
+# troy-mode project config: .troy-mode/config.toml
+#
+# Every key is optional. Lists add to the built-in patterns shown in the
+# comments and never replace them. An unknown key or a wrong type stops
+# troy-check with exit code 2, so a typo never turns a rule off.
+#
+# troy-check pr reads this file from the merge-base commit, so a change here
+# takes effect on the PRs after the one that makes it.
+#
+# Patterns match the whole path from the repository root, with "/"
+# separators. "*" matches within one folder name, "**" matches any number of
+# folders, and "?" matches one character.
+
+[identity]
+# The only allowed author email (R19). troy-init fills it in.
+# commit_email = "you@users.noreply.github.com"
+
+[paths]
+# Path classes, checked in this order. The first match wins, and a path that
+# matches none is source.
+#
+# config. Built in: ".troy-mode/**", ".github/**", "docs/rules.md",
+#   "docs/rules.zh-CN.md", ".gitignore", ".gitattributes", ".editorconfig"
+config = []
+# dependencies. Built in: none. Language packs add manifests (R16).
+dependencies = []
+# tests. Built in: "tests/**", "test/**". Language packs add more.
+tests = []
+# docs. Built in: "docs/**", "**/*.md", "LICENSE*"
+docs = []
+#
+# Not counted by R03, neither lines nor files.
+lock = []
+generated = []
+#
+# Documents that hold {{ }} on purpose; R20 does not scan them.
+allow_markers = []
+
+[limits]
+# R03 limits for mock, impl, fix, and refactor PRs.
+source_lines = 500
+source_files = 5
+
+[attribution]
+# R19. "strict" also blocks any word Claude or Anthropic in commit messages,
+# PR titles, and PR descriptions. "trailers" blocks only attribution lines,
+# for a project about Claude.
+mode = "strict"

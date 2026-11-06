@@ -1,0 +1,37 @@
+# troy-mode checks. troy-init copies this file to .github/workflows/troy-mode.yml.
+# Design: docs/troy-mode/design/F02-checks.md, section 8, in troy-pstack.
+name: troy-mode checks
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  troy-check:
+    name: troy-mode checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Run troy-check
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # The title and description reach the shell only through environment
+        # variables. The checker runs from the base commit when it exists
+        # there, so a PR cannot change the code that judges it.
+        run: |
+          checks=.troy-mode/checks
+          if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/base"
+            git archive "$BASE_SHA" "$checks" | tar -x -C "$RUNNER_TEMP/base"
+            checks="$RUNNER_TEMP/base/$checks"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          python3 "$checks/troy_check.py" pr --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md"
