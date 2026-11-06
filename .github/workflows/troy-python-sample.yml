@@ -1,0 +1,81 @@
+# Takes the sample Python project through the Python pack (F03 design 10).
+# Each job builds the sample's repository with one PR on a branch, then runs
+# the steps of troy-mode/lang/python/workflow-job.yml on it. Only the PR's
+# values come from build_sample.py instead of the pull_request event.
+# troy-mode/dev/tests/test_python_pack.py checks that the steps stay the same.
+name: troy-mode Python sample
+on:
+  pull_request:
+    paths:
+      - "troy-mode/checks/troy_check.py"
+      - "troy-mode/checks/troycheck/**"
+      - "troy-mode/checks/workflow.yml"
+      - "troy-mode/lang/python/**"
+      - "troy-mode/samples/python/**"
+      - "troy-mode/dev/build_sample.py"
+      - ".github/workflows/troy-python-sample.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sample:
+    name: Python sample (${{ matrix.pr }} PR)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: [tests, impl]
+    defaults:
+      run:
+        # A login shell activates the micromamba environment.
+        shell: bash -leo pipefail {0}
+        working-directory: sample
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: troy-pstack
+      - name: Build the sample
+        working-directory: .
+        env:
+          PR: ${{ matrix.pr }}
+        run: python3 troy-pstack/troy-mode/dev/build_sample.py build python --pr "$PR" --out sample
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: sample/environment.yml
+          cache-environment: true
+      - name: Install from the lock
+        run: |
+          uv pip install -r requirements-dev.lock
+          uv pip install -e . --no-deps
+      - name: Lint and format
+        run: |
+          ruff check
+          ruff format --check
+      - name: Types
+        run: mypy
+      - name: Tests
+        run: coverage run -m pytest --junitxml=reports/junit.xml || true
+      - name: Coverage report
+        run: coverage xml -o reports/coverage.xml
+      - name: Run troy-check code
+        run: |
+          checks=.troy-mode/checks
+          if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/base"
+            git archive "$BASE_SHA" "$checks" | tar -x -C "$RUNNER_TEMP/base"
+            checks="$RUNNER_TEMP/base/$checks"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          python "$checks/troy_check.py" code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml
+      - name: Compare with the expected results
+        env:
+          PR: ${{ matrix.pr }}
+        run: |
+          python .troy-mode/checks/troy_check.py code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml --json > "$RUNNER_TEMP/report.json"
+          python ../troy-pstack/troy-mode/dev/build_sample.py verify python --pr "$PR" \
+            --report "$RUNNER_TEMP/report.json"

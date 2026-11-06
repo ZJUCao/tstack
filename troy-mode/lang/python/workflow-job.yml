@@ -1,0 +1,57 @@
+# troy-mode Python pack: the code checks job (F03 design 8.5).
+# troy-init adds this job under "jobs:" in .github/workflows/troy-mode.yml,
+# next to the troy-check job from F02. It needs environment.yml and
+# requirements-dev.lock at the repository root.
+  troy-code:
+    name: troy-mode code checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        # A login shell activates the micromamba environment.
+        shell: bash -leo pipefail {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+      - name: Install from the lock
+        run: |
+          uv pip install -r requirements-dev.lock
+          uv pip install -e . --no-deps
+      - name: Lint and format
+        run: |
+          ruff check
+          ruff format --check
+      - name: Types
+        run: mypy
+      - name: Tests
+        # troy-check decides which failures are allowed, so pytest's exit
+        # code is ignored.
+        run: coverage run -m pytest --junitxml=reports/junit.xml || true
+      - name: Coverage report
+        run: coverage xml -o reports/coverage.xml
+      - name: Run troy-check code
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # As in the troy-check job: the title and description reach the shell
+        # only through environment variables, and the checker runs from the
+        # base commit when it exists there.
+        run: |
+          checks=.troy-mode/checks
+          if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/base"
+            git archive "$BASE_SHA" "$checks" | tar -x -C "$RUNNER_TEMP/base"
+            checks="$RUNNER_TEMP/base/$checks"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          python "$checks/troy_check.py" code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml

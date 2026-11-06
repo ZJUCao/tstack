@@ -1,0 +1,14 @@
+# troy-mode Python pack: tables for .troy-mode/config.toml (F03 design 8.4).
+# troy-init adds them and fills in the environment. A member of a series lists
+# every member's folder in series, for example ["../troy-voice", "."].
+
+[lang]
+name = "python"
+source_roots = ["src"]
+environment = "{{environment}}"
+series = ["."]
+
+[paths]
+tests = ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
+dependencies = ["pyproject.toml", "environment.yml", "requirements*.lock"]
+lock = ["requirements*.lock"]
