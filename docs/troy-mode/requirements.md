@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.12 |
+| Version | 1.13 |
 | Date | 2026-11-06 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. No question is open. |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. Version 1.13 records the F04 design decisions Troy approved: D31, D32, and D35, and the answer to Q5. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -144,7 +144,7 @@ troy-mode: Stopped on F07. This needs you.
 
 The main session also does the project manager's work. It picks the next feature, starts each role, passes reviews between roles, keeps the progress file, and escalates to Troy.
 
-Each role's model can be set (Q3).
+Each role's model is set in its agent file and can be overridden per project in `.troy-mode/config.toml` (Q3, [F04 design](design/F04-role-definitions.md) D32).
 
 ### 4.1 pstack skills troy-mode reuses
 
@@ -268,7 +268,7 @@ Each escalation says what stopped, why, the options, and a recommendation (Proto
 
 1. Troy states the rule and whether it applies to every troy-mode project or to one.
 2. troy-mode picks the strongest enforcement that works. In order: an architecture that makes the mistake impossible, a lint or CI check, a test, and last, written role instructions.
-3. One PR updates the rules table, the check config, and the role instructions, in English and Chinese.
+3. One PR updates the rules table in English and Chinese, the check config, and the role instructions. Role instructions are prompts for Claude and are in English only (F04 design D35).
 4. If existing code breaks the new rule, Troy chooses: fix it all now in separate cleanup PRs, or apply the rule only to new and changed code.
 
 A rule for every project lives in troy-pstack and ships in a new plugin version. A rule for one project lives in that project's rules table.
@@ -329,10 +329,10 @@ The IDs are already in topological order.
 | F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Written |
 | F02 | Language-independent checks for R01, R02, R03, R12, R16, R19, and R20, a GitHub Actions workflow that runs them, and a `commit` subcommand that F05's hooks call for R19. The checks read each PR's stage from its title (F01 design D1). R20 rejects documents and PR descriptions that still hold template markers (F01 design D2). R21's check, which fails when the PR's branch is `main`, came after F02 merged and is not built yet. | F01 | Written |
 | F03 | Language packs. A language-independent engine in troy-check for R04, R05, R06, R07, R09, R10, and R11, which reads JUnit and Cobertura XML, plus one thin pack per language with its environment, tool config, commands, and CI job ([F03 design](design/F03-language-packs.md) D15). Built in four PRs. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). The Python pack follows the Python environment rule in section 8. | F01 | Runs on a sample project: the Python and C/C++ packs each take their sample project through the pack's CI job, which ends in `troy-check code`. Both pass in troy-pstack's CI on Linux and on Troy's PC. Not yet used on a real project. TypeScript/JavaScript is not started |
-| F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, and model. | F01 | Not started |
-| F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19, and on commits on `main` and pushes of `main` (R21). | F02, F04 | Not started |
+| F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, model, and write scope ([F04 design](design/F04-role-definitions.md)). | F01 | Not started |
+| F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on each role's edits outside its write scope, Developer edits to tests (R08) among them, and on git and GitHub writes by roles (F04 design D31). A block on commits that break R19, and on commits on `main` and pushes of `main` (R21). | F02, F04 | Not started |
 | F06 | Project init (`troy-init`). Marker folder, document skeleton, rules table, and progress file. After the architecture is approved, the language pack and the CI workflow. | F01, F02, F03 | Not started |
-| F07 | Entry skill (`troy-mode`). Routes each request to a flow (5.1 to 5.10), runs the feature loop, passes reviews between roles, escalates, applies the merge rights, and keeps the progress file. | F04, F05, F06 | Not started |
+| F07 | Entry skill (`troy-mode`). Routes each request to a flow (5.1 to 5.10), runs the feature loop, passes reviews between roles, escalates, applies the merge rights, and keeps the progress file. Starts each role with the model and effort in the `[roles]` table of `.troy-mode/config.toml` (F04 design D32), and checks after each run that the role changed only files in its write scope (D31). | F04, F05, F06 | Not started |
 | F08 | Version release flow (5.5). | F07 | Not started |
 | F09 | Rule change flow (5.8). | F07 | Not started |
 | F10 | troy-pstack documentation. A README section, a usage guide in English and Chinese, and a note that troy-mode is Troy's own work. | F07 | Not started |
@@ -393,7 +393,7 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | Q2 | For how many first features does Troy merge PR 1 and PR 2? | 3 per project. Then Troy decides. |
 | Q3 | Which model does each role use? | opus for the Architect, Interface Designer, Test Manager, and Code Reviewer. sonnet for the Developer and Test Engineer. The Product Manager uses the main session's model. |
 | Q4 | Names. | `troy-mode`, `troy-init`. Agents `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, `troy-code-reviewer`. Marker folder `.troy-mode/` in the project root. |
-| Q5 | R08 needs a hook to know that the Developer is the one editing. Whether Claude Code tells a hook which subagent made a call has to be checked during design. | If it cannot, CI enforces R08 on every PR and the Developer's instructions forbid it. |
+| Q5 | R08 needs a hook to know that the Developer is the one editing. Whether Claude Code tells a hook which subagent made a call has to be checked during design. | Answered by the F04 design (section 9.1): it can. The hook input names the subagent in `agent_type`, so a hook enforces R08, and CI's R02 stays as the backstop. |
 | Q6 | When an existing project (for example troy-voice) adopts troy-mode, must old code meet the rules? | No. Only new and changed code. Old code is fixed when it is touched. |
 | Q7 | Which machine runs performance tests? | Troy's PC, locally, at version release. Not CI, whose runners are too noisy. |
 | Q8 | Is the progress file committed? Committing it means a PR for every update, which R01 and R02 make heavy. | Keep it local and git-ignored. The durable state is the status table, which PR 6 updates. |
@@ -418,3 +418,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.10 | 2026-11-06 | F03 status: Written, parts 1 to 3 of 4. The Python pack takes its sample project through lint, types, tests, coverage, and `troy-check code` on Troy's PC. |
 | 1.11 | 2026-11-06 | F03 status: Written, all 4 parts. The C/C++ pack takes its sample project through build, format, lint, tests, coverage, Doxygen, and `troy-check code` on Troy's PC. |
 | 1.12 | 2026-11-06 | F03 status: Runs on a sample project. After part 4 merged, both sample projects pass their pack's CI job in troy-pstack's CI on Linux, as they do on Troy's PC. |
+| 1.13 | 2026-11-06 | Troy approved the F04 design. F05 enforces every role's write scope and blocks git and GitHub writes by roles, and F07 checks the scope after each run (D31). Each role's model can be overridden per project (D32). Role instructions are in English only (D35). Q5 is answered: a hook can tell which subagent makes a call. |
