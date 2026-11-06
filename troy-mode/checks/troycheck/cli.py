@@ -11,10 +11,12 @@ from .config import CONFIG_PATH, ConfigError, parse_config
 from .context import PrContext
 from .covreport import check_r11
 from .gitio import GitError
+from .modules import check_r07
 from .markers import check_r20
 from .mirrors import check_r12
 from .pr_rules import check_r01, check_r02, check_r16
 from .report import Result, is_ok, render_json, render_text, write_github_outputs
+from .shape import check_r04, check_r05, check_r06, load_python
 from .size import check_r03
 from .testpolicy import check_r09, check_r10, load_run
 from .titles import describe, parse_title
@@ -141,8 +143,10 @@ def run_code(args: argparse.Namespace) -> int:
         0 when nothing fails, 1 otherwise.
     """
     ctx = build_pr_context(args)
+    files = load_python(ctx) if ctx.config.lang.get("name") == "python" else None
     run = load_run(ctx, args.junit)
-    results = [check_r09(ctx, run), check_r10(ctx, run), check_r11(ctx, args.coverage)]
+    results = [check_r04(ctx, files), check_r05(ctx, files), check_r06(ctx), check_r07(ctx),
+               check_r09(ctx, run), check_r10(ctx, run), check_r11(ctx, args.coverage)]
     allowed = list(ALLOWED[ctx.title.kind]) if ctx.title else []
     header = [f"troy-check code: {args.title}", describe(ctx.title, allowed)]
     title = ctx.title.to_dict() if ctx.title else None

@@ -248,6 +248,39 @@ def read_blob(repo: Path, commit: str, path: str) -> str | None:
     return proc.stdout.decode("utf-8", "replace")
 
 
+def read_blobs(repo: Path, commit: str, paths: list[str]) -> dict[str, str]:
+    """Reads many files of one commit with a single git process.
+
+    Args:
+        repo: Repository root.
+        commit: Commit ID.
+        paths: Repository paths.
+
+    Returns:
+        Text by path, decoded as UTF-8. Missing files are left out.
+    """
+    if not paths:
+        return {}
+    request = "".join(f"{commit}:{p}\n" for p in paths).encode("utf-8")
+    try:
+        proc = subprocess.run(["git", "-C", str(repo), "cat-file", "--batch"], input=request,
+                              capture_output=True)
+    except OSError as exc:
+        raise GitError(f"cannot run git: {exc}") from exc
+    out, pos, result = proc.stdout, 0, {}
+    for path in paths:
+        end = out.index(b"\n", pos)
+        header = out[pos:end].split()
+        pos = end + 1
+        if len(header) == 3 and header[1] == b"blob":
+            size = int(header[2])
+            result[path] = out[pos:pos + size].decode("utf-8", "replace")
+            pos += size + 1
+        elif len(header) == 3:
+            pos += int(header[2]) + 1
+    return result
+
+
 def files_containing(repo: Path, commit: str, pattern: str, glob: str) -> list[str]:
     """Lists files in a commit with a line matching a regular expression.
 
