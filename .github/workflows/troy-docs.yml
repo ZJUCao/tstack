@@ -1,0 +1,22 @@
+# Checks that each English document in troy-pstack matches its Chinese mirror.
+name: troy-mode docs
+on:
+  pull_request:
+    paths:
+      - "**/*.md"
+      - "troy-mode/dev/**"
+      - ".github/workflows/troy-docs.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pairs:
+    name: EN/ZH pairs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Test the pair checker
+        run: python3 -m unittest discover -s troy-mode/dev/tests -v
+      - name: Check every EN/ZH pair
+        run: python3 troy-mode/dev/check_pairs.py

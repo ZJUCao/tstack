@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.4 |
+| Version | 1.5 |
 | Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status. No question is open. |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -368,7 +368,7 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel.
 - **Cost.** Each role's model can be set. Checks also run locally before a push, so CI rarely fails and private-repository Actions minutes last.
 - **Privacy.** troy-mode uses no service beyond GitHub and Anthropic. No secret goes into a document, a log, or the progress file.
 - **Resumable.** Any new session continues from the progress file.
-- **Language.** Documents are written in English with a Chinese mirror. Code and code comments are in English.
+- **Language.** Documents are written in English with a Chinese mirror. Code and code comments are in English. In troy-pstack, CI checks every PR that changes a document: each English document and its mirror must have the same headings, tables, code blocks, markers, and version (`troy-mode/dev/check_pairs.py`).
 - **Python environments.** In a Python project, mamba creates and manages the project's environment, and uv installs packages into it. troy-mode never creates a `.venv` folder. F03's Python pack sets this up on Troy's PC and in CI. troy-mode's own checks (F02) use only the standard library and need no environment.
 - **Auditable.** Every role's output is a PR or a review comment, so the history shows who changed what.
 
@@ -409,3 +409,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.2 | 2026-11-05 | Troy answered Q1: Python and C/C++ first, TypeScript/JavaScript at lower priority. Troy extended Q9: a command-line project may use a Markdown terminal transcript as a prototype. The requirements template follows. |
 | 1.3 | 2026-11-05 | Troy approved the F02 design. R19 also forbids mentioning Claude or Anthropic by default (D10). New rule R20 for template markers (D11). Section 6 says troy-mode's merge step enforces Hard rules, because Troy's GitHub plan has no branch protection for private repositories (D14). Troy added the Python environment rule: mamba and uv, no `.venv` (section 8). F01 status: Written. |
 | 1.4 | 2026-11-05 | F02 status: Written. Its unit tests pass on Troy's PC. It has not yet run on a project's PRs. |
+| 1.5 | 2026-11-05 | Troy asked for the EN/ZH pair check in troy-pstack's CI. Section 8, Language, says what it checks. |
