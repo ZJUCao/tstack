@@ -1,0 +1,96 @@
+# Takes the sample C++ project through the C/C++ pack (F03 design 10).
+# Each job builds the sample's repository with one PR on a branch, then runs
+# the steps of troy-mode/lang/cpp/workflow-job.yml on it. Only the PR's
+# values come from build_sample.py instead of the pull_request event.
+# troy-mode/dev/tests/test_cpp_pack.py checks that the steps stay the same.
+name: troy-mode C++ sample
+on:
+  pull_request:
+    paths:
+      - "troy-mode/checks/troy_check.py"
+      - "troy-mode/checks/troycheck/**"
+      - "troy-mode/checks/workflow.yml"
+      - "troy-mode/lang/cpp/**"
+      - "troy-mode/samples/cpp/**"
+      - "troy-mode/dev/build_sample.py"
+      - ".github/workflows/troy-cpp-sample.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sample:
+    name: C++ sample (${{ matrix.pr }} PR)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: [tests, impl]
+    defaults:
+      run:
+        # A login shell activates the micromamba environment.
+        shell: bash -leo pipefail {0}
+        working-directory: sample
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: troy-pstack
+      - name: Build the sample
+        working-directory: .
+        env:
+          PR: ${{ matrix.pr }}
+        run: python3 troy-pstack/troy-mode/dev/build_sample.py build cpp --pr "$PR" --out sample
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: sample/environment.yml
+          cache-environment: true
+      - name: Install from the lock
+        run: uv pip install -r requirements-tools.lock
+      - name: Configure and build
+        run: |
+          cmake --preset coverage
+          cmake --build --preset coverage
+      - name: Format and lint changed files
+        run: |
+          mapfile -t files < <(git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- \
+            '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx')
+          if [ "${#files[@]}" -gt 0 ]; then
+            clang-format --dry-run --Werror "${files[@]}"
+          fi
+          mapfile -t sources < <(printf '%s\n' "${files[@]}" | grep -E '\.(c|cc|cpp|cxx)$' || true)
+          if [ "${#sources[@]}" -gt 0 ]; then
+            clang-tidy -p build/coverage --quiet "${sources[@]}"
+          fi
+      - name: Tests
+        run: |
+          mkdir -p reports
+          ctest --preset coverage --output-junit "$PWD/reports/junit.xml" || true
+      - name: Coverage report
+        run: |
+          gcovr --root . --filter 'include/' --filter 'src/' --exclude-throw-branches \
+            --exclude-unreachable-branches --cobertura reports/coverage.xml build/coverage
+      - name: Doc comments
+        run: doxygen .troy-mode/lang/cpp/Doxyfile
+      - name: Run troy-check code
+        run: |
+          checks=.troy-mode/checks
+          if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/base"
+            git archive "$BASE_SHA" "$checks" | tar -x -C "$RUNNER_TEMP/base"
+            checks="$RUNNER_TEMP/base/$checks"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          python "$checks/troy_check.py" code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml \
+            --doc-warnings reports/doxygen.log
+      - name: Compare with the expected results
+        env:
+          PR: ${{ matrix.pr }}
+        run: |
+          python .troy-mode/checks/troy_check.py code --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            --junit reports/junit.xml --coverage reports/coverage.xml \
+            --doc-warnings reports/doxygen.log --json > "$RUNNER_TEMP/report.json"
+          python ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" \
+            --report "$RUNNER_TEMP/report.json"

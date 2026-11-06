@@ -181,9 +181,14 @@ class FileSelectionTests(PrefetchedCase):
         self.assert_rule(out, "R05", "skip")
         self.assert_exit(out, 0)
 
-    def test_cpp_language_skips_r05_in_part_two(self):
-        """The C/C++ adapter does not exist yet, so R05 is skipped."""
-        self.assert_rule(run_py({"src/a.py": self.BAD}, name="cpp"), "R05", "skip")
+    def test_cpp_language_runs_r05_with_the_cpp_adapter(self):
+        """With name = cpp a CJK comment in C++ fails R05 without a Doxygen log."""
+        bad = f"// {CJK['ideograph']}\nint x;\n"
+        out = run_py({"src/a.cpp": bad}, name="cpp")
+        self.assert_rule(out, "R05", "fail")
+        self.assertTrue(has_detail(out, "R05", "src/a.cpp", 1), out.describe())
+        clean = run_py({"src/a.cpp": "// English\nint x;\n"}, name="cpp")
+        self.assert_rule(clean, "R05", "skip")
 
 
 class CjkTests(PrefetchedCase):

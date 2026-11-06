@@ -9,6 +9,9 @@ from dataclasses import dataclass, field
 
 from .classify import classify
 from .context import PrContext
+from .cppadapter import EXTENSIONS, CppFile, require_lizard
+from .cppadapter import analyze as analyze_cpp
+from .cppdocs import check_r05_cpp
 from .gitio import added_lines, read_blobs
 from .pyadapter import ParseError, PyFile, Unit, analyze
 from .report import FAIL, PASS, SKIP, WARN, Detail, Result
@@ -30,7 +33,7 @@ class CodeFiles:
     """
 
     changed: dict[str, set[int]] = field(default_factory=dict)
-    analyzed: dict[str, PyFile] = field(default_factory=dict)
+    analyzed: dict[str, PyFile | CppFile] = field(default_factory=dict)
     errors: list[Detail] = field(default_factory=list)
 
 
@@ -42,14 +45,57 @@ def lang_skip(ctx: PrContext, rule: str) -> Result | None:
         rule: The rule ID to report.
 
     Returns:
-        A SKIP result, or None when the Python adapter applies.
+        A SKIP result, or None when the Python or C/C++ adapter applies.
     """
     name = ctx.config.lang.get("name")
     if name is None:
         return Result(rule, SKIP, "No [lang] name in .troy-mode/config.toml.")
-    if name != "python":
-        return Result(rule, SKIP, "The C/C++ adapter comes in F03 part 4.")
+    if name not in ("python", "cpp"):
+        return Result(rule, SKIP, f"No adapter for the language {name}.")
     return None
+
+
+def _changed_code(ctx: PrContext, extensions: tuple[str, ...]) -> list[str]:
+    """Lists the changed files with the extensions in the source and tests classes."""
+    return [c.path for c in ctx.changes if c.status != "D" and c.path.endswith(extensions)
+            and classify(c.path, ctx.config.paths) in CODE_CLASSES]
+
+
+def load_code(ctx: PrContext) -> CodeFiles | None:
+    """Reads the changed code files with the project language's adapter.
+
+    Args:
+        ctx: The PR under check.
+
+    Returns:
+        The analyzed files, or None when the project names no language.
+
+    Raises:
+        AdapterError: The project is C/C++ and lizard is missing.
+    """
+    name = ctx.config.lang.get("name")
+    if name == "python":
+        return load_python(ctx)
+    if name == "cpp":
+        require_lizard()
+        return load_cpp(ctx)
+    return None
+
+
+def load_cpp(ctx: PrContext) -> CodeFiles:
+    """Reads and analyzes the changed C and C++ files in the source and tests classes.
+
+    Args:
+        ctx: The PR under check.
+
+    Returns:
+        The analyzed files and their changed lines.
+    """
+    paths = _changed_code(ctx, EXTENSIONS)
+    files = CodeFiles(changed=added_lines(ctx.repo, ctx.base, ctx.head, paths))
+    for path, text in sorted(read_blobs(ctx.repo, ctx.head, paths).items()):
+        files.analyzed[path] = analyze_cpp(path, text)
+    return files
 
 
 def load_python(ctx: PrContext) -> CodeFiles:
@@ -61,8 +107,7 @@ def load_python(ctx: PrContext) -> CodeFiles:
     Returns:
         The analyzed files and their changed lines.
     """
-    paths = [c.path for c in ctx.changes if c.status != "D" and c.path.endswith(".py")
-             and classify(c.path, ctx.config.paths) in CODE_CLASSES]
+    paths = _changed_code(ctx, (".py",))
     files = CodeFiles(changed=added_lines(ctx.repo, ctx.base, ctx.head, paths))
     for path, text in sorted(read_blobs(ctx.repo, ctx.head, paths).items()):
         try:
@@ -105,30 +150,40 @@ def check_r04(ctx: PrContext, files: CodeFiles | None) -> Result:
     return Result("R04", PASS, f"{count} changed functions, all within {limit} code lines.")
 
 
+def _cjk_fails(path: str, texts: list[tuple[int, str]], lines: set[int]) -> list[Detail]:
+    """Finds changed comment and doc comment lines with CJK text in one file."""
+    cjk_lines = sorted({n for n, text in texts if n in lines and CJK.search(text)})
+    return [Detail(path, n, "comment or doc comment holds Chinese, Japanese, or Korean text")
+            for n in cjk_lines]
+
+
 def _doc_fails(path: str, py: PyFile, lines: set[int]) -> list[Detail]:
-    """Finds missing docstrings and CJK text in one file's changed parts."""
+    """Finds missing docstrings and CJK text in one Python file's changed parts."""
     fails = [Detail(path, u.line, f"{u.kind} {u.name} has no docstring")
              for u in py.units if _touched(u, lines) and not u.has_doc]
-    cjk_lines = sorted({n for n, text in py.texts if n in lines and CJK.search(text)})
-    fails += [Detail(path, n, "comment or docstring holds Chinese, Japanese, or Korean text")
-              for n in cjk_lines]
-    return fails
+    return fails + _cjk_fails(path, py.texts, lines)
 
 
-def check_r05(ctx: PrContext, files: CodeFiles | None) -> Result:
+def check_r05(ctx: PrContext, files: CodeFiles | None, doc_log: str | None = None) -> Result:
     """Checks doc comments and English-only comments in changed code (R05).
 
     Args:
         ctx: The PR under check.
         files: The analyzed changed files, or None without an adapter.
+        doc_log: C/C++ only: the path of Doxygen's warning log, or None.
 
     Returns:
         SKIP without an adapter. FAIL for a changed function or class with no
-        docstring, or a changed comment or docstring line with CJK text.
+        doc comment, or a changed comment line with CJK text. C/C++ follows
+        cppdocs.check_r05_cpp.
     """
     skip = lang_skip(ctx, "R05")
     if skip or files is None:
         return skip or Result("R05", SKIP, "No adapter.")
+    if ctx.config.lang.get("name") == "cpp":
+        cjk = [d for path, cpp in files.analyzed.items()
+               for d in _cjk_fails(path, cpp.texts, files.changed.get(path, set()))]
+        return check_r05_cpp(ctx, files, doc_log, cjk)
     fails = list(files.errors)
     for path, py in files.analyzed.items():
         fails += _doc_fails(path, py, files.changed.get(path, set()))

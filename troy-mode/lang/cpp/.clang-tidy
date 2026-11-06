@@ -1,0 +1,11 @@
+# troy-mode C/C++ pack: bug-finding checks only (F03 design 9.3).
+# easily-swappable-parameters is off: it flags most functions with two
+# parameters of one type, and Google style does not ask for that.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: "*"
+# Only the project's own headers, on Linux and Windows paths alike.
+HeaderFilterRegex: '.*[/\\](include|src)[/\\].*'

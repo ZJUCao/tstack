@@ -3,6 +3,7 @@
 import unittest
 
 from builders import lines, pr_body
+from cpp_builders import cfunc
 from prefetch import PrefetchedCase
 from shape_builders import func, klass, std_base
 from shape_runs import IMPL, run_py
@@ -73,13 +74,15 @@ class StatusTests(PrefetchedCase):
         self.assert_rule(out, "R06", "pass")
         self.assert_clean(out)
 
-    def test_cpp_language_skips_the_python_rules(self):
-        """In part two, name = cpp skips R04, R05, and R07; R06 runs."""
-        out = run_py({"src/a.cpp": lines(501, "int x;")}, std_base(), name="cpp")
-        for rule in ("R04", "R05", "R07"):
-            with self.subTest(rule=rule):
-                self.assert_rule(out, rule, "skip")
+    def test_cpp_language_runs_the_cpp_rules(self):
+        """name = cpp runs R04, R05, R07 with the C/C++ adapter, and R06 too."""
+        text = cfunc("Long", code=60) + lines(500, "int x;")
+        out = run_py({"src/a.cpp": text}, std_base(), name="cpp")
+        self.assert_rule(out, "R04", "fail")
+        self.assert_rule(out, "R05", "skip")
+        self.assert_rule(out, "R07", "pass")
         self.assert_rule(out, "R06", "fail")
+        self.assertIn("doxygen", out.rule("R05")["message"].lower(), out.describe())
         self.assert_exit(out, 1)
 
     def test_a_failing_rule_makes_ok_false_and_exit_1(self):

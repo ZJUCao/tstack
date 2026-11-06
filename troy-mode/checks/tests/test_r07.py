@@ -251,9 +251,13 @@ class MapTests(PrefetchedCase):
         """No [lang] name means skip even with a map."""
         self.assert_rule(run_arch(self.BAD, name=None), "R07", "skip")
 
-    def test_cpp_language_skips_r07_in_part_two(self):
-        """The C/C++ adapter does not exist yet."""
-        self.assert_rule(run_arch(self.BAD, name="cpp"), "R07", "skip")
+    def test_cpp_language_runs_r07_with_the_cpp_adapter(self):
+        """With name = cpp an include of another module's header is judged."""
+        extra = {"core/api.h": "#pragma once\n"}
+        text = '#include "../core/api.h"\n'
+        out = run_arch({"ui/main.cpp": text}, extra, name="cpp")
+        self.assert_rule(out, "R07", "fail")
+        self.assertTrue(has_detail(out, "R07", "ui/main.cpp", 1), out.describe())
 
     def test_columns_are_found_by_header_name(self):
         """Column order and extra columns do not matter."""

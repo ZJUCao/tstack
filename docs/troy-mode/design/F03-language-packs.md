@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F03 in [requirements 1.6](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05, with D15 to D24 |
+| Version | 1.1 |
+| Date | 2026-11-06 |
+| Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. |
 | Source of truth | This English file. [`F03-language-packs.zh-CN.md`](F03-language-packs.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -45,9 +45,14 @@ troy-mode/
       environment.yml   pyproject.toml (fragment)   config.toml (fragment)   workflow-job.yml
     cpp/
       README.md         README.zh-CN.md
-      environment.yml   CMakePresets.json   cmake/troy.cmake   Doxyfile
+      environment.yml   requirements-tools.in   CMakePresets.json   cmake/troy.cmake   Doxyfile
       .clang-format     .clang-tidy         config.toml (fragment)   workflow-job.yml
       include/troy/not_implemented.h   (the exception that mock bodies throw)
+  samples/
+    python/  cpp/      sample projects that troy-pstack's CI takes through each pack (section 10)
+  dev/
+    build_sample.py    builds a sample's git repository
+    environment.yml    requirements-dev.lock   troy-pstack's own environment (D26)
 ```
 
 Each pack README lists its files, where they land in a project, and the commands in sections 8.3 and 9.4. `troy-init` (F06) copies the chosen pack into a project.
@@ -243,7 +248,7 @@ lock = ["requirements*.lock"]
 ### 9.1 Toolchain (D22)
 
 - CMake 3.28 or newer with Ninja. C++20 and C17.
-- GoogleTest, run through CTest.
+- GoogleTest 1.18.0, built from its release archive with the project's own compiler (D25), and run through CTest.
 - The checks and coverage use GCC with gcov. gcovr writes the Cobertura XML.
 - In CI, the GCC that ships with Ubuntu. On Troy's PC, the MSYS2 GCC 15 that is already on the PATH, so the same checks run locally.
 - Visual Studio 2026 (MSVC) stays available through a separate CMake preset, `msvc`, for building and debugging. That preset measures no coverage.
@@ -259,13 +264,12 @@ dependencies:
   - uv
   - cmake
   - ninja
-  - gtest
   - doxygen
-  - clang-format
-  - clang-tools
+  - clang-format=23
+  - clang-tools=23
 ```
 
-mamba provides the non-Python tools. uv installs the Python tools, gcovr and lizard, from `requirements-tools.lock`. The compiler comes from outside the environment, as section 9.1 says. Series, the shared environment, and the series lock work as in section 8.1.
+mamba provides the non-Python tools, with clang-format and clang-tools pinned to one major version, so CI and Troy's PC format code the same way. uv installs the Python tools, gcovr and lizard, from `requirements-tools.lock`, which is compiled from `requirements-tools.in`. The compiler comes from outside the environment, as section 9.1 says, and so does GoogleTest (D25). Series, the shared environment, and the series lock work as in section 8.1.
 
 ### 9.3 Doc comments and format (D21)
 
@@ -314,7 +318,7 @@ F03 lands in four PRs, each with one commit and its tests written first (D15):
 3. **Python pack.** The files in section 8, plus a small sample Python project that CI takes through the whole pack: environment, tests, coverage, and `troy-check code`.
 4. **C/C++ pack.** The C/C++ adapter and the files in section 9, plus a small sample C++ project that CI takes through the pack.
 
-troy-pstack's CI runs the unit tests on Linux and Windows and the sample projects on Linux.
+troy-pstack's CI runs the unit tests on Linux and Windows and the sample projects on Linux. On Troy's PC, troy-pstack's own environment, `troy-pstack`, runs them (D26).
 
 F03's status becomes "Written" when PR 4 merges. It becomes "Runs on a sample project" once both sample projects pass in CI.
 
@@ -328,7 +332,7 @@ F03's status becomes "Written" when PR 4 merges. It becomes "Runs on a sample pr
 
 ## 12. Decisions for Troy
 
-Troy approved all ten proposals on 2026-11-05, D20 after one revision.
+Troy approved all ten proposals on 2026-11-05, D20 after one revision. During part 4, on 2026-11-06, Troy chose D25 and D26.
 
 | ID | Decision | Proposal |
 | --- | --- | --- |
@@ -342,6 +346,8 @@ Troy approved all ten proposals on 2026-11-05, D20 after one revision.
 | D22 | The C/C++ compiler for the checks. | GCC with gcov everywhere, because coverage needs it: Ubuntu's GCC in CI, MSYS2 GCC 15 on your PC. MSVC through Visual Studio 2026 stays available for building and debugging, without coverage. |
 | D23 | What "comments in English only" (R05) means to a script. | No Chinese, Japanese, or Korean characters in comments and doc comments: CJK ideographs, kana, Hangul, and CJK and fullwidth punctuation. Other non-ASCII text, such as names with accents and symbols like →, is allowed. |
 | D24 | Python tools beyond the R rules. | The pack carries troy-voice's defaults: the broad ruff rule set, ruff's format check, and mypy in strict mode. A project can drop them through the rule change flow. |
+| D25 | Where GoogleTest comes from. Section 9.2 put it in the mamba environment, but conda-forge's GoogleTest for Windows is built with MSVC, and MSYS2 GCC cannot link it. This was tried on Troy's PC. | `cmake/troy.cmake` downloads the GoogleTest 1.18.0 release archive with CMake's FetchContent, checks its SHA256, and builds it with the project's own compiler. CI and Troy's PC use the same version. Troy chose this on 2026-11-06, over the platforms' package managers and over MSVC on Troy's PC. |
+| D26 | Where troy-pstack's own tests get lizard, which the C/C++ adapter needs. They used to run with the system Python. | troy-pstack is a series of one with its own environment, `troy-pstack`, created from `troy-mode/dev/environment.yml`, with lizard and gcovr from `troy-mode/dev/requirements-dev.lock`. The environment also holds the C/C++ tools, so the C++ sample runs on Troy's PC. CI installs the same lock. Troy chose this on 2026-11-06. |
 
 Requirements 1.6 records the approved changes:
 
@@ -358,3 +364,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 0.1 | 2026-11-05 | First draft. |
 | 0.2 | 2026-11-05 | Troy approved D15 to D24 except D20. D20 is revised: one environment and one lock per series (section 8.1). |
 | 1.0 | 2026-11-05 | Approved by Troy with D15 to D24, D20 as revised. |
+| 1.1 | 2026-11-06 | D25 and D26, which Troy chose during part 4. GoogleTest leaves the environment (sections 9.1 and 9.2), clang-format and clang-tools are pinned to version 23, and section 2 lists the samples and troy-pstack's own environment. |

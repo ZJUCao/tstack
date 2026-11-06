@@ -1,0 +1,19 @@
+# troy-mode C/C++ pack: the series environment (F03 design 9.2).
+# mamba provides the build tools, and uv installs gcovr and lizard from
+# requirements-tools.lock. The compiler comes from outside (design 9.1):
+# Ubuntu's GCC in CI, MSYS2 GCC on Troy's PC. GoogleTest comes from its
+# release archive through cmake/troy.cmake (design D25). clang-format and
+# clang-tools are pinned to one major version, so CI and Troy's PC format
+# code the same way.
+#   mamba env create -f environment.yml
+name: "{{environment}}"
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - uv
+  - cmake
+  - ninja
+  - doxygen
+  - clang-format=23
+  - clang-tools=23
