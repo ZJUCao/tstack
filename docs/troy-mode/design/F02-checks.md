@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-05 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
@@ -128,7 +128,7 @@ JSON report (`--json`):
 
 `ok` is false when any result is `fail`. `title` is null when the title does not parse, and for `commit`.
 
-When the environment variable `GITHUB_ACTIONS` is `true`, the tool also prints one GitHub annotation per `fail` or `warn` detail (`::error file=<path>,line=<n>::R12 ...`) and appends the text report to `$GITHUB_STEP_SUMMARY`.
+When the environment variable `GITHUB_ACTIONS` is `true`, the tool also prints one GitHub annotation per `fail` or `warn` detail (`::error file=<path>,line=<n>::R12 ...`) and appends the text report to `$GITHUB_STEP_SUMMARY`. With `--json`, the annotations go to stderr, so stdout stays valid JSON.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -375,3 +375,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | --- | --- | --- |
 | 0.1 | 2026-11-05 | First draft. |
 | 1.0 | 2026-11-05 | Approved by Troy with D7 to D14. D14 records Troy's free GitHub plan. Section 9 notes that the tool needs no Python environment. |
+| 1.1 | 2026-11-05 | Section 3.3: with `--json`, annotations go to stderr. Found while implementing. |

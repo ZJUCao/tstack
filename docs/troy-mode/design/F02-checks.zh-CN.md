@@ -1,11 +1,11 @@
 # F02 设计：与语言无关的检查
 
-> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.0（2026-11-05）。两者如有出入，以英文版为准。
+> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.1（2026-11-05）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.3](../requirements.zh-CN.md#72-功能列表) 中的 F02 |
-| 版本 | 1.0 |
+| 版本 | 1.1 |
 | 日期 | 2026-11-05 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D7 到 D14 |
 | 事实来源 | 英文版 [`F02-checks.md`](F02-checks.md)。本文件是中文镜像。 |
@@ -130,7 +130,7 @@ JSON 报告（`--json`）：
 
 只要有一个结果是 `fail`，`ok` 就是 false。标题解析不了时，以及 `commit` 子命令，`title` 为 null。
 
-环境变量 `GITHUB_ACTIONS` 为 `true` 时，工具还会为每条 `fail` 或 `warn` 明细输出一条 GitHub 注解（`::error file=<path>,line=<n>::R12 ...`），并把文本报告追加到 `$GITHUB_STEP_SUMMARY`。
+环境变量 `GITHUB_ACTIONS` 为 `true` 时，工具还会为每条 `fail` 或 `warn` 明细输出一条 GitHub 注解（`::error file=<path>,line=<n>::R12 ...`），并把文本报告追加到 `$GITHUB_STEP_SUMMARY`。使用 `--json` 时，注解改为输出到 stderr，保证 stdout 仍是合法的 JSON。
 
 | 退出码 | 含义 |
 | --- | --- |
@@ -377,3 +377,4 @@ F02 的 PR 合并时，F02 的状态改为"已编写"。
 | --- | --- | --- |
 | 0.1 | 2026-11-05 | 初稿。 |
 | 1.0 | 2026-11-05 | Troy 批准，含 D7 到 D14。D14 记下了 Troy 的 GitHub 免费套餐。第 9 节说明工具不需要 Python 环境。 |
+| 1.1 | 2026-11-05 | 第 3.3 节：使用 `--json` 时，注解输出到 stderr。实现时发现。 |
