@@ -44,8 +44,8 @@ source_files = 5
 # PRs, in percent.
 line_coverage = 90
 branch_coverage = 80
-# R04 and R06, troy-check code (F03 part 2): code lines per function body,
-# and lines per source file.
+# R04 and R06, troy-check code: code lines per function body, and lines per
+# source file.
 function_lines = 50
 file_lines = 500
 

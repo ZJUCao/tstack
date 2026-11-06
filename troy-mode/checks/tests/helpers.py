@@ -35,7 +35,9 @@ Content = Union[str, bytes, None]
 _SCRATCH = tempfile.TemporaryDirectory(prefix="troycheck-scratch-")
 atexit.register(_SCRATCH.cleanup)
 _GLOBAL_CONFIG = Path(_SCRATCH.name) / "gitconfig"
-_GLOBAL_CONFIG.write_text("", encoding="utf-8")
+# No background maintenance or gc: since git 2.47 it runs detached after a
+# commit and can leave a lock file appear or vanish while a template is copied.
+_GLOBAL_CONFIG.write_text("[maintenance]\n\tauto = false\n[gc]\n\tauto = 0\n", encoding="utf-8")
 _TEMPLATES: dict = {}
 _LOCK = threading.Lock()
 
