@@ -47,7 +47,7 @@ class PackFileTests(unittest.TestCase):
                  if line.strip() and not line.startswith("#")]
         self.assertEqual(['name: "{{environment}}"', "channels:", "- conda-forge", "dependencies:",
                           "- python=3.13", "- uv", "- cmake", "- ninja", "- doxygen",
-                          "- clang-format=23", "- clang-tools=23"], lines)
+                          "- clang-format=23", "- clang-tools=23", "- clang-23"], lines)
 
     def test_tool_requirements_name_gcovr_and_lizard(self) -> None:
         """uv installs gcovr and lizard, the pack's Python tools."""

@@ -29,6 +29,7 @@ The top-level `CMakeLists.txt` includes `cmake/troy.cmake` right after `project(
 
 - The environment works as in the Python pack: one mamba environment per series, and one lock per series. No `.venv` folder is ever created.
 - mamba provides the build tools. clang-format and clang-tools are pinned to one major version, so CI and Troy's PC format code the same way.
+- The environment also has clang-23, which holds clang's own headers, such as `stddef.h`. clang-tidy reads them, and clang-tools does not include them. Without them clang-tidy fails on Linux.
 - uv installs gcovr and lizard from `requirements-tools.lock`.
 - The compiler comes from outside the environment: Ubuntu's GCC in CI, and on Troy's PC the MSYS2 GCC that is on the PATH.
 - GoogleTest is not in the environment. `cmake/troy.cmake` downloads its release archive, checks the archive's SHA256, and builds it with the project's own compiler (design D25). conda-forge's GoogleTest for Windows is built with MSVC, and GCC cannot link it.

@@ -267,9 +267,10 @@ dependencies:
   - doxygen
   - clang-format=23
   - clang-tools=23
+  - clang-23
 ```
 
-mamba provides the non-Python tools, with clang-format and clang-tools pinned to one major version, so CI and Troy's PC format code the same way. uv installs the Python tools, gcovr and lizard, from `requirements-tools.lock`, which is compiled from `requirements-tools.in`. The compiler comes from outside the environment, as section 9.1 says, and so does GoogleTest (D25). Series, the shared environment, and the series lock work as in section 8.1.
+mamba provides the non-Python tools, with clang-format and clang-tools pinned to one major version, so CI and Troy's PC format code the same way. clang-23 holds clang's own headers, such as `stddef.h`, which clang-tidy reads; clang-tools does not include them. uv installs the Python tools, gcovr and lizard, from `requirements-tools.lock`, which is compiled from `requirements-tools.in`. The compiler comes from outside the environment, as section 9.1 says, and so does GoogleTest (D25). Series, the shared environment, and the series lock work as in section 8.1.
 
 ### 9.3 Doc comments and format (D21)
 
@@ -364,4 +365,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 0.1 | 2026-11-05 | First draft. |
 | 0.2 | 2026-11-05 | Troy approved D15 to D24 except D20. D20 is revised: one environment and one lock per series (section 8.1). |
 | 1.0 | 2026-11-05 | Approved by Troy with D15 to D24, D20 as revised. |
-| 1.1 | 2026-11-06 | D25 and D26, which Troy chose during part 4. GoogleTest leaves the environment (sections 9.1 and 9.2), clang-format and clang-tools are pinned to version 23, and section 2 lists the samples and troy-pstack's own environment. |
+| 1.1 | 2026-11-06 | D25 and D26, which Troy chose during part 4. GoogleTest leaves the environment (sections 9.1 and 9.2), clang-format and clang-tools are pinned to version 23, clang-23 joins the environment for clang-tidy, and section 2 lists the samples and troy-pstack's own environment. |

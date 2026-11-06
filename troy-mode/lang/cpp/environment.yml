@@ -4,7 +4,8 @@
 # Ubuntu's GCC in CI, MSYS2 GCC on Troy's PC. GoogleTest comes from its
 # release archive through cmake/troy.cmake (design D25). clang-format and
 # clang-tools are pinned to one major version, so CI and Troy's PC format
-# code the same way.
+# code the same way. clang-23 holds clang's own headers, such as stddef.h,
+# which clang-tidy reads; clang-tools does not include them.
 #   mamba env create -f environment.yml
 name: "{{environment}}"
 channels:
@@ -17,3 +18,4 @@ dependencies:
   - doxygen
   - clang-format=23
   - clang-tools=23
+  - clang-23

@@ -31,6 +31,7 @@ C/C++ 语言包让 troy-check 的语言相关规则在 C 或 C++ 项目里运行
 
 - 环境的用法和 Python 语言包一样：每个系列一个 mamba 环境，每个系列一份锁文件。任何时候都不建 `.venv` 文件夹。
 - mamba 提供构建工具。clang-format 和 clang-tools 固定在同一个大版本，这样 CI 和 Troy 电脑上的格式化结果一致。
+- 环境里还有 clang-23，它包含 clang 自己的头文件（如 `stddef.h`）。clang-tidy 要读这些文件，而 clang-tools 不带它们。缺了它们，clang-tidy 在 Linux 上会失败。
 - uv 按 `requirements-tools.lock` 安装 gcovr 和 lizard。
 - 编译器不在环境里：CI 用 Ubuntu 自带的 GCC，Troy 的电脑用 PATH 上的 MSYS2 GCC。
 - GoogleTest 也不在环境里。`cmake/troy.cmake` 下载它的发布包，校验 SHA256，再用项目自己的编译器编译（设计 D25）。conda-forge 在 Windows 上的 GoogleTest 是 MSVC 编译的，GCC 链接不了。
