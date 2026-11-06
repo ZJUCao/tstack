@@ -25,11 +25,11 @@ mirror-of: "architecture.md"
 
 ## 3. 模块
 
-<!-- template: 每个模块一行。"可以依赖谁"列出它唯一允许引用的模块。 -->
+<!-- template: 每个模块一行。troy-check 会读取这张表来检查 R07，所以路径要写准确。"负责什么"先用反引号写出模块的文件路径规则，再写模块负责的内容。"对外接口"用反引号写出其他模块唯一可以引用的文件的路径规则。"可以依赖谁"列出它唯一允许引用的模块，或者写"无"。 -->
 
 | 模块 | 负责什么 | 对外接口 | 可以依赖谁 |
 | --- | --- | --- | --- |
-| {{module}} | {{responsibility}} | {{interfaces}} | {{modules, or None}} |
+| {{module}} | {{path patterns, then responsibility}} | {{interface path patterns}} | {{modules, or None}} |
 
 ## 4. 依赖规则
 

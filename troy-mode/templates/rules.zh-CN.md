@@ -22,7 +22,7 @@ mirror-of: "rules.md"
 
 | 编号 | 规则 | 类型 | 由什么保证 | 适用范围 | 起始日期 |
 | --- | --- | --- | --- | --- | --- |
-| R01 | 每个 PR 只有一个 commit。审查后的修改通过修改那个 commit 完成，或者用 squash 合并。 | 硬 | CI | troy-mode | {{init-date}} |
+| R01 | 每个 PR 只有一个 commit，且它的标题行等于 PR 标题。审查后的修改通过修改那个 commit 完成，或者用 squash 合并。 | 硬 | CI | troy-mode | {{init-date}} |
 | R02 | 每个 PR 只包含一个阶段的产出：文档、源码或测试之一。 | 硬 | CI | troy-mode | {{init-date}} |
 | R03 | 源码 PR 最多改动 500 行（新增加删除，不算锁文件和自动生成的文件），最多涉及 5 个文件。测试 PR 不限。只拆分文件的 PR 可以超限，但要写明。 | 软 | CI | troy-mode | {{init-date}} |
 | R04 | 函数体最多 50 行，不算注释、文档注释和空行。复杂的对外接口调用多个功能单一的内部函数。 | 硬 | Lint | troy-mode | {{init-date}} |
@@ -31,7 +31,7 @@ mirror-of: "rules.md"
 | R07 | 模块之间只能按架构允许的方向依赖，只通过对外接口调用，不能有循环。 | 硬 | 依赖检查工具 | troy-mode | {{init-date}} |
 | R08 | 开发工程师永远不改测试文件。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
 | R09 | 测试 PR 里的每个新测试对着 mock 都失败。 | 硬 | CI | troy-mode | {{init-date}} |
-| R10 | 每个测试都标上所属的功能或 bug 编号。尚未验收的功能、尚未修复的 bug，它们的测试失败记为预期失败。其余测试必须通过。 | 硬 | 测试运行器配置和 CI | troy-mode | {{init-date}} |
+| R10 | 每个测试都标上它的用例编号或 bug 编号：测试自己的名字以编号开头，例如 `test_f04_t07_writes_header`。尚未验收的功能、尚未修复的 bug，它们的测试失败记为预期失败。其余测试必须通过。 | 硬 | 测试运行器配置和 CI | troy-mode | {{init-date}} |
 | R11 | 实现 PR 中，改动代码的行覆盖率不低于 90%，分支覆盖率不低于 80%。95% 是目标，不是门槛。排除的代码行必须写明原因，并经测试经理批准。 | 硬 | CI | troy-mode | {{init-date}} |
 | R12 | 英文文档是事实来源。改英文文档的 PR 必须同时更新中文镜像。中文镜像的文档头注明它对应的英文版本。 | 硬 | CI | troy-mode | {{init-date}} |
 | R13 | 状态标签要如实说明功能做到哪一步，比如"在 main 上通过测试"和"在 Troy 的设备上可用"要区分开。 | 审查 | 产品经理 | troy-mode | {{init-date}} |
