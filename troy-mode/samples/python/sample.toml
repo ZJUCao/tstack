@@ -1,0 +1,44 @@
+# textstats: the sample Python project that troy-pstack's CI takes through the
+# Python pack (F03 design 10).
+#
+# troy-mode/dev/build_sample.py builds a git repository from this file. The
+# first commit is the base folder with the pack installed, the way troy-init
+# sets up a project. Each later commit adds one stage folder on top. To check
+# a PR, the commits before it go on main and the PR's commit on a branch.
+# expected lists the result of each rule that troy-check code must report.
+
+environment = "textstats"
+
+[pack]
+# Pack files written into the project. append adds the pack file after the
+# project's own file, as troy-init does.
+copy = { "environment.yml" = "environment.yml", "config.toml" = ".troy-mode/config.toml" }
+append = { "pyproject.toml" = "pyproject.toml", "workflow-job.yml" = ".github/workflows/troy-mode.yml" }
+
+[[commits]]
+title = "[docs] Set up textstats with troy-mode"
+folder = "base"
+
+[[commits]]
+title = "[F01 1/6 design] Count words in a text"
+folder = "stages/1-design"
+
+[[commits]]
+title = "[F01 2/6 test-plan] Count words in a text"
+folder = "stages/2-test-plan"
+
+[[commits]]
+title = "[F01 3/6 mock] Count words in a text"
+folder = "stages/3-mock"
+
+[[commits]]
+title = "[F01 4/6 tests] Count words in a text"
+folder = "stages/4-tests"
+pr = "tests"
+expected = { R04 = "pass", R05 = "pass", R06 = "skip", R07 = "pass", R09 = "pass", R10 = "pass", R11 = "skip" }
+
+[[commits]]
+title = "[F01 5/6 impl] Count words in a text"
+folder = "stages/5-impl"
+pr = "impl"
+expected = { R04 = "pass", R05 = "pass", R06 = "pass", R07 = "pass", R09 = "skip", R10 = "pass", R11 = "pass" }

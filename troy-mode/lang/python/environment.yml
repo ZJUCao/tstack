@@ -1,0 +1,10 @@
+# troy-mode Python pack: the series environment (F03 design 8.1).
+# Every member of a series commits this same file. mamba provides only Python
+# and uv. uv installs every package from requirements-dev.lock.
+#   mamba env create -f environment.yml
+name: "{{environment}}"
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - uv

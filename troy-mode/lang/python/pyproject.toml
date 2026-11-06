@@ -1,0 +1,64 @@
+# troy-mode Python pack: tables for the project's pyproject.toml (F03 design 8.2).
+# troy-init appends them after the project's own [build-system] and [project]
+# tables. They carry troy-voice's settings plus the docstring rules of R05.
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.6",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+# troy-check is checked in troy-pstack, not in the project.
+extend-exclude = [".troy-mode"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "SIM", "C4", "PIE", "RET", "N", "RUF",
+    "ANN",  # every function is annotated
+    "DTZ",  # no naive datetimes
+    "T20",  # no print() outside entry points; use logging
+    "PTH",  # pathlib instead of os.path
+    "S",    # security checks
+    "TID",  # absolute imports only
+    "ERA",  # no commented-out code
+    "PL",
+    "D",    # Google-style docstrings (R05)
+]
+ignore = [
+    "PLR0913",  # constructors take their dependencies explicitly
+    "PLR2004",  # small literal comparisons are fine
+    "RUF001",   # strings may hold Chinese full-width punctuation; R05 keeps it out of comments
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S104", "S105", "S106", "ANN", "PLR2004"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.13"
+strict = true
+mypy_path = "src"
+files = ["src"]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+branch = true
+source = ["src"]
