@@ -22,7 +22,7 @@ mirror: "rules.zh-CN.md"
 
 | ID | Rule | Type | Enforced by | Scope | Since |
 | --- | --- | --- | --- | --- | --- |
-| R01 | Each PR has exactly one commit. Review fixes amend that commit, or the PR is squash-merged. | Hard | CI | troy-mode | {{init-date}} |
+| R01 | Each PR has exactly one commit, and its subject line equals the PR title. Review fixes amend that commit, or the PR is squash-merged. | Hard | CI | troy-mode | {{init-date}} |
 | R02 | Each PR holds one stage's output only: documents, source, or tests. | Hard | CI | troy-mode | {{init-date}} |
 | R03 | A source PR changes at most 500 lines (added plus deleted, not counting lock files or generated files) in at most 5 files. Test PRs have no limit. A PR that only splits a file may pass the limit and says so. | Soft | CI | troy-mode | {{init-date}} |
 | R04 | A function body has at most 50 lines, not counting comments, doc comments, or blank lines. A complex external interface calls single-purpose internal functions. | Hard | Lint | troy-mode | {{init-date}} |
@@ -31,7 +31,7 @@ mirror: "rules.zh-CN.md"
 | R07 | Modules depend on each other only in the directions the architecture allows, only through external interfaces, and never in a cycle. | Hard | Dependency checker | troy-mode | {{init-date}} |
 | R08 | The Developer never edits test files. | Hard | Hook and CI | troy-mode | {{init-date}} |
 | R09 | Every new test in a test PR fails against the mock. | Hard | CI | troy-mode | {{init-date}} |
-| R10 | Every test is tagged with its feature or bug ID. Tests of features not yet accepted and of bugs not yet fixed count as expected failures. Every other test must pass. | Hard | Test runner config and CI | troy-mode | {{init-date}} |
+| R10 | Every test is tagged with its case ID or bug ID: the test's own name starts with it, for example `test_f04_t07_writes_header`. Tests of features not yet accepted and of bugs not yet fixed count as expected failures. Every other test must pass. | Hard | Test runner config and CI | troy-mode | {{init-date}} |
 | R11 | In an implementation PR, the changed code has at least 90% line coverage and 80% branch coverage. 95% is a target, not a gate. An excluded line needs a written reason and the Test Manager's approval. | Hard | CI | troy-mode | {{init-date}} |
 | R12 | English documents are the source of truth. A PR that changes an English document also updates its Chinese mirror. The mirror's header names the English version it matches. | Hard | CI | troy-mode | {{init-date}} |
 | R13 | A status label says how far a feature really goes, for example "passes tests on main" versus "usable on Troy's devices". | Review | Product Manager | troy-mode | {{init-date}} |

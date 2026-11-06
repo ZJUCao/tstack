@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.5 |
+| Version | 1.6 |
 | Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. No question is open. |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -287,7 +287,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 
 | ID | Rule | Type | Enforced by |
 | --- | --- | --- | --- |
-| R01 | Each PR has exactly one commit. Review fixes amend that commit, or the PR is squash-merged. | Hard | CI |
+| R01 | Each PR has exactly one commit, and its subject line equals the PR title (F03 design D17). Review fixes amend that commit, or the PR is squash-merged. | Hard | CI |
 | R02 | Each PR holds one stage's output only: documents, source, or tests. | Hard | CI |
 | R03 | A source PR changes at most 500 lines (added plus deleted, not counting lock files or generated files) in at most 5 files. Test PRs have no limit. A PR that only splits a file may pass the limit and says so. | Soft | CI |
 | R04 | A function body has at most 50 lines, not counting comments, doc comments, or blank lines. A complex external interface calls single-purpose internal functions. | Hard | Lint |
@@ -296,7 +296,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 | R07 | Modules depend on each other only in the directions the architecture allows, only through external interfaces, and never in a cycle. | Hard | Dependency checker |
 | R08 | The Developer never edits test files. | Hard | Hook and CI |
 | R09 | Every new test in a test PR fails against the mock. | Hard | CI |
-| R10 | Every test is tagged with its feature or bug ID. Tests of features not yet accepted and of bugs not yet fixed count as expected failures. Every other test must pass. | Hard | Test runner config and CI |
+| R10 | Every test is tagged with its case ID or bug ID: the test's own name starts with it, for example `test_f04_t07_writes_header` (F03 design D16). Tests of features not yet accepted and of bugs not yet fixed count as expected failures. Every other test must pass. | Hard | Test runner config and CI |
 | R11 | In an implementation PR, the changed code has at least 90% line coverage and 80% branch coverage. 95% is a target, not a gate. An excluded line needs a written reason and the Test Manager's approval. | Hard | CI |
 | R12 | English documents are the source of truth. A PR that changes an English document also updates its Chinese mirror. The mirror's header names the English version it matches. | Hard | CI |
 | R13 | A status label says how far a feature really goes, for example "passes tests on main" versus "usable on Troy's devices". | Review | Product Manager |
@@ -327,7 +327,7 @@ The IDs are already in topological order.
 | --- | --- | --- | --- |
 | F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Written |
 | F02 | Language-independent checks for R01, R02, R03, R12, R16, R19, and R20, a GitHub Actions workflow that runs them, and a `commit` subcommand that F05's hooks call for R19. The checks read each PR's stage from its title (F01 design D1). R20 rejects documents and PR descriptions that still hold template markers (F01 design D2). | F01 | Written |
-| F03 | Language packs. For each language, the config for R04, R05, R06, R07, R10, and R11 and its test runner. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). The Python pack follows the Python environment rule in section 8. | F01 | Not started |
+| F03 | Language packs. A language-independent engine in troy-check for R04, R05, R06, R07, R09, R10, and R11, which reads JUnit and Cobertura XML, plus one thin pack per language with its environment, tool config, commands, and CI job ([F03 design](design/F03-language-packs.md) D15). Built in four PRs. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). The Python pack follows the Python environment rule in section 8. | F01 | Not started |
 | F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, and model. | F01 | Not started |
 | F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19. | F02, F04 | Not started |
 | F06 | Project init (`troy-init`). Marker folder, document skeleton, rules table, and progress file. After the architecture is approved, the language pack and the CI workflow. | F01, F02, F03 | Not started |
@@ -369,7 +369,7 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel.
 - **Privacy.** troy-mode uses no service beyond GitHub and Anthropic. No secret goes into a document, a log, or the progress file.
 - **Resumable.** Any new session continues from the progress file.
 - **Language.** Documents are written in English with a Chinese mirror. Code and code comments are in English. In troy-pstack, CI checks every PR that changes a document: each English document and its mirror must have the same headings, tables, code blocks, markers, and version (`troy-mode/dev/check_pairs.py`).
-- **Python environments.** In a Python project, mamba creates and manages the project's environment, and uv installs packages into it. troy-mode never creates a `.venv` folder. F03's Python pack sets this up on Troy's PC and in CI. troy-mode's own checks (F02) use only the standard library and need no environment.
+- **Python environments.** In a Python project, mamba creates and manages the environment, and uv installs packages into it. Projects that will run together on one platform form a series and share one environment, named after the series. A project in no series has its own. Each series has one lock file, `requirements-dev.lock`, compiled from all members' `pyproject.toml` and committed in each member (F03 design D20). troy-mode never creates a `.venv` folder. F03's Python pack sets this up on Troy's PC and in CI. troy-mode's own checks (F02) use only the standard library and need no environment.
 - **Auditable.** Every role's output is a PR or a review comment, so the history shows who changed what.
 
 ## 9. Out of scope (version 1)
@@ -397,7 +397,7 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | Q7 | Which machine runs performance tests? | Troy's PC, locally, at version release. Not CI, whose runners are too noisy. |
 | Q8 | Is the progress file committed? Committing it means a PR for every update, which R01 and R02 make heavy. | Keep it local and git-ignored. The durable state is the status table, which PR 6 updates. |
 | Q9 | What format do project prototypes use? | Clickable HTML wireframes in `docs/prototypes/`, plus Mermaid diagrams in the documents. A command-line project may also write a prototype as a Markdown file in `docs/prototypes/` that holds a terminal session transcript (added by Troy in 1.2). |
-| Q10 | How is troy-mode itself built? The pipeline does not exist until F07. | One PR per feature (F01 to F10) on troy-pstack, each with one commit. Check scripts are built test-first. The pilot (F11) is the first full run of the pipeline. |
+| Q10 | How is troy-mode itself built? The pipeline does not exist until F07. | One PR per feature (F01 to F10) on troy-pstack, each with one commit. Check scripts are built test-first. The pilot (F11) is the first full run of the pipeline. F03 is the exception: it is built in four PRs (F03 design D15). |
 
 ## 11. Change log
 
@@ -410,3 +410,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.3 | 2026-11-05 | Troy approved the F02 design. R19 also forbids mentioning Claude or Anthropic by default (D10). New rule R20 for template markers (D11). Section 6 says troy-mode's merge step enforces Hard rules, because Troy's GitHub plan has no branch protection for private repositories (D14). Troy added the Python environment rule: mamba and uv, no `.venv` (section 8). F01 status: Written. |
 | 1.4 | 2026-11-05 | F02 status: Written. Its unit tests pass on Troy's PC. It has not yet run on a project's PRs. |
 | 1.5 | 2026-11-05 | Troy asked for the EN/ZH pair check in troy-pstack's CI. Section 8, Language, says what it checks. |
+| 1.6 | 2026-11-05 | Troy approved the F03 design. F03 takes R09 and is built in four PRs (D15). R10: a test's name starts with its ID (D16). R01: the commit subject equals the PR title (D17). Section 8: one environment and one lock file per series of projects (D20). |

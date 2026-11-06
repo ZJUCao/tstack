@@ -25,11 +25,11 @@ mirror: "architecture.zh-CN.md"
 
 ## 3. Modules
 
-<!-- template: One row per module. "May depend on" lists the only modules it may import. -->
+<!-- template: One row per module. troy-check reads this table for R07, so keep the paths exact. Owns lists the module's files as path patterns in backticks, then what the module is responsible for. External interfaces lists, as path patterns in backticks, the only files other modules may import. May depend on lists the only modules it may import, or None. -->
 
 | Module | Owns | External interfaces | May depend on |
 | --- | --- | --- | --- |
-| {{module}} | {{responsibility}} | {{interfaces}} | {{modules, or None}} |
+| {{module}} | {{path patterns, then responsibility}} | {{interface path patterns}} | {{modules, or None}} |
 
 ## 4. Dependency rules
 
