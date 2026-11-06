@@ -9,7 +9,7 @@ mirror-of: "rules.md"
 
 # {{project-name}} 规则
 
-<!-- template: troy-init 填写 {{project-name}} 和 {{init-date}}。R01 到 R20 来自 troy-mode。本项目自己的规则通过规则变更流程（troy-mode 需求文档 5.8）加在它们后面，编号为 P01、P02，依此类推。没有内容的章节、字段或表格写“无”。文档合入前，删除所有 template 注释和所有 {{标记}}。 -->
+<!-- template: troy-init 填写 {{project-name}} 和 {{init-date}}。R01 到 R21 来自 troy-mode。本项目自己的规则通过规则变更流程（troy-mode 需求文档 5.8）加在它们后面，编号为 P01、P02，依此类推。没有内容的章节、字段或表格写“无”。文档合入前，删除所有 template 注释和所有 {{标记}}。 -->
 
 ## 1. 规则类型
 
@@ -42,6 +42,7 @@ mirror-of: "rules.md"
 | R18 | 前 3 个功能的 PR 1 和 PR 2 由 Troy 合并。其他 PR 在检查和审查都通过后由 Claude 合并。什么时候全部交给 Claude 合并，由 Troy 决定。 | 流程 | troy-mode | troy-mode | {{init-date}} |
 | R19 | commit 使用 Troy 全局 CLAUDE.md 里规定的邮箱。commit 信息、PR 标题和 PR 描述不带任何 Claude 署名，也完全不提 Claude 或 Anthropic，除非 `.troy-mode/config.toml` 把署名检查模式设为 `trailers`。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明。 | 硬 | CI | troy-mode | {{init-date}} |
+| R21 | 每个改动都通过从单独分支发起的 PR 进入 `main`。永远不要在 `main` 上提交、推送 `main`，或从 `main` 开 PR。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
 
 <!-- template: 本项目自己的规则加在这里，每条一行，适用范围填 "project"。示例行：| P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} | -->
 
@@ -49,4 +50,4 @@ mirror-of: "rules.md"
 
 | 版本 | 日期 | 修改 |
 | --- | --- | --- |
-| 1.0 | {{init-date}} | 初始化，包含来自 troy-mode 的 R01 到 R20。 |
+| 1.0 | {{init-date}} | 初始化，包含来自 troy-mode 的 R01 到 R21。 |

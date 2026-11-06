@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.6 |
+| Version | 1.7 |
 | Date | 2026-11-05 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. No question is open. |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -307,6 +307,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 | R18 | Troy merges PR 1 and PR 2 of the first features (Q2). Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode |
 | R19 | Commits use the email in Troy's global CLAUDE.md. Commit messages, PR titles, and PR descriptions carry no Claude attribution and, by default, do not mention Claude or Anthropic at all (F02 design D10). | Hard | Hook and CI |
 | R20 | A merged document or PR description holds no template markers or template guidance (F01 design D2, F02 design D11). | Hard | CI |
+| R21 | Every change reaches `main` through a PR from its own branch. Never commit on `main`, push `main`, or open a PR from `main`. | Hard | Hook and CI |
 
 ## 7. Features
 
@@ -326,10 +327,10 @@ The IDs are already in topological order.
 | ID | Feature | Depends on | Status |
 | --- | --- | --- | --- |
 | F01 | Templates and rules table. Templates for the requirements, architecture, interface design, test plan, ADR, progress file, changelog, and escalation message. The English and Chinese pair format with its sync header. The rules table, seeded from section 6. PR title and description templates ([F01 design](design/F01-templates.md) D1). | None | Written |
-| F02 | Language-independent checks for R01, R02, R03, R12, R16, R19, and R20, a GitHub Actions workflow that runs them, and a `commit` subcommand that F05's hooks call for R19. The checks read each PR's stage from its title (F01 design D1). R20 rejects documents and PR descriptions that still hold template markers (F01 design D2). | F01 | Written |
+| F02 | Language-independent checks for R01, R02, R03, R12, R16, R19, and R20, a GitHub Actions workflow that runs them, and a `commit` subcommand that F05's hooks call for R19. The checks read each PR's stage from its title (F01 design D1). R20 rejects documents and PR descriptions that still hold template markers (F01 design D2). R21's check, which fails when the PR's branch is `main`, came after F02 merged and is not built yet. | F01 | Written |
 | F03 | Language packs. A language-independent engine in troy-check for R04, R05, R06, R07, R09, R10, and R11, which reads JUnit and Cobertura XML, plus one thin pack per language with its environment, tool config, commands, and CI job ([F03 design](design/F03-language-packs.md) D15). Built in four PRs. Python and C/C++ come first. TypeScript/JavaScript is wanted too, at lower priority (Q1). The Python pack follows the Python environment rule in section 8. | F01 | Not started |
 | F04 | Role definitions. Six subagents and the Product Manager's instructions for the main session, each with its instructions, tool limits, and model. | F01 | Not started |
-| F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19. | F02, F04 | Not started |
+| F05 | Hooks. A marker-folder gate so they do nothing outside troy-mode projects. A block on Developer edits to tests (R08). A block on commits that break R19, and on commits on `main` and pushes of `main` (R21). | F02, F04 | Not started |
 | F06 | Project init (`troy-init`). Marker folder, document skeleton, rules table, and progress file. After the architecture is approved, the language pack and the CI workflow. | F01, F02, F03 | Not started |
 | F07 | Entry skill (`troy-mode`). Routes each request to a flow (5.1 to 5.10), runs the feature loop, passes reviews between roles, escalates, applies the merge rights, and keeps the progress file. | F04, F05, F06 | Not started |
 | F08 | Version release flow (5.5). | F07 | Not started |
@@ -411,3 +412,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.4 | 2026-11-05 | F02 status: Written. Its unit tests pass on Troy's PC. It has not yet run on a project's PRs. |
 | 1.5 | 2026-11-05 | Troy asked for the EN/ZH pair check in troy-pstack's CI. Section 8, Language, says what it checks. |
 | 1.6 | 2026-11-05 | Troy approved the F03 design. F03 takes R09 and is built in four PRs (D15). R10: a test's name starts with its ID (D16). R01: the commit subject equals the PR title (D17). Section 8: one environment and one lock file per series of projects (D20). |
+| 1.7 | 2026-11-05 | Troy added R21: every change reaches `main` through a PR from its own branch. F05's hooks and a troy-check branch check will enforce it; neither is built yet. |
