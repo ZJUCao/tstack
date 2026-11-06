@@ -11,17 +11,26 @@ def _first_line(message: str) -> str:
 
 
 def check_r01(ctx: PrContext) -> Result:
-    """Checks that the PR has exactly one commit (R01).
+    """Checks that the PR has exactly one commit, whose subject is the PR title (R01).
+
+    The subject must equal the title so that main's history records each
+    PR's kind, which the test policy reads (F03 design D17).
 
     Args:
         ctx: The PR under check.
 
     Returns:
-        PASS for exactly one commit, FAIL otherwise, listing the commits.
+        PASS for exactly one commit whose subject line equals the title, FAIL
+        otherwise, listing the commits.
     """
     count = len(ctx.commits)
     if count == 1:
-        return Result("R01", PASS, "1 commit.")
+        subject = _first_line(ctx.commits[0].message).rstrip()
+        if subject == ctx.title_text.rstrip():
+            return Result("R01", PASS, "1 commit. Its subject is the PR title.")
+        return Result("R01", FAIL, "The commit's subject line is not the PR title.",
+                      [Detail(None, None, f"subject: {subject}"),
+                       Detail(None, None, f"title:   {ctx.title_text.rstrip()}")])
     details = [Detail(None, None, f"{c.sha[:12]} {_first_line(c.message)}") for c in ctx.commits]
     return Result("R01", FAIL, f"{count} commits. A PR has exactly one commit.", details)
 

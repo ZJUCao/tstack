@@ -88,13 +88,13 @@ class ReportTests(CheckTestCase):
 
     def test_default_head_is_head(self):
         """Without --head the checkout's HEAD is the PR head."""
-        out = self.sb.check_pr(TITLE, head=None)
+        out = run_pr(TITLE, {"docs/a.md": "a\n"}, head=None)
         self.assert_rule(out, "R01", "pass")
         self.assert_exit(out, 0)
 
     def test_repo_defaults_to_the_git_top_level(self):
         """Without --repo the repository is found from a subfolder."""
-        out = self.sb.check_pr(TITLE, from_cwd="docs")
+        out = run_pr(TITLE, {"docs/a.md": "a\n"}, from_cwd="docs")
         self.assert_rule(out, "R01", "pass")
         self.assert_exit(out, 0)
 
