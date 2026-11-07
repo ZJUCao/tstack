@@ -39,7 +39,7 @@ mirror: "rules.zh-CN.md"
 | R15 | Every fixed bug keeps its reproduction test. | Review | Test Manager | troy-mode | {{init-date}} |
 | R16 | A new third-party dependency needs the Architect's approval. | Review | Architect. CI flags every change to dependency files. | troy-mode | {{init-date}} |
 | R17 | A review loop stops at 3 rounds and escalates. | Process | troy-mode | troy-mode | {{init-date}} |
-| R18 | Troy merges PR 1 and PR 2 of the first 3 features. Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode | troy-mode | {{init-date}} |
+| R18 | Troy approves PR 1 and PR 2 of the first 3 features, in chat or by merging them. After an approval in chat, Claude merges them. Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode | troy-mode | {{init-date}} |
 | R19 | Commits use the email in Troy's global CLAUDE.md. Commit messages, PR titles, and PR descriptions carry no Claude attribution and do not mention Claude or Anthropic at all, unless `.troy-mode/config.toml` sets the attribution mode to `trailers`. | Hard | Hook and CI | troy-mode | {{init-date}} |
 | R20 | A merged document or PR description holds no template markers or template guidance. | Hard | CI | troy-mode | {{init-date}} |
 | R21 | Every change reaches `main` through a PR from its own branch. Never commit on `main`, push `main`, or open a PR from `main`. | Hard | Hook and CI | troy-mode | {{init-date}} |
