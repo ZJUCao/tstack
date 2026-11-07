@@ -9,7 +9,7 @@ environment = "{{environment}}"
 series = ["."]
 
 [paths]
-config = [".clang-format", ".clang-tidy"]
+config = [".clang-format", ".clang-tidy", "include/troy/not_implemented.h"]
 tests = ["**/*_test.cc", "**/*_test.cpp"]
 dependencies = ["CMakeLists.txt", "**/CMakeLists.txt", "cmake/**", "CMakePresets.json",
                 "environment.yml", "requirements*.lock", "requirements*.in"]
