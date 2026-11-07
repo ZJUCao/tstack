@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.0（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.0 |
+| 版本 | 1.1 |
 | 日期 | 2026-11-07 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -25,7 +25,7 @@ F07 是 Troy 在 troy-mode 项目里做任何工作时输入的命令：`/troy-p
 
 F07 分两部分合入（D67）。第 1 部分包括请求分派、项目初始化、功能循环的主线、流水线之外的工作和接续。第 2 部分加上功能循环的旁支 PR（有争议的测试、覆盖率缺口和新依赖）、修 bug 和需求变更。
 
-关于 Claude Code 的事实来自它的文档，以及 F04 到 F06 的试运行。其中两条决定了这份设计的形状。Claude 不能调用标了 `disable-model-invocation: true` 的技能，所以 F07 自己运行 troy-init 的引擎（F06 第 10 节），并通过读取 pstack 技能的 `SKILL.md` 来照着做。Agent 工具在每次调用时接受 `model` 和 `effort`；在桌面应用里，子代理在后台运行，结束时报告。试运行（第 14.3 节）会检查这两条。
+关于 Claude Code 的事实来自它的文档，以及 F04 到 F06 的试运行。其中两条决定了这份设计的形状。Claude 不能调用标了 `disable-model-invocation: true` 的技能，所以 F07 自己运行 troy-init 的引擎（F06 第 10 节），并通过读取 pstack 技能的 `SKILL.md` 来照着做。Agent 工具在每次调用时接受 `model` 和 `effort`；在桌面应用里，子代理在后台运行，结束时报告。试运行（第 14.3 节）会检查这两条。第一部分的试运行确认了它们：代码审查员的每次调用都带着 `[roles]` 设置的 `effort`，其他角色都没有带；写文件的角色在前台运行，所以会话会等每一个结束；在 `claude -p` 里，后台审查结束后会话会接着运行。
 
 ## 2. 位置
 
@@ -41,7 +41,7 @@ troy-mode/
 ```
 
 - 引擎和 troy-check 一样，使用 Python 3.11 或更新版本，只用标准库（F02 D7）。它从插件自己的文件夹导入 troy-check 的配置读取、路径类别、标题解析和署名规则，以及 F05 的写入范围表。这样 F07 判断路径的方式和 hook、CI 完全一样。
-- `SKILL.md` 设置 `disable-model-invocation: true`（需求文档第 8 节）。它用 `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py` 指明引擎，用 `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md` 指明产品经理的说明，并且最先读取后者（F04 第 9.2 节）。
+- `SKILL.md` 设置 `disable-model-invocation: true`（需求文档第 8 节）。它用 `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py` 指明引擎，用 `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md` 指明产品经理的说明，并且最先读取后者（F04 第 9.2 节）。它通过 Bash 工具运行两个引擎、git 和 gh：试运行里有一个会话选了 PowerShell，需要一项 `claude -p` 不会授予的权限，结果根本没有运行 `status`。
 - F07 用 Troy 使用的语言和 Troy 交谈。文件、PR 和评论用英文，文档带中文镜像（R12）。
 
 ## 3. 引擎（D57）
@@ -155,6 +155,7 @@ troy_approves_first = 3
 | Round | 审查轮次，或 None。 |
 | Checks to run | 在项目环境里运行的语言包步骤（F03 第 8.3 节和第 9.4 节）。对写代码和写测试的角色，再加上带 PR 标题的 `troy-check code --worktree`（D60）。 |
 
+- IF1 的 Task 还说明第 4 节归架构师，并要求在那里写 "Not reviewed yet."。试运行里 IF1 把第 4 节的模板标记留给了架构师，于是在 AR2 填好这一节之前，`troy-check pr` 一直因 R20 不通过。
 - 第一个 mock 时，DV1 的检查以需要代码的初始化步骤开头：Python 是 `uv pip install -e . --no-deps`，C/C++ 是 `cmake --preset coverage`（F06 设计 5.4）。
 - 命令通过 `mamba run -n <environment>` 运行；设置了 `TROY_MODE_ENV_PREFIX` 时，用 `mamba run -p <folder>`。试运行会设置它，这样不会留下有名字的环境。mamba 的查找方式和 troy-init 相同（F06 设计 5.4）。
 - 修改是同一个任务的一次新运行（设计的修改用 IF2），Input 里是审查意见，Round 是下一轮（F04 D33）。
@@ -208,7 +209,7 @@ troy_approves_first = 3
 | 5 | `[F04 5/6 impl] <name>` | DV2 | CR1 | 同 PR 3；功能有性能目标时，再在 Troy 的电脑上运行它的性能用例（5.6、Q7）。`troy-check code` 检查 R10 和 R11。 | F07 |
 | 6 | `[F04 6/6 accept] <name>` | PM3，在主会话里 | 无 | `troy-check pr` | F07 |
 
-`<name>` 是这个功能在需求文档里的名称。分支是从 `troy-mode/f04-1-design` 到 `troy-mode/f04-6-accept`。
+`<name>` 是这个功能在需求文档里的名称。分支是从 `troy-mode/f04-1-design` 到 `troy-mode/f04-6-accept`。名称必须简短，例如 "Export history as CSV"，因为它会成为每个 PR 的标题和功能文件夹的名字。试运行里产品经理在 Feature 单元格里写了一整句话，文件夹路径超过了 Windows 的路径长度上限，普通的 `git add` 因此失败。技能要求产品经理在这个单元格里只写简短的名称。
 
 ### 8.2 一个阶段的步骤
 
@@ -246,7 +247,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 
 - 这个阶段的每个审查都以 `approved` 结束；
 - 推送的 commit 通过了本地检查；
-- 运行一次 `gh pr checks <n> --watch`，结束时每项检查都通过；
+- 运行一次 `gh pr checks <n> --watch`，结束时每项检查都通过。刚推送之后，GitHub 可能还没登记工作流，这时命令会说没有检查；再运行一次仍算同一次等待（试运行中发现）；
 - 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。其他 PR 都由 F07 合并。
 
 然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。
@@ -456,3 +457,4 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | --- | --- | --- |
 | 0.1 | 2026-11-07 | 初稿。 |
 | 1.0 | 2026-11-07 | Troy 批准，含 D57 到 D68，全部采用推荐答案。 |
+| 1.1 | 2026-11-07 | 第一部分试运行（第 14.3 节）确认的事实：Agent 调用带上 `[roles]`，会话会等写文件的角色（第 1 节）；技能通过 Bash 运行引擎、git 和 gh（第 2 节）；IF1 不在第 4 节留模板标记（第 6.1 节）；功能名称保持简短（第 8.1 节）；刚推送后 `gh pr checks --watch` 可能要再启动一次（第 8.6 节）。 |

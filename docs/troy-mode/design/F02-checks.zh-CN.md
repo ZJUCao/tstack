@@ -1,11 +1,11 @@
 # F02 设计：与语言无关的检查
 
-> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.3（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.3](../requirements.zh-CN.md#72-功能列表) 中的 F02 |
-| 版本 | 1.2 |
+| 版本 | 1.3 |
 | 日期 | 2026-11-07 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D7 到 D14 |
 | 事实来源 | 英文版 [`F02-checks.md`](F02-checks.md)。本文件是中文镜像。 |
@@ -265,7 +265,16 @@ source_files = 5    # R03
 
 [attribution]
 mode = "strict"     # "strict" or "trailers" (D10)
+
+[roles.developer]   # troy-mode's entry skill (F07 3.2): any of the six roles
+model = "opus"      # an alias the Agent tool accepts
+effort = "high"     # low, medium, high, xhigh, or max
+
+[flow]
+troy_approves_first = 3  # F07 D62: a whole number of 0 or more
 ```
+
+`[roles.<role>]` 和 `[flow]` 属于 troy-mode 的入口技能（F07 设计第 3.2 节和 D62）。`<role>` 是 `architect`、`interface-designer`、`test-manager`、`developer`、`test-engineer` 或 `code-reviewer`。未知的角色、未知的键、不在列表里的 effort，或小于 0 的数量，都会像其他配置错误一样让工具以退出码 2 停止。
 
 ## 8. GitHub Actions 工作流
 
@@ -379,3 +388,4 @@ F02 的 PR 合并时，F02 的状态改为"已编写"。
 | 1.0 | 2026-11-05 | Troy 批准，含 D7 到 D14。D14 记下了 Troy 的 GitHub 免费套餐。第 9 节说明工具不需要 Python 环境。 |
 | 1.1 | 2026-11-05 | 第 3.3 节：使用 `--json` 时，注解输出到 stderr。实现时发现。 |
 | 1.2 | 2026-11-07 | 第 6.4 节：R12 不把 `.troy-mode/` 下的文件当文档，和 R20 不扫描这里一样。否则 troy-init 复制到这里的模板会让每个初始化 PR 和之后每个改文档的 PR 都失败。构建 F06 时发现，Troy 于 2026-11-07 批准。 |
+| 1.3 | 2026-11-07 | 第 7 节：配置接受带 `model` 和 `effort` 的 `[roles.<role>]`，以及带 `troy_approves_first` 的 `[flow]`，供 troy-mode 的入口技能使用。来自 F07 设计第 12 节。 |

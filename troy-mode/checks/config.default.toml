@@ -68,3 +68,19 @@ legacy = []
 # PR titles, and PR descriptions. "trailers" blocks only attribution lines,
 # for a project about Claude.
 mode = "strict"
+
+# [roles.<role>]
+# The model and effort troy-mode passes when it starts a role, in place of
+# the role's own model and the session's effort. <role> is architect,
+# interface-designer, test-manager, developer, test-engineer, or
+# code-reviewer. Leave a role or a key out to keep its default. For example:
+#
+# [roles.developer]
+# model = "opus"      # an alias the Agent tool accepts, such as opus or sonnet
+# effort = "high"     # low, medium, high, xhigh, or max
+
+[flow]
+# How many features, the first in the requirements' topological order, have
+# their design PR and test plan PR approved by Troy. troy-mode merges every
+# other PR once its checks and reviews pass. 0 means none. Default 3.
+# troy_approves_first = 3

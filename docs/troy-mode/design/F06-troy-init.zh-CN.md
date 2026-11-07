@@ -1,11 +1,11 @@
 # F06 设计：项目初始化（troy-init）
 
-> 本文件是 [`F06-troy-init.md`](F06-troy-init.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F06-troy-init.md`](F06-troy-init.md) 的中文镜像，同步自英文版 1.3（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.16](../requirements.zh-CN.md#72-功能列表) 中的 F06 |
-| 版本 | 1.2 |
+| 版本 | 1.3 |
 | 日期 | 2026-11-07 |
 | 状态 | Troy 已于 2026-11-06 批准，含 D47 到 D56。第 8 节对 R12 的改动由 Troy 于 2026-11-07 批准。 |
 | 事实来源 | 英文版 [`F06-troy-init.md`](F06-troy-init.md)。本文件是中文镜像。 |
@@ -239,7 +239,7 @@ git 和 GitHub 里的其他设置都不改。
 5. **提交。** 一个 commit，标题行等于 PR 标题（R01）：`[rules] Set up troy-mode`、`[rules] Add the Python pack` 或 `[rules] Add the C/C++ pack`、`[rules] Upgrade troy-mode to <version>`。F05 的 `commit-msg` hook 会检查它（R19）。
 6. **检查。** 用标题和描述运行 `troy-check pr`。有任何 `fail` 就停下。
 7. **PR。** `git push -u origin <branch>`，然后 `gh pr create --base main`，描述按 PR 模板写：Why、What、Checks，Soft-limit reason 写 "None"。
-8. **合并。** 用 `gh pr checks <number> --watch` 等一次检查。全部通过就用 `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>` 合并，因为 R18 允许 Claude 合并除前几个功能的 PR 1 和 PR 2 之外的所有 PR。有失败就停下并报告。然后 `git switch main` 和 `git pull --ff-only`，并把这一步记进进度文件。
+8. **合并。** 用 `gh pr checks <number> --watch` 等一次检查。全部通过就先运行 `git switch --detach`，再用 `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>` 合并，因为 R18 允许 Claude 合并除前几个功能的 PR 1 和 PR 2 之外的所有 PR。先分离 HEAD，`gh` 就不会在删除分支之前去检出 `main`。有失败就停下并报告。然后运行 `git fetch origin`，并把这一步记进进度文件。
 
 ```text
 Troy:   /troy-pstack:troy-init
@@ -381,3 +381,4 @@ F05 到 D46 为止，所以 F06 从 D47 开始。
 | 1.0 | 2026-11-06 | Troy 批准，含 D47 到 D56，全部采用推荐答案。 |
 | 1.1 | 2026-11-07 | 第 8 节：troy-check 的 R12 跳过 `.troy-mode/`，Troy 于 2026-11-07 批准。第 11.5 节：第一部分同时带上这项改动和 D49 的配置行。构建第一部分时发现。 |
 | 1.2 | 2026-11-07 | 第 3.2 节：`lang` 也接受 `--project-name`，选项表本来就说它用于构建文件。构建第二部分时发现。第 3.1 节和第 7 节：语言步骤和升级在试运行之前创建分支，因为每一步在 `main` 上都会停下。由第 11.4 节的试运行发现：这两步的试运行都在 `main` 上停下了。 |
+| 1.3 | 2026-11-07 | 第 7 节第 8 步：合并前先分离 HEAD，最后运行 `git fetch origin`，取代 `git switch main` 和 `git pull --ff-only`，这样 troy-init 在工作树（worktree）里也能用，因为那里的 `main` 常常已在别处检出。技能里无事可做的升级，在删除自己的分支之前也这样分离 HEAD。来自 F07 设计第 12 节。 |

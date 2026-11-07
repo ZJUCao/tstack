@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-07 |
 | Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
@@ -237,7 +237,7 @@ The skill runs these steps around the engine. F07 runs the same steps when it ru
 5. **Commit.** One commit whose subject is the PR title (R01): `[rules] Set up troy-mode`, `[rules] Add the Python pack` or `[rules] Add the C/C++ pack`, or `[rules] Upgrade troy-mode to <version>`. F05's `commit-msg` hook checks it (R19).
 6. **Check.** Run `troy-check pr` with the title and description. Stop on any `fail`.
 7. **PR.** `git push -u origin <branch>`, then `gh pr create --base main` with the description from the PR template: Why, What, Checks, and Soft-limit reason "None".
-8. **Merge.** Wait for the checks once with `gh pr checks <number> --watch`. When all pass, merge with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, as R18 lets Claude merge every PR except PR 1 and PR 2 of the first features. When one fails, stop and report it. Then `git switch main` and `git pull --ff-only`, and record the step in the progress file.
+8. **Merge.** Wait for the checks once with `gh pr checks <number> --watch`. When all pass, run `git switch --detach`, then merge with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, as R18 lets Claude merge every PR except PR 1 and PR 2 of the first features. Detaching first keeps `gh` from checking out `main` before it deletes the branch. When one fails, stop and report it. Then `git fetch origin`, and record the step in the progress file.
 
 ```text
 Troy:  /troy-pstack:troy-init
@@ -379,3 +379,4 @@ Requirements 1.16 records the approved changes:
 | 1.0 | 2026-11-06 | Approved by Troy with D47 to D56, every recommended answer. |
 | 1.1 | 2026-11-07 | Section 8: troy-check's R12 skips `.troy-mode/`, approved by Troy on 2026-11-07. Section 11.5: part 1 also brings that change and the D49 config line. Found while building part 1. |
 | 1.2 | 2026-11-07 | Section 3.2: `lang` also takes `--project-name`, which the option table already gives the build files. Found while building part 2. Sections 3.1 and 7: the language step and upgrade create their branch before the dry run, because every step stops on `main`. Found by the trial of 11.4, where the dry runs of both steps stopped on `main`. |
+| 1.3 | 2026-11-07 | Section 7, step 8: detach before the merge and end with `git fetch origin`, in place of `git switch main` and `git pull --ff-only`, so troy-init also works in a worktree, where `main` is often checked out elsewhere. The skill's upgrade with nothing to change detaches the same way before it deletes its branch. From F07 design section 12. |

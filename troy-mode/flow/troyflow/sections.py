@@ -1,0 +1,56 @@
+"""Sections of a design document, for the check after AR2 (F07 design 7, F04 D37).
+
+The Architect writes section 4 of a design, its review, and nothing else in it.
+"""
+
+import re
+
+_FENCE = re.compile(r"^\s*(```|~~~)")
+SECTION_FOUR = "## 4."
+
+
+def blocks(text: str) -> list[tuple[str, str]]:
+    """Cuts a Markdown document at its level-two headings, outside code blocks.
+
+    Args:
+        text: The document.
+
+    Returns:
+        Pairs of the heading line ("" for the part before the first heading)
+        and the block's whole text, in order.
+    """
+    result, heading, current, fenced = [], "", [], False
+    for line in text.replace("\r\n", "\n").split("\n"):
+        if _FENCE.match(line):
+            fenced = not fenced
+        if not fenced and line.startswith("## "):
+            result.append((heading, "\n".join(current)))
+            heading, current = line.rstrip(), []
+        current.append(line)
+    result.append((heading, "\n".join(current)))
+    return result
+
+
+def outside_section_four(before: str | None, after: str | None) -> list[str]:
+    """Lists what changed in a design outside its section 4.
+
+    Args:
+        before: The design at HEAD, or None when it is new.
+        after: The design in the working tree, or None when it was deleted.
+
+    Returns:
+        One phrase per change, empty when only section 4 changed.
+    """
+    if before is None:
+        return ["the file is new"]
+    if after is None:
+        return ["the file was deleted"]
+    old, new = blocks(before), blocks(after)
+    if [h for h, _ in old] != [h for h, _ in new]:
+        return ["its headings were added, removed, renamed, or reordered"]
+    changed = []
+    for (heading, old_text), (_, new_text) in zip(old, new):
+        if heading.startswith(SECTION_FOUR) or old_text == new_text:
+            continue
+        changed.append(f"the section {heading[3:]!r}" if heading else "the header and title")
+    return changed

@@ -1,11 +1,11 @@
 # F03 设计：语言包
 
-> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.3（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.6](../requirements.zh-CN.md#72-功能列表) 中的 F03 |
-| 版本 | 1.2 |
+| 版本 | 1.3 |
 | 日期 | 2026-11-07 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。1.2 版记录 F06 已批准设计带来的修改（D49、D50）。 |
 | 事实来源 | 英文版 [`F03-language-packs.md`](F03-language-packs.md)。本文件是中文镜像。 |
@@ -64,7 +64,7 @@ troy-mode/
 ## 3. 命令行接口：`troy-check code`
 
 ```text
-python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref>] --title <text> [--body-file <path>] [--junit <path>]... [--coverage <path>]... [--doc-warnings <path>] [--repo <path>] [--json]
+python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref> | --worktree] --title <text> [--body-file <path>] [--junit <path>]... [--coverage <path>]... [--doc-warnings <path>] [--repo <path>] [--json]
 ```
 
 | 选项 | 含义 |
@@ -73,6 +73,7 @@ python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref>] --title 
 | `--junit` | 测试运行输出的 JUnit XML 文件，可以给多个。不提供时，R09 和 R10 为 `skip`。 |
 | `--coverage` | 覆盖率工具输出的 Cobertura XML 文件，可以给多个。不提供时，R11 为 `skip`。 |
 | `--doc-warnings` | 仅用于 C/C++：Doxygen 的警告日志，供 R05 使用（第 9.3 节）。 |
+| `--worktree` | 代替 `--head`，把工作区当作已提交来检查。troy-check 用工作区之外的一个临时索引构建一个 commit 对象，以 `HEAD` 为父 commit，再把它当作 `--head` 检查。新文件算在内，被忽略的文件不算。它不移动任何引用，也不改索引和工作区，只写入没有引用指向的 git 对象。角色不能提交，所以作者用这种方式检查自己的工作（F07 设计 D60）。 |
 
 报告格式和退出码同 F02 设计第 3.3 节。结果按 R04、R05、R06、R07、R09、R10、R11 的顺序给出。CI 总会传 `--junit` 和 `--coverage`，所以 CI 里出现 `skip` 说明工作流坏了，而不是规则通过了。
 
@@ -372,3 +373,4 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2
 | 1.0 | 2026-11-05 | Troy 批准，含 D15 到 D24，D20 按修改后的方案。 |
 | 1.1 | 2026-11-06 | 加入 Troy 在做第 4 部分时决定的 D25 和 D26。GoogleTest 移出环境（第 9.1、9.2 节），clang-format 和 clang-tools 固定在 23 版，环境加入供 clang-tidy 使用的 clang-23，第 2 节列出示例项目和 troy-pstack 自己的环境。 |
 | 1.2 | 2026-11-07 | F06 已批准设计带来的修改（F06 设计第 8 节）。PR 的 head 里还没有代码时，两个语言包的 CI 任务跳过代码步骤（F06 D50，第 8.5、9.6 节）。C/C++ 的配置片段把 `include/troy/not_implemented.h` 放进 `config`（F06 D49），并列出 `requirements*.in`（第 9.5 节）。每个语言包多了一个新项目用的构建文件（第 2 节）。`build_sample.py` 通过 troy-init 自己的函数初始化示例项目，每个示例多了一个没有代码的设计 PR。 |
+| 1.3 | 2026-11-07 | 第 3 节：`troy-check code --worktree` 把工作区当作已提交来检查，供不能提交的作者使用。来自 F07 设计第 12 节（D60）。 |

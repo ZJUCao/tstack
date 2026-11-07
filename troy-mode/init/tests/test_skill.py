@@ -20,8 +20,12 @@ NAMED_TEXTS = (
     "gh pr create --base main",
     "gh pr checks <number> --watch",
     "gh pr merge <number> --rebase --delete-branch --match-head-commit",
-    "git pull --ff-only",
+    "git switch --detach",
+    "git fetch origin",
 )
+# Step 8 of the PR flow no longer checks out main (F07 design 12), so troy-init
+# also works in a worktree whose main is checked out elsewhere.
+GONE_TEXTS = ("git pull --ff-only", "git switch main")
 LANGUAGE_STEP_TEXTS = (
     "lang python",
     "lang cpp",
@@ -89,6 +93,21 @@ class SkillTest(unittest.TestCase):
         for text in NAMED_TEXTS:
             with self.subTest(text=text):
                 self.assertIn(text, self.body)
+
+    def test_skill_no_longer_switches_to_main(self):
+        """The PR flow neither switches to main nor pulls it (F07 design 12)."""
+        for text in GONE_TEXTS:
+            with self.subTest(text=text):
+                self.assertNotIn(text, self.body)
+
+    def test_skill_merge_step_detaches_first_and_fetches_last(self):
+        """Step 8 detaches before ``gh pr merge`` and runs ``git fetch origin`` after it."""
+        lines = [line for line in self.body.split("\n") if "gh pr merge" in line]
+        self.assertEqual(len(lines), 1, lines)
+        line = lines[0]
+        merge = line.find("gh pr merge")
+        self.assertIn("git switch --detach", line[:merge])
+        self.assertIn("git fetch origin", line[merge:])
 
     def test_skill_language_step_section_names_its_commands(self):
         """The Language step section names both packs, the options, branch, and subjects."""

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F03 in [requirements 1.6](../requirements.md#72-feature-list) |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-07 |
 | Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. Version 1.2 records the changes of F06's approved design (D49, D50). |
 | Source of truth | This English file. [`F03-language-packs.zh-CN.md`](F03-language-packs.zh-CN.md) is the Chinese mirror. |
@@ -62,7 +62,7 @@ Each pack README lists its files, where they land in a project, and the commands
 ## 3. Command-line interface: `troy-check code`
 
 ```text
-python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref>] --title <text> [--body-file <path>] [--junit <path>]... [--coverage <path>]... [--doc-warnings <path>] [--repo <path>] [--json]
+python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref> | --worktree] --title <text> [--body-file <path>] [--junit <path>]... [--coverage <path>]... [--doc-warnings <path>] [--repo <path>] [--json]
 ```
 
 | Option | Meaning |
@@ -71,6 +71,7 @@ python .troy-mode/checks/troy_check.py code --base <ref> [--head <ref>] --title 
 | `--junit` | A JUnit XML file from the test run. It may be given more than once. Without it, R09 and R10 are `skip`. |
 | `--coverage` | A Cobertura XML file from the coverage tool. It may be given more than once. Without it, R11 is `skip`. |
 | `--doc-warnings` | C/C++ only: Doxygen's warning log, used by R05 (section 9.3). |
+| `--worktree` | Check the working tree as if it were committed, in place of `--head`. troy-check builds a commit object from a temporary index outside the working tree, with `HEAD` as its parent, and checks that commit as `--head`. New files count and ignored files do not. It moves no ref and changes neither the index nor the working tree; it writes only git objects that no ref points to. Roles cannot commit, so an author checks its own work this way (F07 design D60). |
 
 The report and exit codes are those of F02 design section 3.3. Results come in the order R04, R05, R06, R07, R09, R10, R11. CI always passes `--junit` and `--coverage`, so a `skip` there means a broken workflow, not a passed rule.
 
@@ -370,3 +371,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 1.0 | 2026-11-05 | Approved by Troy with D15 to D24, D20 as revised. |
 | 1.1 | 2026-11-06 | D25 and D26, which Troy chose during part 4. GoogleTest leaves the environment (sections 9.1 and 9.2), clang-format and clang-tools are pinned to version 23, clang-23 joins the environment for clang-tidy, and section 2 lists the samples and troy-pstack's own environment. |
 | 1.2 | 2026-11-07 | Changes of F06's approved design (F06 design section 8). Both packs' CI jobs skip their code steps while the PR's head has no code (F06 D50, sections 8.5 and 9.6). The C/C++ config fragment puts `include/troy/not_implemented.h` in `config` (F06 D49) and lists `requirements*.in` (section 9.5). Each pack has a new project's build file (section 2). `build_sample.py` sets the samples up through troy-init's own functions, and each sample gains a design PR with no code. |
+| 1.3 | 2026-11-07 | Section 3: `troy-check code --worktree` checks the working tree as if it were committed, for authors who cannot commit. From F07 design section 12 (D60). |

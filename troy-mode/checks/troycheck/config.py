@@ -23,6 +23,13 @@ BUILTIN_PATHS: dict[str, list[str]] = {
 
 ATTRIBUTION_MODES = ("strict", "trailers")
 LANGUAGES = ("python", "cpp")
+# The roles that [roles.<role>] may set, and the efforts the Agent tool takes
+# (F04 design D32, F07 design 3.2).
+ROLES = ("architect", "interface-designer", "test-manager", "developer", "test-engineer",
+         "code-reviewer")
+ROLE_KEYS = ("model", "effort")
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+APPROVES_FIRST_DEFAULT = 3
 
 LIMIT_DEFAULTS = {
     "source_lines": 500,
@@ -62,6 +69,10 @@ class Config:
         limits: Every limit by name, defaults filled in (R03, R04, R06, R11).
         legacy_tests: Patterns for test files allowed to carry no ID (R10).
         lang: The [lang] table as written, for the language adapters.
+        roles: The [roles.<role>] tables as written: model and effort by
+            role, for troy-mode's entry skill (F07 design 3.2).
+        troy_approves_first: [flow] troy_approves_first, the number of
+            features whose PR 1 and PR 2 Troy approves (F07 design D62).
     """
 
     commit_email: str | None
@@ -72,6 +83,8 @@ class Config:
     limits: dict[str, int] = field(default_factory=lambda: dict(LIMIT_DEFAULTS))
     legacy_tests: list[str] = field(default_factory=list)
     lang: dict = field(default_factory=dict)
+    roles: dict[str, dict[str, str]] = field(default_factory=dict)
+    troy_approves_first: int = APPROVES_FIRST_DEFAULT
 
 
 def _check_value(section: str, key: str, value, expected: type) -> None:
@@ -87,9 +100,43 @@ def _check_value(section: str, key: str, value, expected: type) -> None:
         raise ConfigError(f"{name} must be a string")
 
 
+def _validate_roles(roles) -> None:
+    """Raises ConfigError for a [roles] table that breaks F07 design 3.2."""
+    if not isinstance(roles, dict):
+        raise ConfigError("[roles] must be a table")
+    for role, values in roles.items():
+        if role not in ROLES or not isinstance(values, dict):
+            raise ConfigError(f"unknown role {role!r} in [roles]; roles are {', '.join(ROLES)}")
+        for key, value in values.items():
+            if key not in ROLE_KEYS:
+                raise ConfigError(f"unknown key {key!r} in [roles.{role}]")
+            if not isinstance(value, str) or not value.strip():
+                raise ConfigError(f"[roles.{role}] {key} must be a string that is not empty")
+        effort = values.get("effort")
+        if effort is not None and effort not in EFFORTS:
+            raise ConfigError(f"[roles.{role}] effort must be one of {', '.join(EFFORTS)}")
+
+
+def _validate_flow(flow) -> None:
+    """Raises ConfigError for a [flow] table that breaks F07 design D62."""
+    if not isinstance(flow, dict):
+        raise ConfigError("[flow] must be a table")
+    for key, value in flow.items():
+        if key != "troy_approves_first":
+            raise ConfigError(f"unknown key {key!r} in [flow]")
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ConfigError("[flow] troy_approves_first must be a whole number of 0 or more")
+
+
 def _validate(data: dict) -> None:
     """Raises ConfigError for unknown sections or keys and wrong types."""
     for section, values in data.items():
+        if section == "roles":
+            _validate_roles(values)
+            continue
+        if section == "flow":
+            _validate_flow(values)
+            continue
         if section not in _SCHEMA:
             raise ConfigError(f"unknown section [{section}]")
         if not isinstance(values, dict):
@@ -136,4 +183,7 @@ def parse_config(text: str | None) -> Config:
         limits=limits,
         legacy_tests=list(data.get("tests", {}).get("legacy", [])),
         lang=dict(data.get("lang", {})),
+        roles={role: dict(values) for role, values in data.get("roles", {}).items()},
+        troy_approves_first=data.get("flow", {}).get("troy_approves_first",
+                                                     APPROVES_FIRST_DEFAULT),
     )
