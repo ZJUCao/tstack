@@ -1,0 +1,9 @@
+#!/bin/sh
+# troy-mode pre-commit hook (F05 design 8.1). R21: never commit on main.
+branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || exit 0
+if [ "$branch" = main ]; then
+  echo "troy-mode: commit refused (R21): never commit on main." >&2
+  echo "Create a branch first, for example: git switch -c <branch>" >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,92 @@
+{
+  "description": "troy-mode hooks (F05): write scopes, read-only subagents, R19 and R21 guards, and plugin reads. Each exits at once outside troy-mode projects.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" SessionStart",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^troy-pstack:troy-",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" SubagentStart",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Edit|Write|NotebookEdit|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" PreToolUse",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" PreToolUse",
+            "timeout": 10,
+            "if": "Read(//**/troy-pstack/**)"
+          }
+        ]
+      },
+      {
+        "matcher": "Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" PreToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" PostToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^troy-pstack:troy-",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" SubagentStop",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

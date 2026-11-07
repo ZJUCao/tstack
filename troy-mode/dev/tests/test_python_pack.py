@@ -154,6 +154,20 @@ class BuildSampleTests(unittest.TestCase):
         self.assertIn("  troy-check:", workflow)
         self.assertIn("  troy-code:", workflow)
 
+    def test_build_copies_the_git_hooks_like_troy_init(self) -> None:
+        """The first commit holds troy-check's git-hooks folder with the four hooks (F05 13.3)."""
+        source = TROY_MODE / "checks" / "git-hooks"
+        names = ("commit-msg", "pre-commit", "pre-merge-commit", "pre-push")
+        copied = self.repo / ".troy-mode" / "checks" / "git-hooks"
+        self.assertTrue(copied.is_dir(), f"{copied} is missing")
+        self.assertEqual({p.name for p in source.iterdir() if p.is_file()},
+                         {p.name for p in copied.iterdir() if p.is_file()})
+        files = git(self.repo, "ls-tree", "-r", "--name-only", "main~3").splitlines()
+        for name in names:
+            with self.subTest(hook=name):
+                self.assertIn(f".troy-mode/checks/git-hooks/{name}", files)
+                self.assertEqual((source / name).read_bytes(), (copied / name).read_bytes())
+
     def test_build_refuses_a_folder_that_is_not_empty(self) -> None:
         """Building into a folder with files in it is an error, exit code 2."""
         proc = run_build("build", "python", "--pr", "impl", "--out", str(self.repo))

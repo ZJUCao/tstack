@@ -5,11 +5,12 @@ Usage:
     python troy-mode/dev/build_sample.py verify python --pr tests --report FILE
 
 build sets the sample up the way troy-init sets up a project: the sample's
-base folder, troy-check in .troy-mode/checks, F02's workflow, and the
-language pack. Then it makes one commit per stage up to the PR's commit,
-which goes on a branch named pr. It prints BASE_SHA, HEAD_SHA, PR_TITLE, and
-PR_BODY, the values a pull_request event gives the pack's CI job, and writes
-them to the file named by GITHUB_ENV when that is set.
+base folder, troy-check and F05's git hooks in .troy-mode/checks, F02's
+workflow, and the language pack. It does not turn the git hooks on. Then it
+makes one commit per stage up to the PR's commit, which goes on a branch
+named pr. It prints BASE_SHA, HEAD_SHA, PR_TITLE, and PR_BODY, the values a
+pull_request event gives the pack's CI job, and writes them to the file
+named by GITHUB_ENV when that is set.
 
 verify compares a troy-check --json report with the results the sample
 expects for that PR.
@@ -33,6 +34,8 @@ CHECKS = TROY_MODE / "checks"
 PR_BODY = "## Why\n\nA stage of the sample's F01.\n\n## Soft-limit reason\n\nNone\n"
 _UNFILLED = re.compile(r"(?<!\$)\{\{[^}]*\}\}")
 _IGNORED = shutil.ignore_patterns("__pycache__", "*.pyc")
+GIT_HOOKS = tuple(f".troy-mode/checks/git-hooks/{name}"
+                  for name in ("commit-msg", "pre-commit", "pre-merge-commit", "pre-push"))
 _GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "troy-mode sample",
     "GIT_AUTHOR_EMAIL": "sample@example.invalid",
@@ -107,10 +110,11 @@ def fill(text: str, environment: str, source: str) -> str:
 
 
 def install_pack(lang: str, sample: dict, repo: Path) -> None:
-    """Adds troy-check, F02's workflow, and the language pack to the repository."""
+    """Adds troy-check, F05's git hooks, F02's workflow, and the language pack."""
     checks = repo / ".troy-mode" / "checks"
     shutil.copytree(CHECKS / "troycheck", checks / "troycheck", ignore=_IGNORED)
     shutil.copy2(CHECKS / "troy_check.py", checks / "troy_check.py")
+    shutil.copytree(CHECKS / "git-hooks", checks / "git-hooks")
     workflow = repo / ".github" / "workflows" / "troy-mode.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(CHECKS / "workflow.yml", workflow)
@@ -152,6 +156,8 @@ def build(lang: str, pr: str, out: Path) -> dict[str, str]:
         if index == 0:
             install_pack(lang, sample, out)
         git(out, "add", "-A")
+        if index == 0:
+            git(out, "add", "--chmod=+x", "--", *GIT_HOOKS)
         git(out, "commit", "-q", "-m", commit["title"])
     return {
         "BASE_SHA": git(out, "rev-parse", "main"),

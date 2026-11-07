@@ -1,0 +1,20 @@
+#!/bin/sh
+# troy-mode commit-msg hook (F05 design 8.1). Refuses a commit whose message
+# or author email breaks R19, using the project's own copy of troy-check and
+# its [attribution] mode. Without Python 3.11 or newer R19 cannot be checked,
+# so the commit is refused.
+here=$(dirname "$0")
+p=${TROY_MODE_PYTHON:-}
+if [ -z "$p" ]; then
+  case ${OSTYPE:-$(uname -s 2>/dev/null)} in
+    msys* | cygwin* | MINGW* | MSYS* | CYGWIN*) p=python ;;
+    *) p=python3 ;;
+  esac
+fi
+if ! command -v "$p" >/dev/null 2>&1 ||
+  ! "$p" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then
+  echo "troy-mode: commit refused: R19 needs Python 3.11 or newer to check the message." >&2
+  echo "Install it, or set TROY_MODE_PYTHON to its path." >&2
+  exit 1
+fi
+exec "$p" -I "$here/../troy_check.py" commit --message-file "$1"
