@@ -10,6 +10,7 @@ import os
 import stat
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from .errors import InitError
 from .gitops import config_set
@@ -58,6 +59,8 @@ class FileAction:
         content: The bytes to write, LF endings; None for delete and keep.
         owned: True for a file troy-init owns, whose hash goes into the record.
         executable: True for a git hook, staged with --chmod=+x.
+        generated: True for a file a tool writes after apply(), such as the
+            lock uv compiles (design 5.4); apply() leaves it alone.
     """
 
     path: str
@@ -65,6 +68,7 @@ class FileAction:
     content: bytes | None = None
     owned: bool = False
     executable: bool = False
+    generated: bool = False
 
 
 @dataclass
@@ -72,7 +76,7 @@ class Plan:
     """Everything a step will do and report.
 
     Attributes:
-        command: "setup" or "upgrade".
+        command: "setup", "lang", or "upgrade".
         version: The plugin's version.
         actions: One entry per file.
         conflicts: (path, reason) for files in the way.
@@ -83,6 +87,8 @@ class Plan:
         differences: (path, message) for files upgrade leaves alone.
         notes: Free-text notes for the report.
         next_steps: What the caller does next.
+        extra: Report keys only one step has, such as the language step's.
+        env: The language step's environment work (design 5.4), or None.
     """
 
     command: str
@@ -96,6 +102,8 @@ class Plan:
     differences: list[tuple[str, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
+    extra: dict = field(default_factory=dict)
+    env: Any = None
 
     @property
     def blocked(self) -> bool:
@@ -144,7 +152,7 @@ def apply(repo: Path, plan: Plan) -> None:
         try:
             if item.action == "delete":
                 target.unlink(missing_ok=True)
-            elif item.action != "keep":
+            elif item.action != "keep" and not item.generated:
                 _write(target, item)
         except OSError as exc:
             raise InitError(f"cannot write {target}: {exc}") from exc
@@ -155,3 +163,56 @@ def apply(repo: Path, plan: Plan) -> None:
 def exists(repo: Path, path: str) -> bool:
     """True when a repository path exists as a file, folder, or link."""
     return os.path.lexists(repo / path)
+
+
+@dataclass
+class Saved:
+    """A project's files as they were before a step wrote them.
+
+    Attributes:
+        files: Each path the step touches and its old bytes, None if missing.
+        folders: Folders that did not exist yet, deepest first.
+    """
+
+    files: dict[str, bytes | None]
+    folders: list[Path]
+
+
+def save(repo: Path, plan: Plan) -> Saved:
+    """Records the files a plan touches, so restore() can put them back.
+
+    Raises:
+        InitError: A file cannot be read.
+    """
+    files, folders = {}, set()
+    for item in plan.actions:
+        if item.action == "keep":
+            continue
+        files[item.path] = read_project_file(repo, item.path)
+        parent = (repo / item.path).parent
+        while parent != repo and not parent.exists():
+            folders.add(parent)
+            parent = parent.parent
+    return Saved(files, sorted(folders, key=lambda p: len(p.parts), reverse=True))
+
+
+def restore(repo: Path, saved: Saved) -> None:
+    """Puts the files back as save() found them, and removes the new folders.
+
+    Raises:
+        InitError: A file cannot be written.
+    """
+    for path, content in saved.files.items():
+        target = repo / path
+        try:
+            if content is None:
+                target.unlink(missing_ok=True)
+            else:
+                target.write_bytes(content)
+        except OSError as exc:
+            raise InitError(f"cannot restore {target}: {exc}") from exc
+    for folder in saved.folders:
+        try:
+            folder.rmdir()
+        except OSError:
+            pass

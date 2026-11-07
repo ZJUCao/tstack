@@ -1,11 +1,11 @@
 # troy-mode Python 语言包
 
-> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.0（2026-11-06）。两者如有出入，以英文版为准。
+> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 1.0 |
-| 日期 | 2026-11-06 |
+| 版本 | 1.1 |
+| 日期 | 2026-11-07 |
 | 事实来源 | 英文版 [`README.md`](README.md)。本文件是中文镜像。 |
 
 Python 语言包让 troy-check 的语言相关规则在 Python 项目里运行：R04 到 R07 检查代码，R09 到 R11 检查测试结果。`troy-init`（F06）把它复制到项目里。[F03 设计](../../../docs/troy-mode/design/F03-language-packs.zh-CN.md)第 8 节记录了每个选择的理由。
@@ -16,6 +16,7 @@ Python 语言包让 troy-check 的语言相关规则在 Python 项目里运行�
 | --- | --- | --- |
 | [`environment.yml`](environment.yml) | `environment.yml` | 系列环境：来自 conda-forge 的 Python 3.13 和 uv。`troy-init` 填写 `{{environment}}`。 |
 | [`pyproject.toml`](pyproject.toml) | 追加到 `pyproject.toml` 末尾 | `dev` 依赖组（coverage、mypy、pytest、ruff）和这些工具的设置。 |
+| [`pyproject-project.toml`](pyproject-project.toml) | 新建的 `pyproject.toml` 的开头 | 给还没有 `pyproject.toml` 的项目：用 hatchling 的 `[build-system]`，写有项目名、0.1.0 版和 Python 3.13 及以上的 `[project]`，以及 wheel 的包 `src/<package>`。`troy-init` 填写 `{{project-name}}` 和 `{{package}}`，再在后面加上语言包的设置。 |
 | [`config.toml`](config.toml) | 加进 `.troy-mode/config.toml` | `[lang]` 和 Python 的路径规则。 |
 | [`workflow-job.yml`](workflow-job.yml) | 加到 `.github/workflows/troy-mode.yml` 的 `jobs:` 下 | `troy-mode code checks` 这个 CI 任务。 |
 
@@ -63,12 +64,13 @@ uv pip install -e . --no-deps
 
 ## 5. CI 任务
 
-这个任务检出 PR 及其完整历史，用固定到某个提交的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后运行第 3 节的步骤。和 F02 的 troy-check 任务一样，PR 的标题和描述只通过环境变量传给 shell；基准提交里有 troy-check 时，就用基准提交里的那份运行，所以 PR 改不了评判它的代码。
+这个任务检出 PR 及其完整历史，然后用 `git ls-files` 查看 PR 的最新提交里 `src/` 下有没有文件。第一个 mock PR 之前没有，所以后面的步骤全部跳过，任务通过，摘要里写着“No code yet”（F06 设计 D50）。有代码时，它用固定到某个提交的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后运行第 3 节的步骤。和 F02 的 troy-check 任务一样，PR 的标题和描述只通过环境变量传给 shell；基准提交里有 troy-check 时，就用基准提交里的那份运行，所以 PR 改不了评判它的代码。
 
 ## 6. 示例项目
 
-[`troy-mode/samples/python`](../../samples/python) 里是 textstats，一个很小的项目，它的功能 F01 依次经过设计、测试计划、mock、测试和实现。[`build_sample.py`](../../dev/build_sample.py) 按 `troy-init` 初始化项目的方式建出它的 git 仓库。然后 troy-pstack 的工作流 `troy-python-sample.yml` 在两个 PR 上运行第 5 节的步骤：
+[`troy-mode/samples/python`](../../samples/python) 里是 textstats，一个很小的项目，它的功能 F01 依次经过设计、测试计划、mock、测试和实现。[`build_sample.py`](../../dev/build_sample.py) 用 `troy-init` 自己的初始化和语言步骤建出它的 git 仓库。然后 troy-pstack 的工作流 `troy-python-sample.yml` 在三个 PR 上运行第 5 节的步骤：
 
+- 设计 PR：最新提交里还没有代码，所以跳过代码步骤；
 - 测试 PR：每个新测试都必须在 mock 上失败（R09）；
 - 实现 PR：所有测试都通过，改动的代码行都被测试覆盖（R11）。
 

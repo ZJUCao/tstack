@@ -32,6 +32,7 @@ def to_dict(plan: Plan, dry_run: bool) -> dict:
         "differences": [{"path": p, "message": m} for p, m in plan.differences],
         "notes": list(plan.notes),
         "next_steps": [] if plan.blocked else list(plan.next_steps),
+        **plan.extra,
     }
 
 

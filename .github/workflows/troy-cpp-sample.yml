@@ -1,7 +1,8 @@
 # Takes the sample C++ project through the C/C++ pack (F03 design 10).
 # Each job builds the sample's repository with one PR on a branch, then runs
 # the steps of troy-mode/lang/cpp/workflow-job.yml on it. Only the PR's
-# values come from build_sample.py instead of the pull_request event.
+# values come from build_sample.py instead of the pull_request event. The
+# design PR has no code yet, so its code steps are skipped (F06 design D50).
 # troy-mode/dev/tests/test_cpp_pack.py checks that the steps stay the same.
 name: troy-mode C++ sample
 on:
@@ -10,6 +11,10 @@ on:
       - "troy-mode/checks/troy_check.py"
       - "troy-mode/checks/troycheck/**"
       - "troy-mode/checks/workflow.yml"
+      - "troy-mode/checks/config.default.toml"
+      - "troy-mode/checks/git-hooks/**"
+      - "troy-mode/templates/**"
+      - "troy-mode/init/troyinit/**"
       - "troy-mode/lang/cpp/**"
       - "troy-mode/samples/cpp/**"
       - "troy-mode/dev/build_sample.py"
@@ -25,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pr: [tests, impl]
+        pr: [design, tests, impl]
     defaults:
       run:
         # A login shell activates the micromamba environment.
@@ -40,17 +45,36 @@ jobs:
         env:
           PR: ${{ matrix.pr }}
         run: python3 troy-pstack/troy-mode/dev/build_sample.py build cpp --pr "$PR" --out sample
+      - name: Look for code
+        id: code
+        # Until the first mock PR the project has no code, and the tools below
+        # would fail on nothing (F06 design D50). Then every later step is
+        # skipped and the job passes.
+        run: |
+          if [ -n "$(git ls-files -- src include ':(exclude)include/troy/')" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No code yet: nothing under src/ or include/ outside include/troy/, so the" \
+              "code checks were skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        if: steps.code.outputs.found == 'true'
         with:
           environment-file: sample/environment.yml
           cache-environment: true
       - name: Install from the lock
+        if: steps.code.outputs.found == 'true'
         run: uv pip install -r requirements-tools.lock
       - name: Configure and build
+        if: steps.code.outputs.found == 'true'
         run: |
           cmake --preset coverage
           cmake --build --preset coverage
       - name: Format and lint changed files
+        if: steps.code.outputs.found == 'true'
+        # clang-format checks every changed C/C++ file. clang-tidy checks the
+        # changed source files, and the project headers they include.
         run: |
           mapfile -t files < <(git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- \
             '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx')
@@ -62,16 +86,22 @@ jobs:
             clang-tidy -p build/coverage --quiet "${sources[@]}"
           fi
       - name: Tests
+        if: steps.code.outputs.found == 'true'
+        # troy-check decides which failures are allowed, so ctest's exit code
+        # is ignored.
         run: |
           mkdir -p reports
           ctest --preset coverage --output-junit "$PWD/reports/junit.xml" || true
       - name: Coverage report
+        if: steps.code.outputs.found == 'true'
         run: |
           gcovr --root . --filter 'include/' --filter 'src/' --exclude-throw-branches \
             --exclude-unreachable-branches --cobertura reports/coverage.xml build/coverage
       - name: Doc comments
+        if: steps.code.outputs.found == 'true'
         run: doxygen .troy-mode/lang/cpp/Doxyfile
       - name: Run troy-check code
+        if: steps.code.outputs.found == 'true'
         run: |
           checks=.troy-mode/checks
           if git cat-file -e "$BASE_SHA:$checks/troy_check.py" 2>/dev/null; then
@@ -87,10 +117,19 @@ jobs:
       - name: Compare with the expected results
         env:
           PR: ${{ matrix.pr }}
+          FOUND: ${{ steps.code.outputs.found }}
+        # Without code the steps above were skipped, and the sample must expect
+        # that (F06 design D50). With code, troy-check's report must match.
+        # No exit: a login shell that runs exit reads ~/.bash_logout, which
+        # fails on the runner and turns exit 0 into 1.
         run: |
-          python .troy-mode/checks/troy_check.py code --base "$BASE_SHA" --head "$HEAD_SHA" \
-            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
-            --junit reports/junit.xml --coverage reports/coverage.xml \
-            --doc-warnings reports/doxygen.log --json > "$RUNNER_TEMP/report.json"
-          python ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" \
-            --report "$RUNNER_TEMP/report.json"
+          if [ "$FOUND" != true ]; then
+            python3 ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" --no-code
+          else
+            python .troy-mode/checks/troy_check.py code --base "$BASE_SHA" --head "$HEAD_SHA" \
+              --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
+              --junit reports/junit.xml --coverage reports/coverage.xml \
+              --doc-warnings reports/doxygen.log --json > "$RUNNER_TEMP/report.json"
+            python ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" \
+              --report "$RUNNER_TEMP/report.json"
+          fi

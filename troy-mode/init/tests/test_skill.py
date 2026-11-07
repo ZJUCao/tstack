@@ -22,6 +22,25 @@ NAMED_TEXTS = (
     "gh pr merge <number> --rebase --delete-branch --match-head-commit",
     "git pull --ff-only",
 )
+LANGUAGE_STEP_TEXTS = (
+    "lang python",
+    "lang cpp",
+    "--env-prefix",
+    "--series",
+    "troy-mode/lang-",
+    "[rules] Add the Python pack",
+    "[rules] Add the C/C++ pack",
+)
+
+
+def section(body: str, heading: str) -> str:
+    """The text under a level-two heading, up to the next level-two heading."""
+    lines = body.split("\n")
+    if heading not in lines:
+        return ""
+    start = lines.index(heading) + 1
+    end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
+    return "\n".join(lines[start:end])
 
 
 def split_skill(text: str) -> tuple:
@@ -70,6 +89,20 @@ class SkillTest(unittest.TestCase):
         for text in NAMED_TEXTS:
             with self.subTest(text=text):
                 self.assertIn(text, self.body)
+
+    def test_skill_language_step_section_names_its_commands(self):
+        """The Language step section names both packs, the options, branch, and subjects."""
+        text = section(self.body, "## Language step")
+        self.assertNotEqual(text.strip(), "")
+        for name in LANGUAGE_STEP_TEXTS:
+            with self.subTest(text=name):
+                self.assertIn(name, text)
+
+    def test_skill_language_step_is_no_longer_unbuilt(self):
+        """The Language step section no longer says the step is not built yet."""
+        text = section(self.body, "## Language step")
+        self.assertNotEqual(text.strip(), "")
+        self.assertNotRegex(text, re.compile(r"not (yet )?built|built yet", re.I))
 
     def test_skill_forbids_git_add_all(self):
         """Every sentence that mentions git add -A says not to use it."""

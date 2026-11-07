@@ -1,7 +1,8 @@
 # troy-mode Python pack: the code checks job (F03 design 8.5).
 # troy-init adds this job under "jobs:" in .github/workflows/troy-mode.yml,
 # next to the troy-check job from F02. It needs environment.yml and
-# requirements-dev.lock at the repository root.
+# requirements-dev.lock at the repository root. Until the project has code,
+# its checks are skipped (F06 design D50).
   troy-code:
     name: troy-mode code checks
     runs-on: ubuntu-24.04
@@ -15,27 +16,47 @@
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      - name: Look for code
+        id: code
+        # Until the first mock PR the project has no code, and the tools below
+        # would fail on nothing (F06 design D50). Then every later step is
+        # skipped and the job passes.
+        run: |
+          if [ -n "$(git ls-files -- src)" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No code yet: nothing under src/, so the code checks were skipped." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        if: steps.code.outputs.found == 'true'
         with:
           environment-file: environment.yml
           cache-environment: true
       - name: Install from the lock
+        if: steps.code.outputs.found == 'true'
         run: |
           uv pip install -r requirements-dev.lock
           uv pip install -e . --no-deps
       - name: Lint and format
+        if: steps.code.outputs.found == 'true'
         run: |
           ruff check
           ruff format --check
       - name: Types
+        if: steps.code.outputs.found == 'true'
         run: mypy
       - name: Tests
+        if: steps.code.outputs.found == 'true'
         # troy-check decides which failures are allowed, so pytest's exit
         # code is ignored.
         run: coverage run -m pytest --junitxml=reports/junit.xml || true
       - name: Coverage report
+        if: steps.code.outputs.found == 'true'
         run: coverage xml -o reports/coverage.xml
       - name: Run troy-check code
+        if: steps.code.outputs.found == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

@@ -166,3 +166,60 @@ def add_lines(existing: str | None, lines: list[str]) -> tuple[str, str]:
     if text and not text.endswith("\n"):
         text += "\n"
     return text + "".join(f"{line}\n" for line in missing), "append"
+
+
+def _toml_value(key: str, value: object) -> str:
+    """Formats one `key = value` line of the [lang] table."""
+    if isinstance(value, list):
+        return toml_list(key, [str(item) for item in value])
+    return f"{key} = {json.dumps(value, ensure_ascii=False)}"
+
+
+def _section_bounds(text: str, name: str) -> tuple[int, int]:
+    """Finds where a top-level [name] table's text starts and ends.
+
+    Raises:
+        InitError: The config has no such table.
+    """
+    match = re.search(rf"^\[{re.escape(name)}\][ \t]*$", text, re.MULTILINE)
+    if not match:
+        raise InitError(f"the config has no [{name}] table")
+    following = re.compile(r"^\[", re.MULTILINE).search(text, match.end())
+    return match.start(), following.start() if following else len(text)
+
+
+def fill_lang(config: str, values: dict[str, object], legacy: list[str]) -> str:
+    """Fills the [lang] table and [tests] legacy of a set-up config (design 5.2, 5.3, 5.5).
+
+    The [lang] table keeps setup's comments, and the values follow them.
+    Nothing else in the file changes.
+
+    Args:
+        config: The text of .troy-mode/config.toml after setup.
+        values: The [lang] keys and values, in the order they are written.
+        legacy: Existing test files for [tests] legacy, or empty.
+
+    Returns:
+        The filled-in config.
+
+    Raises:
+        InitError: The config lacks the tables, or the result is not valid TOML.
+    """
+    start, end = _section_bounds(config, "lang")
+    section = config[start:end]
+    body = section.rstrip("\n")
+    tail = section[len(body):] or "\n"
+    lines = "\n".join(_toml_value(key, value) for key, value in values.items())
+    text = config[:start] + body + "\n" + lines + tail + config[end:]
+    if legacy:
+        start, end = _section_bounds(text, "tests")
+        section, count = re.subn(r"^legacy = \[\]$", lambda _: toml_list("legacy", legacy),
+                                 text[start:end], count=1, flags=re.MULTILINE)
+        if not count:
+            raise InitError("the config's [tests] table has no empty legacy list")
+        text = text[:start] + section + text[end:]
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise InitError(f"the filled-in config is not valid TOML: {exc}") from exc
+    return text

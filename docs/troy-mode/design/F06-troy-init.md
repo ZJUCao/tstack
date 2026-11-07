@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-07 |
 | Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
@@ -47,15 +47,15 @@ troy-mode/
 | `/troy-pstack:troy-init lang python` or `lang cpp` | Language step |
 | `/troy-pstack:troy-init upgrade` | Upgrade |
 
-The skill runs the engine with `--dry-run --json` first. It asks Troy, in one message and in Troy's language, only what has no clear default: whether to create the GitHub repository (D52), whether to replace a file troy-init did not write (D48), and the environment's series for the language step. It then runs the engine, takes the result through the PR flow of section 7, and reports what it did and what it did not do.
+The skill runs the engine with `--dry-run --json` first. Every step stops on `main` (sections 4.1 and 5.1), so for the language step and upgrade the skill creates the step's branch (section 7, step 2) before the dry run, and deletes it again when upgrade has nothing to change. At setup in a folder without `origin`, the dry run's problems name the missing `origin` and the branch; section 7's first two steps clear them. It asks Troy, in one message and in Troy's language, only what has no clear default: whether to create the GitHub repository (D52), whether to replace a file troy-init did not write (D48), and the environment's series for the language step. It then runs the engine, takes the result through the PR flow of section 7, and reports what it did and what it did not do.
 
 ### 3.2 The engine
 
 ```text
 python troy_init.py setup   [--project-name <name>] --email <address> [common options]
-python troy_init.py lang    (python | cpp) [--environment <name>] [--series <folder>]...
-                            [--package <name>] [--mamba <path>] [--env-prefix <path>] [--no-env]
-                            [common options]
+python troy_init.py lang    (python | cpp) [--project-name <name>] [--environment <name>]
+                            [--series <folder>]... [--package <name>] [--mamba <path>]
+                            [--env-prefix <path>] [--no-env] [common options]
 python troy_init.py upgrade [common options]
 
 common options: [--repo <path>] [--date <YYYY-MM-DD>] [--replace <path>]... [--dry-run] [--json]
@@ -231,7 +231,7 @@ Every path upgrade changes is in the `config` or `dependencies` class, so its PR
 The skill runs these steps around the engine. F07 runs the same steps when it runs the engine itself.
 
 1. **Repository.** If the folder is not a git repository, `git init -b main`. If it has no `origin`, the skill asks Troy once whether to create a private GitHub repository under Troy's account, named after the project. On yes: `gh repo create <owner>/<name> --private --add-readme`, then `git remote add origin` and `git fetch origin`. GitHub makes the first commit on `main`, so nobody commits on `main` locally (R21, D52).
-2. **Branch.** `git switch -c troy-mode/init origin/main`, or `troy-mode/lang-<name>`, or `troy-mode/upgrade-<version>`.
+2. **Branch.** `git switch -c troy-mode/init origin/main`, or `troy-mode/lang-<name>`, or `troy-mode/upgrade-<version>`. The language step and upgrade create it before their dry run (section 3.1).
 3. **Engine.** Run the step.
 4. **Stage.** `git add` exactly the paths the engine's report lists, with `--chmod=+x` for the git hooks. Never `git add -A`.
 5. **Commit.** One commit whose subject is the PR title (R01): `[rules] Set up troy-mode`, `[rules] Add the Python pack` or `[rules] Add the C/C++ pack`, or `[rules] Upgrade troy-mode to <version>`. F05's `commit-msg` hook checks it (R19).
@@ -378,3 +378,4 @@ Requirements 1.16 records the approved changes:
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D47 to D56, every recommended answer. |
 | 1.1 | 2026-11-07 | Section 8: troy-check's R12 skips `.troy-mode/`, approved by Troy on 2026-11-07. Section 11.5: part 1 also brings that change and the D49 config line. Found while building part 1. |
+| 1.2 | 2026-11-07 | Section 3.2: `lang` also takes `--project-name`, which the option table already gives the build files. Found while building part 2. Sections 3.1 and 7: the language step and upgrade create their branch before the dry run, because every step stops on `main`. Found by the trial of 11.4, where the dry runs of both steps stopped on `main`. |

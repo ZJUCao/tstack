@@ -2,11 +2,8 @@
 # the C/C++ pack (F03 design 10). troy-mode/dev/build_sample.py builds it the
 # same way as the Python sample; see troy-mode/samples/python/sample.toml.
 
+project = "textstats"
 environment = "textstats-cpp"
-
-[pack]
-copy = { "environment.yml" = "environment.yml", "config.toml" = ".troy-mode/config.toml", "requirements-tools.in" = "requirements-tools.in", "CMakePresets.json" = "CMakePresets.json", "cmake/troy.cmake" = "cmake/troy.cmake", "Doxyfile" = ".troy-mode/lang/cpp/Doxyfile", ".clang-format" = ".clang-format", ".clang-tidy" = ".clang-tidy", "include/troy/not_implemented.h" = "include/troy/not_implemented.h" }
-append = { "workflow-job.yml" = ".github/workflows/troy-mode.yml" }
 
 [[commits]]
 title = "[docs] Set up textstats with troy-mode"
@@ -15,6 +12,9 @@ folder = "base"
 [[commits]]
 title = "[F01 1/6 design] Count words in a text"
 folder = "stages/1-design"
+pr = "design"
+# The head has no code yet, so the pack's code steps are skipped (F06 design D50).
+no_code = true
 
 [[commits]]
 title = "[F01 2/6 test-plan] Count words in a text"

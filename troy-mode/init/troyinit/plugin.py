@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .errors import InitError
+from .packs import get_pack
+from .workflow import append_job
 
 CHECKS_DEST = ".troy-mode/checks"
 TEMPLATES_DEST = ".troy-mode/templates"
@@ -120,14 +122,17 @@ def _files_under(folder: Path) -> list[str]:
     return sorted(found)
 
 
-def owned_sources(plugin: Plugin) -> dict[str, Path]:
+def owned_sources(plugin: Plugin, lang: str | None = None) -> dict[str, Path]:
     """Maps each file troy-init owns in a project to its source in the plugin.
 
     troy-init owns the files it copies whole (design 4.6): troy-check with its
-    git hooks, the templates, the PR template, and the workflow.
+    git hooks, the templates, the PR template, the workflow, and the language
+    pack's whole files. With a pack, the workflow also holds the pack's job;
+    owned_contents() builds it.
 
     Args:
         plugin: The plugin.
+        lang: The installed language pack, or None before the language step.
 
     Returns:
         Project paths with "/" separators, sorted, and their source files.
@@ -140,7 +145,37 @@ def owned_sources(plugin: Plugin) -> dict[str, Path]:
         sources[f"{TEMPLATES_DEST}/{relative}"] = plugin.templates / relative
     sources[WORKFLOW_DEST] = plugin.checks / "workflow.yml"
     sources[PR_TEMPLATE_DEST] = plugin.templates / "pull-request.md"
+    if lang:
+        pack = get_pack(lang)
+        for dest, name in pack.copied.items():
+            sources[dest] = plugin.root / pack.source(name)
     return dict(sorted(sources.items()))
+
+
+def pack_job(plugin: Plugin, lang: str) -> str:
+    """The pack's CI job, workflow-job.yml, as text with LF endings."""
+    return plugin.text(get_pack(lang).source("workflow-job.yml"))
+
+
+def owned_contents(plugin: Plugin, lang: str | None = None) -> dict[str, bytes]:
+    """Builds what each owned file holds when nobody edited it (design 4.6 and 6).
+
+    Args:
+        plugin: The plugin.
+        lang: The installed language pack, or None before the language step.
+
+    Returns:
+        Project paths, sorted, and their LF bytes. With a pack, the workflow
+        is F02's workflow with the pack's job added under jobs:.
+
+    Raises:
+        InitError: A plugin file cannot be read.
+    """
+    contents = {path: read_source(source) for path, source in owned_sources(plugin, lang).items()}
+    if lang:
+        base = contents[WORKFLOW_DEST].decode("utf-8")
+        contents[WORKFLOW_DEST] = append_job(base, pack_job(plugin, lang)).encode("utf-8")
+    return contents
 
 
 def read_source(path: Path) -> bytes:

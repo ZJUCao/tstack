@@ -5,6 +5,13 @@ on:
     paths:
       - "**/*.md"
       - "troy-mode/dev/**"
+      # The dev tests check the packs and samples, and build the samples
+      # through troy-init's engine (F06 design 8).
+      - "troy-mode/init/troyinit/**"
+      - "troy-mode/lang/**"
+      - "troy-mode/samples/**"
+      - ".github/workflows/troy-python-sample.yml"
+      - ".github/workflows/troy-cpp-sample.yml"
       - ".github/workflows/troy-docs.yml"
   workflow_dispatch:
 permissions:

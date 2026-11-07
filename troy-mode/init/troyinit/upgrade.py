@@ -7,7 +7,8 @@ from .errors import InitError
 from .gitops import config_get, current_branch, is_root
 from .install import INSTALL_PATH, Install, parse, render
 from .plan import FileAction, Plan, exists, file_hash, lf_bytes, read_project_file
-from .plugin import HOOKS_DEST, Plugin, owned_sources, pack_patterns, read_source
+from .packdiff import pack_differences
+from .plugin import HOOKS_DEST, Plugin, owned_contents, pack_patterns
 from .rules import RULES_EN, RULES_ZH, upgrade_pair
 from .setup import CONFIG_PATH
 
@@ -69,8 +70,12 @@ def _dropped_owned(path: str, current: bytes | None, recorded: str | None,
 
 def _owned_actions(plugin: Plugin, repo: Path, install: Install, replace: list[str],
                    plan: Plan) -> dict[str, str]:
-    """Plans every owned file under the hash rule. Returns the new [files] hashes."""
-    wanted = {path: read_source(source) for path, source in owned_sources(plugin).items()}
+    """Plans every owned file under the hash rule. Returns the new [files] hashes.
+
+    With a pack, the owned files include the pack's whole files, and the
+    workflow holds the pack's job (design 6).
+    """
+    wanted = owned_contents(plugin, install.lang)
     hashes = {}
     for path in sorted(set(wanted) | set(install.files)):
         current = read_project_file(repo, path)
@@ -110,12 +115,14 @@ def _rules_actions(plugin: Plugin, repo: Path, date: str, plan: Plan) -> None:
                          FileAction(RULES_ZH, "edit", lf_bytes(result[1]))]
 
 
-def config_differences(plugin: Plugin, repo: Path) -> list[tuple[str, str]]:
-    """Lists the pack patterns the project's config lacks; upgrade never edits it.
+def config_differences(plugin: Plugin, repo: Path,
+                       lang: str | None = None) -> list[tuple[str, str]]:
+    """Lists where the config and the pack's files differ; upgrade never edits them.
 
     Args:
         plugin: The plugin.
         repo: The project's root.
+        lang: The installed pack, whose own files are compared too, or None.
 
     Returns:
         (path, message) pairs, empty when the config has every pattern.
@@ -133,6 +140,8 @@ def config_differences(plugin: Plugin, repo: Path) -> list[tuple[str, str]]:
         if missing:
             found.append((CONFIG_PATH, f"[paths] {key} lacks {', '.join(missing)}, which "
                                        f"troy-pstack {plugin.version} sets up."))
+    if lang:
+        found += pack_differences(plugin, repo, lang)
     return found
 
 
@@ -178,19 +187,16 @@ def plan_upgrade(plugin: Plugin, repo: Path, top: Path, date: str, replace: list
         The plan. It is blocked when a precondition fails or a file conflicts.
 
     Raises:
-        InitError: The install record cannot be read, or it names a language
-            pack, whose upgrade comes with F06 part 2.
+        InitError: The install record cannot be read.
     """
     plan = Plan("upgrade", plugin.version)
     plan.problems = upgrade_problems(repo, top)
     if plan.problems:
         return plan
     install = parse((read_project_file(repo, INSTALL_PATH) or b"").decode("utf-8", "replace"))
-    if install.lang:
-        raise InitError("this project has a language pack; upgrading it comes with F06 part 2")
     hashes = _owned_actions(plugin, repo, install, replace, plan)
     _rules_actions(plugin, repo, date, plan)
-    plan.differences += config_differences(plugin, repo)
+    plan.differences += config_differences(plugin, repo, install.lang)
     _hooks_note(repo, plan)
     _finish(plugin, install, hashes, date, plan)
     plan.actions.sort(key=lambda a: a.path)
