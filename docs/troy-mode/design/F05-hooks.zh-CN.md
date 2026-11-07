@@ -1,13 +1,13 @@
 # F05 设计：hook
 
-> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.0（2026-11-06）。两者如有出入，以英文版为准。
+> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.15](../requirements.zh-CN.md#72-功能列表) 中的 F05 |
-| 版本 | 1.0 |
-| 日期 | 2026-11-06 |
-| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46 |
+| 版本 | 1.1 |
+| 日期 | 2026-11-07 |
+| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46。1.1 版记录第 13.3 节试运行确认的事实。 |
 | 事实来源 | 英文版 [`F05-hooks.md`](F05-hooks.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -63,7 +63,8 @@ troy-mode/
 | `SessionStart` | 全部 | `core.hooksPath` 未设置时，打开项目的 git hook（第 8.1 节）。删除一天前的角色记录和日志行。 |
 | `SubagentStart` | `^troy-pstack:troy-` | 记录角色开始时的状态，供变更检测使用（第 6 节）。 |
 | `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | 用写入范围检查文件路径（第 5 节），检查 git、GitHub 和技能命令（第 7 节），以及 R19 和 R21 的防护（第 8.2 节）。 |
-| `PreToolUse` | `Read\|Glob\|Grep`，带 `"if": "Read(//**/troy-pstack/**)"` | 允许读取插件自己的文件（第 9 节）。 |
+| `PreToolUse` | `Read`，带 `"if": "Read(//**/troy-pstack/**)"` | 允许读取插件自己的文件（第 9 节）。 |
+| `PreToolUse` | `Glob\|Grep` | 允许搜索插件自己的文件（第 9 节）。 |
 | `PostToolUse` | `Bash\|PowerShell\|Skill` | 对角色：报告这次调用在写入范围之外做的改动（第 6 节）。 |
 | `SubagentStop` | `^troy-pstack:troy-` | 对角色：让角色继续工作，直到它撤销范围之外的改动，只拦一次（第 6 节）。 |
 
@@ -116,7 +117,7 @@ troy-mode/
    1. `.git` 文件夹里的路径一律拒绝。
    2. git 忽略的路径（`git check-ignore`）允许，这是 F04 共用规则第 5 条的规定。构建产物和缓存都在这里。
    3. 其他路径，由 troy-check 的 `classify` 给出类别，用的是 `HEAD` 中已提交的 `.troy-mode/config.toml` 里的 `[paths]` 表。未提交的配置修改不能扩大写入范围。调用者的范围包含这个类别，或者范围里某个模式匹配，就允许。
-3. **在仓库外**（D42）：系统临时文件夹（Python 的 `tempfile.gettempdir()`，在 Linux 和 macOS 上还有 `/tmp`）和会话的 scratchpad（hook 输入里的 `scratchpad_dir`）允许，其他地方一律拒绝。F04 试运行里测试经理把临时副本放在临时文件夹，这样仍然允许。
+3. **在仓库外**（D42）：系统临时文件夹（Python 的 `tempfile.gettempdir()`，在 Linux 和 macOS 上还有 `/tmp`）和会话的 scratchpad（hook 输入里的 `scratchpad_dir`）允许，其他地方一律拒绝。F04 试运行里测试经理把临时副本放在临时文件夹，这样仍然允许。hook 只是不拦这些写入：Claude Code 自己的权限照样生效，在没人能批准提示的会话里，它会拒绝项目之外的 `Write`。F05 试运行证实了这一点，所以角色用 Bash 做临时副本，就像 F04 试运行里的测试经理那样。
 
 拒绝时，hook 告诉调用者路径、它的类别、调用者的写入范围，以及该怎么做："如果任务需要修改这个文件，就停下来报告 `needs-answer`。"
 
@@ -145,7 +146,7 @@ F04 的试运行表明，开发工程师和测试工程师大多通过 Bash 的 
 - 把 `bash -c`、`sh -c` 和 `eval` 后面的字符串当作命令读。
 - 跳过开头的变量赋值，以及包装命令 `command`、`env`、`exec`、`nohup`、`time` 和 `xargs`。
 - 丢掉每个 heredoc 的正文，所以正在写入的文件里出现"git commit"这样的文字，不算命令。
-- 记住每个 `cd <literal path>`，用于它后面的命令。
+- 记住每个 `cd <literal path>`，用于它后面的命令。路径也可以来自同一条命令里前面设置的变量，只要它被设成字面路径，或者设成 `mktemp -d` 建的文件夹。F05 试运行里，测试经理用 `DST=$(mktemp -d <temp folder>/name-XXXXXX)` 和 `cd "$DST"` 做了临时副本。其他变量一律当作未知，在未知文件夹里运行的 git 命令按在项目里运行处理。
 - `git`、`git.exe` 以及以它们结尾的路径都按 git 读，`gh` 也一样。
 
 如果命令拆不开，比如引号不成对，那么只要子代理调用的文本里任何地方匹配 git 写操作或 `gh` 写操作，就拒绝。PowerShell 的语法用同样的方法尽力去读。
@@ -161,7 +162,7 @@ F04 的试运行表明，开发工程师和测试工程师大多通过 Bash 的 
 | 只改工作区 | 不带 `--staged`、`-S`、`--source` 或 `-s` 的 `restore`。角色用它撤销范围之外的改动（第 6 节）。 |
 
 - 其他 git 命令一律拒绝：`commit`、`push`、`add`、`rm`、`mv`、`reset`、会改动内容的 `stash`、`switch`、`checkout`、`merge`、`rebase`、`cherry-pick`、`revert`、`am`、`apply`、`clean`、创建或删除的 `tag` 和 `branch`、设置值的 `config`、`worktree add`、`update-ref` 等等。拒绝时引用共用规则第 6 条：由主会话提交、开 PR、发布审查意见。
-- **临时仓库。** 如果一条 git 命令的仓库在临时文件夹或 scratchpad 里（由 `-C`、`--git-dir`、`--work-tree` 或前面的 `cd <literal path>` 指定），它除了 `push` 什么都可以做。这样测试经理可以提交一个临时副本，在上面运行 `troy-check code` 来检查 R09。项目的克隆可以推送回项目，所以 `push` 仍然拒绝。
+- **临时仓库。** 如果一条 git 命令的仓库在临时文件夹或 scratchpad 里（由 `-C`、`--git-dir`、`--work-tree`、`GIT_DIR`、`GIT_WORK_TREE` 或前面的 `cd` 指定，路径都要是第 7.1 节能跟踪的），它除了 `push` 什么都可以做。这样测试经理可以提交一个临时副本，在上面运行 `troy-check code` 来检查 R09。项目的克隆可以推送回项目，所以 `push` 仍然拒绝。
 - 子命令前面的全局选项，比如 `-C`、`-c`、`--no-pager` 和 `--git-dir`，会被读取并跳过。`-c core.hooksPath=...` 对所有调用者都拒绝（第 8.2 节）。
 
 ### 7.3 GitHub CLI
@@ -170,7 +171,7 @@ F04 的试运行表明，开发工程师和测试工程师大多通过 Bash 的 
 
 ### 7.4 技能
 
-子代理的 `Skill` 调用只允许 `code-review` 和 `security-review`（带不带插件前缀都行），而且参数里既不能有 `--fix` 也不能有 `--comment`。这样就执行了 F04 的 D36：代码审查员只审查，不修改任何东西。`Skill` 的输入字段名没有文档说明，由试运行来确认（第 13.3 节）。
+子代理的 `Skill` 调用只允许 `code-review` 和 `security-review`（带不带插件前缀都行），而且参数里既不能有 `--fix` 也不能有 `--comment`。这样就执行了 F04 的 D36：代码审查员只审查，不修改任何东西。`Skill` 的输入字段名没有文档说明。试运行（第 13.3 节）表明：`skill` 是技能名，`args` 是参数，没有参数时不出现。
 
 ## 8. R19 和 R21（D44）
 
@@ -204,7 +205,8 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 
 `Read`、`Glob` 和 `Grep` 上的 `PreToolUse` hook，在调用位于 troy-mode 项目、路径在 `CLAUDE_PLUGIN_ROOT`（Claude Code 导出给插件 hook 的环境变量）之内时，回答 `allow`。对其他路径或项目，它什么也不输出。
 
-- `if` 规则 `Read(//**/troy-pstack/**)` 让 hook 在读取别处时不启动。它既匹配安装好的插件（`~/.claude/plugins/cache/<marketplace>/troy-pstack/<version>/`），也匹配用 `--plugin-dir` 加载的代码目录。试运行检查这条规则是否也能过滤 `Glob` 和 `Grep`。如果不能，这两个就去掉 `if`，直接运行 hook。
+- `if` 规则 `Read(//**/troy-pstack/**)` 让 hook 在读取别处时不启动。它既匹配安装好的插件（`~/.claude/plugins/cache/<marketplace>/troy-pstack/<version>/`），也匹配用 `--plugin-dir` 加载的代码目录。
+- 试运行表明，这条规则只过滤 `Read`。把 `Read|Glob|Grep` 放在同一个 `if` 下时，插件文件夹里的 `Glob` 和 `Grep` 调用根本没有到达 hook，Claude Code 因为缺少权限拒绝了它们。所以按本节原来的计划，`Glob` 和 `Grep` 不带 `if` 直接运行 hook，每次付出门槛的开销（第 10 节）。
 - 安装路径随每个插件版本变化。hook 每次都读 `CLAUDE_PLUGIN_ROOT`，所以不需要更新。
 - 因此 troy-init（F06）不写任何权限规则。
 
@@ -219,9 +221,10 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 | troy-mode 之外的任何项目 | bash、Python、门槛 | 70 到 90 毫秒 |
 | 角色的 `Write` 或 `Edit` | 再加上读取 `HEAD` 的配置，对范围外的路径还有 `git check-ignore` | 120 到 170 毫秒 |
 | 角色的 shell 调用结束后 | 再加上 `git status` 和哈希 | 120 到 170 毫秒 |
-| 读取 `troy-pstack` 文件夹以外的文件 | 无。`if` 规则跳过这个 hook。 | 0 毫秒 |
+| 用 `Read` 读取 `troy-pstack` 文件夹以外的文件 | 无。`if` 规则跳过这个 hook。 | 0 毫秒 |
+| 任何地方的 `Glob` 或 `Grep` | bash、Python、门槛和插件路径判断 | 70 到 90 毫秒 |
 
-都在需求文档第 8 节 200 毫秒的目标之内。试运行会实际测量。
+都在需求文档第 8 节 200 毫秒的目标之内。hook 把配置的文本存在 git 文件夹里，以 `HEAD` 的提交 ID 为键，所以大多数调用不用启动 git 进程就能读到它。试运行把每类 hook 各测了 20 次：中位数在 74 到 151 毫秒之间（表格见 F05 的 PR）。
 
 **日志。** 每次拒绝和拦截都在 `<git dir>/troy-mode/hooks.log` 里追加一行 JSON：时间、会话、代理 ID、代理类型、事件、工具、规则、路径或 git 子命令、决定。它从不记录命令行或文件内容，所以命令里输入的机密不会进入日志。git 文件夹永远不会被提交。F07 在每次角色运行后读取日志（第 12 节）。
 
@@ -330,3 +333,4 @@ D1 到 D38 属于 F01 到 F04 的设计，所以 F05 从 D39 开始。
 | --- | --- | --- |
 | 0.1 | 2026-11-06 | 初稿。 |
 | 1.0 | 2026-11-06 | Troy 批准，含 D39 到 D46，全部采用推荐答案。 |
+| 1.1 | 2026-11-07 | 第 13.3 节试运行确认的事实：`if` 规则只过滤 `Read`，所以 `Glob` 和 `Grep` 单独一项、不带 `if`（第 3、9、10 节）。在没人能批准提示的会话里，Claude Code 自己的权限会拒绝项目之外的 `Write`，所以角色用 Bash 做临时副本（第 5.2 节）。试运行里测试经理用一个 `mktemp -d` 变量指定临时文件夹，所以第 7.1 节也跟踪同一条命令里前面设成字面路径或 `mktemp -d` 的变量（第 7.1、7.2 节）。`Skill` 的输入字段（第 7.4 节）。实测的中位数（第 10 节）。 |

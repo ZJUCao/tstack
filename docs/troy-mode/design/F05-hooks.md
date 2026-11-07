@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F05 in [requirements 1.15](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-06 |
-| Status | Approved by Troy on 2026-11-06, with D39 to D46 |
+| Version | 1.1 |
+| Date | 2026-11-07 |
+| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. |
 | Source of truth | This English file. [`F05-hooks.zh-CN.md`](F05-hooks.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -61,7 +61,8 @@ troy-mode/
 | `SessionStart` | All | Turns on the project's git hooks when `core.hooksPath` is unset (section 8.1). Removes role records and log lines older than a day. |
 | `SubagentStart` | `^troy-pstack:troy-` | Records the role's starting state for change detection (section 6). |
 | `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | Checks file paths against the write scope (section 5), git, GitHub, and skill commands (section 7), and the R19 and R21 guards (section 8.2). |
-| `PreToolUse` | `Read\|Glob\|Grep`, with `"if": "Read(//**/troy-pstack/**)"` | Allows reads of the plugin's own files (section 9). |
+| `PreToolUse` | `Read`, with `"if": "Read(//**/troy-pstack/**)"` | Allows reads of the plugin's own files (section 9). |
+| `PreToolUse` | `Glob\|Grep` | Allows searches of the plugin's own files (section 9). |
 | `PostToolUse` | `Bash\|PowerShell\|Skill` | For roles: reports changes outside the write scope that the call made (section 6). |
 | `SubagentStop` | `^troy-pstack:troy-` | For roles: keeps the role working until it undoes changes outside its scope, once (section 6). |
 
@@ -114,7 +115,7 @@ For `Edit`, `Write`, and `NotebookEdit`, the hook checks the tool's path before 
    1. A path in the `.git` folder is refused.
    2. A path that git ignores (`git check-ignore`) is allowed, as F04's common rule 5 says. Build output and caches live there.
    3. Otherwise troy-check's `classify` gives the path's class, with the `[paths]` table of `.troy-mode/config.toml` as committed at `HEAD`. An uncommitted edit of the config cannot widen a scope. The path is allowed when the caller's scope holds its class or one of its patterns matches.
-3. **Outside the repository** (D42): allowed in the system temp folder (Python's `tempfile.gettempdir()`, and `/tmp` on Linux and macOS) and in the session's scratchpad (`scratchpad_dir` in the hook input). Refused anywhere else. The F04 trial's Test Manager made its scratch copies in the temp folder, which stays allowed.
+3. **Outside the repository** (D42): allowed in the system temp folder (Python's `tempfile.gettempdir()`, and `/tmp` on Linux and macOS) and in the session's scratchpad (`scratchpad_dir` in the hook input). Refused anywhere else. The F04 trial's Test Manager made its scratch copies in the temp folder, which stays allowed. The hook only lets these writes through: Claude Code's own permissions still apply, and in a session where nobody can approve a prompt they refuse `Write` outside the project. The F05 trial showed this, so a role makes its scratch copies with Bash, as the F04 trial's Test Manager did.
 
 A refusal tells the caller the path, its class, its write scope, and what to do: "If the task needs this file changed, stop and report `needs-answer`."
 
@@ -143,7 +144,7 @@ For `Bash` and `PowerShell`, the hook splits the command into simple commands:
 - It reads the string after `bash -c`, `sh -c`, and `eval` as a command.
 - It skips leading variable assignments and the wrappers `command`, `env`, `exec`, `nohup`, `time`, and `xargs`.
 - It drops the body of every heredoc, so text such as "git commit" inside a file being written is not a command.
-- It remembers each `cd <literal path>` for the commands after it.
+- It remembers each `cd <literal path>` for the commands after it. A path may also come from a variable set earlier in the same command, to a literal path or to the folder `mktemp -d` makes. The F05 trial's Test Manager made its scratch copy with `DST=$(mktemp -d <temp folder>/name-XXXXXX)` and `cd "$DST"`. Any other variable is unknown, and a git command in an unknown folder counts as one in the project.
 - It reads `git`, `git.exe`, and paths ending in either the same way, and likewise `gh`.
 
 If the command cannot be split, for example because a quote is unbalanced, a subagent's call is refused when its text matches a git write or a `gh` write anywhere. PowerShell syntax is read the same way, at best effort.
@@ -159,7 +160,7 @@ A subagent may run these git commands:
 | Working tree only | `restore` without `--staged`, `-S`, `--source`, or `-s`. A role uses it to undo a change outside its scope (section 6). |
 
 - Every other git command is refused: `commit`, `push`, `add`, `rm`, `mv`, `reset`, `stash` with changes, `switch`, `checkout`, `merge`, `rebase`, `cherry-pick`, `revert`, `am`, `apply`, `clean`, `tag` and `branch` that create or delete, `config` that sets, `worktree add`, `update-ref`, and the rest. A refused call quotes common rule 6: the main session commits, opens PRs, and posts reviews.
-- **Scratch repositories.** A git command whose repository lies in the temp folder or the scratchpad (named by `-C`, `--git-dir`, `--work-tree`, or an earlier `cd <literal path>`) may do anything except `push`. The Test Manager can then commit a scratch copy and run `troy-check code` on it to check R09. A clone of the project can push into the project, so `push` stays refused.
+- **Scratch repositories.** A git command whose repository lies in the temp folder or the scratchpad (named by `-C`, `--git-dir`, `--work-tree`, `GIT_DIR`, `GIT_WORK_TREE`, or an earlier `cd`, each with a path section 7.1 can follow) may do anything except `push`. The Test Manager can then commit a scratch copy and run `troy-check code` on it to check R09. A clone of the project can push into the project, so `push` stays refused.
 - Global options before the subcommand, such as `-C`, `-c`, `--no-pager`, and `--git-dir`, are read and skipped. `-c core.hooksPath=...` is refused for every caller (section 8.2).
 
 ### 7.3 GitHub CLI
@@ -168,7 +169,7 @@ A subagent may run `gh pr view`, `gh pr diff`, `gh pr list`, `gh pr checks`, `gh
 
 ### 7.4 Skills
 
-A subagent's `Skill` call is allowed only for `code-review` and `security-review` (with or without a plugin prefix), and only when its arguments hold neither `--fix` nor `--comment`. This enforces F04's D36: the Code Reviewer reviews and changes nothing. The input field names of `Skill` are not documented; the trial confirms them (section 13.3).
+A subagent's `Skill` call is allowed only for `code-review` and `security-review` (with or without a plugin prefix), and only when its arguments hold neither `--fix` nor `--comment`. This enforces F04's D36: the Code Reviewer reviews and changes nothing. The input field names of `Skill` are not documented. The trial (section 13.3) showed them: `skill` holds the name, and `args` holds the arguments and is left out when there are none.
 
 ## 8. R19 and R21 (D44)
 
@@ -202,7 +203,8 @@ The F04 trial showed that a role cannot read the plugin's own files, such as `sk
 
 A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call is in a troy-mode project and its path lies inside `CLAUDE_PLUGIN_ROOT`, which Claude Code exports to plugin hooks. It prints nothing for any other path or project.
 
-- The `if` rule `Read(//**/troy-pstack/**)` keeps the hook from starting for reads elsewhere. It matches both an installed plugin (`~/.claude/plugins/cache/<marketplace>/troy-pstack/<version>/`) and a checkout loaded with `--plugin-dir`. The trial checks that the rule also filters `Glob` and `Grep`. If it does not, those two run the hook without the `if`.
+- The `if` rule `Read(//**/troy-pstack/**)` keeps the hook from starting for reads elsewhere. It matches both an installed plugin (`~/.claude/plugins/cache/<marketplace>/troy-pstack/<version>/`) and a checkout loaded with `--plugin-dir`.
+- The trial showed that the rule filters only `Read`. With `Read|Glob|Grep` under one `if`, `Glob` and `Grep` calls in the plugin folder never reached the hook, and Claude Code refused them for want of a permission. So `Glob` and `Grep` run the hook without the `if`, as this section planned, and each pays the gate's cost (section 10).
 - The installed path changes with every plugin version. The hook reads `CLAUDE_PLUGIN_ROOT` each time, so it needs no update.
 - So troy-init (F06) writes no permission rule.
 
@@ -217,9 +219,10 @@ A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call 
 | Any project outside troy-mode | bash, Python, the gate | 70 to 90 ms |
 | A role's `Write` or `Edit` | Plus the config at `HEAD`, and `git check-ignore` for a path outside the scope | 120 to 170 ms |
 | A role's shell call, after it ends | Plus `git status` and hashes | 120 to 170 ms |
-| A read outside a `troy-pstack` folder | None. The `if` rule skips the hook. | 0 ms |
+| A `Read` outside a `troy-pstack` folder | None. The `if` rule skips the hook. | 0 ms |
+| A `Glob` or `Grep` anywhere | bash, Python, the gate, and the plugin path test | 70 to 90 ms |
 
-All are under the 200 ms target of requirements section 8. The trial measures them.
+All are under the 200 ms target of requirements section 8. The hooks keep the config's text in the git folder, keyed by `HEAD`'s commit ID, so most calls read it without a git process. The trial measured every hook kind 20 times: the medians are 74 to 151 ms (the F05 PR has the table).
 
 **Log.** Every refusal and block appends one JSON line to `<git dir>/troy-mode/hooks.log`: time, session, agent ID, agent type, event, tool, rule, the paths or git subcommand, and the decision. It never holds a command line or file content, so a secret typed in a command cannot reach it. The git folder is never committed. F07 reads the log after each role run (section 12).
 
@@ -328,3 +331,4 @@ Requirements 1.15 records the approved change: the F05 row describes the hooks a
 | --- | --- | --- |
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D39 to D46, every recommended answer. |
+| 1.1 | 2026-11-07 | Facts from the trial of section 13.3: the `if` rule filters only `Read`, so `Glob` and `Grep` get their own entry without it (sections 3, 9, and 10). Claude Code's own permissions refuse `Write` outside the project in a session nobody can approve, so roles make scratch copies with Bash (section 5.2). The trial's Test Manager named its scratch folder with a `mktemp -d` variable, so section 7.1 also follows variables set to a literal path or to `mktemp -d` earlier in the same command (sections 7.1 and 7.2). The `Skill` input fields (section 7.4). The measured medians (section 10). |
