@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from .context import PrContext
 from .frontmatter import Header, header_problems, parse_header, structure, version_key
 from .gitio import files_containing, read_blob
+from .globs import matches_any
 from .report import FAIL, PASS, SKIP, Detail, Result, outcome
+
+# troy-init copies the templates here. They hold markers and share troy-doc
+# IDs with the project's documents on purpose, so they are not documents.
+NOT_DOCUMENTS = [".troy-mode/**"]
 
 
 @dataclass
@@ -44,10 +49,10 @@ def load_doc(ctx: PrContext, commit: str, path: str) -> Doc | None:
         path: Repository path.
 
     Returns:
-        The document, or None if the file is missing, is not Markdown, or has
-        no troy-doc header.
+        The document, or None if the file is missing, is not Markdown, lies
+        under .troy-mode/, or has no troy-doc header.
     """
-    if not path.endswith(".md"):
+    if not path.endswith(".md") or matches_any(path, NOT_DOCUMENTS):
         return None
     text = read_blob(ctx.repo, commit, path)
     header = parse_header(text) if text is not None else None

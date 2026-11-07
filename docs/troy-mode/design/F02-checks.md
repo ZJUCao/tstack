@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.1 |
-| Date | 2026-11-05 |
+| Version | 1.2 |
+| Date | 2026-11-07 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
 
@@ -198,7 +198,7 @@ Applies to `mock`, `impl`, `fix`, and `refactor`. Skipped for other kinds.
 
 ### 6.4 R12: English and Chinese mirrors
 
-A document is a `.md` file that starts with front matter holding `troy-doc` (F01 design section 4). For each changed document:
+A document is a `.md` file that starts with front matter holding `troy-doc` (F01 design section 4). Files under `.troy-mode/` are not documents: troy-init copies the templates there, and their headers hold markers and share `troy-doc` IDs with the project's documents on purpose (F06 design section 8). For each changed document:
 
 1. The header is valid: `troy-doc`, `lang`, `version`, `updated`, and `status` exist. `lang` is `en` or `zh-CN`. An English document has `mirror`, and a Chinese one has `mirror-of`. Every value is in double quotes. `version` is `MAJOR.MINOR`. `updated` is `YYYY-MM-DD`.
 2. Its partner exists in the same folder, and `mirror` and `mirror-of` point at each other.
@@ -376,3 +376,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | 0.1 | 2026-11-05 | First draft. |
 | 1.0 | 2026-11-05 | Approved by Troy with D7 to D14. D14 records Troy's free GitHub plan. Section 9 notes that the tool needs no Python environment. |
 | 1.1 | 2026-11-05 | Section 3.3: with `--json`, annotations go to stderr. Found while implementing. |
+| 1.2 | 2026-11-07 | Section 6.4: files under `.troy-mode/` are not documents for R12, as R20 already does not scan them. Otherwise the templates troy-init copies there fail every setup PR and every later document PR. Found while building F06, approved by Troy on 2026-11-07. |

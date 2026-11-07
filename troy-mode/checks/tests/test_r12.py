@@ -220,6 +220,20 @@ class R12Tests(CheckTestCase):
         changes.update(doc_pair(name="b", doc_id="dup", version="0.1"))
         self.assert_rule(self.check(changes), "R12", "fail")
 
+    def test_templates_under_troy_mode_are_not_documents(self):
+        """Copied templates in .troy-mode/ keep their markers without failing R12 (F06)."""
+        template = doc_text(doc_id="rules", updated="{{YYYY-MM-DD}}", name="rules")
+        out = run_pr("[rules] Set up troy-mode", {".troy-mode/templates/rules.md": template})
+        self.assert_rule(out, "R12", "skip")
+
+    def test_template_under_troy_mode_shares_troy_doc_with_a_document(self):
+        """A project document may share its troy-doc with a template in .troy-mode/."""
+        changes = doc_pair(name="rules", version="1.0")
+        changes[".troy-mode/templates/rules.md"] = doc_text(doc_id="rules", name="rules")
+        out = self.check(changes)
+        self.assert_rule(out, "R12", "pass")
+        self.assertEqual([], out.paths("R12"), out.describe())
+
     def test_no_document_changed_skips(self):
         """A PR that changes no document skips R12."""
         out = self.check({"docs/plain.md": lines(3, "text")})

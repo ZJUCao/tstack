@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-06 |
-| Status | Approved by Troy on 2026-11-06, with D47 to D56 |
+| Version | 1.1 |
+| Date | 2026-11-07 |
+| Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -256,7 +256,9 @@ When F06 is built, it also changes:
 - **F03's packs.** Both `workflow-job.yml` files get the step of section 5.6, and the sample workflows that mirror them follow, so `test_python_pack.py` and `test_cpp_pack.py` keep comparing them. The C/C++ config fragment adds `include/troy/not_implemented.h` to `config` (D49). Each pack gains its new-project build file and the README rows for it. F03's design gets a change-log row.
 - **`build_sample.py`.** It builds each sample with the functions that write troy-init's files, without the preconditions of sections 4.1 and 5.1 and without the environment, in place of its own `install_pack`, so the samples are set up exactly as troy-init sets up a project. It gains a sample state with setup and the language step but no code, on which the pack's job must pass with its code steps skipped.
 
-F01, F02, F04, and F05 do not change.
+- **troy-check's R12.** Files under `.troy-mode/` are not documents for R12, as R20 already does not scan them (F02 design 6.7). Setup copies the templates there unchanged, and their headers hold markers and share `troy-doc` IDs with the project's documents, so without this every setup PR and every later document PR would fail R12. Found while building part 1, and approved by Troy on 2026-11-07. F02's design records it in its version 1.2.
+
+F01, F04, and F05 do not change.
 
 ## 9. How F06 maps to the requirements
 
@@ -332,7 +334,7 @@ The repository is private and stays for later trials (F07, F11). Deleting it is 
 
 F06 lands in two PRs (D55), each with one commit and its tests written first:
 
-1. **Setup and upgrade.** The skill, the engine's setup and upgrade, and their tests.
+1. **Setup and upgrade.** The skill, the engine's setup and upgrade, and their tests. Also the R12 change of section 8, and the C/C++ config fragment's line for `include/troy/not_implemented.h` (D49), because setup writes that pattern into the config.
 2. **Language step.** The engine's language step, the F03 pack changes, `build_sample.py`, their tests, and the trial.
 
 Each status update is its own PR.
@@ -375,3 +377,4 @@ Requirements 1.16 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D47 to D56, every recommended answer. |
+| 1.1 | 2026-11-07 | Section 8: troy-check's R12 skips `.troy-mode/`, approved by Troy on 2026-11-07. Section 11.5: part 1 also brings that change and the D49 config line. Found while building part 1. |
