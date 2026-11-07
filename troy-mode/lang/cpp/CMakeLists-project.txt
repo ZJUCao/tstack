@@ -1,0 +1,8 @@
+# troy-mode C/C++ pack: the start of a new project's CMakeLists.txt (F06 design 5.3).
+# troy-init writes it when the project has none and fills in the project's
+# name. cmake/troy.cmake sets the standards, warnings, coverage, and GoogleTest,
+# so it comes right after project(). Add each test executable with
+# troy_add_test (see cmake/troy.cmake).
+cmake_minimum_required(VERSION 3.28)
+project({{project-name}} C CXX)
+include(cmake/troy.cmake)

@@ -51,7 +51,7 @@ _CACHE_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 _DROPPED_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
                 "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_COUNT",
                 "GIT_CONFIG_PARAMETERS", "PYTHONUTF8", "PYTHONIOENCODING", "CLAUDE_PLUGIN_ROOT",
-                "GITHUB_ACTIONS", "GITHUB_STEP_SUMMARY")
+                "GITHUB_ACTIONS", "GITHUB_STEP_SUMMARY", "MAMBA_EXE")
 
 _SCRATCH = tempfile.TemporaryDirectory(prefix="troyinit-", ignore_cleanup_errors=True)
 atexit.register(_SCRATCH.cleanup)

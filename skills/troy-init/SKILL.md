@@ -26,20 +26,20 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/init/troy_init.py`. Run it from t
 
 ## Before the engine runs
 
-1. Run the step's engine command with `--dry-run --json`. If the folder is not a git repository yet, run `git init -b main` first; nobody commits on `main` locally (R21).
+1. Run the step's engine command with `--dry-run --json`. If the folder is not a git repository yet, run `git init -b main` first; nobody commits on `main` locally (R21). Every step stops on `main`, so for the language step and upgrade, create the step's branch first (PR flow step 2) and run the dry run there. At setup in a folder without `origin`, the dry run's problems name the missing `origin` and the branch `main`; PR flow steps 1 and 2 clear them.
 2. Collect everything that has no clear default and ask Troy in one message:
    - Setup with no `origin` remote: whether to create the private GitHub repository `<owner>/<project>`, with the owner from `gh api user --jq .login` and the project name from the folder. Creating it is the only step that reaches outside the project, so always ask.
    - Each path in `conflicts`: whether troy-init may replace it. A file Troy keeps stops the step, so say what that means.
    - Language step: which series the project belongs to, if any (the environment's name and the folders of the other members).
 3. If the folder already has commits but no `origin`, stop and ask Troy how to publish them. R21 forbids pushing `main`.
 
-Upgrade: when the dry run says `changed` is false, tell Troy there is nothing to upgrade and stop. Open no PR.
+Upgrade: when the dry run says `changed` is false, tell Troy there is nothing to upgrade, switch back to `main`, delete the branch, and stop. Open no PR.
 
 ## The PR flow
 
 Each step lands as one `[rules]` PR with one commit (design section 7). F07 runs the same steps when it runs the engine itself.
 
-1. **Repository.** If the folder has no `origin` and Troy said yes: `gh repo create <owner>/<project> --private --add-readme`, then `git remote add origin https://github.com/<owner>/<project>.git` and `git fetch origin`. GitHub makes the first commit on `main`.
+1. **Repository.** If the folder has no `origin` and Troy said yes: `gh repo create <owner>/<project> --private --add-readme`, then `git remote add origin <url>` and `git fetch origin`. Take the URL for the git protocol gh uses (`gh config get git_protocol -h github.com`): `git@github.com:<owner>/<project>.git` for ssh, `https://github.com/<owner>/<project>.git` for https. GitHub makes the first commit on `main`.
 2. **Branch.** `git switch -c troy-mode/init origin/main` for setup, `troy-mode/lang-<name>` for the language step, or `troy-mode/upgrade-<version>` for upgrade.
 3. **Engine.** Run the step without `--dry-run`, with `--json` and the `--replace` paths Troy approved. If the report's `email` says the address does not match, set it in this repository: `git config user.email <address>`.
 4. **Stage.** `git add -- <path>` for exactly the paths in `stage`, then `git add --chmod=+x -- <path>` for those in `executable` (the git hooks; a Windows checkout does not record the executable bit). Never `git add -A` or `git add .`: files that were there before the step stay out of its PR.
@@ -56,7 +56,19 @@ Each step lands as one `[rules]` PR with one commit (design section 7). F07 runs
 
 ## Language step
 
-The language step comes with F06 part 2 and is not built yet: the engine's `lang` command exits with code 2. Tell Troy so and stop.
+The language step adds the language pack (troy-pstack's F03) and its CI job, after Troy approved the architecture: `docs/architecture.md` on `origin/main` must have `version` 1.0 or higher. The engine checks this and stops otherwise.
+
+- **Engine command.** `lang python` or `lang cpp`, with these options:
+  - `--environment <name>`, and one `--series <folder>` for each other member, when Troy says the project belongs to a series, for example `--environment troy-agent-env --series ../troy-voice`. With no series, leave both out: the environment is named after the project.
+  - `--mamba <path>` when `mamba` is not on the PATH and `$MAMBA_EXE` is not set, for example Miniforge's `Library\bin\mamba.exe` on Windows. mamba then also needs `MAMBA_ROOT_PREFIX` set to the Miniforge folder.
+  - `--env-prefix <folder>` only when Troy wants the environment in a folder rather than a named one. Trials use it, so they leave no named environment behind.
+  - `--package <name>` (Python only) when the package under `src/` should not be the project name in snake case.
+  - `--project-name <name>` when the name in a new `pyproject.toml` or `CMakeLists.txt` should not be the folder's name.
+- **Dry run.** Its `environment` entry says whether the environment exists and lists the mamba commands the step will run: create it when missing, compile the lock with the environment's uv from every member's manifest, and install the lock. Creating an environment downloads Python and the tools and takes a few minutes. Its `legacy` entry lists existing tests that go into `[tests] legacy`, so R10 does not fail their names; tell Troy which.
+- **Stops.** The step stops when `pyproject.toml` already holds one of the pack's tables, or `CMakeLists.txt` does not include `cmake/troy.cmake`; the report's `problems` say what to change. Ask Troy before you change the project's own build file.
+- **If mamba or uv fails,** the engine exits 2 and has put the project's files back. Show Troy the error. An environment it created stays.
+- **PR flow.** As below, with the branch `git switch -c troy-mode/lang-python origin/main` (or `troy-mode/lang-cpp`) and the title `[rules] Add the Python pack` or `[rules] Add the C/C++ pack`. troy-check's R16 warns that dependency files changed; the pack's own tools need no further approval. Until the first mock PR, the pack's CI job finds no code, skips its code steps, and passes with "No code yet" in its summary.
+- **After it merges.** The setup steps that need code, `uv pip install -e . --no-deps` (Python) and `cmake --preset coverage` (C/C++), wait for the first mock: F07 puts them into DV1's brief. Other members of a series get the new lock in their own PRs.
 
 ## Upgrade
 

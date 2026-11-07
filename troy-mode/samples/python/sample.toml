@@ -2,18 +2,15 @@
 # Python pack (F03 design 10).
 #
 # troy-mode/dev/build_sample.py builds a git repository from this file. The
-# first commit is the base folder with the pack installed, the way troy-init
-# sets up a project. Each later commit adds one stage folder on top. To check
-# a PR, the commits before it go on main and the PR's commit on a branch.
-# expected lists the result of each rule that troy-check code must report.
+# first commit is the base folder set up by troy-init's own setup and
+# language step (F06 design 8), with project and environment filled in. Each
+# later commit adds one stage folder on top. To check a PR, the commits
+# before it go on main and the PR's commit on a branch. expected lists the
+# result of each rule that troy-check code must report; a no_code PR expects
+# the pack's code steps to be skipped instead.
 
+project = "textstats"
 environment = "textstats"
-
-[pack]
-# Pack files written into the project. append adds the pack file after the
-# project's own file, as troy-init does.
-copy = { "environment.yml" = "environment.yml", "config.toml" = ".troy-mode/config.toml" }
-append = { "pyproject.toml" = "pyproject.toml", "workflow-job.yml" = ".github/workflows/troy-mode.yml" }
 
 [[commits]]
 title = "[docs] Set up textstats with troy-mode"
@@ -22,6 +19,9 @@ folder = "base"
 [[commits]]
 title = "[F01 1/6 design] Count words in a text"
 folder = "stages/1-design"
+pr = "design"
+# The head has no code yet, so the pack's code steps are skipped (F06 design D50).
+no_code = true
 
 [[commits]]
 title = "[F01 2/6 test-plan] Count words in a text"

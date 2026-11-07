@@ -139,9 +139,11 @@ class SetupOptionErrorsTest(InitCase):
             with self.subTest(date=date):
                 self.assert_cannot_run(Project(), date=date)
 
-    def test_lang_exits_2_in_part_one(self):
-        """The language step is not built in part 1, so lang exits 2 and changes nothing."""
-        self.assert_cannot_run(Project(), "lang", "python", "--json")
+    def test_lang_exits_2_without_a_known_language(self):
+        """lang with no language, or one with no pack, exits 2 and changes nothing."""
+        for args in (["lang", "--json"], ["lang", "typescript", "--json"]):
+            with self.subTest(args=args):
+                self.assert_cannot_run(Project(), *args)
 
 
 class UpgradePreconditionsTest(InitCase):

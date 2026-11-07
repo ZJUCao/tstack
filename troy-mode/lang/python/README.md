@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 1.0 |
-| Date | 2026-11-06 |
+| Version | 1.1 |
+| Date | 2026-11-07 |
 | Source of truth | This English file. [`README.zh-CN.md`](README.zh-CN.md) is the Chinese mirror. |
 
 The Python pack makes troy-check's language rules run in a Python project: R04 to R07 on the code, and R09 to R11 on the test run. `troy-init` (F06) copies it into a project. [The F03 design](../../../docs/troy-mode/design/F03-language-packs.md), section 8, records why each choice was made.
@@ -14,6 +14,7 @@ The Python pack makes troy-check's language rules run in a Python project: R04 t
 | --- | --- | --- |
 | [`environment.yml`](environment.yml) | `environment.yml` | The series environment: Python 3.13 and uv from conda-forge. `troy-init` fills in `{{environment}}`. |
 | [`pyproject.toml`](pyproject.toml) | Added at the end of `pyproject.toml` | The `dev` extra (coverage, mypy, pytest, ruff) and the settings of those tools. |
+| [`pyproject-project.toml`](pyproject-project.toml) | The start of a new `pyproject.toml` | For a project that has no `pyproject.toml` yet: `[build-system]` with hatchling, `[project]` with the name, version 0.1.0, and Python 3.13 or newer, and the wheel's package `src/<package>`. `troy-init` fills in `{{project-name}}` and `{{package}}` and adds the pack's tables after it. |
 | [`config.toml`](config.toml) | Added to `.troy-mode/config.toml` | `[lang]` and the Python path patterns. |
 | [`workflow-job.yml`](workflow-job.yml) | Added under `jobs:` in `.github/workflows/troy-mode.yml` | The `troy-mode code checks` job. |
 
@@ -61,12 +62,13 @@ A project adds its own settings, such as troy-voice's banned time functions, aft
 
 ## 5. CI job
 
-The job checks out the PR with its full history, creates the environment with `mamba-org/setup-micromamba` pinned to a commit, installs from the lock, and runs the steps of section 3. As in the troy-check job from F02, the PR's title and description reach the shell only through environment variables, and troy-check runs from the base commit when it exists there, so a PR cannot change the code that judges it.
+The job checks out the PR with its full history and asks `git ls-files` whether the PR's head has any file under `src/`. Until the first mock PR it has none, so every later step is skipped and the job passes with "No code yet" in its summary (F06 design D50). With code, it creates the environment with `mamba-org/setup-micromamba` pinned to a commit, installs from the lock, and runs the steps of section 3. As in the troy-check job from F02, the PR's title and description reach the shell only through environment variables, and troy-check runs from the base commit when it exists there, so a PR cannot change the code that judges it.
 
 ## 6. Sample project
 
-[`troy-mode/samples/python`](../../samples/python) holds textstats, a small project whose feature F01 goes through design, test plan, mock, tests, and implementation. [`build_sample.py`](../../dev/build_sample.py) builds its git repository the way `troy-init` sets up a project. troy-pstack's workflow `troy-python-sample.yml` then runs the steps of section 5 on two PRs:
+[`troy-mode/samples/python`](../../samples/python) holds textstats, a small project whose feature F01 goes through design, test plan, mock, tests, and implementation. [`build_sample.py`](../../dev/build_sample.py) builds its git repository with `troy-init`'s own setup and language step. troy-pstack's workflow `troy-python-sample.yml` then runs the steps of section 5 on three PRs:
 
+- the design PR, whose head has no code yet, so the code steps are skipped;
 - the tests PR, where every new test must fail against the mock (R09);
 - the implementation PR, where every test passes and the changed lines are covered (R11).
 

@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 1.0 |
-| Date | 2026-11-06 |
+| Version | 1.1 |
+| Date | 2026-11-07 |
 | Source of truth | This English file. [`README.zh-CN.md`](README.zh-CN.md) is the Chinese mirror. |
 
 The C/C++ pack makes troy-check's language rules run in a C or C++ project: R04 to R07 on the code, and R09 to R11 on the test run. `troy-init` (F06) copies it into a project. [The F03 design](../../../docs/troy-mode/design/F03-language-packs.md), section 9, records why each choice was made.
@@ -22,6 +22,7 @@ The C/C++ pack makes troy-check's language rules run in a C or C++ project: R04 
 | [`include/troy/not_implemented.h`](include/troy/not_implemented.h) | `include/troy/not_implemented.h` | `troy::NotImplemented`, which a mock's function bodies throw. |
 | [`config.toml`](config.toml) | Added to `.troy-mode/config.toml` | `[lang]` and the C/C++ path patterns. |
 | [`workflow-job.yml`](workflow-job.yml) | Added under `jobs:` in `.github/workflows/troy-mode.yml` | The `troy-mode code checks` job. |
+| [`CMakeLists-project.txt`](CMakeLists-project.txt) | `CMakeLists.txt`, when the project has none | `cmake_minimum_required(VERSION 3.28)`, `project(<name> C CXX)`, and `include(cmake/troy.cmake)`. `troy-init` fills in `{{project-name}}`. |
 
 The top-level `CMakeLists.txt` includes `cmake/troy.cmake` right after `project()`, and adds each test executable with `troy_add_test`. The project also commits `requirements-tools.lock` (section 2), and its `.gitignore` lists `build/` and `reports/`.
 
@@ -75,11 +76,11 @@ troy-check needs lizard in a C/C++ project, so it runs with the environment's Py
 
 ## 5. CI job
 
-The job checks out the PR with its full history, creates the environment with `mamba-org/setup-micromamba` pinned to a commit, and installs from the lock. Then it runs the steps of section 3 on Linux. As in the troy-check job from F02, the PR's title and description reach the shell only through environment variables, and troy-check runs from the base commit when it exists there.
+The job checks out the PR with its full history and asks `git ls-files` whether the PR's head has any file under `src/`, or under `include/` other than `include/troy/`. Until the first mock PR it has none, so every later step is skipped and the job passes with "No code yet" in its summary (F06 design D50). With code, it creates the environment with `mamba-org/setup-micromamba` pinned to a commit, and installs from the lock. Then it runs the steps of section 3 on Linux. As in the troy-check job from F02, the PR's title and description reach the shell only through environment variables, and troy-check runs from the base commit when it exists there.
 
 ## 6. Sample project
 
-[`troy-mode/samples/cpp`](../../samples/cpp) holds textstats in C++, with the same F01 as the Python sample plus one case for a file that cannot be read. troy-pstack's workflow `troy-cpp-sample.yml` builds it with [`build_sample.py`](../../dev/build_sample.py) and runs the steps of section 5 on its tests PR and its implementation PR. `troy-mode/dev/tests/test_cpp_pack.py` checks that the sample's workflow runs the same steps as `workflow-job.yml`. To build the sample yourself:
+[`troy-mode/samples/cpp`](../../samples/cpp) holds textstats in C++, with the same F01 as the Python sample plus one case for a file that cannot be read. troy-pstack's workflow `troy-cpp-sample.yml` builds it with [`build_sample.py`](../../dev/build_sample.py), through `troy-init`'s own setup and language step, and runs the steps of section 5 on its design PR, which has no code yet and skips the code steps, its tests PR, and its implementation PR. `troy-mode/dev/tests/test_cpp_pack.py` checks that the sample's workflow runs the same steps as `workflow-job.yml`. To build the sample yourself:
 
 ```text
 python troy-mode/dev/build_sample.py build cpp --pr impl --out <empty folder>

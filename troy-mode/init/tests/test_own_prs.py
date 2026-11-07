@@ -1,7 +1,9 @@
-"""Its own PRs pass (F06 design 4.2, 4.4, and 7): troy-check on the setup and upgrade commits.
+"""Its own PRs pass (F06 design 4.2, 4.4, and 7): troy-check on troy-init's commits.
 
 Each class stages exactly the report's paths (git hooks with --chmod=+x),
-makes the one commit of the PR flow, and runs the project's troy-check.
+makes the one commit of the PR flow, and runs the project's troy-check:
+setup against origin/main, and the language step and upgrade with the
+setup commit as their merge base.
 """
 
 import unittest
@@ -10,6 +12,7 @@ from init_helpers import (
     EMAIL, HOOKS_DIR, SETUP_BODY, SETUP_TITLE, InitCase, Project, hook_paths, make_plugin,
     results_by_rule, shared_plugin,
 )
+from lang_helpers import BODIES, TITLES, lang_done
 from rules_helpers import NEW_VERSION, UPGRADE_BODY, UPGRADE_TITLE, apply_upgrade_changes
 
 
@@ -108,6 +111,62 @@ class UpgradePrTest(InitCase):
         """The commit changes exactly the report's stage, deletions included."""
         self.assertEqual(sorted(p for p in self.committed if p), self.report["stage"])
         self.assertEqual(self.status, set())
+
+
+class LangPrChecks:
+    """The language step's commit, checked with the setup commit as its merge base.
+
+    Mixed into one TestCase per language; LANG names the pack.
+    """
+
+    LANG = "python"
+
+    @classmethod
+    def setUpClass(cls):
+        """Sets up, commits, runs the language step, commits it, and runs troy-check pr once."""
+        cls.plugin = shared_plugin(hooks=True)
+        cls.project, cls.base, cls.report = lang_done(cls.plugin, cls.LANG)
+        cls.status = cls.project.status_paths()
+        cls.committed = cls.project.git(
+            "diff", "--name-only", "--no-renames", cls.base, "HEAD").split("\n")
+        cls.check = cls.project.troy_check(cls.base, TITLES[cls.LANG], BODIES[cls.LANG])
+
+    def test_lang_pr_passes_r01_and_r02(self):
+        """One commit with the PR title, and every path is config or dependencies."""
+        results = results_by_rule(self.check)
+        for rule in ("R01", "R02"):
+            with self.subTest(rule=rule):
+                self.assertEqual(results[rule]["result"], "pass", results[rule])
+
+    def test_lang_pr_fails_no_rule(self):
+        """No rule fails; R16 may warn about the dependency files."""
+        results = results_by_rule(self.check)
+        self.assertNotEqual(results, {})
+        failed = {rule: item for rule, item in results.items() if item["result"] == "fail"}
+        self.assertEqual(failed, {})
+        self.assertIn(results["R16"]["result"], ("pass", "warn"), results["R16"])
+
+    def test_lang_pr_report_is_ok(self):
+        """troy-check exits 0 and reports ok."""
+        self.assertEqual(self.check.code, 0, self.check.describe())
+        self.assertIs(self.check.report["ok"], True)
+
+    def test_lang_commit_holds_exactly_the_staged_paths(self):
+        """The commit adds exactly the report's stage, and nothing is left unstaged."""
+        self.assertEqual(sorted(p for p in self.committed if p), self.report["stage"])
+        self.assertEqual(self.status, set())
+
+
+class PythonLangPrTest(LangPrChecks, InitCase):
+    """The [rules] Add the Python pack PR."""
+
+    LANG = "python"
+
+
+class CppLangPrTest(LangPrChecks, InitCase):
+    """The [rules] Add the C/C++ pack PR."""
+
+    LANG = "cpp"
 
 
 if __name__ == "__main__":

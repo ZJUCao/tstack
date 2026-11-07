@@ -1,11 +1,11 @@
 # F06 设计：项目初始化（troy-init）
 
-> 本文件是 [`F06-troy-init.md`](F06-troy-init.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F06-troy-init.md`](F06-troy-init.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.16](../requirements.zh-CN.md#72-功能列表) 中的 F06 |
-| 版本 | 1.1 |
+| 版本 | 1.2 |
 | 日期 | 2026-11-07 |
 | 状态 | Troy 已于 2026-11-06 批准，含 D47 到 D56。第 8 节对 R12 的改动由 Troy 于 2026-11-07 批准。 |
 | 事实来源 | 英文版 [`F06-troy-init.md`](F06-troy-init.md)。本文件是中文镜像。 |
@@ -49,15 +49,15 @@ troy-mode/
 | `/troy-pstack:troy-init lang python` 或 `lang cpp` | 语言步骤 |
 | `/troy-pstack:troy-init upgrade` | 升级 |
 
-技能先用 `--dry-run --json` 运行引擎。它用一条消息、用 Troy 的语言，只问没有明确默认值的事：要不要创建 GitHub 仓库（D52），要不要替换一个不是 troy-init 写的文件（D48），以及语言步骤里环境所属的系列。然后它运行引擎，把结果走一遍第 7 节的 PR 流程，最后报告做了什么、没做什么。
+技能先用 `--dry-run --json` 运行引擎。每一步在 `main` 上都会停下（第 4.1 节和第 5.1 节），所以语言步骤和升级要先创建这一步的分支（第 7 节第 2 步），再做试运行；升级没有东西要改时，再把这个分支删掉。初始化时如果文件夹还没有 `origin`，试运行的问题会指出缺少 `origin` 和所在分支；第 7 节的前两步会解决它们。它用一条消息、用 Troy 的语言，只问没有明确默认值的事：要不要创建 GitHub 仓库（D52），要不要替换一个不是 troy-init 写的文件（D48），以及语言步骤里环境所属的系列。然后它运行引擎，把结果走一遍第 7 节的 PR 流程，最后报告做了什么、没做什么。
 
 ### 3.2 引擎
 
 ```text
 python troy_init.py setup   [--project-name <name>] --email <address> [common options]
-python troy_init.py lang    (python | cpp) [--environment <name>] [--series <folder>]...
-                            [--package <name>] [--mamba <path>] [--env-prefix <path>] [--no-env]
-                            [common options]
+python troy_init.py lang    (python | cpp) [--project-name <name>] [--environment <name>]
+                            [--series <folder>]... [--package <name>] [--mamba <path>]
+                            [--env-prefix <path>] [--no-env] [common options]
 python troy_init.py upgrade [common options]
 
 common options: [--repo <path>] [--date <YYYY-MM-DD>] [--replace <path>]... [--dry-run] [--json]
@@ -233,7 +233,7 @@ git 和 GitHub 里的其他设置都不改。
 技能在引擎前后执行这些步骤。F07 自己运行引擎时，也执行同样的步骤。
 
 1. **仓库。** 如果文件夹不是 git 仓库，就 `git init -b main`。如果没有 `origin`，技能问 Troy 一次：要不要在 Troy 的账号下创建一个以项目命名的私有 GitHub 仓库。回答是的话：`gh repo create <owner>/<name> --private --add-readme`，然后 `git remote add origin` 和 `git fetch origin`。`main` 上的第一个 commit 由 GitHub 生成，所以没有人在本地 `main` 上提交（R21，D52）。
-2. **分支。** `git switch -c troy-mode/init origin/main`，或者 `troy-mode/lang-<name>`、`troy-mode/upgrade-<version>`。
+2. **分支。** `git switch -c troy-mode/init origin/main`，或者 `troy-mode/lang-<name>`、`troy-mode/upgrade-<version>`。语言步骤和升级在试运行之前就创建它（第 3.1 节）。
 3. **引擎。** 运行这一步。
 4. **暂存。** 只 `git add` 引擎报告列出的路径，git hook 加 `--chmod=+x`。从不用 `git add -A`。
 5. **提交。** 一个 commit，标题行等于 PR 标题（R01）：`[rules] Set up troy-mode`、`[rules] Add the Python pack` 或 `[rules] Add the C/C++ pack`、`[rules] Upgrade troy-mode to <version>`。F05 的 `commit-msg` hook 会检查它（R19）。
@@ -380,3 +380,4 @@ F05 到 D46 为止，所以 F06 从 D47 开始。
 | 0.1 | 2026-11-06 | 初稿。 |
 | 1.0 | 2026-11-06 | Troy 批准，含 D47 到 D56，全部采用推荐答案。 |
 | 1.1 | 2026-11-07 | 第 8 节：troy-check 的 R12 跳过 `.troy-mode/`，Troy 于 2026-11-07 批准。第 11.5 节：第一部分同时带上这项改动和 D49 的配置行。构建第一部分时发现。 |
+| 1.2 | 2026-11-07 | 第 3.2 节：`lang` 也接受 `--project-name`，选项表本来就说它用于构建文件。构建第二部分时发现。第 3.1 节和第 7 节：语言步骤和升级在试运行之前创建分支，因为每一步在 `main` 上都会停下。由第 11.4 节的试运行发现：这两步的试运行都在 `main` 上停下了。 |

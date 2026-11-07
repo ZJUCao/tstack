@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F03 in [requirements 1.6](../requirements.md#72-feature-list) |
-| Version | 1.1 |
-| Date | 2026-11-06 |
-| Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. |
+| Version | 1.2 |
+| Date | 2026-11-07 |
+| Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. Version 1.2 records the changes of F06's approved design (D49, D50). |
 | Source of truth | This English file. [`F03-language-packs.zh-CN.md`](F03-language-packs.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -43,15 +43,17 @@ troy-mode/
     python/
       README.md         README.zh-CN.md
       environment.yml   pyproject.toml (fragment)   config.toml (fragment)   workflow-job.yml
+      pyproject-project.toml   (the start of a new project's pyproject.toml, F06)
     cpp/
       README.md         README.zh-CN.md
       environment.yml   requirements-tools.in   CMakePresets.json   cmake/troy.cmake   Doxyfile
       .clang-format     .clang-tidy         config.toml (fragment)   workflow-job.yml
       include/troy/not_implemented.h   (the exception that mock bodies throw)
+      CMakeLists-project.txt   (a new project's CMakeLists.txt, F06)
   samples/
     python/  cpp/      sample projects that troy-pstack's CI takes through each pack (section 10)
   dev/
-    build_sample.py    builds a sample's git repository
+    build_sample.py    builds a sample's git repository, through troy-init's own functions (F06)
     environment.yml    requirements-dev.lock   troy-pstack's own environment (D26)
 ```
 
@@ -241,7 +243,7 @@ lock = ["requirements*.lock"]
 
 ### 8.5 CI job
 
-`workflow-job.yml` adds a job, `troy-mode code checks`, to the project workflow from F02. It checks out the full history, creates the environment with `mamba-org/setup-micromamba` pinned to a commit SHA, installs from the lock file, and runs the steps in section 8.3 with the PR's base, head, title, and description.
+`workflow-job.yml` adds a job, `troy-mode code checks`, to the project workflow from F02. It checks out the full history, creates the environment with `mamba-org/setup-micromamba` pinned to a commit SHA, installs from the lock file, and runs the steps in section 8.3 with the PR's base, head, title, and description. Its first step after the checkout asks `git ls-files` whether the PR's head has any file under `src/`. Until the first mock PR it has none, so every later step is skipped and the job passes with "No code yet" in its summary (F06 design D50).
 
 ## 9. C/C++ pack
 
@@ -298,9 +300,10 @@ name = "cpp"
 include_dirs = ["include", "src"]
 
 [paths]
+config = [".clang-format", ".clang-tidy", "include/troy/not_implemented.h"]
 tests = ["**/*_test.cc", "**/*_test.cpp"]
 dependencies = ["CMakeLists.txt", "**/CMakeLists.txt", "cmake/**", "CMakePresets.json",
-                "environment.yml", "requirements*.lock"]
+                "environment.yml", "requirements*.lock", "requirements*.in"]
 lock = ["requirements*.lock"]
 ```
 
@@ -308,7 +311,7 @@ CMake files count as dependencies, because adding a library happens there. Depen
 
 ### 9.6 CI job
 
-Like section 8.5, plus a configure and build step. Linux only.
+Like section 8.5, plus a configure and build step. Linux only. Its no-code check looks under `src/`, and under `include/` other than `include/troy/`, which holds the pack's own header.
 
 ## 10. How F03 is built and tested
 
@@ -366,3 +369,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 0.2 | 2026-11-05 | Troy approved D15 to D24 except D20. D20 is revised: one environment and one lock per series (section 8.1). |
 | 1.0 | 2026-11-05 | Approved by Troy with D15 to D24, D20 as revised. |
 | 1.1 | 2026-11-06 | D25 and D26, which Troy chose during part 4. GoogleTest leaves the environment (sections 9.1 and 9.2), clang-format and clang-tools are pinned to version 23, clang-23 joins the environment for clang-tidy, and section 2 lists the samples and troy-pstack's own environment. |
+| 1.2 | 2026-11-07 | Changes of F06's approved design (F06 design section 8). Both packs' CI jobs skip their code steps while the PR's head has no code (F06 D50, sections 8.5 and 9.6). The C/C++ config fragment puts `include/troy/not_implemented.h` in `config` (F06 D49) and lists `requirements*.in` (section 9.5). Each pack has a new project's build file (section 2). `build_sample.py` sets the samples up through troy-init's own functions, and each sample gains a design PR with no code. |

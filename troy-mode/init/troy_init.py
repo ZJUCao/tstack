@@ -2,6 +2,7 @@
 
 Usage:
     python troy_init.py setup --email <address> [options]
+    python troy_init.py lang (python | cpp) [options]
     python troy_init.py upgrade [options]
 
 The /troy-pstack:troy-init skill runs it, and F07 runs it directly. It changes

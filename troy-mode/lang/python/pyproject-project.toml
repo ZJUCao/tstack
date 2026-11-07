@@ -1,0 +1,16 @@
+# troy-mode Python pack: the start of a new project's pyproject.toml (F06 design 5.2).
+# troy-init writes it when the project has none, fills in the project and
+# package names, and adds the pack's tables from pyproject.toml after it.
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "{{project-name}}"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{package}}"]

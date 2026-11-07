@@ -1,11 +1,11 @@
 # troy-mode C/C++ 语言包
 
-> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.0（2026-11-06）。两者如有出入，以英文版为准。
+> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 1.0 |
-| 日期 | 2026-11-06 |
+| 版本 | 1.1 |
+| 日期 | 2026-11-07 |
 | 事实来源 | 英文版 [`README.md`](README.md)。本文件是中文镜像。 |
 
 C/C++ 语言包让 troy-check 的语言相关规则在 C 或 C++ 项目里运行：R04 到 R07 检查代码，R09 到 R11 检查测试结果。`troy-init`（F06）把它复制到项目里。[F03 设计](../../../docs/troy-mode/design/F03-language-packs.zh-CN.md)第 9 节记录了每个选择的理由。
@@ -24,6 +24,7 @@ C/C++ 语言包让 troy-check 的语言相关规则在 C 或 C++ 项目里运行
 | [`include/troy/not_implemented.h`](include/troy/not_implemented.h) | `include/troy/not_implemented.h` | `troy::NotImplemented`，mock 的函数体抛出它。 |
 | [`config.toml`](config.toml) | 加进 `.troy-mode/config.toml` | `[lang]` 和 C/C++ 的路径规则。 |
 | [`workflow-job.yml`](workflow-job.yml) | 加到 `.github/workflows/troy-mode.yml` 的 `jobs:` 下 | `troy-mode code checks` 这个 CI 任务。 |
+| [`CMakeLists-project.txt`](CMakeLists-project.txt) | 项目没有 `CMakeLists.txt` 时，作为 `CMakeLists.txt` | `cmake_minimum_required(VERSION 3.28)`、`project(<name> C CXX)` 和 `include(cmake/troy.cmake)`。`troy-init` 填写 `{{project-name}}`。 |
 
 顶层 `CMakeLists.txt` 在 `project()` 之后立刻引入 `cmake/troy.cmake`，每个测试程序都用 `troy_add_test` 添加。项目还要提交 `requirements-tools.lock`（第 2 节），并在 `.gitignore` 里列出 `build/` 和 `reports/`。
 
@@ -77,11 +78,11 @@ C/C++ 项目里 troy-check 要用 lizard，所以要用环境里的 Python 运�
 
 ## 5. CI 任务
 
-这个任务检出 PR 及其完整历史，用固定到某个提交的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后在 Linux 上运行第 3 节的步骤。和 F02 的 troy-check 任务一样，PR 的标题和描述只通过环境变量传给 shell；基准提交里有 troy-check 时，就用基准提交里的那份运行。
+这个任务检出 PR 及其完整历史，然后用 `git ls-files` 查看 PR 的最新提交里 `src/` 下，或 `include/` 下除 `include/troy/` 以外，有没有文件。第一个 mock PR 之前没有，所以后面的步骤全部跳过，任务通过，摘要里写着“No code yet”（F06 设计 D50）。有代码时，它用固定到某个提交的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后在 Linux 上运行第 3 节的步骤。和 F02 的 troy-check 任务一样，PR 的标题和描述只通过环境变量传给 shell；基准提交里有 troy-check 时，就用基准提交里的那份运行。
 
 ## 6. 示例项目
 
-[`troy-mode/samples/cpp`](../../samples/cpp) 里是 C++ 版的 textstats，F01 和 Python 示例相同，另外多一个文件读不了的测试用例。troy-pstack 的工作流 `troy-cpp-sample.yml` 用 [`build_sample.py`](../../dev/build_sample.py) 构建它，然后在它的测试 PR 和实现 PR 上运行第 5 节的步骤。`troy-mode/dev/tests/test_cpp_pack.py` 检查示例的工作流和 `workflow-job.yml` 运行的是同样的步骤。自己构建示例：
+[`troy-mode/samples/cpp`](../../samples/cpp) 里是 C++ 版的 textstats，F01 和 Python 示例相同，另外多一个文件读不了的测试用例。troy-pstack 的工作流 `troy-cpp-sample.yml` 用 [`build_sample.py`](../../dev/build_sample.py) 通过 `troy-init` 自己的初始化和语言步骤构建它，然后在三个 PR 上运行第 5 节的步骤：设计 PR（还没有代码，跳过代码步骤）、测试 PR 和实现 PR。`troy-mode/dev/tests/test_cpp_pack.py` 检查示例的工作流和 `workflow-job.yml` 运行的是同样的步骤。自己构建示例：
 
 ```text
 python troy-mode/dev/build_sample.py build cpp --pr impl --out <空文件夹>

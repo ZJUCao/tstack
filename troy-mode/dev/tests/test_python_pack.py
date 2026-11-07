@@ -1,4 +1,4 @@
-"""Tests of the Python pack's files and of build_sample.py (F03 design 8 and 10).
+"""Tests of the Python pack's files and of build_sample.py (F03 design 8 and 10, F06 5.6 and 8).
 
 The pack's files are checked against the design. The sample's CI workflow
 is checked against the pack's CI job, so the sample runs the same steps a
@@ -6,6 +6,7 @@ project runs. build_sample.py runs as a subprocess, as CI runs it.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -14,21 +15,25 @@ import tomllib
 import unittest
 from pathlib import Path
 
-from pack_helpers import (DEV, PINNED, SAMPLE_ONLY_STEPS, TROY_MODE, WORKFLOWS, git,
-                          parse_config, run_build, steps, uses)
+from pack_helpers import (CODE_GUARD, DEV, LOOK_FOR_CODE, PINNED, SAMPLE_EMAIL,
+                          SAMPLE_ONLY_STEPS, TROY_MODE, WORKFLOWS, bash_path, git, git_bytes,
+                          lf_bytes, pack_patterns, pack_workflow, parse_config, run_build,
+                          run_step_script, setup_paths, sha256_lf, step_blocks, steps, uses)
 
 PACK = TROY_MODE / "lang" / "python"
 SAMPLE = TROY_MODE / "samples" / "python"
 SAMPLE_WORKFLOW = WORKFLOWS / "troy-python-sample.yml"
+DESIGN_TITLE = "[F01 1/6 design] Count words in a text"
+SETUP_TITLE = "[docs] Set up textstats with troy-mode"
 
 
 class PackFileTests(unittest.TestCase):
     """The pack's files hold what F03 design section 8 says."""
 
     def test_pack_has_the_files_of_design_section_2(self) -> None:
-        """The pack folder holds the README pair and the four pack files."""
+        """The pack folder holds the README pair, the four pack files, and the new-project file."""
         names = {"README.md", "README.zh-CN.md", "environment.yml", "pyproject.toml",
-                 "config.toml", "workflow-job.yml"}
+                 "config.toml", "workflow-job.yml", "pyproject-project.toml"}
         self.assertEqual(names, {p.name for p in PACK.iterdir()})
 
     def test_environment_provides_only_python_and_uv(self) -> None:
@@ -65,6 +70,39 @@ class PackFileTests(unittest.TestCase):
         self.assertEqual("-ra --strict-markers", tool["pytest"]["ini_options"]["addopts"])
         self.assertEqual({"branch": True, "source": ["src"]}, tool["coverage"]["run"])
 
+    def test_new_project_file_holds_build_system_project_and_wheel(self) -> None:
+        """pyproject-project.toml has hatchling, the name, 0.1.0, Python 3.13, and the package."""
+        text = (PACK / "pyproject-project.toml").read_text(encoding="utf-8")
+        data = tomllib.loads(text)
+        self.assertEqual({"build-system", "project", "tool"}, set(data))
+        self.assertEqual({"requires": ["hatchling>=1.25"], "build-backend": "hatchling.build"},
+                         data["build-system"])
+        self.assertEqual({"name": "{{project-name}}", "version": "0.1.0",
+                          "requires-python": ">=3.13", "dependencies": []}, data["project"])
+        self.assertEqual({"hatch": {"build": {"targets": {"wheel": {
+            "packages": ["src/{{package}}"]}}}}}, data["tool"])
+        markers = set(re.findall(r"\{\{[^}]*\}\}", text))
+        self.assertEqual({"{{project-name}}", "{{package}}"}, markers)
+
+    def test_new_project_file_and_fragment_join_into_one_valid_file(self) -> None:
+        """The created pyproject.toml, the two files joined, is valid TOML with both parts."""
+        first = (PACK / "pyproject-project.toml").read_text(encoding="utf-8")
+        first = first.replace("{{project-name}}", "habit-tracker").replace("{{package}}", "habits")
+        joined = first.rstrip("\n") + "\n\n" + (PACK / "pyproject.toml").read_text("utf-8")
+        data = tomllib.loads(joined)
+        self.assertEqual("habit-tracker", data["project"]["name"])
+        self.assertIn("dev", data["project"]["optional-dependencies"])
+        self.assertEqual(["src/habits"], data["tool"]["hatch"]["build"]["targets"]["wheel"][
+            "packages"])
+
+    def test_readmes_list_the_new_project_file(self) -> None:
+        """Both READMEs' files tables have a row for pyproject-project.toml."""
+        for name in ("README.md", "README.zh-CN.md"):
+            with self.subTest(readme=name):
+                rows = [line for line in (PACK / name).read_text("utf-8").splitlines()
+                        if re.match(r"^\| \[?`pyproject-project\.toml`", line)]
+                self.assertEqual(1, len(rows), name)
+
     def test_actions_are_pinned_to_commits(self) -> None:
         """Every action in the pack's job and the sample's workflow is pinned to a SHA."""
         for path in (PACK / "workflow-job.yml", SAMPLE_WORKFLOW):
@@ -89,9 +127,92 @@ class PackFileTests(unittest.TestCase):
         """The sample's workflow runs the pack's steps unchanged, plus its own two."""
         pack = steps(PACK / "workflow-job.yml")
         sample = [s for s in steps(SAMPLE_WORKFLOW) if s[0] not in SAMPLE_ONLY_STEPS]
-        self.assertEqual(len(pack), 6)
+        self.assertEqual(len(pack), 7)
         self.assertEqual(pack, sample)
         self.assertEqual(uses(PACK / "workflow-job.yml"), uses(SAMPLE_WORKFLOW))
+
+
+class NoCodeGuardTests(unittest.TestCase):
+    """The pack's job skips its code steps until the PR has code (F06 design 5.6, D50)."""
+
+    def test_job_looks_for_code_right_after_checkout(self) -> None:
+        """The first step after checkout is Look for code, with id code and no condition."""
+        blocks = step_blocks(PACK / "workflow-job.yml")
+        self.assertEqual(9, len(blocks))
+        self.assertTrue(blocks[0].get("uses", "").startswith("actions/checkout@"), blocks[0])
+        self.assertEqual(LOOK_FOR_CODE, blocks[1].get("name"))
+        self.assertEqual("code", blocks[1].get("id"))
+        self.assertNotIn("if", blocks[1])
+
+    def test_every_later_step_of_the_job_needs_code(self) -> None:
+        """Each step after Look for code, uses: steps included, runs only when code was found."""
+        blocks = step_blocks(PACK / "workflow-job.yml")
+        self.assertEqual(7, len(blocks[2:]))
+        self.assertTrue(any("uses" in block for block in blocks[2:]))
+        for block in blocks[2:]:
+            with self.subTest(step=block.get("name") or block.get("uses")):
+                self.assertEqual(CODE_GUARD, block.get("if"))
+
+    def test_look_for_code_lists_src_and_writes_the_output(self) -> None:
+        """The step asks git ls-files about src, sets found, and writes No code yet."""
+        script = dict(steps(PACK / "workflow-job.yml"))[LOOK_FOR_CODE]
+        for text in ("git ls-files", "src", "found=true", "found=false", "GITHUB_OUTPUT",
+                     "GITHUB_STEP_SUMMARY", "No code yet"):
+            with self.subTest(text=text):
+                self.assertIn(text, script)
+
+    def test_sample_looks_for_code_after_building_the_sample(self) -> None:
+        """In the sample, Look for code follows the build, and every later step but the
+        comparison needs code."""
+        blocks = step_blocks(SAMPLE_WORKFLOW)
+        names = [block.get("name") for block in blocks]
+        look = names.index(LOOK_FOR_CODE)
+        self.assertEqual("code", blocks[look].get("id"))
+        self.assertLess(names.index("Build the sample"), look)
+        later = blocks[look + 1:]
+        self.assertEqual(8, len(later))
+        for block in later:
+            with self.subTest(step=block.get("name") or block.get("uses")):
+                if block.get("name") == "Compare with the expected results":
+                    self.assertNotEqual(CODE_GUARD, block.get("if"))
+                else:
+                    self.assertEqual(CODE_GUARD, block.get("if"))
+
+    def test_sample_compares_with_and_without_code(self) -> None:
+        """The comparison reads found, verifies a report, or verifies with --no-code."""
+        compare = next(block for block in step_blocks(SAMPLE_WORKFLOW)
+                       if block.get("name") == "Compare with the expected results")
+        for text in ("steps.code.outputs.found", "verify python --pr", "--report", "--no-code"):
+            with self.subTest(text=text):
+                self.assertIn(text, compare["text"])
+
+    def test_no_step_runs_exit(self) -> None:
+        """No run step calls exit: in the job's login shell, exit reads ~/.bash_logout,
+        which fails on the runner and turns exit 0 into 1."""
+        for path in (PACK / "workflow-job.yml", SAMPLE_WORKFLOW):
+            for block in step_blocks(path):
+                with self.subTest(file=path.name, step=block.get("name")):
+                    self.assertNotRegex(block["text"], r"(?m)^\s*exit\b")
+
+    def test_sample_matrix_has_the_design_pr(self) -> None:
+        """The sample runs the design PR, without code, and the tests and impl PRs."""
+        text = SAMPLE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertRegex(text, r"(?m)^\s+pr: \[design, tests, impl\]\s*$")
+
+    @unittest.skipIf(bash_path() is None, "no bash that runs like a runner's")
+    def test_look_for_code_runs_on_a_head_with_and_without_code(self) -> None:
+        """Run with bash: found=false and No code yet without src, found=true with it."""
+        script = dict(steps(PACK / "workflow-job.yml"))[LOOK_FOR_CODE]
+        if "${{" in script:
+            self.skipTest("the step's script holds a workflow expression")
+        cases = (({"docs/architecture.md": "# A\n", "tests/test_cli.py": ""}, "false"),
+                 ({"src/textstats/__init__.py": ""}, "true"))
+        for files, found in cases:
+            with self.subTest(found=found):
+                output, summary = run_step_script(script, files)
+                self.assertEqual([f"found={found}"],
+                                 [line for line in output if line.startswith("found=")])
+                self.assertEqual(found == "false", "No code yet" in summary, summary)
 
 
 class SampleLockTests(unittest.TestCase):
@@ -104,6 +225,35 @@ class SampleLockTests(unittest.TestCase):
                       "-o requirements-dev.lock", text)
         for tool in ("coverage", "mypy", "pytest", "ruff"):
             self.assertRegex(text, rf"(?m)^{tool}==\d")
+
+
+class SampleSettingsTests(unittest.TestCase):
+    """sample.toml and the sample's folders after F06 design 8."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Reads sample.toml once."""
+        cls.sample = tomllib.loads((SAMPLE / "sample.toml").read_text(encoding="utf-8"))
+
+    def test_sample_names_project_and_environment_without_a_pack_table(self) -> None:
+        """troy-init's functions install the pack, so sample.toml has no [pack] table."""
+        self.assertNotIn("pack", self.sample)
+        self.assertEqual("textstats", self.sample["project"])
+        self.assertEqual("textstats", self.sample["environment"])
+
+    def test_sample_marks_the_design_pr_as_having_no_code(self) -> None:
+        """The design commit is PR design, with no_code and no expected results."""
+        design = [c for c in self.sample["commits"] if c.get("pr") == "design"]
+        self.assertEqual(1, len(design))
+        self.assertEqual(DESIGN_TITLE, design[0]["title"])
+        self.assertIs(True, design[0].get("no_code"))
+        self.assertNotIn("expected", design[0])
+
+    def test_package_init_moved_from_base_to_the_mock_stage(self) -> None:
+        """The base has no src/, so the design PR's head has no code."""
+        self.assertFalse((SAMPLE / "base" / "src").exists())
+        self.assertTrue((SAMPLE / "stages" / "3-mock" / "src" / "textstats" / "__init__.py")
+                        .is_file())
 
 
 class BuildSampleTests(unittest.TestCase):
@@ -121,6 +271,15 @@ class BuildSampleTests(unittest.TestCase):
         """Deletes the built repository."""
         cls._tmp.cleanup()
 
+    def root(self) -> str:
+        """The built sample's first commit, after checking the build succeeded."""
+        self.assertEqual(0, self.proc.returncode, self.proc.stderr)
+        return git(self.repo, "rev-list", "--max-parents=0", "HEAD")
+
+    def show(self, path: str) -> str:
+        """A file's text in the first commit, with CRLF made LF."""
+        return lf_bytes(git_bytes(self.repo, "show", f"{self.root()}:{path}")).decode("utf-8")
+
     def test_build_puts_the_pr_on_a_branch_after_the_stages_before_it(self) -> None:
         """main holds the stages before the PR, and branch pr holds the PR's commit."""
         self.assertEqual(0, self.proc.returncode, self.proc.stderr)
@@ -131,8 +290,7 @@ class BuildSampleTests(unittest.TestCase):
         self.assertEqual("pr", git(self.repo, "branch", "--show-current"))
         self.assertEqual(["[F01 3/6 mock] Count words in a text",
                           "[F01 2/6 test-plan] Count words in a text",
-                          "[F01 1/6 design] Count words in a text",
-                          "[docs] Set up textstats with troy-mode"],
+                          DESIGN_TITLE, SETUP_TITLE],
                          git(self.repo, "log", "--format=%s", "main").splitlines())
         self.assertEqual(["tests/test_cli.py", "tests/test_counting.py"],
                          git(self.repo, "diff", "--name-only", "main", "pr").splitlines())
@@ -168,6 +326,63 @@ class BuildSampleTests(unittest.TestCase):
                 self.assertIn(f".troy-mode/checks/git-hooks/{name}", files)
                 self.assertEqual((source / name).read_bytes(), (copied / name).read_bytes())
 
+    def test_first_commit_holds_every_file_setup_writes(self) -> None:
+        """troy-check, the templates, the record, the config, the rules, PR template, workflow."""
+        files = set(git(self.repo, "ls-tree", "-r", "--name-only", self.root()).splitlines())
+        missing = sorted(set(setup_paths()) - files)
+        self.assertEqual([], missing)
+
+    def test_first_commit_records_git_hooks_as_executable(self) -> None:
+        """git records every hook file in the first commit with mode 100755."""
+        listing = git(self.repo, "ls-tree", "-r", self.root(), "--", ".troy-mode/checks/git-hooks")
+        modes = {line.split("\t")[1]: line.split()[0] for line in listing.splitlines()}
+        self.assertEqual(4, len(modes))
+        self.assertEqual({"100755"}, set(modes.values()), modes)
+
+    def test_build_leaves_hooks_off_and_the_progress_file_out(self) -> None:
+        """core.hooksPath is unset, and no commit holds .troy-mode/progress.md."""
+        self.root()
+        proc = subprocess.run(["git", "-C", str(self.repo), "config", "--local", "--get",
+                               "core.hooksPath"], capture_output=True, text=True, check=False)
+        self.assertEqual(1, proc.returncode, proc.stdout)
+        paths = git(self.repo, "log", "--all", "--format=", "--name-only").splitlines()
+        self.assertNotIn(".troy-mode/progress.md", paths)
+        self.assertIn(".troy-mode/progress.md", self.show(".gitignore").splitlines())
+
+    def test_first_commit_config_is_setup_with_the_lang_table(self) -> None:
+        """Every pack's patterns, the sample's email, and [lang] filled for the sample."""
+        data = tomllib.loads(self.show(".troy-mode/config.toml"))
+        config = parse_config(self.show(".troy-mode/config.toml"))
+        self.assertEqual(SAMPLE_EMAIL, config.commit_email)
+        self.assertEqual({"name": "python", "source_roots": ["src"], "environment": "textstats",
+                          "series": ["."]}, data["lang"])
+        for key, patterns in pack_patterns().items():
+            with self.subTest(key=key):
+                self.assertEqual(sorted(patterns), sorted(set(data["paths"][key])))
+
+    def test_first_commit_record_names_the_pack_and_hashes_the_files(self) -> None:
+        """The install record has [lang] name and the hash of each owned file."""
+        record = tomllib.loads(self.show(".troy-mode/install.toml"))
+        self.assertEqual("python", record["lang"]["name"])
+        self.assertIn("setup", record["steps"])
+        self.assertIn(".github/workflows/troy-mode.yml", record["files"])
+        for path, digest in record["files"].items():
+            with self.subTest(path=path):
+                self.assertEqual(digest, sha256_lf((self.repo / path).read_bytes()))
+
+    def test_first_commit_rules_and_workflow_are_troy_inits(self) -> None:
+        """The rules table names textstats, and the workflow is F02's plus the pack's job."""
+        rules = self.show("docs/rules.md")
+        self.assertIn("# textstats rules", rules.splitlines())
+        self.assertNotIn("{{", rules)
+        self.assertNotIn("<!--", rules)
+        self.assertEqual(pack_workflow("python"), self.show(".github/workflows/troy-mode.yml"))
+
+    def test_first_commit_keeps_the_sample_lock(self) -> None:
+        """The sample's own committed lock is the one in the first commit."""
+        expected = lf_bytes((SAMPLE / "base" / "requirements-dev.lock").read_bytes())
+        self.assertEqual(expected.decode("utf-8"), self.show("requirements-dev.lock"))
+
     def test_build_refuses_a_folder_that_is_not_empty(self) -> None:
         """Building into a folder with files in it is an error, exit code 2."""
         proc = run_build("build", "python", "--pr", "impl", "--out", str(self.repo))
@@ -179,7 +394,7 @@ class BuildSampleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             proc = run_build("build", "python", "--pr", "accept", "--out", str(Path(tmp) / "r"))
         self.assertEqual(2, proc.returncode)
-        self.assertIn("tests, impl", proc.stderr)
+        self.assertIn("design, tests, impl", proc.stderr)
 
     def test_build_writes_the_values_to_github_env(self) -> None:
         """With GITHUB_ENV set, the values go there, PR_BODY with a delimiter."""
@@ -192,6 +407,37 @@ class BuildSampleTests(unittest.TestCase):
         self.assertIn("PR_TITLE=[F01 5/6 impl] Count words in a text\n", text)
         self.assertRegex(text, r"(?m)^BASE_SHA=[0-9a-f]{40}$")
         self.assertRegex(text, r"PR_BODY<<(\w+)\n## Why\n(.|\n)*\n\1\n")
+
+
+class BuildDesignPrTests(unittest.TestCase):
+    """The design PR: setup and the language step, but no code (F06 design 8)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Builds the design PR of the Python sample once."""
+        cls._tmp = tempfile.TemporaryDirectory(prefix="sample-")
+        cls.repo = Path(cls._tmp.name) / "repo"
+        cls.proc = run_build("build", "python", "--pr", "design", "--out", str(cls.repo))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """Deletes the built repository."""
+        cls._tmp.cleanup()
+
+    def test_design_pr_sits_on_the_setup_commit(self) -> None:
+        """main holds only the setup commit, and branch pr adds the design."""
+        self.assertEqual(0, self.proc.returncode, self.proc.stderr)
+        self.assertEqual(DESIGN_TITLE, json.loads(self.proc.stdout)["PR_TITLE"])
+        self.assertEqual([SETUP_TITLE], git(self.repo, "log", "--format=%s", "main").splitlines())
+        self.assertEqual(["docs/features/F01-word-counts/design.md"],
+                         git(self.repo, "diff", "--name-only", "main", "pr").splitlines())
+
+    def test_design_pr_head_has_no_code(self) -> None:
+        """No file of the PR's head is under src/, though the pack is installed."""
+        self.assertEqual(0, self.proc.returncode, self.proc.stderr)
+        files = git(self.repo, "ls-tree", "-r", "--name-only", "pr").splitlines()
+        self.assertIn("pyproject.toml", files)
+        self.assertEqual([], [path for path in files if path.startswith("src/")])
 
 
 class FillTests(unittest.TestCase):
@@ -212,15 +458,15 @@ class FillTests(unittest.TestCase):
 class VerifyTests(unittest.TestCase):
     """verify compares a troy-check report with the sample's expected results."""
 
-    def verify(self, results: dict[str, str]) -> subprocess.CompletedProcess:
-        """Writes a report with the given results and runs verify on the impl PR."""
+    def verify(self, results: dict[str, str], pr: str = "impl") -> subprocess.CompletedProcess:
+        """Writes a report with the given results and runs verify on a PR."""
         report = {"command": "code", "ok": True, "title": None,
                   "results": [{"rule": r, "result": v, "message": f"{r} said {v}.", "details": []}
                               for r, v in results.items()]}
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "report.json"
             path.write_text(json.dumps(report), encoding="utf-8")
-            return run_build("verify", "python", "--pr", "impl", "--report", str(path))
+            return run_build("verify", "python", "--pr", pr, "--report", str(path))
 
     def expected(self) -> dict[str, str]:
         """Returns the impl PR's expected results from sample.toml."""
@@ -247,6 +493,35 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(1, proc.returncode)
         self.assertIn("R04: expected pass, got not reported.", proc.stdout)
         self.assertIn("R99: expected not reported, got pass.", proc.stdout)
+
+    def test_no_code_passes_on_the_design_pr(self) -> None:
+        """verify --no-code exits 0 on the PR sample.toml marks no_code."""
+        proc = run_build("verify", "python", "--pr", "design", "--no-code")
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+
+    def test_no_code_fails_on_a_pr_with_code(self) -> None:
+        """verify --no-code on the impl PR exits 1 with one line naming the PR."""
+        proc = run_build("verify", "python", "--pr", "impl", "--no-code")
+        self.assertEqual(1, proc.returncode, proc.stdout + proc.stderr)
+        lines = [line for line in proc.stdout.splitlines()
+                 if line.strip() and not line.endswith(" differences.")]
+        self.assertEqual(1, len(lines), proc.stdout)
+        self.assertIn("impl", lines[0])
+
+    def test_a_report_fails_on_the_design_pr(self) -> None:
+        """A troy-check report on a PR marked no_code is a difference, exit 1."""
+        proc = self.verify(self.expected(), pr="design")
+        self.assertEqual(1, proc.returncode, proc.stdout + proc.stderr)
+
+    def test_verify_needs_exactly_one_of_report_and_no_code(self) -> None:
+        """Neither option, or both, is a usage error, exit 2."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "report.json"
+            path.write_text("{}", encoding="utf-8")
+            for extra in ([], ["--no-code", "--report", str(path)]):
+                with self.subTest(extra=extra):
+                    proc = run_build("verify", "python", "--pr", "design", *extra)
+                    self.assertEqual(2, proc.returncode, proc.stdout + proc.stderr)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,13 @@
 # F03 设计：语言包
 
-> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.1（2026-11-06）。两者如有出入，以英文版为准。
+> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.6](../requirements.zh-CN.md#72-功能列表) 中的 F03 |
-| 版本 | 1.1 |
-| 日期 | 2026-11-06 |
-| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。 |
+| 版本 | 1.2 |
+| 日期 | 2026-11-07 |
+| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。1.2 版记录 F06 已批准设计带来的修改（D49、D50）。 |
 | 事实来源 | 英文版 [`F03-language-packs.md`](F03-language-packs.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -45,15 +45,17 @@ troy-mode/
     python/
       README.md         README.zh-CN.md
       environment.yml   pyproject.toml (fragment)   config.toml (fragment)   workflow-job.yml
+      pyproject-project.toml   (the start of a new project's pyproject.toml, F06)
     cpp/
       README.md         README.zh-CN.md
       environment.yml   requirements-tools.in   CMakePresets.json   cmake/troy.cmake   Doxyfile
       .clang-format     .clang-tidy         config.toml (fragment)   workflow-job.yml
       include/troy/not_implemented.h   (the exception that mock bodies throw)
+      CMakeLists-project.txt   (a new project's CMakeLists.txt, F06)
   samples/
     python/  cpp/      sample projects that troy-pstack's CI takes through each pack (section 10)
   dev/
-    build_sample.py    builds a sample's git repository
+    build_sample.py    builds a sample's git repository, through troy-init's own functions (F06)
     environment.yml    requirements-dev.lock   troy-pstack's own environment (D26)
 ```
 
@@ -243,7 +245,7 @@ lock = ["requirements*.lock"]
 
 ### 8.5 CI 任务
 
-`workflow-job.yml` 往 F02 的项目工作流里加一个任务 `troy-mode code checks`。它检出完整历史，用固定到 commit SHA 的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后用 PR 的基点、head、标题和描述运行第 8.3 节的各个步骤。
+`workflow-job.yml` 往 F02 的项目工作流里加一个任务 `troy-mode code checks`。它检出完整历史，用固定到 commit SHA 的 `mamba-org/setup-micromamba` 创建环境，按锁文件安装，然后用 PR 的基点、head、标题和描述运行第 8.3 节的各个步骤。检出之后的第一步用 `git ls-files` 查看 PR 的 head 里 `src/` 下有没有文件。第一个 mock PR 之前没有，所以后面的步骤全部跳过，任务通过，摘要里写着“No code yet”（F06 设计 D50）。
 
 ## 9. C/C++ 语言包
 
@@ -300,9 +302,10 @@ name = "cpp"
 include_dirs = ["include", "src"]
 
 [paths]
+config = [".clang-format", ".clang-tidy", "include/troy/not_implemented.h"]
 tests = ["**/*_test.cc", "**/*_test.cpp"]
 dependencies = ["CMakeLists.txt", "**/CMakeLists.txt", "cmake/**", "CMakePresets.json",
-                "environment.yml", "requirements*.lock"]
+                "environment.yml", "requirements*.lock", "requirements*.in"]
 lock = ["requirements*.lock"]
 ```
 
@@ -310,7 +313,7 @@ CMake 文件算作依赖文件，因为添加库就是在这些文件里做的�
 
 ### 9.6 CI 任务
 
-和第 8.5 节类似，多一个配置和构建步骤。只在 Linux 上运行。
+和第 8.5 节类似，多一个配置和构建步骤。只在 Linux 上运行。它查看有没有代码时，看 `src/` 下，以及 `include/` 下除 `include/troy/` 以外的地方；`include/troy/` 里是语言包自己的头文件。
 
 ## 10. F03 怎么开发和测试
 
@@ -368,3 +371,4 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2
 | 0.2 | 2026-11-05 | Troy 批准了 D15 到 D24，D20 除外。D20 已修改：每个系列一个环境、一个锁文件（第 8.1 节）。 |
 | 1.0 | 2026-11-05 | Troy 批准，含 D15 到 D24，D20 按修改后的方案。 |
 | 1.1 | 2026-11-06 | 加入 Troy 在做第 4 部分时决定的 D25 和 D26。GoogleTest 移出环境（第 9.1、9.2 节），clang-format 和 clang-tools 固定在 23 版，环境加入供 clang-tidy 使用的 clang-23，第 2 节列出示例项目和 troy-pstack 自己的环境。 |
+| 1.2 | 2026-11-07 | F06 已批准设计带来的修改（F06 设计第 8 节）。PR 的 head 里还没有代码时，两个语言包的 CI 任务跳过代码步骤（F06 D50，第 8.5、9.6 节）。C/C++ 的配置片段把 `include/troy/not_implemented.h` 放进 `config`（F06 D49），并列出 `requirements*.in`（第 9.5 节）。每个语言包多了一个新项目用的构建文件（第 2 节）。`build_sample.py` 通过 troy-init 自己的函数初始化示例项目，每个示例多了一个没有代码的设计 PR。 |

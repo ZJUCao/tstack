@@ -2,13 +2,16 @@
 
 import argparse
 import datetime
+import keyword
 import re
 import sys
 from pathlib import Path
 
+from .env import run_env
 from .errors import InitError
 from .gitops import toplevel
-from .plan import Plan, apply
+from .lang import LangOptions, plan_lang
+from .plan import Plan, apply, restore, save
 from .plugin import load_plugin
 from .report import to_json, to_text
 from .setup import SetupOptions, plan_setup
@@ -63,15 +66,52 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--project-name", help="default: the repository folder's name")
     setup.add_argument("--email", required=True, type=_email, help="the commit email (R19)")
     _add_common(setup)
-    lang = sub.add_parser("lang", help="add a language pack (F06 part 2)")
+    lang = sub.add_parser("lang", help="add the language pack once the architecture is approved")
     lang.add_argument("language", choices=("python", "cpp"))
-    for option in ("--environment", "--package", "--mamba", "--env-prefix"):
-        lang.add_argument(option)
-    lang.add_argument("--series", action="append", default=[])
-    lang.add_argument("--no-env", action="store_true")
+    lang.add_argument("--project-name", help="for a new build file (default: the folder's name)")
+    lang.add_argument("--environment", help="the series environment (default: the project name)")
+    lang.add_argument("--series", action="append", default=[], metavar="FOLDER",
+                      help="a member of the series; this project is '.' (default: .)")
+    lang.add_argument("--package", help="Python: the package under src/ (default: the project "
+                                        "name in snake case)")
+    lang.add_argument("--mamba", help="mamba's path, when it is not on the PATH or in $MAMBA_EXE")
+    lang.add_argument("--env-prefix", help="create the environment in this folder")
+    lang.add_argument("--no-env", action="store_true",
+                      help="create no environment and compile no lock")
     _add_common(lang)
     _add_common(sub.add_parser("upgrade", help="bring troy-mode's files up to date"))
     return parser
+
+
+def snake_case(name: str) -> str:
+    """Turns a project name into a package name: habit-tracker, TroyVoice -> troy_voice."""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name)
+    return re.sub(r"[^0-9A-Za-z]+", "_", text).strip("_").lower()
+
+
+def _lang_options(args: argparse.Namespace, top: Path, date: str,
+                  replace: list[str]) -> LangOptions:
+    """Checks the language step's options and fills in their defaults (design 3.2).
+
+    Raises:
+        InitError: The options do not fit together.
+    """
+    if args.no_env and (args.mamba or args.env_prefix):
+        raise InitError("--no-env creates no environment, so it takes no --mamba or --env-prefix")
+    project = args.project_name or top.name
+    package = None
+    if args.language == "python":
+        package = args.package or snake_case(project)
+        if not package.isidentifier() or keyword.iskeyword(package):
+            raise InitError(f"{package!r} is not a Python package name; pass --package <name>")
+    elif args.package:
+        raise InitError("--package is for the Python pack only")
+    series = [s.replace("\\", "/").rstrip("/") or "." for s in args.series] or ["."]
+    if "." not in series:
+        series.append(".")
+    prefix = str(Path(args.env_prefix).resolve()) if args.env_prefix else None
+    return LangOptions(args.language, project, args.environment or project, series, package,
+                       date, replace, args.no_env, prefix, args.mamba)
 
 
 def _plan(args: argparse.Namespace, repo: Path, top: Path, plugin_root: Path) -> Plan:
@@ -86,9 +126,31 @@ def _plan(args: argparse.Namespace, repo: Path, top: Path, plugin_root: Path) ->
     if args.command == "setup":
         options = SetupOptions(args.project_name or top.name, args.email, date, replace)
         return plan_setup(plugin, repo, top, options)
-    if args.command == "upgrade":
-        return plan_upgrade(plugin, repo, top, date, replace)
-    raise InitError("the language step is not built yet; it comes with F06 part 2")
+    if args.command == "lang":
+        return plan_lang(plugin, repo, top, _lang_options(args, top, date, replace))
+    return plan_upgrade(plugin, repo, top, date, replace)
+
+
+def _apply(repo: Path, plan: Plan) -> None:
+    """Writes the plan, then runs the language step's environment work.
+
+    When a mamba or uv command fails, every file the step wrote is put back,
+    so the project is as it was. An environment that was created stays.
+
+    Raises:
+        InitError: A file cannot be written, or a command fails.
+    """
+    env = plan.env
+    if env is None or env.skipped:
+        apply(repo, plan)
+        return
+    saved = save(repo, plan)
+    apply(repo, plan)
+    try:
+        run_env(repo, env)
+    except InitError as exc:
+        restore(repo, saved)
+        raise InitError(f"{exc}\nThe project's files are back as they were.") from exc
 
 
 def run(args: argparse.Namespace, plugin_root: Path) -> int:
@@ -110,7 +172,7 @@ def run(args: argparse.Namespace, plugin_root: Path) -> int:
         raise InitError(f"{repo} is not in a git repository")
     plan = _plan(args, repo, top, plugin_root)
     if not plan.blocked and not args.dry_run:
-        apply(repo, plan)
+        _apply(repo, plan)
     sys.stdout.write(to_json(plan, args.dry_run) if args.json else to_text(plan, args.dry_run))
     return EXIT_STOPPED if plan.blocked else EXIT_OK
 

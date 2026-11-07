@@ -3,23 +3,26 @@
 Usage:
     python troy-mode/dev/build_sample.py build python --pr tests --out DIR
     python troy-mode/dev/build_sample.py verify python --pr tests --report FILE
+    python troy-mode/dev/build_sample.py verify python --pr design --no-code
 
-build sets the sample up the way troy-init sets up a project: the sample's
-base folder, troy-check and F05's git hooks in .troy-mode/checks, F02's
-workflow, and the language pack. It does not turn the git hooks on. Then it
-makes one commit per stage up to the PR's commit, which goes on a branch
-named pr. It prints BASE_SHA, HEAD_SHA, PR_TITLE, and PR_BODY, the values a
-pull_request event gives the pack's CI job, and writes them to the file
-named by GITHUB_ENV when that is set.
+build sets the sample up with troy-init's own functions (F06 design 8):
+setup's files, then the language step's, without their preconditions and
+without the environment, on top of the sample's base folder. It does not
+turn the git hooks on. Then it makes one commit per stage up to the PR's
+commit, which goes on a branch named pr. It prints BASE_SHA, HEAD_SHA,
+PR_TITLE, and PR_BODY, the values a pull_request event gives the pack's CI
+job, and writes them to the file named by GITHUB_ENV when that is set.
 
 verify compares a troy-check --json report with the results the sample
-expects for that PR.
+expects for that PR. With --no-code, it checks instead that the sample
+expects the pack's code steps to be skipped on that PR (F06 design D50).
 
 Exit codes: 0 on success, 1 when verify finds a difference, and 2 when the
 script cannot run.
 """
 
 import argparse
+import datetime
 import json
 import os
 import re
@@ -30,17 +33,24 @@ import tomllib
 from pathlib import Path
 
 TROY_MODE = Path(__file__).resolve().parents[1]
-CHECKS = TROY_MODE / "checks"
+PLUGIN_ROOT = TROY_MODE.parent
+sys.path.insert(0, str(TROY_MODE / "init"))
+
+from troyinit.errors import InitError  # noqa: E402  (import after the path setup)
+from troyinit.lang import LangOptions, lang_files  # noqa: E402
+from troyinit.plan import FileAction, Plan, apply  # noqa: E402
+from troyinit.plugin import load_plugin  # noqa: E402
+from troyinit.setup import SetupOptions, setup_files  # noqa: E402
+
+SAMPLE_EMAIL = "sample@example.invalid"
 PR_BODY = "## Why\n\nA stage of the sample's F01.\n\n## Soft-limit reason\n\nNone\n"
 _UNFILLED = re.compile(r"(?<!\$)\{\{[^}]*\}\}")
 _IGNORED = shutil.ignore_patterns("__pycache__", "*.pyc")
-GIT_HOOKS = tuple(f".troy-mode/checks/git-hooks/{name}"
-                  for name in ("commit-msg", "pre-commit", "pre-merge-commit", "pre-push"))
 _GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "troy-mode sample",
-    "GIT_AUTHOR_EMAIL": "sample@example.invalid",
+    "GIT_AUTHOR_EMAIL": SAMPLE_EMAIL,
     "GIT_COMMITTER_NAME": "troy-mode sample",
-    "GIT_COMMITTER_EMAIL": "sample@example.invalid",
+    "GIT_COMMITTER_EMAIL": SAMPLE_EMAIL,
 }
 
 
@@ -109,24 +119,43 @@ def fill(text: str, environment: str, source: str) -> str:
     return text
 
 
-def install_pack(lang: str, sample: dict, repo: Path) -> None:
-    """Adds troy-check, F05's git hooks, F02's workflow, and the language pack."""
-    checks = repo / ".troy-mode" / "checks"
-    shutil.copytree(CHECKS / "troycheck", checks / "troycheck", ignore=_IGNORED)
-    shutil.copy2(CHECKS / "troy_check.py", checks / "troy_check.py")
-    shutil.copytree(CHECKS / "git-hooks", checks / "git-hooks")
-    workflow = repo / ".github" / "workflows" / "troy-mode.yml"
-    workflow.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(CHECKS / "workflow.yml", workflow)
-    pack = TROY_MODE / "lang" / lang
-    for mode in ("copy", "append"):
-        for name, target in sample["pack"].get(mode, {}).items():
-            text = fill((pack / name).read_text(encoding="utf-8"), sample["environment"], name)
-            path = repo / target
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if mode == "append" and path.exists():
-                text = path.read_text(encoding="utf-8").rstrip("\n") + "\n\n" + text
-            path.write_text(text, encoding="utf-8", newline="\n")
+def _write(repo: Path, command: str, actions: list[FileAction]) -> list[str]:
+    """Writes troy-init's planned files into the sample. Returns the git hooks."""
+    apply(repo, Plan(command, "sample", actions=actions))
+    return [a.path for a in actions if a.executable and a.action != "keep"]
+
+
+def install(lang: str, sample: dict, repo: Path) -> list[str]:
+    """Sets the sample up as troy-init's setup and language step would (F06 design 8).
+
+    Args:
+        lang: The language pack.
+        sample: The sample's settings.
+        repo: The sample's repository, holding its base folder.
+
+    Returns:
+        The git hook paths, to stage with their executable bit.
+
+    Raises:
+        SampleError: troy-init's functions fail, or the base folder clashes
+            with the language pack.
+    """
+    date = datetime.date.today().isoformat()
+    project = sample["project"]
+    try:
+        plugin = load_plugin(PLUGIN_ROOT)
+        hooks = _write(repo, "setup", setup_files(plugin, repo,
+                                                  SetupOptions(project, SAMPLE_EMAIL, date)))
+        package = project.replace("-", "_") if lang == "python" else None
+        options = LangOptions(lang, project, sample["environment"], ["."], package, date,
+                              no_env=True)
+        files = lang_files(plugin, repo, options)
+        if files.problems:
+            raise SampleError("; ".join(files.problems))
+        _write(repo, "lang", files.actions)
+    except InitError as exc:
+        raise SampleError(f"troy-init cannot set the sample up: {exc}") from exc
+    return hooks
 
 
 def build(lang: str, pr: str, out: Path) -> dict[str, str]:
@@ -153,11 +182,10 @@ def build(lang: str, pr: str, out: Path) -> dict[str, str]:
         if index == last:
             git(out, "switch", "-q", "-c", "pr")
         shutil.copytree(folder / commit["folder"], out, dirs_exist_ok=True, ignore=_IGNORED)
-        if index == 0:
-            install_pack(lang, sample, out)
+        hooks = install(lang, sample, out) if index == 0 else []
         git(out, "add", "-A")
-        if index == 0:
-            git(out, "add", "--chmod=+x", "--", *GIT_HOOKS)
+        if hooks:
+            git(out, "add", "--chmod=+x", "--", *hooks)
         git(out, "commit", "-q", "-m", commit["title"])
     return {
         "BASE_SHA": git(out, "rev-parse", "main"),
@@ -177,8 +205,14 @@ def write_env(values: dict[str, str], path: Path) -> None:
                 handle.write(f"{name}={value}\n")
 
 
-def verify(lang: str, pr: str, report_path: Path) -> list[str]:
+def verify(lang: str, pr: str, report_path: Path | None) -> list[str]:
     """Compares a troy-check --json report with the sample's expected results.
+
+    Args:
+        lang: The language pack.
+        pr: The PR name in sample.toml.
+        report_path: The report, or None when the pack's code steps were
+            skipped because the PR's head has no code (F06 design D50).
 
     Returns:
         One line per difference; empty when the report matches.
@@ -187,7 +221,14 @@ def verify(lang: str, pr: str, report_path: Path) -> list[str]:
         SampleError: The report cannot be read.
     """
     _, sample = load_sample(lang)
-    expected = sample["commits"][pr_index(sample, pr)]["expected"]
+    commit = sample["commits"][pr_index(sample, pr)]
+    if commit.get("no_code", False) != (report_path is None):
+        if report_path is None:
+            return [f"{pr}: the code steps were skipped, but the sample expects code."]
+        return [f"{pr}: the sample expects no code, so the code steps should have been skipped."]
+    if report_path is None:
+        return []
+    expected = commit["expected"]
     try:
         report = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -212,7 +253,10 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("lang", help="the language pack, for example python")
         command.add_argument("--pr", required=True, help="the PR name in sample.toml")
     sub.choices["build"].add_argument("--out", required=True, type=Path)
-    sub.choices["verify"].add_argument("--report", required=True, type=Path)
+    given = sub.choices["verify"].add_mutually_exclusive_group(required=True)
+    given.add_argument("--report", type=Path, help="troy-check code's --json report")
+    given.add_argument("--no-code", action="store_true",
+                       help="the pack's code steps were skipped: the PR's head has no code")
     return parser
 
 
@@ -226,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
             if os.environ.get("GITHUB_ENV"):
                 write_env(values, Path(os.environ["GITHUB_ENV"]))
             return 0
-        problems = verify(args.lang, args.pr, args.report)
+        problems = verify(args.lang, args.pr, None if args.no_code else args.report)
     except SampleError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
