@@ -33,7 +33,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/init/troy_init.py`. Run it from t
    - Language step: which series the project belongs to, if any (the environment's name and the folders of the other members).
 3. If the folder already has commits but no `origin`, stop and ask Troy how to publish them. R21 forbids pushing `main`.
 
-Upgrade: when the dry run says `changed` is false, tell Troy there is nothing to upgrade, switch back to `main`, delete the branch, and stop. Open no PR.
+Upgrade: when the dry run says `changed` is false, tell Troy there is nothing to upgrade, run `git switch --detach origin/main`, delete the branch, and stop. Open no PR.
 
 ## The PR flow
 
@@ -46,7 +46,7 @@ Each step lands as one `[rules]` PR with one commit (design section 7). F07 runs
 5. **Commit.** One commit whose subject is the PR title (R01): `[rules] Set up troy-mode`, `[rules] Add the Python pack`, `[rules] Add the C/C++ pack`, or `[rules] Upgrade troy-mode to <version>`. No attribution: no `Co-Authored-By` line, no "Generated with" line, and no mention of Claude or Anthropic in the commit, the PR title, or the PR description (R19). The git hooks check this when they are on.
 6. **Check.** Write the PR description from `.github/pull_request_template.md`: Why, What, Checks, and Soft-limit reason "None", with the template comment removed. Run `python .troy-mode/checks/troy_check.py pr --base origin/main --title "<title>" --body-file <file>`. Stop on any `fail`. At setup, R19 warns that commit emails are not checked, because `origin/main` has no config yet; that is expected.
 7. **PR.** `git push -u origin <branch>`. Then, as its own command, `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`.
-8. **Merge.** Wait for the checks once with `gh pr checks <number> --watch`. When all pass, merge with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, where `<sha>` is the full commit ID you pushed (R18 lets Claude merge every PR except PR 1 and PR 2 of the first features). When a check fails, stop and report it. Then `git switch main`, `git pull --ff-only`, and record the step in `.troy-mode/progress.md`.
+8. **Merge.** Wait for the checks once with `gh pr checks <number> --watch`. When all pass, run `git switch --detach`, then merge with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, where `<sha>` is the full commit ID you pushed (R18 lets Claude merge every PR except PR 1 and PR 2 of the first features). Detaching first keeps `gh` from checking out `main` before it deletes the branch; in a worktree, `main` is often checked out elsewhere, and git refuses to check it out twice. When a check fails, stop and report it. Then `git fetch origin`, and record the step in `.troy-mode/progress.md`.
 
 ## After setup merges
 

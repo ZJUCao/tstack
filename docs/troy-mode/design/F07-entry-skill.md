@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F07 in [requirements 1.20](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-07 |
-| Status | Approved by Troy on 2026-11-07, with D57 to D68. |
+| Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. |
 | Source of truth | This English file. [`F07-entry-skill.zh-CN.md`](F07-entry-skill.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -23,7 +23,7 @@ The version release flow (5.5) and the rule change flow (5.8) are F08 and F09. F
 
 F07 lands in two parts (D67). Part 1 holds routing, setup, the feature loop's main path, work outside the pipeline, and continuing. Part 2 adds the feature loop's side PRs (disputed tests, coverage gaps, and new dependencies), bug fixes, and requirement changes.
 
-The facts about Claude Code come from its documentation and from the F04 to F06 trials. Two of them shape this design. Claude cannot call a skill marked `disable-model-invocation: true`, so F07 runs troy-init's engine itself (F06 section 10) and follows a pstack skill by reading its `SKILL.md`. The Agent tool takes a `model` and an `effort` with each call, and in the desktop app a subagent runs in the background and reports when it ends. The trial (section 14.3) checks both.
+The facts about Claude Code come from its documentation and from the F04 to F06 trials. Two of them shape this design. Claude cannot call a skill marked `disable-model-invocation: true`, so F07 runs troy-init's engine itself (F06 section 10) and follows a pstack skill by reading its `SKILL.md`. The Agent tool takes a `model` and an `effort` with each call, and in the desktop app a subagent runs in the background and reports when it ends. The trial (section 14.3) checks both. Part 1's trial confirmed them: every Code Reviewer call carried the `effort` that `[roles]` set and no other role got one, writing roles ran in the foreground so the session waited for each, and in `claude -p` the session went on when background reviews ended.
 
 ## 2. Location
 
@@ -39,7 +39,7 @@ troy-mode/
 ```
 
 - The engine uses Python 3.11 or newer and the standard library only, like troy-check (F02 D7). It imports troy-check's config reader, path classes, title parser, and attribution rules, and F05's write scope table, from the plugin's own folders. F07 then judges paths exactly as the hooks and CI do.
-- `SKILL.md` sets `disable-model-invocation: true` (requirements section 8). It names the engine as `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py` and the Product Manager's instructions as `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md`, which it reads first (F04 section 9.2).
+- `SKILL.md` sets `disable-model-invocation: true` (requirements section 8). It names the engine as `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py` and the Product Manager's instructions as `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md`, which it reads first (F04 section 9.2). It runs the engines, git, and gh through the Bash tool: in the trial, a session that picked PowerShell needed a permission that `claude -p` does not grant, and never ran `status`.
 - F07 talks to Troy in Troy's language. Files, PRs, and comments are in English, and documents get Chinese mirrors (R12).
 
 ## 3. The engine (D57)
@@ -153,6 +153,7 @@ At every start, F07 reads `product-manager.md`, runs `status`, and then picks th
 | Round | The review round, or None. |
 | Checks to run | The language pack's steps in the project's environment (F03 sections 8.3 and 9.4). For authors of code and tests, also `troy-check code --worktree` with the PR's title (D60). |
 
+- IF1's Task also says that section 4 is the Architect's and asks for "Not reviewed yet." in it. In the trial, IF1 left section 4's template markers for the Architect, so `troy-check pr` failed R20 on the design until AR2 filled the section in.
 - For the first mock, DV1's checks start with the setup steps that need code: `uv pip install -e . --no-deps` for Python and `cmake --preset coverage` for C/C++ (F06 design 5.4).
 - Commands run through `mamba run -n <environment>`, or `mamba run -p <folder>` when `TROY_MODE_ENV_PREFIX` is set. Trials set it, so they leave no named environment behind. mamba is found the way troy-init finds it (F06 design 5.4).
 - A revision is a fresh run of the same task, or of IF2 for a design, with the findings in Input and the next round (F04 D33).
@@ -206,7 +207,7 @@ On a problem of kind 2, 3, or 4, F07 undoes the changes the report lists: `git r
 | 5 | `[F04 5/6 impl] <name>` | DV2 | CR1 | As PR 3, plus the feature's performance cases on Troy's PC when it has a target (5.6, Q7). `troy-check code` checks R10 and R11. | F07 |
 | 6 | `[F04 6/6 accept] <name>` | PM3, in the main session | None | `troy-check pr` | F07 |
 
-`<name>` is the feature's name in the requirements. The branches are `troy-mode/f04-1-design` to `troy-mode/f04-6-accept`.
+`<name>` is the feature's name in the requirements. The branches are `troy-mode/f04-1-design` to `troy-mode/f04-6-accept`. The name must be short, such as "Export history as CSV", because it becomes every PR title and the feature's folder name. In the trial, the Product Manager put a whole sentence in the Feature cell, and the folder's paths passed Windows' path length limit, so plain `git add` failed. The skill tells the Product Manager to keep the cell to the short name.
 
 ### 8.2 One stage, step by step
 
@@ -244,7 +245,7 @@ F07 merges a PR only when all of these hold:
 
 - every review of the stage ended in `approved`;
 - the local checks passed on the pushed commit;
-- `gh pr checks <n> --watch`, run once, ends with every check passing;
+- `gh pr checks <n> --watch`, run once, ends with every check passing. Right after a push, GitHub may not have registered the workflow yet, and the command then says that no checks are reported; running it again is still the same wait (found in the trial);
 - the merge rights allow it. PR 1 and PR 2 of the first `troy_approves_first` features in the order wait for Troy (D61, D62). Every other PR is F07's to merge.
 
 F07 then runs `git switch --detach`, `gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`, `git fetch origin`, and `status --write-progress`. It detaches first so that `gh` does not try to check out `main` before it deletes the branch.
@@ -454,3 +455,4 @@ Requirements 1.20 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-07 | First draft. |
 | 1.0 | 2026-11-07 | Approved by Troy with D57 to D68, every recommended answer. |
+| 1.1 | 2026-11-07 | Facts from part 1's trial (section 14.3): the Agent calls carry `[roles]` and the session waits for writing roles (section 1); the skill runs the engines, git, and gh through Bash (section 2); IF1 keeps section 4 free of template markers (section 6.1); the feature's name stays short (section 8.1); and `gh pr checks --watch` may need a second start right after a push (section 8.6). |

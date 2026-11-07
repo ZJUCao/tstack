@@ -21,6 +21,7 @@ from .shape import check_r04, check_r05, check_r06, load_code
 from .size import check_r03
 from .testpolicy import check_r09, check_r10, load_run
 from .titles import describe, parse_title
+from .worktree import worktree_commit
 
 EXIT_OK = 0
 EXIT_FAIL = 1
@@ -36,7 +37,7 @@ class UsageError(Exception):
 def _add_pr_options(parser: argparse.ArgumentParser) -> None:
     """Adds the options that the pr and code subcommands share."""
     parser.add_argument("--base", required=True, help="target branch or commit")
-    parser.add_argument("--head", default="HEAD", help="the PR's last commit (default HEAD)")
+    parser.add_argument("--head", help="the PR's last commit (default HEAD)")
     parser.add_argument("--title", required=True, help="the PR title")
     parser.add_argument("--body-file", help="UTF-8 file with the PR description")
     parser.add_argument("--repo", help="repository root (default: from the current folder)")
@@ -57,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
     code.add_argument("--junit", action="append", default=[], help="JUnit XML from the tests")
     code.add_argument("--coverage", action="append", default=[], help="Cobertura XML coverage")
     code.add_argument("--doc-warnings", help="C/C++ only: Doxygen's warning log (R05)")
+    code.add_argument("--worktree", action="store_true",
+                      help="check the working tree as if it were committed on HEAD")
     commit = sub.add_parser("commit", help="check one commit before it is made (R19)")
     message = commit.add_mutually_exclusive_group(required=True)
     message.add_argument("--message-file", help="file with the commit message")
@@ -93,7 +96,7 @@ def build_pr_context(args: argparse.Namespace) -> PrContext:
         The PR context.
     """
     root = _root(args.repo)
-    head = gitio.resolve(root, args.head)
+    head = gitio.resolve(root, args.head or "HEAD")
     base = gitio.merge_base(root, gitio.resolve(root, args.base), head)
     config = parse_config(gitio.read_blob(root, base, CONFIG_PATH))
     body = _read_text(args.body_file) if args.body_file else None
@@ -137,12 +140,17 @@ def run_pr(args: argparse.Namespace) -> int:
 def run_code(args: argparse.Namespace) -> int:
     """Runs the language rules for a PR and prints the report (F03).
 
+    With --worktree, the working tree is checked as a commit on top of HEAD
+    (F07 design 12, D60).
+
     Args:
         args: Parsed options of the code subcommand.
 
     Returns:
         0 when nothing fails, 1 otherwise.
     """
+    if args.worktree:
+        args.head = worktree_commit(_root(args.repo), args.title)
     ctx = build_pr_context(args)
     files = load_code(ctx)
     run = load_run(ctx, args.junit)
@@ -192,7 +200,10 @@ def main(argv: list[str] | None = None) -> int:
         config file, or a C/C++ project without lizard.
     """
     _utf8_stdio()
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if getattr(args, "worktree", False) and args.head is not None:
+        parser.error("--worktree checks the working tree on top of HEAD; leave out --head")
     try:
         commands = {"pr": run_pr, "code": run_code, "commit": run_commit}
         return commands[args.command](args)

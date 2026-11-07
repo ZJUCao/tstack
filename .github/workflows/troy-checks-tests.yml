@@ -1,5 +1,6 @@
 # Runs the unit tests of troy-mode's checks (F02 design D13), of troy-init's
-# engine (F06 design 11.1), and of the hooks (F05 design 13.1).
+# engine (F06 design 11.1), of the hooks (F05 design 13.1), and of the flow
+# engine and the troy-mode skill (F07 design 14.1).
 name: troy-mode checks tests
 on:
   pull_request:
@@ -12,6 +13,8 @@ on:
       - "troy-mode/hooks/**"
       - "hooks/**"
       - "agents/**"
+      - "troy-mode/flow/**"
+      - "skills/troy-mode/**"
       - "troy-mode/dev/requirements-dev.lock"
       - ".github/workflows/troy-checks-tests.yml"
   workflow_dispatch:
@@ -39,3 +42,5 @@ jobs:
         run: python -m unittest discover -s troy-mode/init/tests -v
       - name: Run hook tests
         run: python -m unittest discover -s troy-mode/hooks/tests -v
+      - name: Run flow tests
+        run: python -m unittest discover -s troy-mode/flow/tests -v

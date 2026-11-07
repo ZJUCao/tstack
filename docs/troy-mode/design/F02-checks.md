@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-07 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
@@ -263,7 +263,16 @@ source_files = 5    # R03
 
 [attribution]
 mode = "strict"     # "strict" or "trailers" (D10)
+
+[roles.developer]   # troy-mode's entry skill (F07 3.2): any of the six roles
+model = "opus"      # an alias the Agent tool accepts
+effort = "high"     # low, medium, high, xhigh, or max
+
+[flow]
+troy_approves_first = 3  # F07 D62: a whole number of 0 or more
 ```
+
+`[roles.<role>]` and `[flow]` belong to troy-mode's entry skill (F07 design 3.2 and D62). `<role>` is `architect`, `interface-designer`, `test-manager`, `developer`, `test-engineer`, or `code-reviewer`. An unknown role, an unknown key, an effort outside the list, or a count below 0 stops the tool with exit code 2, like any other config error.
 
 ## 8. GitHub Actions workflow
 
@@ -377,3 +386,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | 1.0 | 2026-11-05 | Approved by Troy with D7 to D14. D14 records Troy's free GitHub plan. Section 9 notes that the tool needs no Python environment. |
 | 1.1 | 2026-11-05 | Section 3.3: with `--json`, annotations go to stderr. Found while implementing. |
 | 1.2 | 2026-11-07 | Section 6.4: files under `.troy-mode/` are not documents for R12, as R20 already does not scan them. Otherwise the templates troy-init copies there fail every setup PR and every later document PR. Found while building F06, approved by Troy on 2026-11-07. |
+| 1.3 | 2026-11-07 | Section 7: the config accepts `[roles.<role>]` with `model` and `effort`, and `[flow]` with `troy_approves_first`, for troy-mode's entry skill. From F07 design section 12. |
