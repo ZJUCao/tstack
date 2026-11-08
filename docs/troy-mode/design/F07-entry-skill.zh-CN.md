@@ -1,12 +1,12 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.3（2026-11-08）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.2 |
-| 日期 | 2026-11-07 |
+| 版本 | 1.3 |
+| 日期 | 2026-11-08 |
 | 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
@@ -109,7 +109,7 @@ troy_approves_first = 3
 | "为什么 ……"、"…… 是怎么工作的"、"试一下 ……" | 流水线之外的工作 | 第 11.3 节 |
 | "继续"、"状态"，或什么都不写 | 接续 | 第 11.4 节 |
 | "升级 troy-mode" | troy-init 的升级（F06 第 6 节） | 第 10 节 |
-| "发布 v0.1" | 版本发布（5.5） | 尚未实现：F08 |
+| "发布 v0.1" | 版本发布（5.5） | F08 设计 |
 | "加一条规则 ……" | 规则变更（5.8） | 尚未实现：F09 |
 
 - 在没有 `.troy-mode/` 的文件夹里，F07 回答问题，但不做任何改动。对其他请求，它问 Troy 一次，是否把这个文件夹变成 troy-mode 项目。
@@ -221,7 +221,7 @@ troy_approves_first = 3
 ### 8.2 一个阶段的步骤
 
 1. **顺序。** 前一个阶段已经合入 `origin/main`，而且这个功能的每个硬依赖都已经验收。F02 第 11 节把阶段顺序留给了 F07。
-2. **分支。** `git fetch origin`，然后 `git switch -c <branch> origin/main`。F07 从不检出 `main`。在桌面应用建的 worktree 里，`main` 常常已经在另一个 worktree 里检出，git 不允许同一个分支检出两次。
+2. **分支。** `git fetch origin --prune`，然后 `git switch -c <branch> origin/main`。F07 从不检出 `main`。在桌面应用建的 worktree 里，`main` 常常已经在另一个 worktree 里检出，git 不允许同一个分支检出两次。
 3. **产出方。** 一次角色运行（第 6 节）和它之后的检查（第 7 节）。
 4. **提交。** 用 `git add -- <path>` 暂存 `check-run` 列出的那些路径，不多不少。第一次运行生成 commit，它的标题就是 PR 标题（R01）。之后的运行修订（amend）这个 commit，所以 PR 始终只有一个 commit。F05 的 `commit-msg` hook 检查 R19。
 5. **本地检查。** 在这个 commit 上运行表里的检查。失败时，结果作为 Input 交回产出方，并记一次尝试。
@@ -257,7 +257,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 - 运行一次 `gh pr checks <n> --watch`，结束时每项检查都通过。刚推送之后，GitHub 可能还没登记工作流，这时命令会说没有检查；再运行一次仍算同一次等待（试运行中发现）；
 - 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。其他 PR 都由 F07 合并。
 
-然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。
+然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin --prune` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。每次 fetch 都带 prune：PR 合入之后，同一个分支名可能再用一次，比如更新测试方案时的 `troy-mode/v0.1-test-plan`，而过时的 `origin/<branch>` 会让 `git push --force-with-lease` 拒绝新分支（F08 试运行时发现）。
 
 - **只在另一个平台上运行的测试（D69）。** 测试方案的某个用例可能只在一个平台上运行，比如试运行里的 F01-T17（不可读的文件），它在 Linux 上运行，在 Windows 上跳过。troy-check 把跳过的测试既不算失败（R09），也不算通过（R10），所以 Troy 电脑上的本地 `troy-check code` 不通过，而 CI 在 Ubuntu 上运行了这个测试。`check-skips` 说明本地的失败只有这类跳过的测试时，本地检查算作通过：不记尝试，PR 说明的 Checks 一节把这些用例列为只由 CI 检查，F07 按 CI 的结果合并，CI 通过就证明这些测试运行过。测试方案必须写明这个用例为什么只在一个平台上运行，由 TM2 和 CR1 检查。产出方的任务简报也这样说明，所以产出方会报告这个跳过，而不是因它失败。
 - **CI 检查失败。** 产出方拿到失败的日志（`gh run view --log-failed`）作为 Input，这次运行记一次尝试。失败不在产出方的文件上时，比如在工作流里或在运行器上，F07 停下并告诉 Troy。
@@ -265,7 +265,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 
 **Troy 的批准（D61）。** PR 要等 Troy 时，F07 发出 `Waiting for Troy`，在聊天里把链接告诉 Troy，然后停下。Troy 可以在聊天里回复，也可以在 GitHub 上合并这个 PR。
 
-- 收到表示批准的回复时，F07 对这个 PR 的文档运行 `approve`：`version` 升到下一个主版本（F01 设计第 4 节），`updated` 改为当天日期，状态改为"Approved by Troy on <date>"及其中文形式。`approve` 只改两种语言文件头里的这几个字段，所以不需要运行角色。F07 修订 commit、推送、等检查，然后合并。
+- 收到表示批准的回复时，F07 对这个 PR 的文档运行 `approve`：`version` 升到下一个主版本（F01 设计第 4 节），`updated` 改为当天日期，状态改为"Approved by Troy on <date>"及其中文形式。`approve` 只改两种语言文件头里的这几个字段，并在修改记录里加一行“Troy 批准。”（F08 D77），所以不需要运行角色。F07 修订 commit、推送、等检查，然后合并。
 - 收到要求修改的回复时，产出方修改，算作一轮。
 - Troy 在 GitHub 上合并时，文档的版本仍低于 1.0。F07 随后开出并合并 `[docs] Record Troy's approval of <document>`，里面只有 `approve` 做的改动。
 
@@ -300,7 +300,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 | 一项改动需要修改需求文档或架构 | 某个角色的 `escalate` 报告，或 AR5 的回答 |
 | 产出方 3 次尝试后仍然失败 | 它统计的尝试次数（第 8.5 节、D64） |
 | 需要新的第三方依赖 | AR3 的 `escalate` 报告（第 8.7 节） |
-| 合并权限之外的不可逆操作 | F07 在动手之前检查。它的权限是：用 `--force-with-lease` 推送自己的分支；开出、编辑、评论、关闭和在 R18 之内合并自己的 PR；开 bug issue；在 PR 合入之后删除自己的分支。其他任何操作都要问 Troy。 |
+| 合并权限之外的不可逆操作 | F07 在动手之前检查。它的权限是：用 `--force-with-lease` 推送自己的分支；开出、编辑、评论、关闭和在 R18 之内合并自己的 PR；开 bug issue；在 PR 合入之后删除自己的分支；在 Troy 验收一个版本之后，在发布 PR 的合并 commit 上创建它的 GitHub release（F08 第 5.7 节）。其他任何操作都要问 Troy。 |
 | 一次运行改了 `HEAD` 或分支，或者第二次越出写入范围 | `check-run`（第 7 节） |
 
 消息按 F01 的 `escalation` 模板、用 Troy 使用的语言写：在哪里停下、为什么、带链接的事实、各个选项，以及一个建议（原型 C）。F07 还会用英文把它发到开着的 PR 上，在进度文件里写上"Waiting on Troy"，然后停下。还没有开着的 PR 时，如果有 bug 的 issue，F07 就发到那个 issue 上：第二部分的试运行里，开发工程师在 PR B 出现之前就请求了一个依赖，升级上报发在了 issue 上。Troy 回答之后，无论是在这个会话里还是在新会话里，F07 都把这个决定放进下一份任务简报的 Input，继续往下做。
@@ -483,3 +483,4 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | 1.0 | 2026-11-07 | Troy 批准，含 D57 到 D68，全部采用推荐答案。 |
 | 1.1 | 2026-11-07 | 第一部分试运行（第 14.3 节）确认的事实：Agent 调用带上 `[roles]`，会话会等写文件的角色（第 1 节）；技能通过 Bash 运行引擎、git 和 gh（第 2 节）；IF1 不在第 4 节留模板标记（第 6.1 节）；功能名称保持简短（第 8.1 节）；刚推送后 `gh pr checks --watch` 可能要再启动一次（第 8.6 节）。 |
 | 1.2 | 2026-11-07 | Troy 的 D69：只在另一个平台上运行的测试交给 CI（第 8.6 节）。第二部分确定的细节：`brief --title`、`check-skips` 和 `series`（第 3.1 节）；状态里的历史顺序、bug 和旁支 PR 优先（第 5.1 节）；谁写每个旁支 PR（第 8.7 节）；bug 的分支（第 11.1 节）；返工、重做、跳过的 mock 和变更的批准（第 11.2 节）；第二部分的测试和埋 bug（第 14.1 和 14.2 节）。来自第二部分试运行：没有开着的 PR 时，升级上报发到 bug 的 issue 上（第 9 节）。 |
+| 1.3 | 2026-11-08 | 来自 F08 设计第 9 节：“发布”请求交给 F08 的版本发布流程（第 4 节）；`status`、`brief` 和 `approve` 按 F08 第 3 节修改，`approve` 会加一行修改记录（D77，第 8.6 节）；权限加上 GitHub release（第 9 节）。来自 F08 的试运行：每次 fetch 都带 prune（第 8.2、8.6 节）。 |

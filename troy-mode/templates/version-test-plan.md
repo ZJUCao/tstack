@@ -19,19 +19,19 @@ mirror: "test-plan.zh-CN.md"
 
 ## 2. End-to-end scenarios
 
-<!-- template: Take each scenario from the user flows in the requirements. IDs are {{version}}-S01, {{version}}-S02, and so on. -->
+<!-- template: Take each scenario from the user flows in the requirements. IDs are {{version}}-S01, {{version}}-S02, and so on. Run by says who runs the scenario: Claude, as an automated version test that the Test Engineer writes in version-tests/ and that runs only on Troy's PC at release, or Troy, by hand on a device that only Troy has, such as a phone. -->
 
-| ID | Scenario | Steps | Expected result |
-| --- | --- | --- | --- |
-| {{version}}-S01 | {{scenario}} | {{steps}} | {{expected-result}} |
+| ID | Scenario | Run by | Steps | Expected result |
+| --- | --- | --- | --- | --- |
+| {{version}}-S01 | {{scenario}} | {{Claude or Troy}} | {{steps}} | {{expected-result}} |
 
 ## 3. Performance and stress cases
 
-<!-- template: Stress tests need the whole system, so they live here and not in feature test plans. Continue the scenario numbering. -->
+<!-- template: Stress tests need the whole system, so they live here and not in feature test plans. Continue the scenario numbering. Take each case from a performance target in the requirements. -->
 
-| ID | Target | Load | Duration | Machine |
-| --- | --- | --- | --- | --- |
-| {{version}}-S{{nn}} | PT{{nn}} | {{load}} | {{duration}} | {{machine}} |
+| ID | Target | Load | Duration | Machine | Run by |
+| --- | --- | --- | --- | --- | --- |
+| {{version}}-S{{nn}} | PT{{nn}} | {{load}} | {{duration}} | {{machine}} | {{Claude or Troy}} |
 
 ## 4. Devices
 

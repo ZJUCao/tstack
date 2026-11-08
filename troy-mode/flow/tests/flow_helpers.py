@@ -1,13 +1,19 @@
-"""Shared fixtures for the F07 engine tests (F07 design 14.1).
+"""Shared fixtures for the F07 and F08 engine tests (F07 design 14.1, F08 design 11.1).
 
 Each test builds a seed repository whose ``main`` holds the state of
 ``origin/main`` the test needs, makes ``origin`` from it with
 ``git clone --bare``, clones ``origin``, and works on a branch of the clone,
 so no test pushes ``main``. A fake ``gh``, first on the ``PATH``, serves open
-PRs and their comments from a JSON file and records each call. A fake
-``mamba`` beside it records calls too, and no test expects one. The engine,
-``troy-mode/flow/troy_flow.py``, runs as a subprocess with
-``sys.executable``. Nothing here imports it.
+and merged PRs, their comments, releases, and bug issues from a JSON file and
+records each call. A fake ``mamba`` beside it records calls too, and no test
+expects one. The engine, ``troy-mode/flow/troy_flow.py``, runs as a
+subprocess with ``sys.executable``. Nothing here imports it.
+
+F08 changes two defaults (F08 interface note, section 0): a base project
+also commits a version test plan, and its mirror, for each version of its
+features table, so F07's stage tests still get ``stage``; and ``next`` has
+three more keys, ``step``, ``tag``, and ``commit``, null except where F08
+names them.
 """
 
 from __future__ import annotations
@@ -50,7 +56,7 @@ SETUP_TITLE = "[rules] Set up troy-mode"
 STAGE_NAMES = {1: "design", 2: "test-plan", 3: "mock", 4: "tests", 5: "impl", 6: "accept"}
 STAGE_TASKS = {1: "IF1", 2: "TM1", 3: "DV1", 4: "TE1", 5: "DV2", 6: "PM3"}
 NEXT_KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc",
-             "rounds", "attempts")
+             "rounds", "attempts", "step", "tag", "commit")
 PROGRESS_FIELDS = ("Current version", "Current feature", "Stage", "Open PRs", "Waiting on Troy",
                    "Open issues", "Next action", "Last updated")
 ANY = object()
@@ -446,6 +452,227 @@ def plan_text(feature: Feature, version: str = "1.0", lang: str = "en") -> str:
     return head + f"# {feature.id} 测试计划\n\n## 1. 单元测试\n\n- {case}：计数。\n"
 
 
+# ------------------------------------------------------ version test plans
+
+DEFAULT_DEVICES = (("Troy's PC", "Windows 11", "Claude"), ("Troy's laptop", "macOS 15", "Troy"))
+PLAN_DATE = "2026-11-08"
+
+
+def version_of(cell: str) -> Optional[str]:
+    """A features-table Version cell read as ``v<MAJOR>.<MINOR>`` (F08 note, section 2).
+
+    Args:
+        cell: The cell, for example ``v0.1``, ``0.1``, ``V0.1``, or ``Later``.
+
+    Returns:
+        ``v0.1`` for the first three, None for a cell that names no version.
+    """
+    match = re.fullmatch(r"[vV]?(\d+)\.(\d+)", cell.strip())
+    return f"v{match.group(1)}.{match.group(2)}" if match else None
+
+
+def version_plan_path(version: str, lang: str = "en") -> str:
+    """The path of a version's test plan or its mirror.
+
+    Args:
+        version: For example ``v0.1``.
+        lang: ``en`` or ``zh-CN``.
+
+    Returns:
+        For example ``docs/versions/v0.1/test-plan.md``.
+    """
+    name = "test-plan.md" if lang == "en" else "test-plan.zh-CN.md"
+    return f"docs/versions/{version}/{name}"
+
+
+def default_scenarios(version: str) -> tuple:
+    """The note's example scenarios: S01 run by Claude and S02 run by Troy.
+
+    Args:
+        version: For example ``v0.1``.
+
+    Returns:
+        Rows ``(ID, Scenario, Run by, Steps, Expected result)``.
+    """
+    return ((f"{version}-S01", "Count words and lines", "Claude",
+             "Run wc on a file of three words", "Prints 3 words"),
+            (f"{version}-S02", "Count on Troy's laptop", "Troy",
+             "Open a terminal and run wc notes.txt", "Prints the count"))
+
+
+def default_perf(version: str) -> tuple:
+    """The note's example performance case: S03 run by Claude on Troy's PC.
+
+    Args:
+        version: For example ``v0.1``.
+
+    Returns:
+        Rows ``(ID, Target, Load, Duration, Machine, Run by)``.
+    """
+    return ((f"{version}-S03", "PT01", "10 MB file", "1 run", "Troy's PC", "Claude"),)
+
+
+def md_table(header: Sequence[str], rows: Sequence[Sequence[str]], none: str) -> str:
+    """A Markdown table; with no rows, one row of ``none`` cells.
+
+    Args:
+        header: The header cells.
+        rows: The rows' cells.
+        none: The text of an empty cell, ``None`` or ``无``.
+
+    Returns:
+        The table's lines, each ending with a newline.
+    """
+    lines = ["| " + " | ".join(header) + " |", "| " + " | ".join("---" for _ in header) + " |"]
+    for row in rows or [[none] * len(header)]:
+        lines.append("| " + " | ".join(row) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def version_plan_text(version: str, features: Sequence[str], lang: str = "en",
+                      scenarios: Optional[Sequence] = None, perf: Optional[Sequence] = None,
+                      devices: Optional[Sequence] = None, doc_version: str = "0.1",
+                      status: Optional[str] = None, updated: str = PLAN_DATE,
+                      acceptance: Union[None, str, Sequence] = None,
+                      change_log: Optional[Sequence] = None) -> str:
+    """A version test plan, or its mirror, as TM7 fills F08's template (F08 note, section 2).
+
+    Args:
+        version: For example ``v0.1``.
+        features: The IDs of the ``- Features:`` line, in order.
+        lang: ``en`` or ``zh-CN``.
+        scenarios: The end-to-end rows ``(ID, Scenario, Run by, Steps,
+            Expected result)``, or None for ``default_scenarios``.
+        perf: The performance rows ``(ID, Target, Load, Duration, Machine,
+            Run by)``, or None for ``default_perf``.
+        devices: The device rows ``(Device, Operating system, Run by)``, or
+            None for ``DEFAULT_DEVICES``.
+        doc_version: The front matter's version.
+        status: The front matter's status, or None for the draft status.
+        updated: The front matter's date.
+        acceptance: The acceptance record: None for one row of empty cells,
+            ``"line"`` for a ``None.`` (``无。``) line and no table, or rows
+            ``(Date, Result, Troy's notes)`` in this file's language.
+        change_log: The change-log rows ``(Version, Date, Change)``, or None
+            for one first-draft row.
+
+    Returns:
+        The document text, with LF line endings.
+    """
+    english = lang == "en"
+    none = "None" if english else "无"
+    scenarios = default_scenarios(version) if scenarios is None else scenarios
+    perf = default_perf(version) if perf is None else perf
+    devices = DEFAULT_DEVICES if devices is None else devices
+    if status is None:
+        status = "Draft." if english else "草稿。"
+    if change_log is None:
+        change_log = [("0.1", updated, "First draft." if english else "初稿。")]
+    mirror = "test-plan.zh-CN.md" if english else "test-plan.md"
+    head = front_matter(f"{version}-test-plan", lang, doc_version, mirror, status, updated)
+    ids = ", ".join(features) or none
+    if acceptance == "line":
+        record = "None.\n" if english else "无。\n"
+    else:
+        header = (("Date", "Result", "Troy's notes") if english
+                  else ("日期", "结果", "Troy 的备注"))
+        record = md_table(header, list(acceptance or []), none)
+    if english:
+        return head + (
+            f"# {version} version test plan\n\n## 1. Version\n\n- Version: {version}\n"
+            f"- Features: {ids}\n"
+            "- Requirements: [docs/requirements.md](../../requirements.md#6-version-plan)\n\n"
+            "## 2. End-to-end scenarios\n\n"
+            + md_table(("ID", "Scenario", "Run by", "Steps", "Expected result"), scenarios, none)
+            + "\n## 3. Performance and stress cases\n\n"
+            + md_table(("ID", "Target", "Load", "Duration", "Machine", "Run by"), perf, none)
+            + "\n## 4. Devices\n\n"
+            + md_table(("Device", "Operating system", "Run by"), devices, none)
+            + "\n## 5. Acceptance record\n\n" + record
+            + "\n## 6. Change log\n\n" + md_table(("Version", "Date", "Change"), change_log, none))
+    return head + (
+        f"# {version} 版本测试方案\n\n## 1. 版本\n\n- 版本：{version}\n- 功能：{ids}\n"
+        "- 需求：[docs/requirements.zh-CN.md](../../requirements.zh-CN.md#6-版本计划)\n\n"
+        "## 2. 端到端场景\n\n"
+        + md_table(("编号", "场景", "由谁运行", "步骤", "预期结果"), scenarios, none)
+        + "\n## 3. 性能和压力用例\n\n"
+        + md_table(("编号", "指标", "负载", "持续时间", "机器", "由谁运行"), perf, none)
+        + "\n## 4. 设备\n\n" + md_table(("设备", "操作系统", "由谁运行"), devices, none)
+        + "\n## 5. 验收记录\n\n" + record
+        + "\n## 6. 修改记录\n\n" + md_table(("版本", "日期", "修改"), change_log, none))
+
+
+def chinese_acceptance(rows: Sequence) -> list:
+    """English acceptance rows as the Chinese mirror writes them.
+
+    Args:
+        rows: Rows ``(Date, Result, Troy's notes)`` in English.
+
+    Returns:
+        The rows with ``Accepted as`` written ``已验收为`` and ``None`` written ``无``.
+    """
+    return [tuple(cell.replace("Accepted as ", "已验收为 ") if cell != "None" else "无"
+                  for cell in row) for row in rows]
+
+
+def version_plan_files(version: str, features: Sequence[str], **kwargs) -> dict:
+    """A version test plan and its mirror, as ``(path, text)`` entries.
+
+    Args:
+        version: For example ``v0.1``.
+        features: The IDs of the ``- Features:`` line.
+        **kwargs: Passed on to ``version_plan_text``. ``acceptance`` rows are
+            English; the mirror gets them through ``chinese_acceptance``.
+
+    Returns:
+        Paths mapped to text.
+    """
+    zh_kwargs = dict(kwargs)
+    if isinstance(kwargs.get("acceptance"), (list, tuple)):
+        zh_kwargs["acceptance"] = chinese_acceptance(kwargs["acceptance"])
+    zh_kwargs.pop("change_log", None)
+    return {version_plan_path(version): version_plan_text(version, features, "en", **kwargs),
+            version_plan_path(version, "zh-CN"): version_plan_text(version, features, "zh-CN",
+                                                                   **zh_kwargs)}
+
+
+def accepted_plan_files(version: str, features: Sequence[str], tags: Sequence[str],
+                        **kwargs) -> dict:
+    """A version test plan pair whose acceptance record holds each tag as accepted.
+
+    Args:
+        version: For example ``v0.1``.
+        features: The IDs of the ``- Features:`` line.
+        tags: The accepted tags, oldest first.
+        **kwargs: Passed on to ``version_plan_text``.
+
+    Returns:
+        Paths mapped to text.
+    """
+    rows = [("2026-11-09", f"Accepted as {tag}", "None") for tag in tags]
+    return version_plan_files(version, features, acceptance=rows, **kwargs)
+
+
+def plans_for(features: Sequence["Feature"]) -> dict:
+    """A matching version test plan pair for each version of a features table.
+
+    Args:
+        features: The table's rows.
+
+    Returns:
+        Paths mapped to text; nothing for features without a version.
+    """
+    files: dict = {}
+    versions: dict = {}
+    for item in features:
+        version = version_of(item.version)
+        if version is not None:
+            versions.setdefault(version, []).append(item.id)
+    for version, ids in versions.items():
+        files.update(version_plan_files(version, ids))
+    return files
+
+
 def rules_text() -> str:
     """A minimal rules table."""
     return (front_matter("rules", "en", "1.0", "rules.zh-CN.md")
@@ -496,7 +723,8 @@ def base_files(features: Sequence[Feature] = TWO, lang: Optional[str] = "python"
                config_extra: str = "", requirements: Optional[str] = "1.0",
                architecture: Optional[str] = "1.0", installed: bool = True,
                order: Optional[Sequence[str]] = None, order_line: bool = True,
-               mode: str = "strict", extra: Optional[Mapping[str, Content]] = None) -> dict:
+               mode: str = "strict", extra: Optional[Mapping[str, Content]] = None,
+               plans: bool = True) -> dict:
     """The files of a troy-mode project's first commit on ``origin/main``.
 
     Args:
@@ -510,6 +738,8 @@ def base_files(features: Sequence[Feature] = TWO, lang: Optional[str] = "python"
         order_line: Whether the requirements have an order line.
         mode: The ``[attribution]`` mode.
         extra: More files, which replace the defaults of the same path.
+        plans: Whether each version of the features table gets a matching
+            version test plan and mirror (F08 D70), when there are requirements.
 
     Returns:
         Paths mapped to their content.
@@ -527,6 +757,8 @@ def base_files(features: Sequence[Feature] = TWO, lang: Optional[str] = "python"
     if requirements is not None:
         files[REQUIREMENTS] = requirements_text(features, order, requirements, order_line)
         files[REQUIREMENTS_ZH] = requirements_zh(requirements)
+        if plans:
+            files.update(plans_for(features))
     if architecture is not None:
         files[ARCHITECTURE] = architecture_text(architecture)
         files[ARCHITECTURE_ZH] = architecture_text(architecture, "zh-CN")
@@ -833,6 +1065,143 @@ def custom_design_step(feature: Feature, design: Optional[str]) -> Step:
                                    f"{feature.folder}/design.zh-CN.md": mirror})
 
 
+# ---------------------------------------------------------- F08 history
+
+TESTS_SUMMARY = "End-to-end and stress tests"
+CHANGELOG = "CHANGELOG.md"
+CHANGELOG_ZH = "CHANGELOG.zh-CN.md"
+
+
+def tests_title(version: str, summary: str = TESTS_SUMMARY) -> str:
+    """A version tests PR's title, for example ``[v0.1 tests] End-to-end and stress tests``."""
+    return f"[{version} tests] {summary}"
+
+
+def release_title(tag: str) -> str:
+    """A release PR's title, for example ``[docs] Release v0.1.0``."""
+    return f"[docs] Release {tag}"
+
+
+def record_title(tag: str) -> str:
+    """A record PR's title, for example ``[docs] Record Troy's acceptance of v0.1.0``."""
+    return f"[docs] Record Troy's acceptance of {tag}"
+
+
+def plan_title(version: str, update: bool = False) -> str:
+    """TM7's PR title, for example ``[docs] Add the v0.1 test plan``."""
+    return f"[docs] {'Update' if update else 'Add'} the {version} test plan"
+
+
+def version_tests_step(version: str, summary: str = TESTS_SUMMARY,
+                       pr: Optional[int] = None) -> Step:
+    """A merged version tests PR (F08 design 5.3).
+
+    Args:
+        version: For example ``v0.1``.
+        summary: The title's summary.
+        pr: The PR number for a squash subject, or None.
+
+    Returns:
+        The step.
+    """
+    low = version.replace(".", "_")
+    files = {f"version-tests/test_{low}.py":
+             f'"""Version tests of {version}."""\n\n\ndef test_{low}_s01_counts():\n'
+             '    """Counts."""\n    assert True\n'}
+    return step(tests_title(version, summary) + (f" (#{pr})" if pr is not None else ""), files)
+
+
+def changelog_text(tags: Sequence[str]) -> str:
+    """A ``CHANGELOG.md`` with one short section per tag, newest first.
+
+    Args:
+        tags: The tags, oldest first.
+
+    Returns:
+        The document text.
+    """
+    sections = "".join(f"## {tag} (2026-11-09)\n\n### Added\n\n- F01: Counts words.\n\n"
+                       for tag in reversed(list(tags)))
+    return (front_matter("changelog", "en", "0.1", CHANGELOG_ZH, "Up to date.")
+            + "# Changelog\n\n" + sections)
+
+
+def release_step(tag: str, plan: Optional[Mapping[str, Content]] = None,
+                 pr: Optional[int] = None, tags: Optional[Sequence[str]] = None) -> Step:
+    """A merged release PR ``[docs] Release <tag>`` (F08 design 5.4 and 5.7).
+
+    Args:
+        tag: For example ``v0.1.0``.
+        plan: The version test plan files the PR leaves (with the acceptance
+            row when Troy accepted in chat), or None to leave the plan as it is.
+        pr: The PR number for a squash subject, or None for the PR's own subject.
+        tags: Every tag the changelog lists, oldest first, or None for ``[tag]``.
+
+    Returns:
+        The step.
+    """
+    files = {CHANGELOG: changelog_text(tags or [tag])}
+    files.update(plan or {})
+    return step(release_title(tag) + (f" (#{pr})" if pr is not None else ""), files)
+
+
+def record_acceptance_step(tag: str, plan: Mapping[str, Content]) -> Step:
+    """A merged ``[docs] Record Troy's acceptance of <tag>`` PR (F08 design 5.7).
+
+    Args:
+        tag: For example ``v0.1.0``.
+        plan: The version test plan files with the acceptance row.
+
+    Returns:
+        The step.
+    """
+    return step(record_title(tag), plan)
+
+
+def junit_text(cases: Iterable) -> str:
+    """A JUnit XML document.
+
+    Args:
+        cases: Tuples ``(classname, name, outcome)``; classname "" for none;
+            outcome ``passed``, ``failed``, ``error``, ``skipped``, or
+            ``notrun`` (CTest's status).
+
+    Returns:
+        The XML text.
+    """
+    def attr(value: str) -> str:
+        """Quotes an attribute value."""
+        return '"' + (value.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;")
+                      .replace(">", "&gt;")) + '"'
+    parts = ['<?xml version="1.0" encoding="utf-8"?>\n<testsuites>\n<testsuite name="run">\n']
+    for classname, name, outcome in cases:
+        attrs = (f" classname={attr(classname)}" if classname else "") + f" name={attr(name)}"
+        if outcome == "notrun":
+            attrs += ' status="notrun"'
+        body = {"failed": '<failure message="assert 1 == 2">trace</failure>',
+                "error": '<error message="boom">trace</error>',
+                "skipped": '<skipped message="runs on Linux only"/>'}.get(outcome, "")
+        parts.append(f'<testcase{attrs} time="0.01">{body}</testcase>\n')
+    parts.append("</testsuite>\n</testsuites>\n")
+    return "".join(parts)
+
+
+def write_junit(folder: Path, name: str, cases: Iterable) -> str:
+    """Writes a JUnit file and returns its path.
+
+    Args:
+        folder: The folder to write in.
+        name: The file name.
+        cases: As for ``junit_text``.
+
+    Returns:
+        The path, as text.
+    """
+    path = Path(folder) / name
+    path.write_bytes(junit_text(cases).encode("utf-8"))
+    return str(path)
+
+
 def _data(content: bytes) -> bytes:
     """A fast-import ``data`` command for exact bytes."""
     return b"data %d\n" % len(content) + content + b"\n"
@@ -920,8 +1289,8 @@ def origin_repo(steps: Sequence[Step]) -> Path:
 # -------------------------------------------------------------------- fakes
 
 _FAKE_SOURCE = r'''
-"""A stand-in for gh or mamba in the F07 tests. It records each call and
-never touches the network."""
+"""A stand-in for gh or mamba in the F07 and F08 tests. It records each call
+and never touches the network."""
 import json
 import os
 import sys
@@ -930,6 +1299,19 @@ from pathlib import Path
 LOG = Path(@LOG@)
 DATA = Path(@DATA@)
 KIND = @KIND@
+
+
+def option(args, name):
+    """The word after an option, or None when the option is absent."""
+    if name in args and args.index(name) + 1 < len(args):
+        return args[args.index(name) + 1]
+    return None
+
+
+def answer(value):
+    """Prints a JSON answer and returns 0."""
+    sys.stdout.write(json.dumps(value) + "\n")
+    return 0
 
 
 def main():
@@ -941,13 +1323,27 @@ def main():
     if KIND != "gh" or data.get("fail"):
         sys.stderr.write("fake " + KIND + ": this call fails on purpose\n")
         return 1
+    for prefix in data.get("fail_calls", []):
+        if args[:len(prefix)] == prefix:
+            sys.stderr.write("fake gh: this call fails on purpose\n")
+            return 1
     if args[:2] == ["pr", "list"]:
-        sys.stdout.write(json.dumps(data.get("prs", [])) + "\n")
-        return 0
-    if args[:2] == ["pr", "view"] and len(args) > 2:
-        comments = data.get("comments", {}).get(args[2], [])
-        sys.stdout.write(json.dumps({"comments": comments}) + "\n")
-        return 0
+        state = option(args, "--state")
+        if state == "open":
+            return answer(data.get("prs", []))
+        if state == "merged":
+            return answer(data.get("merged", []))
+    elif args[:2] == ["pr", "view"] and len(args) > 2:
+        return answer({"comments": data.get("comments", {}).get(args[2], [])})
+    elif args[:2] == ["release", "list"]:
+        return answer(data.get("releases", []))
+    elif args[:2] == ["issue", "list"]:
+        if option(args, "--label") == "bug" and option(args, "--state") == "open":
+            return answer(data.get("issues", []))
+    elif args[:2] == ["issue", "view"] and len(args) > 2:
+        found = data.get("issue_views", {}).get(args[2])
+        if found is not None:
+            return answer(found)
     sys.stderr.write("fake gh: unknown call\n")
     return 4
 
@@ -986,10 +1382,13 @@ def _launcher(folder: Path, name: str, log: Path, data: Path) -> Path:
 class Fakes:
     """A fake gh and a fake mamba in one folder, with call logs.
 
-    The fake gh serves ``gh pr list`` and ``gh pr view <n> --json comments``
-    from a JSON file; any other call, or every call when it is set to fail,
-    exits with a code other than 0. The fake mamba always fails, and no
-    engine command may run it.
+    The fake gh serves, from a JSON file and told apart by their arguments,
+    ``gh pr list --state open`` (the open PRs), ``gh pr list --state merged``
+    (the merged PRs, never the open ones), ``gh pr view <n> --json comments``,
+    ``gh release list``, ``gh issue list --label bug --state open``, and
+    ``gh issue view <n>`` (F08 note, section 1). Any other call, or every call
+    when it is set to fail, exits with a code other than 0. The fake mamba
+    always fails, and no engine command may run it.
 
     Attributes:
         folder: The folder that goes first on the PATH.
@@ -998,13 +1397,23 @@ class Fakes:
     """
 
     def __init__(self, prs: Sequence[Mapping] = (), comments: Optional[Mapping] = None,
-                 fail: bool = False) -> None:
+                 fail: bool = False, merged: Sequence[Mapping] = (),
+                 releases: Sequence[str] = (), issues: Sequence[Mapping] = (),
+                 issue_views: Optional[Mapping] = None,
+                 fail_calls: Sequence[Sequence[str]] = ()) -> None:
         """Writes both launchers and the gh answers.
 
         Args:
-            prs: What ``gh pr list`` prints.
+            prs: What ``gh pr list --state open`` prints.
             comments: PR number mapped to its comments, oldest first.
             fail: Whether every gh call fails.
+            merged: What ``gh pr list --state merged`` prints.
+            releases: The tags ``gh release list`` prints, for example ``v0.1.0``.
+            issues: What ``gh issue list --label bug --state open`` prints.
+            issue_views: Issue number mapped to what ``gh issue view <n>``
+                prints, besides the open issues, which it serves too.
+            fail_calls: Argument prefixes, such as ``["release", "list"]``,
+                whose calls fail.
         """
         self.folder = new_dir("fakes")
         self._gh_log = self.folder / "gh_calls.jsonl"
@@ -1012,20 +1421,37 @@ class Fakes:
         self._data = self.folder / "gh_data.json"
         self.gh = _launcher(self.folder, "gh", self._gh_log, self._data)
         self.mamba = _launcher(self.folder, "mamba", self._mamba_log, self.folder / "none.json")
-        self.serve(prs, comments, fail)
+        self.serve(prs, comments, fail, merged, releases, issues, issue_views, fail_calls)
 
     def serve(self, prs: Sequence[Mapping] = (), comments: Optional[Mapping] = None,
-              fail: bool = False) -> None:
+              fail: bool = False, merged: Sequence[Mapping] = (),
+              releases: Sequence[str] = (), issues: Sequence[Mapping] = (),
+              issue_views: Optional[Mapping] = None,
+              fail_calls: Sequence[Sequence[str]] = ()) -> None:
         """Sets what the fake gh answers.
 
         Args:
-            prs: What ``gh pr list`` prints.
+            prs: What ``gh pr list --state open`` prints.
             comments: PR number mapped to its comments, oldest first.
             fail: Whether every gh call fails.
+            merged: What ``gh pr list --state merged`` prints.
+            releases: The tags ``gh release list`` prints.
+            issues: What ``gh issue list --label bug --state open`` prints.
+            issue_views: Issue number mapped to what ``gh issue view <n>`` prints.
+            fail_calls: Argument prefixes whose calls fail.
         """
+        views = {str(item["number"]): dict(item) for item in issues}
+        views.update({str(k): dict(v) for k, v in (issue_views or {}).items()})
         data = {"prs": list(prs), "fail": fail,
-                "comments": {str(k): list(v) for k, v in (comments or {}).items()}}
+                "comments": {str(k): list(v) for k, v in (comments or {}).items()},
+                "merged": list(merged), "releases": [{"tagName": tag} for tag in releases],
+                "issues": list(issues), "issue_views": views,
+                "fail_calls": [list(prefix) for prefix in fail_calls]}
         write_file(self.folder, self._data.name, json.dumps(data))
+
+    def gh_argvs(self) -> list:
+        """The argument lists of every recorded gh call, oldest first."""
+        return [call["argv"] for call in self.gh_calls()]
 
     @staticmethod
     def _read(log: Path) -> list:
@@ -1099,6 +1525,49 @@ def comments(*bodies: str) -> list:
     return [{"author": {"login": LOGIN}, "body": body,
              "createdAt": f"2026-11-07T10:{index:02d}:00Z"}
             for index, body in enumerate(bodies)]
+
+
+def release_pr(number: int, tag: str) -> dict:
+    """An open release PR ``[docs] Release <tag>`` on ``troy-mode/release-<tag>``.
+
+    Args:
+        number: The PR number.
+        tag: For example ``v0.1.0``.
+
+    Returns:
+        The ``gh pr list`` entry.
+    """
+    return pr(number, release_title(tag), f"troy-mode/release-{tag}")
+
+
+def merged_pr(number: int, title: str, oid: Optional[str] = None) -> dict:
+    """One entry of ``gh pr list --state merged --json number,title,url,mergeCommit``.
+
+    Args:
+        number: The PR number.
+        title: The PR title.
+        oid: The merge commit's full ID, or None for a null ``mergeCommit``.
+
+    Returns:
+        The entry.
+    """
+    return {"number": number, "title": title,
+            "url": f"https://github.com/{LOGIN}/{PROJECT}/pull/{number}",
+            "mergeCommit": {"oid": oid} if oid is not None else None}
+
+
+def issue(number: int, title: str) -> dict:
+    """One entry of ``gh issue list --json number,title,url`` (or of ``gh issue view``).
+
+    Args:
+        number: The issue number.
+        title: The issue title.
+
+    Returns:
+        The entry.
+    """
+    return {"number": number, "title": title,
+            "url": f"https://github.com/{LOGIN}/{PROJECT}/issues/{number}"}
 
 
 # ------------------------------------------------------------------ running
@@ -1294,6 +1763,49 @@ def status_runs(cases: Mapping[str, Sequence]) -> dict:
         return Project(steps).status(prs=prs, comments_by_pr=by_pr)
     names = list(cases)
     return dict(zip(names, parallel(run, [cases[name] for name in names])))
+
+
+def fake_status_runs(cases: Mapping[str, Sequence]) -> dict:
+    """Builds one clone per case and runs ``status --json`` with full fakes, side by side.
+
+    Args:
+        cases: A name mapped to ``(steps, fakes keyword arguments)`` or
+            ``(steps, fakes keyword arguments, extra status options)``.
+
+    Returns:
+        Each name mapped to ``(outcome, fakes, clone)``, so a test can read the
+        gh calls and the clone's commits.
+    """
+    def run(case: Sequence) -> tuple:
+        """Clones one origin and runs status in it with its own fakes."""
+        fakes = Fakes(**dict(case[1]))
+        extra = tuple(case[2]) if len(case) > 2 else ()
+        project = Project(case[0])
+        return project.status(*extra, fakes=fakes), fakes, project
+    names = list(cases)
+    return dict(zip(names, parallel(run, [cases[name] for name in names])))
+
+
+def subject_commits(project: "Project", ref: str = "origin/main") -> dict:
+    """Each commit subject of a ref mapped to its full ID (the newest one for a repeat).
+
+    Args:
+        project: The clone.
+        ref: The ref to read.
+
+    Returns:
+        Subjects mapped to full IDs.
+    """
+    found: dict = {}
+    for line in project.git("log", "--format=%H %ct %s", ref).splitlines():
+        sha, _, subject = line.split(" ", 2)
+        found.setdefault(subject, sha)
+    return found
+
+
+def commit_time(project: "Project", rev: str) -> int:
+    """A commit's committer time, in seconds since the epoch."""
+    return int(project.git("log", "-1", "--format=%ct", rev).strip())
 
 
 # ------------------------------------------------------------------ reading

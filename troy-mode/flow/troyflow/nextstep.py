@@ -1,12 +1,16 @@
-"""The next action, decided from the state (F07 design sections 4, 8, 10, and 11).
+"""The next action, decided from the state (F07 design sections 4, 8, 10, and 11, F08 3.3).
 
 The first rule that holds wins. The skill holds the judgment about what to do
 with it; this module only reads the exact rules.
 """
 
+import re
+
 from troycheck.frontmatter import version_key
 
+from . import releases
 from . import repo as git
+from .nextentry import make
 from .repo import MAIN
 from .requirements import approved, doc_version
 from .rework import change_index
@@ -16,16 +20,8 @@ from .state import ARCHITECTURE, REQUIREMENTS, SETUP_TITLE, State, is_approved, 
 
 ASK_TITLE = "[rules] Set the features Troy approves"
 RECORD_REQUIREMENTS = f"[docs] Record Troy's approval of {REQUIREMENTS}"
-_KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc")
-
-
-def _next(action: str, **values) -> dict:
-    """Builds a next entry with every key, the ones not given null or 0."""
-    entry = {key: values.get(key) for key in _KEYS}
-    entry["action"] = action
-    entry["rounds"] = values.get("rounds", 0)
-    entry["attempts"] = values.get("attempts", 0)
-    return entry
+_next = make
+PLAN_TITLE = re.compile(r"\[docs\] (?:Add|Update) the (v\d+\.\d+) test plan")
 
 
 def _record(doc: str, slug: str, **values) -> dict:
@@ -34,10 +30,22 @@ def _record(doc: str, slug: str, **values) -> dict:
                  branch=f"troy-mode/approve-{slug}", merged_by="f07", **values)
 
 
+def _is_release(pr: dict) -> bool:
+    """Tells whether an open PR is a release PR, "[docs] Release vX.Y.Z" (F08 design 5.4)."""
+    return releases.release_tag(plain(str(pr.get("title") or ""))) is not None
+
+
 def _pr_order(pr: dict) -> tuple[int, int]:
-    """Sorts open PRs: side PRs before feature stage PRs, then by number (design 5.1, 8.7)."""
-    is_stage = feature_stage(str(pr.get("title") or "")) is not None
-    return (1 if is_stage else 0, int(pr.get("number", 0)))
+    """Sorts open PRs: side PRs, then feature stage PRs, then release PRs, each by number.
+
+    A side PR comes before the stage PR it interrupts (F07 design 5.1, 8.7), and
+    a release PR waits for every other PR, such as a bug's (F08 design 3.3).
+    """
+    if _is_release(pr):
+        group = 2
+    else:
+        group = 1 if feature_stage(str(pr.get("title") or "")) is not None else 0
+    return (group, int(pr.get("number", 0)))
 
 
 def _pr_next(state: State, pr: dict) -> dict:
@@ -45,8 +53,15 @@ def _pr_next(state: State, pr: dict) -> dict:
     entry = pr_entry(state, pr)
     found = feature_stage(entry["title"] or "")
     task = AUTHOR_TASK.get(found[1]) if found else KIND_TASK.get(entry["kind"] or "")
+    item = entry["item"]
+    plan = PLAN_TITLE.fullmatch(plain(entry["title"] or ""))
+    if plan:
+        task, item = "TM7", plan.group(1)
+    elif entry["kind"] == "version-tests":
+        summary = parse_subject(entry["title"] or "").summary
+        task = "TE3" if summary.startswith("Fix ") else "TE5"
     return _next("continue-pr", pr=entry["number"], title=entry["title"], branch=entry["branch"],
-                 item=entry["item"], stage=entry["stage"], task=task,
+                 item=item, stage=entry["stage"], task=task,
                  merged_by=entry["merged_by"], rounds=entry["rounds"], attempts=entry["attempts"])
 
 
@@ -192,18 +207,27 @@ def decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
     setup_open = any(pr.get("title") == SETUP_TITLE for pr in current)
     if state.repo is None or not state.origin or (not state.installed and not setup_open):
         return _next("setup", title=SETUP_TITLE, branch="troy-mode/init", merged_by="f07"), notes
-    if current:
+    release_first = bool(current) and _is_release(current[0])
+    if current and not release_first:
         return _open_pr_next(state, current, notes, attempts), notes
     found = _setup_next(state)
     if found:
         return found, notes
     if state.order_problems:
         return _next("order-problem"), notes
-    for rule in (_change_record, _approval_records, _bug_next, _rework_next):
+    for rule in (_change_record, _approval_records, releases.record_rule, releases.tag_rule,
+                 _bug_next, _rework_next):
         found = rule(state)
         if found:
             return found, notes
+    found = (releases.retro_rule(state, notes)
+             or releases.release_rule(state, release_first))
+    if found:
+        return found, notes
     if _ask_due(state):
         return _next("ask-approvals", title=ASK_TITLE, branch="troy-mode/approvals",
                      merged_by="f07"), notes
+    found = releases.plan_rule(state, next_feature(state))
+    if found:
+        return found, notes
     return _stage_next(state, attempts), notes

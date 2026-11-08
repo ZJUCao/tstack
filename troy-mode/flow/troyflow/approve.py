@@ -1,7 +1,8 @@
 """Troy's approval, recorded in a document's header and its mirror's (F07 design 8.6, D61).
 
-Only three front matter lines change: version moves to the next major (F01
-design section 4), updated becomes the date, and status says who approved it.
+Three front matter lines change: version moves to the next major (F01 design
+section 4), updated becomes the date, and status says who approved it. The
+document's change log also gets a row for the new version (F08 D77).
 """
 
 import datetime
@@ -11,9 +12,11 @@ from pathlib import Path
 from troycheck.frontmatter import parse_header, version_key
 
 from . import repo as git
+from .changelog import add_change_log_row
 from .errors import FlowError
 
 STATUS = {"en": "Approved by Troy on {date}", "zh-CN": "Troy 已于 {date} 批准"}
+CHANGE = {"en": "Approved by Troy.", "zh-CN": "Troy 批准。"}
 _LINE = re.compile(r'^(?P<key>version|updated|status):(?P<space>[ \t]*)"(?P<value>.*)"'
                    r"(?P<end>[ \t]*\r?)$")
 
@@ -39,7 +42,7 @@ def next_major(version: str) -> str:
     return f"{version_key(version)[0] + 1}.0"
 
 
-def _header(path: Path) -> tuple[str, dict] | None:
+def header_of(path: Path) -> tuple[str, dict] | None:
     """Reads a document and its front matter fields, or None when it has no usable header."""
     try:
         text = path.read_bytes().decode("utf-8")
@@ -53,7 +56,7 @@ def _header(path: Path) -> tuple[str, dict] | None:
     return text, header.fields
 
 
-def _rewrite(text: str, values: dict[str, str]) -> str:
+def rewrite(text: str, values: dict[str, str]) -> str:
     """Replaces the values of some quoted front matter lines and keeps every other byte."""
     lines = text.split("\n")
     end = next((i for i in range(1, len(lines)) if lines[i].rstrip("\r") == "---"), len(lines))
@@ -65,9 +68,9 @@ def _rewrite(text: str, values: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
-def _pair(root: Path, doc: str) -> tuple[str, str] | None:
+def pair_of(root: Path, doc: str) -> tuple[str, str] | None:
     """Finds the English document and its mirror from either one's header."""
-    found = _header(root / doc)
+    found = header_of(root / doc)
     if found is None:
         return None
     fields, folder = found[1], str(Path(doc).parent).replace("\\", "/")
@@ -92,8 +95,8 @@ def run_approve(args) -> tuple[dict, int]:
     repo = git.need_repo(args.repo)
     doc = args.doc.replace("\\", "/")
     report = {"command": "approve", "ok": False, "notes": [], "problems": [], "doc": doc}
-    pair = _pair(repo.root, doc)
-    found = [_header(repo.root / p) for p in pair] if pair else []
+    pair = pair_of(repo.root, doc)
+    found = [header_of(repo.root / p) for p in pair] if pair else []
     if not pair or any(f is None for f in found):
         report["problems"] = [f"{doc} or its mirror is missing or has no troy-doc header "
                               "with lang and version."]
@@ -105,10 +108,18 @@ def run_approve(args) -> tuple[dict, int]:
         return report, 1
     old = versions.pop()
     new = next_major(old)
+    logged = []
     for path, (text, fields) in zip(pair, found):
-        status = STATUS.get(fields["lang"], STATUS["en"]).format(date=date)
-        updated = _rewrite(text, {"version": new, "updated": date, "status": status})
+        lang = fields["lang"] if fields["lang"] in STATUS else "en"
+        status = STATUS[lang].format(date=date)
+        updated = rewrite(text, {"version": new, "updated": date, "status": status})
+        with_row = add_change_log_row(updated, new, date, CHANGE[lang])
+        if with_row is None:
+            report["notes"].append(f"{path} has no change log table; no row was added.")
+        else:
+            updated = with_row
+            logged.append(path)
         (repo.root / path).write_bytes(updated.encode("utf-8"))
     report.update(ok=True, doc=pair[0], mirror=pair[1], version={"from": old, "to": new},
-                  updated=date, changed=list(pair))
+                  updated=date, changed=list(pair), change_log=logged)
     return report, 0

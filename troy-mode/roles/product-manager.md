@@ -54,8 +54,8 @@ When: PR 6 of a feature.
 
 When: a version is released (requirements 5.5).
 
-1. Write the changelog, `CHANGELOG.md` and its mirror, from [`../templates/changelog.md`](../templates/changelog.md).
-2. Set "Usable on Troy's devices" only after Troy accepts the version on Troy's own devices.
+1. When the release starts, on the release branch: add the version's section to the changelog, `CHANGELOG.md` and its mirror, from [`../templates/changelog.md`](../templates/changelog.md). Create both files for the project's first release. Sort the version's features and the bugs fixed since the previous release into Added, Changed, and Fixed; a feature that changes an accepted one goes under Changed. A patch release lists only Fixed. The section's date is the day of the release PR.
+2. After Troy accepts the version on Troy's own devices: set each of its features to "Usable on Troy's devices" in both languages, raise the requirements' `version` by one minor step with a change-log row, and change the changelog section's date to the day of Troy's acceptance. Never before Troy accepts. A patch release keeps the features' statuses.
 
 ### PM5 Status
 

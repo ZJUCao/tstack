@@ -24,7 +24,8 @@
 config = []
 # dependencies. Built in: none. Language packs add manifests (R16).
 dependencies = []
-# tests. Built in: "tests/**", "test/**". Language packs add more.
+# tests. Built in: "tests/**", "test/**", "version-tests/**". Language packs
+#   add more.
 tests = []
 # docs. Built in: "docs/**", "**/*.md", "LICENSE*"
 docs = []

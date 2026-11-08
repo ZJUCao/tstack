@@ -1,4 +1,4 @@
-"""Command-line interface: options, the six commands, and the report (F07 design 3.1)."""
+"""Command-line interface: options, the commands, and the report (F07 3.1, F08 3.1)."""
 
 import argparse
 import json
@@ -6,7 +6,8 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import approve, brief, runs, series, skips, status, textcheck
+from . import acceptversion, approve, brief, releasetest, retro, runs, series, skips, status, \
+    textcheck
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -34,7 +35,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Builds the parser for the eight commands (design 3.1)."""
+    """Builds the parser for F07's eight commands and F08's four (F08 design 3.1)."""
     parser = _Parser(prog="troy_flow.py", description="troy-mode's flow engine.")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
@@ -61,8 +62,21 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--report", required=True, help="troy-check code's JSON report")
     cmd.add_argument("--junit", action="append", required=True, help="a JUnit XML file")
     sub.add_parser("series", help="plan the series lock after a dependency change (D66)")
+    cmd = sub.add_parser("release-test", help="the release test's report and comment (F08)")
+    cmd.add_argument("--version", required=True, help="the version, for example v0.1")
+    cmd.add_argument("--junit", action="append", required=True, help="a JUnit XML file")
+    cmd = sub.add_parser("accept-version", help="record Troy's acceptance of a version (F08)")
+    cmd.add_argument("--tag", required=True, help="the tag, for example v0.1.0")
+    cmd.add_argument("--notes-file", required=True, help="Troy's notes")
+    cmd.add_argument("--date")
+    cmd = sub.add_parser("release-notes", help="write the tag's changelog section (F08)")
+    cmd.add_argument("--tag", required=True)
+    cmd.add_argument("--out", required=True)
+    cmd = sub.add_parser("retro", help="gather the evidence for a retrospective (F08)")
+    cmd.add_argument("--tag", required=True)
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
-                 "check-skips", "series"):
+                 "check-skips", "series", "release-test", "accept-version", "release-notes",
+                 "retro"):
         _common(sub.choices[name])
     return parser
 
@@ -96,7 +110,9 @@ def _utf8_stdio() -> None:
 COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.snapshot,
             "check-run": runs.check_run, "approve": approve.run_approve,
             "check-text": textcheck.run_check_text, "check-skips": skips.run_check_skips,
-            "series": series.run_series}
+            "series": series.run_series, "release-test": releasetest.run_release_test,
+            "accept-version": acceptversion.run_accept_version,
+            "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro}
 
 
 def main(argv: list[str]) -> int:

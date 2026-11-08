@@ -17,7 +17,7 @@ C/C++ 语言包让 troy-check 的语言相关规则在 C 或 C++ 项目里运行
 | [`environment.yml`](environment.yml) | `environment.yml` | 系列环境：来自 conda-forge 的 Python、uv、CMake、Ninja、Doxygen、clang-format 和 clang-tidy。`troy-init` 填写 `{{environment}}`。 |
 | [`requirements-tools.in`](requirements-tools.in) | `requirements-tools.in` | Python 工具 gcovr 和 lizard，编译成 `requirements-tools.lock`。 |
 | [`CMakePresets.json`](CMakePresets.json) | `CMakePresets.json` | 检查用的 `coverage` 预设，和用于构建、调试的 `msvc` 预设。 |
-| [`cmake/troy.cmake`](cmake/troy.cmake) | `cmake/troy.cmake` | 语言标准、编译警告、覆盖率、GoogleTest，以及 `troy_add_test`。 |
+| [`cmake/troy.cmake`](cmake/troy.cmake) | `cmake/troy.cmake` | 语言标准、编译警告、覆盖率、GoogleTest、`troy_add_test`，以及 `troy_add_version_test`。 |
 | [`Doxyfile`](Doxyfile) | `.troy-mode/lang/cpp/Doxyfile` | 用 Doxygen 检查文档注释。 |
 | [`.clang-format`](.clang-format) | `.clang-format` | Google 风格。 |
 | [`.clang-tidy`](.clang-tidy) | `.clang-tidy` | 找 bug 的检查项。 |
@@ -64,6 +64,7 @@ cmake --preset coverage
 | 覆盖率报告 | `gcovr --root . --filter 'include/' --filter 'src/' --exclude-throw-branches --exclude-unreachable-branches --cobertura reports/coverage.xml build/coverage` |
 | 文档注释 | `doxygen .troy-mode/lang/cpp/Doxyfile`，它会写出 `reports/doxygen.log` |
 | 规则检查 | `python .troy-mode/checks/troy_check.py code --base <ref> --title <标题> --junit reports/junit.xml --coverage reports/coverage.xml --doc-warnings reports/doxygen.log` |
+| 发布命令（版本测试，只在发布时运行） | `cmake --preset coverage -DTROY_VERSION_TESTS=ON`、`cmake --build --preset coverage`，然后 `ctest --preset coverage -L version --output-junit <绝对路径>/reports/version-junit.xml`。版本测试失败不会让它停下：发布测试会报告它。 |
 
 C/C++ 项目里 troy-check 要用 lizard，所以要用环境里的 Python 运行。
 
@@ -75,6 +76,7 @@ C/C++ 项目里 troy-check 要用 lizard，所以要用环境里的 Python 运�
 - **clang-tidy** 运行 `bugprone-*` 和 `performance-*`，去掉 `bugprone-easily-swappable-parameters`，所有发现都按错误处理。
 - **C++20 模块**关闭，因为它的 GCC 参数会让 clang-tidy 出错。
 - **测试**是 GoogleTest 测试，名字以测试用例编号开头，比如 `TEST(ExportCsv, F04_T07_WritesHeader)`。`troy_add_test` 把每个测试单独注册到 CTest，这样每个测试的名字都会出现在 JUnit 报告里。
+- **版本测试**放在 `version-tests/` 里，名字以场景编号开头，比如 `TEST(Version, V0_1_S01_CountsWordsAndLines)`。`troy_add_version_test` 只在那一次配置设了 `TROY_VERSION_TESTS=ON` 时才构建它们，并给它们打上 `version` 标签，所以每个 PR 的检查都不包含它们（F08 设计第 5.3 节）。
 
 ## 5. CI 任务
 

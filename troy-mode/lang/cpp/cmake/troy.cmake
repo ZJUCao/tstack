@@ -57,3 +57,24 @@ function(troy_add_test name)
   target_link_libraries(${name} PRIVATE ${ARG_LIBS} GTest::gtest_main)
   gtest_discover_tests(${name})
 endfunction()
+
+# Version tests (F08 design 5.3) live in version-tests/ and run only in the
+# release test on Troy's PC: `cmake --preset coverage -DTROY_VERSION_TESTS=ON`,
+# a build, then `ctest --preset coverage -L version`. TROY_VERSION_TESTS holds
+# for the configure run that sets it only, so the next configure without it,
+# such as every PR's checks, builds no version test.
+set(TROY_BUILD_VERSION_TESTS "${TROY_VERSION_TESTS}")
+unset(TROY_VERSION_TESTS CACHE)
+
+# troy_add_version_test(<name> <source>... [LIBS <target>...])
+# Builds a GoogleTest executable of version tests only when the configure run
+# set TROY_VERSION_TESTS=ON, and labels its tests "version".
+function(troy_add_version_test name)
+  if(NOT TROY_BUILD_VERSION_TESTS)
+    return()
+  endif()
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "" "LIBS")
+  add_executable(${name} ${ARG_UNPARSED_ARGUMENTS})
+  target_link_libraries(${name} PRIVATE ${ARG_LIBS} GTest::gtest_main)
+  gtest_discover_tests(${name} PROPERTIES LABELS version)
+endfunction()

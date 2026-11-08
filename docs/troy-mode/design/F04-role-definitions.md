@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-06 |
+| Version | 1.1 |
+| Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-06, with D27 to D38 |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
@@ -141,7 +141,7 @@ The entry skill (F07) reads `troy-mode/roles/product-manager.md` at the start of
 | PM1 Requirements | Setup (5.1.1), or a new version | Talk with Troy in Troy's language until the goal is clear. Ask all open questions at once, each with a recommended answer. Fill the `requirements` template: features broken down finely, hard and soft dependencies, a topological order (a cycle means breaking the features down again), a split for any feature that would pass R03, prototypes (Q9), the version plan, and non-functional requirements with performance targets. Wait for Troy's approval. |
 | PM2 Change request | Troy asks for a change (5.4) | Update the requirements and get Troy's approval. List the affected features from the dependency graph and mark them "Needs rework". Hand the list to the Architect (AR4). |
 | PM3 Acceptance | PR 6 | Check the finished feature against its requirement row and prototypes. Set its status to "Passes tests on main". |
-| PM4 Version | Release (5.5) | Write the changelog in English and Chinese. Set "Usable on Troy's devices" only after Troy accepts the version on Troy's own devices. |
+| PM4 Version | Release (5.5) | When the release starts, write the version's changelog section in English and Chinese. After Troy accepts the version on Troy's own devices, and only then, set its features to "Usable on Troy's devices". |
 | PM5 Status | Always | Every status label says how far a feature really goes (R13). Never write "done" when only part of it exists. |
 
 ### 6.2 Architect
@@ -174,12 +174,12 @@ Owns: each feature's test plan, each version's test plan, and triage of coverage
 | Task | When | Steps |
 | --- | --- | --- |
 | TM1 Test plan | PR 2 | Fill the `test-plan` template from the design: unit, functional, integration, and performance cases, with IDs from `F04-T01` on, each saying what it tests. Plan performance cases only for interfaces with a target (R14), and vet them with `benchmark-checklist`. Ask the Interface Designer through `needs-answer`, and keep the alignment log. |
-| TM2 Test review | PR 4, bug PR A, test-fix PRs | Check that every planned case has a test whose name starts with its ID (R10), that no test lies outside the plan, that tests check behavior through external interfaces, and that every new test fails against the mock for the right reason (R09). |
+| TM2 Test review | PR 4, bug PR A, test-fix PRs, `[vX.Y tests]` PRs (against the version test plan) | Check that every planned case has a test whose name starts with its ID (R10), that no test lies outside the plan, that tests check behavior through external interfaces, and that every new test fails against the mock for the right reason (R09). |
 | TM3 Coverage gap | R11 fails | Classify the uncovered code with the table in requirements 5.2 and name who fixes it. Never order tests aimed at uncovered lines. |
 | TM4 Disputed test | The Developer disputes a test | Rule whether the test or the code is wrong. The Test Engineer fixes a wrong test in its own PR (TE3). |
 | TM5 Bug triage | A bug report (5.3) | Decide whether it is a bug, for which the Test Engineer writes a reproduction test, or a misunderstood requirement, which goes to the Product Manager as a change. |
 | TM6 Exclusion | A coverage exclusion | Approve or reject its written reason (R11). |
-| TM7 Version test plan | A version is planned (5.5.2) | Fill the `version-test-plan` template: end-to-end scenarios from the requirements, performance and stress cases, and devices. |
+| TM7 Version test plan | A version is planned (5.5.2) | Fill the `version-test-plan` template: end-to-end scenarios from the requirements, performance and stress cases, and devices. Each scenario says who runs it: Claude or Troy (F08 D71). |
 
 Every fixed bug keeps its reproduction test (R15). The Test Manager checks this in TM2 and TM5.
 
@@ -198,7 +198,7 @@ If a test looks wrong, report `needs-answer` for the Test Manager with the test 
 
 ### 6.6 Test Engineer
 
-Owns: test code, bug reproduction tests, and the test fixes the Test Manager orders. Reviews: nothing. Must not: edit source code.
+Owns: test code, bug reproduction tests, version tests, and the test fixes the Test Manager orders. Reviews: nothing. Must not: edit source code.
 
 | Task | When | Steps |
 | --- | --- | --- |
@@ -206,6 +206,7 @@ Owns: test code, bug reproduction tests, and the test fixes the Test Manager ord
 | TE2 Reproduction test | Bug PR A | Write a test named with the bug ID that fails on the current code for the reported reason. |
 | TE3 Test fix | A Test Manager ruling | Change only what the ruling names, and give the reason in the report. |
 | TE4 Added cases | The Test Manager added cases | Write tests for the new cases from the design, as in TE1. |
+| TE5 Version tests | A version's release (F08) | Write one test for each scenario and each performance and stress case of the version test plan that Claude runs, in `version-tests/`, named with its scenario ID. Run them against `origin/main`'s code; a test that fails there stays as written and goes in the report. |
 
 If a case cannot be tested without a change to source code, report `needs-answer` for the Test Manager.
 
@@ -267,7 +268,7 @@ The structure tests (section 10.1) check every part of this format.
 | 5.2 Coverage gaps | TM3, IF4, DV4, TE4, TM6 |
 | 5.3 Bug fix | TM5, TE2, DV3, CR1 |
 | 5.4 Requirement change | PM2, AR4 |
-| 5.5 Version release | TM7, PM4 |
+| 5.5 Version release | TM7, TE5, TM2, PM4 |
 | 5.6 Performance | IF1 copies targets, TM1 plans cases, DV2 runs them |
 | 5.7 Escalation | The `escalate` and `failed` results, common rule 11, AR3 |
 | R05, R08 to R10, R13 to R16 | R05: DV1, DV2, CR1. R08: section 3 and DV2. R09 and R10: TE1, TM2. R13: PM5. R14: TM1. R15: TM2, TM5. R16: AR3 |
@@ -383,3 +384,4 @@ Requirements 1.13 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D27 to D38, every recommended answer. |
+| 1.1 | 2026-11-08 | From F08 design section 9: TE5 writes the version tests (section 6.6); TM7 says who runs each scenario, and TM2 also reviews `[vX.Y tests]` PRs (section 6.4); PM4 drafts the changelog when the release starts and sets the statuses after Troy accepts (section 6.1). |

@@ -45,6 +45,7 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S104", "S105", "S106", "ANN", "PLR2004"]
+"version-tests/**" = ["S101", "S104", "S105", "S106", "ANN", "PLR2004"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]

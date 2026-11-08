@@ -16,6 +16,7 @@ ALLOWED: dict[str, tuple[str, ...]] = {
     "tests": ("tests", "dependencies"),
     "test": ("tests", "dependencies"),
     "test-fix": ("tests", "dependencies"),
+    "version-tests": ("tests", "dependencies"),
     "rules": ("config", "dependencies"),
 }
 

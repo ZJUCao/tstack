@@ -1,8 +1,10 @@
 """The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 8.7, 11).
 
 A brief is for a feature's stage, a side PR of a feature (a test fix or a
-[docs] PR), or a bug. --title names the PR when the state cannot: a bug PR, a
-side PR, or the redo of a stage after a requirement change.
+[docs] PR), a bug, or a version: its test plan and its version tests (F08
+design 4 and 5.3). --title names the PR when the state cannot: a bug PR, a
+side PR, the redo of a stage after a requirement change, or a fix of a
+version's tests.
 """
 
 import re
@@ -18,14 +20,19 @@ from .rework import in_rework
 from .sections import adds_no_interface
 from .stages import STAGE_KINDS, STAGE_TASKS, current_stage, merged_stages, parse_subject, \
     title as stage_title
+from .versions import VERSION, parse_plan, plan_path, versions_of
 
-# Every task ID of F04 section 6.
-ALL_TASKS = (tuple(f"PM{n}" for n in range(1, 6)) + tuple(f"AR{n}" for n in range(1, 6))
-             + tuple(f"IF{n}" for n in range(1, 5)) + tuple(f"TM{n}" for n in range(1, 8))
-             + tuple(f"DV{n}" for n in range(1, 5)) + tuple(f"TE{n}" for n in range(1, 5))
-             + ("CR1",))
-NOT_BUILT = {"TM7": "TM7 writes a version test plan, which belongs to the version release flow "
-                    "(F08) and is not built yet."}
+# Every task ID of F04 section 6, written out so that a task added later
+# cannot leave a gap (F08 adds TE5).
+ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
+             "AR1", "AR2", "AR3", "AR4", "AR5",
+             "IF1", "IF2", "IF3", "IF4",
+             "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7",
+             "DV1", "DV2", "DV3", "DV4",
+             "TE1", "TE2", "TE3", "TE4", "TE5",
+             "CR1")
+# Tasks of F04 that the engine cannot brief yet, with the reason.
+NOT_BUILT: dict[str, str] = {}
 ROLE_OF = {"AR": "architect", "IF": "interface-designer", "TM": "test-manager",
            "DV": "developer", "TE": "test-engineer", "CR": "code-reviewer"}
 ARCHITECTURE_TITLE = "[docs] Add the architecture"
@@ -40,6 +47,11 @@ BUG_TEST_TASKS = ("TE2", "TM2", "CR1", "AR3", "AR5")
 BUG_FIX_TASKS = ("DV3", "CR1", "TM4", "AR3", "AR5")
 BUG_TEST_FIX_TASKS = ("TE3", "TM2", "CR1", "AR3", "AR5")
 BUG_DOCS_TASKS = ("AR3", "AR5")
+# The tasks of a version item (F08 design 4 and 5.3): its test plan in a
+# [docs] PR, and its version tests in a [vX.Y tests] PR.
+VERSION_DOCS_TASKS = ("TM7",)
+VERSION_TESTS_TASKS = ("TE5", "TE3", "TM2", "CR1", "TM4", "AR5")
+VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
 
 _SENTENCES = {
     "AR1": "write the architecture in docs/architecture.md and its mirror "
@@ -88,6 +100,23 @@ _SENTENCES = {
            "and give the reason in your report.",
     "TE4": "write tests for the cases that the Test Manager added to the test plan of {item} "
            "(Input names them), as in TE1.",
+    "TE5": "write the version tests of {item} in version-tests/: one test for each scenario of "
+           "{plan} that Claude runs, and one for each performance and stress case that Claude "
+           "runs. Each test's own name starts with its scenario ID, for example "
+           "test_{under}_s01_<what it checks> in Python or TEST(Version, {upper}_S01_<What>) in "
+           "C/C++. Test through the project's external interfaces, as a user would. Run them "
+           "against the code on origin/main. A test that fails there stays as written: list it "
+           "in your report with the scenario's expected result and what happened, and never "
+           "bend a test to pass.",
+    "TM7": "write the test plan of {item} in {plan} and its mirror from the version-test-plan "
+           "template, for the features {features}: a scenario for every user flow of those "
+           "features, from the requirements' user flows, prototypes, and version plan, and "
+           "performance and stress cases from the requirements' targets. In the Run by column, "
+           "say who runs each scenario: Claude, as an automated version test, or Troy, by hand "
+           "on a device that only Troy has, such as a phone. Claude's scenarios run only in the "
+           "release test on Troy's PC, never in CI, so each must run there: a scenario that "
+           "needs another platform goes to Troy on a device Troy has, or is left out with the "
+           "reason under the table. When the plan exists, update it to these features.",
     "CR1": "review the PR {title}.",
 }
 # A bug has no test plan: its tests are checked against the bug report.
@@ -95,6 +124,14 @@ _BUG_SENTENCES = {
     "TM2": "review the reproduction tests of {item} against the bug report in Input: each test's "
            "name starts with {item}, and each fails on the current code for the reported reason "
            "(R09, R15).",
+}
+# A version's tests are checked against the version test plan (F08 design 5.3).
+_VERSION_SENTENCES = {
+    "TM2": "review the version tests of {item} against {plan}: every scenario that Claude runs "
+           "has a test whose name starts with its ID, no test lies outside the plan, each test "
+           "checks the scenario's expected result, and a test that fails, fails because the "
+           "code differs from the plan, not because the test is wrong. When a scenario no "
+           "longer matches the requirements, say so: the plan goes back to TM7 first.",
 }
 # A [docs] side PR asks the authors of documents for an addition, not a first draft.
 _DOCS_SENTENCES = {
@@ -115,8 +152,9 @@ class Target:
         why: The problem when the task is not allowed.
         stage: The feature's stage for the report, or None.
         title: The PR title, or None.
-        feature: The feature's row, or None for a bug.
+        feature: The feature's row, or None for a bug or a version.
         side: "test-fix" or "docs" for a side PR, else None.
+        version: The version of a version item, else None.
     """
 
     problems: list[str]
@@ -126,6 +164,7 @@ class Target:
     title: str | None = None
     feature: object = None
     side: str | None = None
+    version: str | None = None
 
 
 def _stop(message: str) -> Target:
@@ -144,7 +183,7 @@ def check_task(task: str, item: str | None) -> None:
     if task == "AR1" and item is not None:
         raise FlowError("AR1 writes the architecture and takes no --item")
     if task != "AR1" and item is None:
-        raise FlowError(f"{task} needs --item <feature or bug ID>")
+        raise FlowError(f"{task} needs --item <feature, bug, or version ID>")
 
 
 def parse_option_title(text: str | None):
@@ -249,6 +288,30 @@ def _bug_target(item: str, task: str, parsed, title: str | None, subjects: list[
     return Target([], allowed, why, None, title, side=side)
 
 
+def _version_target(repo, task: str, version: str, parsed, title: str | None,
+                    features) -> Target:
+    """The target for a version item: its test plan or its version tests (F08 design 4, 5.3)."""
+    if version not in versions_of(features):
+        return _stop(f"{version} is not the version of any feature in the features table of "
+                     "docs/requirements.md on origin/main.")
+    plan = parse_plan(git.read(repo, MAIN, plan_path(version)))
+    why = f"{task} does not belong to version {version}."
+    if parsed is None and task in VERSION_DOCS_TASKS:
+        verb = "Add" if plan is None else "Update"
+        return Target([], VERSION_DOCS_TASKS, why, None,
+                      f"[docs] {verb} the {version} test plan", version=version)
+    if parsed is not None and parsed.kind == "docs":
+        return Target([], VERSION_DOCS_TASKS, why, None, title, version=version)
+    if parsed is not None and (parsed.kind != "version-tests" or parsed.id != version):
+        return _stop(f"--title {title!r} does not fit version {version}: give a "
+                     f"[{version} tests] or [docs] title.")
+    if task == "TE5" and (plan is None or not plan.by("Claude")):
+        return _stop(f"{plan_path(version)} is not on origin/main or has no scenario that Claude "
+                     "runs, so TE5 has nothing to write; TM7 writes the plan first.")
+    return Target([], VERSION_TESTS_TASKS, why, None,
+                  title or VERSION_TESTS_TITLE.format(version=version), version=version)
+
+
 def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
     """Finds what the brief is for and what stops it (exit 1)."""
     task, item = args.task, args.item
@@ -260,8 +323,10 @@ def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
         return Target([], ("AR1",), "", None, ARCHITECTURE_TITLE)
     if BUG_ID.fullmatch(item):
         return _bug_target(item, task, parsed, args.title, subjects)
+    if VERSION.fullmatch(item):
+        return _version_target(repo, task, item, parsed, args.title, features)
     if not FEATURE_ID.fullmatch(item):
-        return _stop(f"{item} is neither a feature ID nor a bug ID.")
+        return _stop(f"{item} is neither a feature ID, a bug ID, nor a version.")
     return _feature_target(repo, task, item, parsed, args.title, features, subjects,
                            merged_stages(subjects))
 
@@ -279,19 +344,37 @@ def _problems(task: str, target: Target, config) -> list[str]:
     return []
 
 
-def _read_first(repo, task: str, item: str | None, features: list, folder: str | None) -> list:
-    """Lists the files the role reads first (design 6.1)."""
+def _version_files(repo, task: str, version: str, features: list) -> list[str]:
+    """The files a role on a version item reads after the architecture (F08 design 4, 5.3)."""
+    ids = versions_of(features).get(version, [])
+    rows = [f for f in features if f.id in ids]
+    paths = [plan_path(version)]
+    paths += [f"{feature_folder(repo, f.id, f.name)}/design.md" for f in rows]
+    if task == "TM7":
+        paths += [f"{feature_folder(repo, f.id, f.name)}/test-plan.md" for f in rows]
+        if git.files(repo, "HEAD", "docs/prototypes"):
+            paths.append("docs/prototypes/")
+    return paths
+
+
+def _read_first(repo, task: str, item: str | None, features: list, folder: str | None,
+                version: str | None = None) -> list:
+    """Lists the files the role reads first (design 6.1, F08 design 4 and 5.3)."""
     paths = ["docs/rules.md", "docs/requirements.md"]
     if task == "AR1":
         return paths
     candidates = ["docs/architecture.md"]
+    if version is not None:
+        candidates += _version_files(repo, task, version, features)
     feature = next((f for f in features if f.id == item), None)
     if feature is not None:
         candidates += [f"{folder}/design.md", f"{folder}/test-plan.md"]
         for dep in feature.hard + feature.soft:
             candidates.append(f"{feature_folder(repo, dep, dep)}/design.md")
     for path in candidates:
-        if path not in paths and git.exists(repo, "HEAD", path):
+        if path in paths:
+            continue
+        if path.endswith("/") or git.exists(repo, "HEAD", path):
             paths.append(path)
     return paths
 
@@ -350,21 +433,29 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     """Fills a brief that has no problem."""
     task, item, title, feature = args.task, args.item, target.title, target.feature
     folder = feature_folder(repo, item, feature.name) if feature else None
+    version = target.version
     checks = checksteps.steps(task, config, title or "", subjects, repo.root.name,
-                              report["notes"])
+                              report["notes"], version_tests=version is not None)
     report.update(ok=True, title=title, agent=_agent(report["role"], config),
-                  read_first=_read_first(repo, task, item, features or [], folder),
+                  read_first=_read_first(repo, task, item, features or [], folder, version),
                   input=text, round=args.round, checks=checks)
     sentences = dict(_SENTENCES)
     if item and BUG_ID.fullmatch(item) and target.side is None:
         sentences.update(_BUG_SENTENCES)
     if target.side == "docs":
         sentences.update(_DOCS_SENTENCES)
-    sentence = sentences[task].format(item=item, folder=folder, title=title)
+    values = {"item": item, "folder": folder, "title": title}
+    if version is not None:
+        sentences.update(_VERSION_SENTENCES)
+        under = version.replace(".", "_")
+        values.update(plan=plan_path(version), under=under, upper=under.upper(),
+                      features=", ".join(versions_of(features).get(version, [])))
+    sentence = sentences[task].format(**values)
     if task in checksteps.CODE_TASKS:
         sentence += " " + checksteps.PLATFORM_SKIP
     item_text = f"{item}, {title}" if item and title else (item or title)
-    shown = [p if p != "docs/requirements.md" or feature is None
+    shown = [p if p != "docs/requirements.md" or (feature is None and version is None)
+             else f"{p} (the {item} rows and the version plan)" if version
              else f"{p} (the {item} row in section 4)" for p in report["read_first"]]
     report["prompt"] = render({"task": f"{task}, {sentence}", "item": item_text,
                                "read_first": shown, "input": text, "round": args.round,

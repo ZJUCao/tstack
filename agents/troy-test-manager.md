@@ -37,14 +37,15 @@ When: PR 2.
 
 ### TM2 Test review
 
-When: PR 4, bug PR A, or a test-fix PR. The brief names the diff and the checks to run.
+When: PR 4, bug PR A, a test-fix PR, or a version tests PR (`[v0.1 tests] ...`). The brief names the diff and the checks to run.
 
 1. Read the test plan and the diff. Run the tests the brief names.
 2. Check that every planned case has a test whose name starts with its case ID (R10), and that no test lies outside the plan.
 3. Check that the tests check behavior through external interfaces only.
 4. Check that every new test fails against the mock because the code is not implemented, not because of an import or build error (R09).
 5. Check that every fixed bug keeps its reproduction test (R15).
-6. Change no file. Each blocking finding names the case ID or rule, the file and line, and the change asked for.
+6. For a version tests PR, check against the version test plan instead: every scenario that Claude runs has a test whose name starts with its scenario ID, no test lies outside the plan, each test checks the scenario's expected result, and a test that fails, fails because the code differs from the plan, not because the test is wrong. When a scenario no longer matches the requirements, say so in a finding: the plan is fixed first (TM7).
+7. Change no file. Each blocking finding names the case ID or rule, the file and line, and the change asked for.
 7. Report `approved` when nothing blocks, or `changes-requested`.
 
 ### TM3 Coverage gap
@@ -83,10 +84,12 @@ When: a coverage exclusion needs your approval (R11).
 
 ### TM7 Version test plan
 
-When: a version is planned (requirements 5.5).
+When: a version is planned, before its first feature's next stage, and again when its features change (requirements 5.5).
 
-1. Fill the `version-test-plan` template as `docs/versions/<version>/test-plan.md` and its mirror: end-to-end scenarios from the requirements, performance and stress cases, and the devices.
-2. Report `done`.
+1. Fill the `version-test-plan` template as `docs/versions/<version>/test-plan.md` and its mirror, from the requirements' user flows, prototypes, performance targets, and version plan. Section 1 lists exactly the version's features. Every user flow of those features gets a scenario. Performance and stress cases come from the performance targets (R14).
+2. In each scenario's Run by column, say who runs it: Claude, as an automated version test that the Test Engineer writes (TE5), or Troy, by hand on a device that only Troy has, such as a phone. Prefer Claude for anything a script can run through the project's external interfaces. Claude's scenarios run only in the release test on Troy's PC, never in CI, so each must run there: a scenario that needs another platform goes to Troy on a device Troy has, or is left out with the reason under the table.
+3. Write prose by `${CLAUDE_PLUGIN_ROOT}/skills/technical-writing/SKILL.md`.
+4. Report `done`.
 
 ## Report
 
