@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.2（2026-11-07）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.1 |
+| 版本 | 1.2 |
 | 日期 | 2026-11-07 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -50,12 +50,14 @@ troy-mode/
 
 ```text
 python troy_flow.py status     [--write-progress] [--waiting <text>] [--note <text>] [common options]
-python troy_flow.py brief      --task <task ID> --item <feature or bug ID> [--round <n>]
-                               [--input-file <path>] [common options]
+python troy_flow.py brief      --task <task ID> --item <feature or bug ID> [--title <PR title>]
+                               [--round <n>] [--input-file <path>] [common options]
 python troy_flow.py snapshot   --role <role> [common options]
 python troy_flow.py check-run  --run <run ID> [--allow-dependency <path>]... [common options]
 python troy_flow.py approve    --doc <path> [--date <YYYY-MM-DD>] [common options]
 python troy_flow.py check-text --file <path> [common options]
+python troy_flow.py check-skips --report <troy-check JSON> --junit <path>... [common options]
+python troy_flow.py series     [common options]
 
 common options: [--repo <path>] [--json]
 ```
@@ -63,11 +65,13 @@ common options: [--repo <path>] [--json]
 | 命令 | 作用 |
 | --- | --- |
 | `status` | 读取项目的状态（第 5 节），连同下一步一起输出。`--write-progress` 用它重写进度文件。 |
-| `brief` | 输出一次角色运行的任务简报（第 6.1 节），以及 Agent 工具的参数：`subagent_type`、`model` 和 `effort`。 |
+| `brief` | 输出一次角色运行的任务简报（第 6.1 节），以及 Agent 工具的参数：`subagent_type`、`model` 和 `effort`。`--title` 给出状态推不出标题的 PR：bug 的 PR、旁支 PR（第 8.7 节），或者重做的阶段（第 11.2 节）。 |
 | `snapshot` | 记录一次运行之前的状态（第 7 节），输出这次运行的 ID。 |
 | `check-run` | 把运行之后的状态和快照比较（第 7 节）。输出要暂存的路径、发现的问题，以及每个问题怎样撤销。 |
 | `approve` | 把 Troy 的批准记进文档和它的镜像的文件头（第 8.6 节）。 |
 | `check-text` | 按项目的 `[attribution] mode`，用 troy-check 的署名规则检查一条 PR 评论（R19）。 |
+| `check-skips` | 读取 `troy-check code` 的 JSON 报告和 JUnit 文件，判断失败是否只是在本平台跳过的测试（第 8.6 节，D69）。 |
+| `series` | 接受的依赖改动之后，规划系列锁文件：编译和安装它的命令、每个成员的测试，以及锁文件因此过期的成员（第 8.7 节，D66）。命令由技能运行。 |
 
 - 引擎读取 git，并通过只读的 `gh` 调用读取 GitHub。它只写进度文件、`approve` 改动的文件头字段，以及它在 `<git dir>/troy-mode/flow/` 里的记录。它从不提交、推送或写 GitHub。这些由技能来做（F04 D29）。
 - 退出码和 F06 设计 3.3 相同：0 表示完成；1 表示有问题让这一步停下，报告会说明是什么问题；2 表示引擎无法运行。
@@ -131,6 +135,9 @@ troy_approves_first = 3
 
 - `status` 用依赖列检查顺序那一行：每个依赖都必须排在前面。不一致时，功能循环停下，并点出是哪些功能。修正它属于需求变更。
 - 下一个功能，是顺序里第一个在 `origin/main` 上还没有 `accept` commit 的功能。
+- commit 标题按历史顺序计算。一个阶段再次合入时，比如第 11.2 节的重做，这个功能在它之前合入的后续阶段不再算数。功能的当前阶段是它还没合入的最小阶段号；第 11.2 节跳过的 mock 算作已合入。
+- bug 也从 commit 标题和开着的 PR 读出：`[B12 A/B test]` 已合入，说明接下来是 PR B；`[B12 B/B fix]` 已合入，说明这个 bug 已修好（第 11.1 节）。
+- 同时开着多个 troy-mode PR 时，不是功能阶段的 PR，比如旁支 PR、bug 的 PR 或 `[docs]` PR，排在被它打断的阶段 PR 前面（第 8.7 节）。其余按编号从小到大。
 - `status` 还把项目里的 troy-check（`.troy-mode/checks/`）和插件里的比较。项目的副本较旧时，它会说明 troy-init 的升级能把它更新。`[roles]`、`[flow]` 和 `troy-check code --worktree` 都需要新的副本（第 12 节）。
 
 ### 5.2 进度文件
@@ -246,12 +253,13 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 只有以下各项都成立时，F07 才合并 PR：
 
 - 这个阶段的每个审查都以 `approved` 结束；
-- 推送的 commit 通过了本地检查；
+- 推送的 commit 通过了本地检查，或者只在本平台跳过的测试上失败（D69，见下）；
 - 运行一次 `gh pr checks <n> --watch`，结束时每项检查都通过。刚推送之后，GitHub 可能还没登记工作流，这时命令会说没有检查；再运行一次仍算同一次等待（试运行中发现）；
 - 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。其他 PR 都由 F07 合并。
 
 然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。
 
+- **只在另一个平台上运行的测试（D69）。** 测试方案的某个用例可能只在一个平台上运行，比如试运行里的 F01-T17（不可读的文件），它在 Linux 上运行，在 Windows 上跳过。troy-check 把跳过的测试既不算失败（R09），也不算通过（R10），所以 Troy 电脑上的本地 `troy-check code` 不通过，而 CI 在 Ubuntu 上运行了这个测试。`check-skips` 说明本地的失败只有这类跳过的测试时，本地检查算作通过：不记尝试，PR 说明的 Checks 一节把这些用例列为只由 CI 检查，F07 按 CI 的结果合并，CI 通过就证明这些测试运行过。测试方案必须写明这个用例为什么只在一个平台上运行，由 TM2 和 CR1 检查。产出方的任务简报也这样说明，所以产出方会报告这个跳过，而不是因它失败。
 - **CI 检查失败。** 产出方拿到失败的日志（`gh run view --log-failed`）作为 Input，这次运行记一次尝试。失败不在产出方的文件上时，比如在工作流里或在运行器上，F07 停下并告诉 Troy。
 - **合并被拒绝。** 如果 Claude Code 的权限拒绝了 `gh pr merge`，F07 停下，并告诉 Troy 需要加哪条权限。它从不绕过拒绝。
 
@@ -277,7 +285,12 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 
 **系列锁文件（D66）。** 锁文件改动时，F07 用 troy-init 的函数（F06 设计 5.4），从每个成员的清单编译系列锁文件，装进共享环境，并在合并之前在那里运行每个成员的测试（F03 设计 8.1）。PR 说明列出锁文件因此过期的成员。F07 不在它们那里开 PR。
 
-在第 1 部分里，本节的每种情况都会升级上报给 Troy，并说明这条旁支流程还没有实现。
+第二部分这样运行这些情况：
+
+- **谁写旁支 PR。** 裁定不改任何文件：TM3、TM4、TM6、IF4，以及 AR3 的审查。测试经理用 TM1 补上漏掉的用例；接口设计师用 IF2 写设计更新，由 AR2 审查；Troy 接受之后，架构师在 AR3 的第二次运行里写依赖的 ADR。这些运行都用 `brief --title` 带上各自 PR 的标题，这样它们的检查对应正确的 PR。
+- **标题和分支。** 测试修正是 `[F04 test-fix] <summary>`，分支 `troy-mode/f04-test-fix`。`[docs]` 旁支 PR 的标题写明它加了什么，比如 `[docs] Add cases to the F04 test plan`，分支 `troy-mode/f04-docs`。bug 的旁支 PR 同样使用 bug ID。
+- **系列锁文件。** `series` 列出编译和安装锁文件、运行每个成员测试的命令，以及锁文件因此过期的成员。F07 在 `check-run` 放行的产出方运行之后执行它们，并把新的锁文件和产出方的文件一起暂存。
+- **顺序。** 旁支 PR 开着时，`status` 先接着做它，再回到被它打断的阶段 PR（第 5.1 节）。
 
 ## 9. 升级上报（5.7）
 
@@ -290,7 +303,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 | 合并权限之外的不可逆操作 | F07 在动手之前检查。它的权限是：用 `--force-with-lease` 推送自己的分支；开出、编辑、评论、关闭和在 R18 之内合并自己的 PR；开 bug issue；在 PR 合入之后删除自己的分支。其他任何操作都要问 Troy。 |
 | 一次运行改了 `HEAD` 或分支，或者第二次越出写入范围 | `check-run`（第 7 节） |
 
-消息按 F01 的 `escalation` 模板、用 Troy 使用的语言写：在哪里停下、为什么、带链接的事实、各个选项，以及一个建议（原型 C）。F07 还会用英文把它发到开着的 PR 上，在进度文件里写上"Waiting on Troy"，然后停下。Troy 回答之后，无论是在这个会话里还是在新会话里，F07 都把这个决定放进下一份任务简报的 Input，继续往下做。
+消息按 F01 的 `escalation` 模板、用 Troy 使用的语言写：在哪里停下、为什么、带链接的事实、各个选项，以及一个建议（原型 C）。F07 还会用英文把它发到开着的 PR 上，在进度文件里写上"Waiting on Troy"，然后停下。还没有开着的 PR 时，如果有 bug 的 issue，F07 就发到那个 issue 上：第二部分的试运行里，开发工程师在 PR B 出现之前就请求了一个依赖，升级上报发在了 issue 上。Troy 回答之后，无论是在这个会话里还是在新会话里，F07 都把这个决定放进下一份任务简报的 Input，继续往下做。
 
 ## 10. 项目初始化（5.1）
 
@@ -311,6 +324,8 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 3. PR A，`[B12 A/B test] <summary>`：TE2，由 TM2 和 CR1 审查。`troy-check code` 检查 B12 的测试会失败（R09）。
 4. PR B，`[B12 B/B fix] <summary>`：DV3，由 CR1 审查。`troy-check code` 检查 B12 的测试通过。说明里写"Fixes #12"，所以 F07 合并这个 PR 时，GitHub 会关闭 issue。
 
+分支是 `troy-mode/b12-test` 和 `troy-mode/b12-fix`。PR B 的标题沿用 PR A 的摘要；PR A 合入之后，`status` 把 PR B 作为下一步，所以新的会话也能把这个 bug 做完。TM5 不改任何文件。DV3 对某个测试有争议时，由 TM4 裁定，TE3 在 `[B12 test-fix]` 里修正它，和第 8.7 节对功能的做法一样。
+
 ### 11.2 需求变更（5.4，第 2 部分，D65）
 
 1. **PM2。** 产品经理在一个 `[docs] Change the requirements: <summary>` PR 里更新需求文档。Troy 批准它（第 8.6 节），受影响的功能变为"需要返工"。
@@ -319,6 +334,13 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 4. **已经验收的功能**为这项变更新增一个功能，由 PM2 加入，它硬依赖旧功能。新功能的设计在第 3 节列出改动的接口。它的测试方案点出这项变更要淘汰的旧用例，并把它们记进旧功能测试方案的"不测试"一节。它的测试 PR 删除这些测试，加上新的用例，新用例在当前代码上会失败（R09）。它的 mock PR 只包含新接口；没有新接口时，F07 跳过 PR 3。troy-check 不需要改，因为旧功能剩下的每个测试仍然通过。
 
 和每个 PR 一样，所有已有测试都作为回归测试运行（5.6）。
+
+第二部分这样把这些状态保存在 git 里（D58）：
+
+- **需要返工。** PM2 在状态列里把每个受影响、还没验收的功能标为"Needs rework (<这项变更>)"。已经验收的功能保持原来的状态，由新功能那一行写明这项变更。一个功能的状态这样写着、而且在最新的 `[docs] Change the requirements:` commit 之后它的阶段都还没再合入时，它处于返工中。这时 `status` 要求运行 AR4，在新的会话里也一样。
+- **重做。** 重做的 PR 用这个阶段平常的标题；功能处于返工中时，带这个标题的 `brief --title` 接受当前阶段之前的阶段。重做合入之后，它后面的阶段不再算数（第 5.1 节），循环从那里继续。变更之前开出、分支里没有变更 commit 的阶段 PR，会让 `status` 先要求 AR4，再继续它。功能的实现已经合入、而测试要改时，重做最晚从阶段 3 开始：R09 要求这个功能的每个测试在 mock 上失败。
+- **跳过的 mock。** "没有新接口"指新功能已合入的设计第 2 节里没有接口小节。这时 `status` 和 `brief` 从 PR 2 直接到 PR 4。
+- **Troy 的批准。** 变更 PR 和需求文档一样要等 Troy（第 8.6 节）。`approve` 把需求文档升到下一个主版本。Troy 改在 GitHub 上合并时，它的版本仍带着次版本号，`status` 会要求 `[docs] Record Troy's approval of docs/requirements.md`。
 
 ### 11.3 流水线之外的工作（5.9）
 
@@ -379,10 +401,11 @@ F07 不给项目的工作流添加步骤。它的测试在 troy-pstack 的 `troy
 | 批准和文字 | `approve` 把两种语言都升到下一个主版本，并写好两条状态行。严格模式下 `check-text` 拒绝署名。 |
 | troy-check | 接受 `[roles]` 和 `[flow]`。拒绝未知的角色、未知的键、错误的 effort 值和负数。`--worktree` 能看到新文件、跳过被忽略的文件、结果和真实 commit 相同，而且索引、ref 和工作区都保持原样。 |
 | 技能 | front matter 有 `name: troy-mode` 和 `disable-model-invocation: true`。它点到第 4 节的每个流程、每个引擎命令，以及第 8.1 节的阶段标题。 |
+| 第 2 部分 | 从 commit 标题和开着的 PR 读出 bug，以及作为下一步的 PR B。旁支 PR 排在阶段 PR 前面。阶段的重做，以及需要 AR4 的返工。跳过的 mock。Troy 合并的变更 PR，以及记录它的批准。每个第二部分任务的任务简报，按阶段、bug 步骤和标题。`check-skips` 在只有跳过的测试失败、以及有其他失败时的结果。`series` 的命令和过期的成员。 |
 
 ### 14.2 埋 bug
 
-代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。数量写进 PR 说明。
+代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。数量写进 PR 说明。
 
 ### 14.3 试运行（D68）
 
@@ -442,6 +465,7 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | D66 | F03 把系列锁文件留给了 F07：依赖改动之后，每个成员的测试都要在共享环境里运行，其他成员在各自的 PR 里拿到新的锁文件。F07 做多少？ | A：F07 编译锁文件、安装、运行每个成员的测试，并列出锁文件因此过期的成员。它不在其他仓库里开 PR。B：F07 还在每个属于 troy-mode 项目的成员里开一个 `[rules]` PR。 | A。没有 Troy 的同意，项目之外的东西一概不动；而且现在还没有哪个系列有第二个 troy-mode 成员。B 可以等出现第一个这样的系列时再做。 |
 | D67 | F07 怎样合入？Q10 规定每个功能一个 PR。 | A：两个 PR（第 14.4 节）。第 1 部分包括请求分派、项目初始化、功能循环主线和接续。第 2 部分包括旁支 PR、修 bug 和需求变更。B：一个 PR。C：按层分两个 PR，先引擎后技能。 | A。第 1 部分已经能用于项目初始化和做功能，每个 PR 也都便于审查。C 的第一个 PR 合入后，什么都还用不了。这会把 F07 加进 Q10 的例外。 |
 | D68 | F07 怎样试运行？状态什么时候改？ | A：测试和埋 bug，再在 `ZJUCao/troy-mode-trial` 上对每一部分试运行，包括一次会话中断和在新 worktree 里的接续（第 14.3 节）。B：同上，但用本地裸仓库作 `origin`，所以 PR 和 CI 并没有真正运行。状态为"已编写"，直到试点。 | A。只有真实的仓库才能证明审查、CI 和合并能从头跑到尾。总共大约运行 26 次角色，用几分钟 Actions 时间，而且每一部分的试运行都要 Troy 在聊天里同意才开始。 |
+| D69 | 测试方案的某个用例只在一个平台上运行，所以 Troy 电脑上的本地 `troy-check code` 不通过，而 CI 通过（第一部分试运行中发现）。F07 怎样合并？ | A：本地的失败只有在本平台跳过的测试时，F07 不记尝试，在 PR 里列出这些用例，按 CI 的结果合并（第 8.6 节）。B：每次都升级上报。C：禁止这样的用例；测试经理把每个用例都写成到处都能运行，或者放进"不测试"。D：troy-check 不再把跳过的测试算作失败。 | A，Troy 已于 2026-11-07 批准。CI 通过就证明这些测试运行过。B 会在每个这样的功能的 PR 4 和 PR 5 上问 Troy。C 会丢掉对真实行为的测试。D 在 CI 里也会放过，于是一个在所有平台都跳过的测试永远没人检查。需求不用改，因为 R09 和 R10 是 CI 规则。 |
 
 需求文档 1.20 版记录了批准的改动：
 
@@ -458,3 +482,4 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | 0.1 | 2026-11-07 | 初稿。 |
 | 1.0 | 2026-11-07 | Troy 批准，含 D57 到 D68，全部采用推荐答案。 |
 | 1.1 | 2026-11-07 | 第一部分试运行（第 14.3 节）确认的事实：Agent 调用带上 `[roles]`，会话会等写文件的角色（第 1 节）；技能通过 Bash 运行引擎、git 和 gh（第 2 节）；IF1 不在第 4 节留模板标记（第 6.1 节）；功能名称保持简短（第 8.1 节）；刚推送后 `gh pr checks --watch` 可能要再启动一次（第 8.6 节）。 |
+| 1.2 | 2026-11-07 | Troy 的 D69：只在另一个平台上运行的测试交给 CI（第 8.6 节）。第二部分确定的细节：`brief --title`、`check-skips` 和 `series`（第 3.1 节）；状态里的历史顺序、bug 和旁支 PR 优先（第 5.1 节）；谁写每个旁支 PR（第 8.7 节）；bug 的分支（第 11.1 节）；返工、重做、跳过的 mock 和变更的批准（第 11.2 节）；第二部分的测试和埋 bug（第 14.1 和 14.2 节）。来自第二部分试运行：没有开着的 PR 时，升级上报发到 bug 的 issue 上（第 9 节）。 |

@@ -32,6 +32,15 @@ def action_text(entry: dict) -> str:
     if action == "stage":
         return (f"Start {entry['item']} stage {entry['stage']} ({stage_name(entry['stage'])}) "
                 f"with {entry['task']}: {entry['title']}.")
+    if action == "bug":
+        return f"Open PR B of {entry['item']} with DV3: {entry['title']}."
+    if action == "rework":
+        text = (f"{entry['item']} needs rework after a requirement change: run AR4, then redo "
+                "the earliest stage it names.")
+        if entry.get("pr"):
+            text += (f" PR #{entry['pr']} was opened before the change: close it unmerged when "
+                     "that stage is at or before its own, else rebase it.")
+        return text
     return _ACTIONS[action]
 
 
@@ -47,9 +56,13 @@ def _current_feature(state: State, entry: dict):
 def _stage_text(entry: dict, prs: list[dict]) -> str:
     """Builds the Stage line: the stage number first, then what is happening."""
     stage = entry.get("stage")
+    if entry["action"] == "rework":
+        return f"{stage} of 6. Needs rework after a requirement change."
     if stage is None:
         if entry["action"] == "continue-pr":
             return f"none. PR #{entry['pr']} is open."
+        if entry["action"] == "bug":
+            return f"none. {action_text(entry)}"
         return f"setup. {action_text(entry)}"
     text = f"{stage} of 6. {stage_name(stage).capitalize()}"
     pr = next((p for p in prs if p["number"] == entry.get("pr")), None)
@@ -148,7 +161,8 @@ def run_status(args) -> tuple[dict, int]:
         "troy_approves_first": state.approves_first, "order": state.order or [],
         "order_problems": state.order_problems,
         "features": [feature_entry(state, f) for f in state.features or []],
-        "next_feature": next_feature(state), "open_prs": prs, "waiting_on_troy": None,
+        "next_feature": next_feature(state), "open_prs": prs, "bugs": state.bugs,
+        "waiting_on_troy": None,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
     }
     if state.checks["outdated"]:

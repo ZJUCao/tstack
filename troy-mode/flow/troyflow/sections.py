@@ -54,3 +54,35 @@ def outside_section_four(before: str | None, after: str | None) -> list[str]:
             continue
         changed.append(f"the section {heading[3:]!r}" if heading else "the header and title")
     return changed
+
+
+SECTION_TWO = "## 2."
+
+
+def adds_no_interface(text: str | None) -> bool:
+    """Tells whether a feature design's section 2 lists no interface (design 11.2, D65).
+
+    A change to an accepted feature that only changes existing interfaces
+    leaves section 2 without an interface subsection, and F07 skips its mock.
+
+    Args:
+        text: The design, or None when it does not exist.
+
+    Returns:
+        True when the design has a section 2 that holds no line starting
+        "### " outside fenced code blocks; False otherwise, also when the
+        design or its section 2 is missing.
+    """
+    if text is None:
+        return False
+    for heading, block in blocks(text):
+        if not heading.startswith(SECTION_TWO):
+            continue
+        fenced = False
+        for line in block.split("\n"):
+            if _FENCE.match(line):
+                fenced = not fenced
+            elif not fenced and line.startswith("### "):
+                return False
+        return True
+    return False
