@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -272,7 +272,7 @@ After the code passes, bugs are planted one at a time in a scratch copy, and eac
 
 ### 11.3 Trial (D78)
 
-Before the PR opens, F08 runs in nested `claude -p` sessions on Troy's PC, with troy-pstack loaded from the PR branch, on the private scratch repository `ZJUCao/troy-mode-trial`, as F07's trials did (F07 section 14.3). The trial's prompt gives Troy's answers, including Troy's device results. These sessions reach GitHub, so the trial starts only after Troy says yes in chat.
+Before the PR opens, F08 runs in nested `claude -p` sessions on Troy's PC, with troy-pstack loaded from the PR branch, on the private scratch repository `ZJUCao/troy-mode-trial`, as F07's trials did (F07 section 14.3). The trial's prompt gives Troy's answers, including Troy's device results. These sessions reach GitHub. They run under Troy's standing permission for troy-mode trials, which Troy added on 2026-11-08 as an `autoMode.allow` rule in troy-pstack's `.claude/settings.local.json`: nested `claude -p` sessions may create branches, issues, and PRs and merge PRs in `ZJUCao/troy-mode-trial` without asking. It covers no other repository and never a push of `main`.
 
 The repository's v0.1 holds F01 (accepted), F03 (at stage 4), and F02 (not started).
 
@@ -318,7 +318,7 @@ F07 ends at D69, so F08 continues from D70. Troy accepted every recommended answ
 | D75 | Are there patch releases, such as v0.1.1? | A: yes. "Release v0.1.1" releases the fixes merged since v0.1.0, while no code PR of a later version's feature has merged since then. It skips the version test plan, the version tests, and the retrospective (section 6). B: no. Fixes ship with the next version. | A. A released version that Troy uses can get its fixes without waiting for the next version. Without release branches, a patch is possible only before the next version's code lands, and F08 says when it is not. |
 | D76 | How does the retrospective work? | A: the engine gathers the version's review findings, failed attempts, escalations, and bugs from F07's comments and the issues, grouped by rule and checklist item. The main session follows `correct`'s method on the problems seen in two or more PRs and proposes rules. Troy picks, and each picked rule runs through the rule change flow. The report is a comment on the release PR (section 7). B: as A, plus a `docs/versions/<vX.Y>/retrospective.md` document. C: the main session reads the PRs itself, with no engine command. | A. Counting findings by rule is exact work that tests can check. The rules Troy picks are the lasting result, and they land in the rules table. B adds a document that nothing reads later. |
 | D77 | F07's `approve` changes only header fields (D61), so a document's change log has no row for the version Troy's approval gives it. Should `approve` add one? | A: yes. `approve` adds "Approved by Troy." with the new version and date to the change log, in both languages (section 8). B: no. The header alone records the approval. | A. Every version then has its row, so the change log explains the jump from 0.3 to 1.0. This changes requirements 3.3 to say that troy-mode records an approval in the document's header and change log. |
-| D78 | How is F08 tried out, and when does its status move? | A: tests and planted bugs, plus a trial on `ZJUCao/troy-mode-trial` that releases its v0.1.0 across a session break, with Troy's answers in the trial's prompt (section 11.3). B: the same, on a local bare `origin`, with no GitHub release or CI. Status "Written" until the pilot. | A. Only a real repository shows that the release PR, CI, the merge, and the GitHub release work end to end. It costs about 9 role runs, about $8 to $12, and a few Actions minutes, and starts only on Troy's yes in chat. |
+| D78 | How is F08 tried out, and when does its status move? | A: tests and planted bugs, plus a trial on `ZJUCao/troy-mode-trial` that releases its v0.1.0 across a session break, with Troy's answers in the trial's prompt (section 11.3). B: the same, on a local bare `origin`, with no GitHub release or CI. Status "Written" until the pilot. | A. Only a real repository shows that the release PR, CI, the merge, and the GitHub release work end to end. It costs about 9 role runs, about $8 to $12, and a few Actions minutes, and runs under Troy's standing permission for trials on that repository. |
 
 Requirements 1.24 records the approved changes:
 
@@ -332,3 +332,4 @@ Requirements 1.24 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-08 | First draft. |
 | 1.0 | 2026-11-08 | Approved by Troy with D70 to D78, every recommended answer. |
+| 1.1 | 2026-11-08 | Section 11.3 and D78: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |

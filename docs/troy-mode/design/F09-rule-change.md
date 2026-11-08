@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F09 in [requirements 1.25](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D79 to D85. |
+| Status | Approved by Troy on 2026-11-08, with D79 to D85. Version 1.1 records Troy's standing permission for trials (section 10.3). |
 | Source of truth | This English file. [`F09-rule-change.zh-CN.md`](F09-rule-change.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -234,7 +234,7 @@ After the code passes, bugs are planted one at a time in a scratch copy, and eac
 
 ### 10.3 Trial (D85)
 
-Before the PR opens, F09 runs in nested `claude -p` sessions on Troy's PC, with troy-pstack loaded from the PR branch, on `ZJUCao/troy-mode-trial`, as F07's trials did. The trial's prompt gives Troy's answers. It starts only after Troy says yes in chat.
+Before the PR opens, F09 runs in nested `claude -p` sessions on Troy's PC, with troy-pstack loaded from the PR branch, on `ZJUCao/troy-mode-trial`, as F07's trials did. The trial's prompt gives Troy's answers. It runs under Troy's standing permission for troy-mode trials, which Troy added on 2026-11-08 as an `autoMode.allow` rule in troy-pstack's `.claude/settings.local.json`, which lets nested `claude -p` sessions act on `ZJUCao/troy-mode-trial` without asking. That permission covers no other repository, so the trial opens no issue in troy-pstack (step 6).
 
 1. **Upgrade.** troy-init's upgrade brings the new troy-check, through its own PR.
 2. **A lint rule that existing code breaks**, for example "No f-string in an exception message", which ruff's EM102 checks and `counting.py` breaks today. AR6 proposes it, Troy's answer chooses "fix it now", and the rule PR merges with one baseline line. That session ends.
@@ -274,7 +274,7 @@ F08's design ends at D78, so F09 continues from D79. Troy accepted every recomme
 | D82 | How does Troy approve a rule? | A: one proposal message, whose answer approves the rule and makes 5.8 step 4's choice. F07 then writes and merges the PRs without asking again. The rules table moves to the next major version, "Approved by Troy" (section 5.2). B: Troy also approves the rule PR itself. | A. Troy decides once, with every fact in one message, and the PR holds nothing Troy has not seen. It matches how Troy approves requirements in chat (F07 D61). |
 | D83 | What does F09 do with a rule for every project? 5.8 says it lives in troy-pstack and ships in a new plugin version. | A: AR6 proposes it with the troy-pstack files that change. On Troy's yes, F09 opens an issue in troy-pstack. troy-pstack builds it through its own process, and projects get it through troy-init's upgrade (section 5.6). B: as A, plus a P rule in the project at once, until the plugin ships the R rule. C: F09 opens a PR in troy-pstack. | A. troy-pstack is built with designs and approvals that F09 cannot run, and the issue keeps the proposal until then. B leaves a P row that the later R row duplicates. C changes the plugin without its design process. |
 | D84 | How are rules changed and retired? | A: P rules change or retire through the same flow. A retired row stays, marked "Retired on <date>", and its ID is never reused. A project adjusts an R rule only through a P row and troy-check's config, such as R03's limit. Any other R change is a rule for every project (section 6). B: also let a project edit its R rows. | A. troy-init's upgrade replaces the R rows (F06 D54), so an edited R row would be undone at the next upgrade. A retired row keeps the history readable. |
-| D85 | How is F09 tried out, and when does its status move? | A: tests and planted bugs, plus a trial on `ZJUCao/troy-mode-trial` with a lint rule and its cleanup across a session break, a review rule, a retirement, and a rule for every project, with Troy's answers in the trial's prompt (section 10.3). B: the same, on a local bare `origin`, with no CI. Status "Written" until the pilot. | A. Only a real repository shows that the rule PR and its baseline pass CI and merge. It costs about 5 role runs, about $4 to $7, and a few Actions minutes, and starts only on Troy's yes in chat. |
+| D85 | How is F09 tried out, and when does its status move? | A: tests and planted bugs, plus a trial on `ZJUCao/troy-mode-trial` with a lint rule and its cleanup across a session break, a review rule, a retirement, and a rule for every project, with Troy's answers in the trial's prompt (section 10.3). B: the same, on a local bare `origin`, with no CI. Status "Written" until the pilot. | A. Only a real repository shows that the rule PR and its baseline pass CI and merge. It costs about 5 role runs, about $4 to $7, and a few Actions minutes, and runs under Troy's standing permission for trials on that repository. |
 
 Requirements 1.25 records the approved changes:
 
@@ -288,3 +288,4 @@ Requirements 1.25 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-08 | First draft. |
 | 1.0 | 2026-11-08 | Approved by Troy with D79 to D85, every recommended answer. |
+| 1.1 | 2026-11-08 | Section 10.3 and D85: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |
