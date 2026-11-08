@@ -91,6 +91,7 @@ PR 标题为 `[<编号> <阶段>] <概要>`；不属于任何功能或 bug 的 P
 | Bug PR A | `[B12 A/B test] Crash on empty history` | 测试 |
 | Bug PR B | `[B12 B/B fix] Crash on empty history` | 源码 |
 | 测试修正 | `[F04 test-fix] Wrong expected date format in F04-T03` | 测试 |
+| 版本测试 | `[v0.1 tests] End-to-end and stress tests` | `version-tests/` 里的测试 |
 | 文档 | `[docs] Requirements change for offline mode` | 文档 |
 | 规则变更 | `[rules] Add P01, no global state` | 规则表和检查配置 |
 | 重构 | `[refactor] Split storage.py` | 源码 |

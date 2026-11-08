@@ -52,12 +52,13 @@ uv pip install -e . --no-deps
 | 测试 | `coverage run -m pytest --junitxml=reports/junit.xml`。测试失败不会让任务停下：哪些失败是允许的，由 troy-check 判断。 |
 | 覆盖率报告 | `coverage xml -o reports/coverage.xml` |
 | 规则检查 | `python .troy-mode/checks/troy_check.py code --base <ref> --title <标题> --junit reports/junit.xml --coverage reports/coverage.xml` |
+| 发布命令（版本测试，只在发布时运行） | `pytest version-tests --junitxml=reports/version-junit.xml`。版本测试失败不会让它停下：发布测试会报告它。 |
 
 ## 4. 工具设置
 
-- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 troy-pstack 里检查。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试可以用 `assert`，也不需要类型标注。
+- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 troy-pstack 里检查。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试和 `version-tests/` 里的版本测试可以用 `assert`，也不需要类型标注。
 - **mypy** 用严格模式检查 `src`。
-- **pytest** 在 `tests/` 里找测试，参数是 `-ra --strict-markers`。
+- **pytest** 在 `tests/` 里找测试，参数是 `-ra --strict-markers`。它不收集 `version-tests/` 里的版本测试，那些只在发布测试里运行（F08 设计第 5.3 节）。版本测试的名字以场景编号开头，比如 `test_v0_1_s01_counts_words_and_lines`。
 - **coverage** 统计 `src` 里的行覆盖和分支覆盖。
 
 项目自己的设置，比如 troy-voice 禁用的时间函数，加在语言包的设置后面。要去掉语言包的某项设置，走规则变更流程。

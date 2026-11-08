@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F07 in [requirements 1.20](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-07 |
+| Version | 1.3 |
+| Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. Version 1.2 records Troy's D69 and the details part 2 settled. |
 | Source of truth | This English file. [`F07-entry-skill.zh-CN.md`](F07-entry-skill.zh-CN.md) is the Chinese mirror. |
 
@@ -107,7 +107,7 @@ At every start, F07 reads `product-manager.md`, runs `status`, and then picks th
 | "why ...", "how does ...", "try ..." | Work outside the pipeline | Section 11.3 |
 | "continue", "status", or nothing | Continue | Section 11.4 |
 | "upgrade troy-mode" | troy-init's upgrade (F06 section 6) | Section 10 |
-| "release v0.1" | Version release (5.5) | Not built: F08 |
+| "release v0.1" | Version release (5.5) | F08 design |
 | "add a rule ..." | Rule change (5.8) | Not built: F09 |
 
 - In a folder with no `.troy-mode/`, F07 answers a question but changes nothing. For any other request, it asks Troy once whether to make the folder a troy-mode project.
@@ -219,7 +219,7 @@ On a problem of kind 2, 3, or 4, F07 undoes the changes the report lists: `git r
 ### 8.2 One stage, step by step
 
 1. **Order.** The stage before it has merged on `origin/main`, and every hard dependency of the feature is accepted. F02 section 11 leaves stage order to F07.
-2. **Branch.** `git fetch origin`, then `git switch -c <branch> origin/main`. F07 never checks out `main`. In a worktree that the desktop app made, `main` is often checked out in another worktree, and git refuses to check it out twice.
+2. **Branch.** `git fetch origin --prune`, then `git switch -c <branch> origin/main`. F07 never checks out `main`. In a worktree that the desktop app made, `main` is often checked out in another worktree, and git refuses to check it out twice.
 3. **Author.** A role run (section 6) and its check (section 7).
 4. **Commit.** `git add -- <path>` for exactly the paths that `check-run` lists. The first run makes the commit, whose subject is the PR title (R01). Later runs amend it, so the PR keeps one commit. F05's `commit-msg` hook checks R19.
 5. **Local checks.** The checks in the table, on the commit. A failure goes back to the author as Input and counts as an attempt.
@@ -255,7 +255,7 @@ F07 merges a PR only when all of these hold:
 - `gh pr checks <n> --watch`, run once, ends with every check passing. Right after a push, GitHub may not have registered the workflow yet, and the command then says that no checks are reported; running it again is still the same wait (found in the trial);
 - the merge rights allow it. PR 1 and PR 2 of the first `troy_approves_first` features in the order wait for Troy (D61, D62). Every other PR is F07's to merge.
 
-F07 then runs `git switch --detach`, `gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`, `git fetch origin`, and `status --write-progress`. It detaches first so that `gh` does not try to check out `main` before it deletes the branch.
+F07 then runs `git switch --detach`, `gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`, `git fetch origin --prune`, and `status --write-progress`. It detaches first so that `gh` does not try to check out `main` before it deletes the branch. Every fetch prunes: a branch name may come back after its PR merged, such as `troy-mode/v0.1-test-plan` for a plan's update, and a stale `origin/<branch>` makes `git push --force-with-lease` refuse the new branch (found in F08's trial).
 
 - **A test that runs on another platform only (D69).** A case of the test plan may run on one platform only, such as F01-T17 of the trial, an unreadable file, which runs on Linux and skips on Windows. troy-check counts a skipped test as neither failing (R09) nor passing (R10), so the local `troy-check code` fails on Troy's PC while CI, on Ubuntu, runs the test. When `check-skips` says that the only local failures are such skipped tests, the local checks count as passed: no attempt is counted, the PR description's Checks section lists those cases as checked by CI only, and F07 merges on CI's result, which proves the tests ran. The test plan must say why the case runs on one platform only; TM2 and CR1 check that. Authors' briefs say the same, so an author reports the skip instead of failing on it.
 - **A failing CI check.** The author gets the failing log (`gh run view --log-failed`) as Input, and the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, F07 stops and tells Troy.
@@ -263,7 +263,7 @@ F07 then runs `git switch --detach`, `gh pr merge <n> --rebase --delete-branch -
 
 **Troy's approval (D61).** When a PR waits for Troy, F07 posts `Waiting for Troy`, tells Troy in chat with the link, and stops. Troy either replies in chat or merges the PR on GitHub.
 
-- On a reply that approves, F07 runs `approve` on the PR's document. The `version` moves to the next major (F01 design section 4), `updated` becomes the date, and the status becomes "Approved by Troy on <date>" and its Chinese form. `approve` changes only these header fields, in both languages, so no role runs for it. F07 amends the commit, pushes, waits for the checks, and merges.
+- On a reply that approves, F07 runs `approve` on the PR's document. The `version` moves to the next major (F01 design section 4), `updated` becomes the date, and the status becomes "Approved by Troy on <date>" and its Chinese form. `approve` changes only these header fields, and adds a row "Approved by Troy." to the change log (F08 D77), in both languages, so no role runs for it. F07 amends the commit, pushes, waits for the checks, and merges.
 - On a reply that asks for changes, the author revises, as a round.
 - When Troy merges on GitHub, the document stays below 1.0. F07 then opens and merges `[docs] Record Troy's approval of <document>`, which holds only the change that `approve` makes.
 
@@ -298,7 +298,7 @@ How part 2 runs these cases:
 | A change needs the requirements or the architecture to change | A role's `escalate` report, or AR5's answer |
 | An author's work still fails after 3 attempts | Its attempt count (section 8.5, D64) |
 | A new third-party dependency | AR3's `escalate` report (section 8.7) |
-| An irreversible action outside the merge rights | F07 checks before it acts. Its rights: push its own branches with `--force-with-lease`; open, edit, comment on, close, and merge its own PRs within R18; open bug issues; and delete its own branches after their PR merges. Anything else asks Troy. |
+| An irreversible action outside the merge rights | F07 checks before it acts. Its rights: push its own branches with `--force-with-lease`; open, edit, comment on, close, and merge its own PRs within R18; open bug issues; delete its own branches after their PR merges; and, after Troy accepts a version, create its GitHub release on the release PR's merge commit (F08 section 5.7). Anything else asks Troy. |
 | A run changed `HEAD` or the branch, or broke its scope twice | `check-run` (section 7) |
 
 The message follows F01's `escalation` template, in Troy's language: where it stopped, why, the facts with links, the options, and a recommendation (Prototype C). F07 also posts it in English on the open PR, writes "Waiting on Troy" into the progress file, and stops. When no PR is open yet, F07 posts it on the bug's issue if there is one: in part 2's trial, the Developer asked for a dependency before PR B existed, and the escalation went on the issue. When Troy answers, in this session or a new one, F07 puts the decision into the next brief's Input and goes on.
@@ -481,3 +481,4 @@ Requirements 1.20 records the approved changes:
 | 1.0 | 2026-11-07 | Approved by Troy with D57 to D68, every recommended answer. |
 | 1.1 | 2026-11-07 | Facts from part 1's trial (section 14.3): the Agent calls carry `[roles]` and the session waits for writing roles (section 1); the skill runs the engines, git, and gh through Bash (section 2); IF1 keeps section 4 free of template markers (section 6.1); the feature's name stays short (section 8.1); and `gh pr checks --watch` may need a second start right after a push (section 8.6). |
 | 1.2 | 2026-11-07 | Troy's D69: tests that run on another platform only are left to CI (section 8.6). Details part 2 settled: `brief --title`, `check-skips`, and `series` (section 3.1); history order, bugs, and side PRs first in the state (section 5.1); who writes each side PR (section 8.7); bug branches (section 11.1); rework, the redo, the skipped mock, and the change's approval (section 11.2); part 2's tests and planted bugs (sections 14.1 and 14.2). From part 2's trial: an escalation with no open PR goes on the bug's issue (section 9). |
+| 1.3 | 2026-11-08 | From F08 design section 9: "release" requests go to F08's version release flow (section 4); `status`, `brief`, and `approve` change as F08 section 3 says, and `approve` adds a change-log row (D77, section 8.6); the rights gain the GitHub release (section 9). From F08's trial: every fetch prunes (sections 8.2 and 8.6). |

@@ -13,6 +13,7 @@ from .requirements import Feature, approved, doc_version, order_problems, parse_
 from .rework import change_index, in_rework, is_change
 from .sections import adds_no_interface
 from .stages import TROY_STAGES, current_stage, feature_stage, merged_stages, parse_subject
+from .versions import Plan, parse_plan, plan_path, versions_of
 
 INSTALL = ".troy-mode/install.toml"
 REQUIREMENTS = "docs/requirements.md"
@@ -44,6 +45,10 @@ class State:
         subjects: origin/main's subjects, newest first.
         prs: The open PRs, each with its comments read.
         bugs: The bugs found in subjects and open PR titles (design 11.1).
+        versions: Feature IDs by version, the versions in order (F08 design 3.2).
+        plans: Each version's test plan on origin/main, or None.
+        gh_releases: The tags of GitHub's releases, once read.
+        open_bugs: The open bug issues, once read.
     """
 
     repo: Repo | None = None
@@ -63,6 +68,10 @@ class State:
     subjects: list[str] = field(default_factory=list)
     prs: list[dict] = field(default_factory=list)
     bugs: list[dict] = field(default_factory=list)
+    versions: dict[str, list[str]] = field(default_factory=dict)
+    plans: dict[str, Plan | None] = field(default_factory=dict)
+    gh_releases: set[str] | None = None
+    open_bugs: list[dict] | None = None
 
     def feature(self, fid: str | None) -> Feature | None:
         """Returns a feature of the table by its ID, or None."""
@@ -135,6 +144,9 @@ def _read_requirements(state: State) -> None:
     state.features = parse_features(text)
     state.order = parse_order(text)
     state.order_problems = order_problems(state.features, state.order)
+    state.versions = versions_of(state.features)
+    state.plans = {v: parse_plan(git.read(state.repo, MAIN, plan_path(v)))
+                   for v in state.versions}
 
 
 def _read_prs(state: State) -> None:

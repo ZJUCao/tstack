@@ -113,16 +113,26 @@ class ApproveTests(FlowCase):
                                                          True))
 
     def test_feature_design_and_its_mirror(self):
-        """A feature design pair, found through ``mirror`` in the same folder."""
+        """A feature design pair, found through ``mirror`` in the same folder.
+
+        The design has a change log, so F08's D77 adds one row to each file's
+        change log besides the header (F08 note, section 7). F07 expected
+        only the header lines to change.
+        """
         en, zh = F01.design, f"{F01.folder}/design.zh-CN.md"
         files = {en: design_text(F01, "0.2"), zh: design_text(F01, "0.2", "zh-CN")}
         self.write(files)
         report = self.report_of(self.approve(en, "--date", "2026-11-07"))
+        en_row = "| 0.1 | 2026-11-01 | First draft. |\n"
+        zh_row = "| 0.1 | 2026-11-01 | 初稿。 |\n"
         self.assertEqual(self.project.read(en), approved(files[en], "0.2", "1.0", "2026-11-07",
-                                                         False))
+                                                         False).replace(
+            en_row, en_row + "| 1.0 | 2026-11-07 | Approved by Troy. |\n"))
         self.assertEqual(self.project.read(zh), approved(files[zh], "0.2", "1.0", "2026-11-07",
-                                                         True))
+                                                         True).replace(
+            zh_row, zh_row + "| 1.0 | 2026-11-07 | Troy 批准。 |\n"))
         self.assertEqual(sorted(report["changed"]), sorted([en, zh]))
+        self.assertEqual(sorted(report["change_log"]), sorted([en, zh]))
 
     def test_refusals_change_nothing(self):
         """Different versions, a missing mirror, no front matter, or no file: exit 1, no change."""

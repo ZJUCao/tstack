@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -58,6 +58,7 @@ python troy_flow.py retro          --tag <vX.Y.Z> [common options]
 | `retro` | Gathers the evidence for the retrospective from GitHub and groups it (section 7). It changes nothing. |
 
 - `status` gains the release state and its next actions (sections 3.2 and 3.3). `brief` learns TM7 and TE5, and the reviews of a version tests PR (section 5.3). `approve` gains D77's change-log row (section 8).
+- The build settled the details. `status` reports `versions` (each version's features, test plan, released tags, and its next patch with the fixes and the later-version code that blocks it) and `release` (the release in progress or due, with the ready checks of section 5.2 as `problems` and, at the release test, its commands as `checks`). `next` gains `step`, `tag`, and `commit`. `brief` takes a version, such as `--item v0.1`, for TM7, TE5, and the version tests' reviews. A deferred bug is the release PR's comment `Bug deferred by Troy: #<n>`. The ready checks do not change `next`: the skill fixes each one, and escalates later-version code with Troy's options.
 - As in F07, the engine reads git and GitHub and never commits, pushes, or writes to GitHub. The skill does that (F04 D29). The exit codes are F07's.
 
 ### 3.2 State
@@ -92,7 +93,7 @@ The release state lives in git and on GitHub, like the rest of F07's state (D58)
 
 The Test Manager writes a version's test plan when the version is planned (5.5 step 2). In practice, `status` asks for it before the first stage of any feature of that version that has not started:
 
-1. **TM7** fills the `version-test-plan` template as `docs/versions/<vX.Y>/test-plan.md` and its mirror, from the requirements' user flows, prototypes, performance targets, and version plan. Each scenario says who runs it: Claude, as an automated version test, or Troy, by hand on a device that only Troy has, such as a phone (D71). Performance and stress cases come from the targets in the requirements.
+1. **TM7** fills the `version-test-plan` template as `docs/versions/<vX.Y>/test-plan.md` and its mirror, from the requirements' user flows, prototypes, performance targets, and version plan. Each scenario says who runs it: Claude, as an automated version test, or Troy, by hand on a device that only Troy has, such as a phone (D71). Claude's scenarios run only in the release test on Troy's PC, so each must run there: a scenario that needs another platform goes to Troy on a device Troy has, or is left out with the reason. In the trial, TM7 first gave Claude a scenario that also ran on Linux, which no release test could run. Performance and stress cases come from the targets in the requirements.
 2. **The main session** checks the plan against the requirements as the Product Manager: every feature of the version appears, and every user flow of those features has a scenario. A gap goes back to TM7 as Input. No other role reviews it.
 3. **The PR** is `[docs] Add the v0.1 test plan`. F07 merges it, because requirements 3.3 does not list it among Troy's approvals. Troy reads it when the release asks for Troy's test.
 
@@ -119,7 +120,7 @@ When the version's features change through a requirement change, the plan's feat
 
 F08 checks, and reports each problem with what fixes it:
 
-- Every feature of the version is accepted: its `accept` commit is on `origin/main`.
+- Every feature of the version is accepted: its `accept` commit is on `origin/main`. Otherwise F08 names the features and stops: a release request does not run the feature loop (F07 D63). In the trial, "release v0.2" first went on to build F02.
 - No open troy-mode PR. The open PRs go first, as F07 continues them.
 - No open issue labeled `bug`, unless Troy deferred it (D74).
 - No mock, tests, implementation, or acceptance PR of a later version's feature has merged since the previous release. Otherwise the tag would hold a feature the version does not include. F08 escalates this case (5.7), with Troy's options.
@@ -148,7 +149,7 @@ On Troy's PC, on the release branch, which holds `origin/main` plus the changelo
 
 1. **Regression.** The language pack's steps, as for an implementation PR (F07 section 8.1), with `troy-check code`. Every test must pass, or skip on this platform with CI's result on `main` (F07 D69).
 2. **Version tests.** The pack's release command, from the brief's checks. Python: `pytest version-tests --junitxml=reports/version-junit.xml`. C/C++: a build with `TROY_VERSION_TESTS=ON`, then `ctest -L version` with `--output-junit reports/version-junit.xml`. Performance and stress cases run here, on Troy's PC (Q7).
-3. **The report.** `release-test --version v0.1 --junit reports/junit.xml --junit reports/version-junit.xml`. F08 posts its comment on the release PR: `Release test, run 1: passed` or `failed`, then each scenario with its result and the failed tests.
+3. **The report.** `release-test --version v0.1 --junit reports/junit.xml --junit reports/version-junit.xml`. F08 posts its comment on the release PR: `Release test, run 1: passed` or `failed`, then each scenario with its result and the failed tests. The comment passes R19's strict check as it is: in the trial, a heading that named the agent failed `check-text`.
 
 The run passes when no test failed and every scenario Claude runs has a passing test. Failures go to section 5.8 before Troy is asked to test.
 
@@ -175,7 +176,7 @@ F08 records each reply on the release PR as `Release test by Troy, run <n>: acce
 On Troy's acceptance:
 
 1. **PM4**, on the release branch under a snapshot with `--role product-manager`: each feature of the version gets the status "Usable on Troy's devices" in both languages (F01 section 7, R13), the requirements' `version` rises by one minor step with a change-log row, and the changelog section takes the day of acceptance.
-2. **`accept-version --tag v0.1.0 --notes-file <file>`**, with Troy's notes in the file.
+2. **`accept-version --tag v0.1.0 --notes-file <file>`**, with Troy's notes in the file. Like `approve`, it runs after the check of PM4's run, outside any snapshot: in the trial, running it inside PM4's snapshot made `check-run` flag the test plan.
 3. **Merge.** F07 stages both sets of paths, amends the commit, runs the local checks, pushes, waits for CI, and merges (F07 section 8.6).
 4. **Tag.** `release-notes --tag v0.1.0 --out <file>`, then `gh release create v0.1.0 --target <merge commit> --title v0.1.0 --notes-file <file>`. GitHub creates the tag on that commit, so nothing is pushed from Troy's PC.
 5. **Report** to Troy, and `status --write-progress`.
@@ -200,7 +201,7 @@ A patch release runs steps 1 and 3 to 7 of section 5.1. It writes no version tes
 
 After a version's tag, F08 turns the problems that repeated during the version into proposed rules (5.5 step 6):
 
-1. **Evidence.** `retro --tag v0.1.0` reads the PRs merged since the previous version's tag, or since the project's first PR. It gathers F07's comments on them: every review that requested changes, with its findings grouped by the rule ID or checklist item each one names (F04 section 5.2); every failed attempt, with the checks that failed; and every escalation. It adds the bugs fixed in that time, from their issues, and the `hooks.log` lines still on Troy's PC (F05 section 10). It counts each group across PRs. A group seen in two or more PRs is a repeated problem, which is how `correct` counts a mistake class.
+1. **Evidence.** `retro --tag v0.1.0` reads the PRs merged since the previous version's tag, or since the project's first PR. F07 posts each review's findings as numbered lines that start with the rule ID or checklist item, so the engine can group them. It gathers F07's comments on them: every review that requested changes, with its findings grouped by the rule ID or checklist item each one names (F04 section 5.2); every failed attempt, with the checks that failed; and every escalation. It adds the bugs fixed in that time, from their issues, and the `hooks.log` lines still on Troy's PC (F05 section 10). It counts each group across PRs. A group seen in two or more PRs is a repeated problem, which is how `correct` counts a mistake class.
 2. **Proposals.** The main session follows `correct`'s method (`${CLAUDE_PLUGIN_ROOT}/skills/correct/SKILL.md`) on the repeated problems: for each one, the strongest enforcement that works (requirements 5.8 step 2), and whether it belongs to this project or to every troy-mode project. It writes no code: every proposal is a rule for the rule change flow.
 3. **Troy picks.** One message to Troy: each repeated problem with its evidence and PR links, and each proposal with a recommendation. When nothing repeated, the message says so. F08 posts the same report in English on the release PR as `Retrospective: v0.1.0`, which ends the release.
 4. **Rules.** Each rule Troy picks runs through the rule change flow (5.8, F09), one at a time. If F09 is not built yet, F08 says so and lists the picked rules in the progress file's notes.
@@ -220,13 +221,13 @@ F08 makes `approve` also add a row to the document's change log, in both languag
   - A new title kind: `[v<MAJOR>.<MINOR> tests] <summary>`, kind `version-tests`, which may change the `tests` and `dependencies` classes. R03 skips it.
   - The built-in `tests` patterns gain `version-tests/**`.
   - F02's design gets a change-log row.
-- **F03 language packs and `troy-check code`.** A `version-tests` PR is "any other kind" for R09 and R10: nothing must fail, and the tests of accepted features and fixed bugs must pass. The Python pack needs no change, because `testpaths = ["tests"]` leaves `version-tests/` out. The C/C++ pack's `cmake/troy.cmake` gains `troy_add_version_test`, which builds a version test only when `TROY_VERSION_TESTS` is on and labels its tests `version`. Both READMEs give the release command, and F07's engine gives it in the brief's checks. F03's design gets a change-log row.
+- **F03 language packs and `troy-check code`.** A `version-tests` PR is "any other kind" for R09 and R10: nothing must fail, and the tests of accepted features and fixed bugs must pass. The Python pack's pytest needs no change, because `testpaths = ["tests"]` leaves `version-tests/` out; its ruff gives `version-tests/**` the tests' exemptions, such as `assert` (found in the trial). The C/C++ pack's `cmake/troy.cmake` gains `troy_add_version_test`, which builds a version test only when the configure run sets `TROY_VERSION_TESTS=ON`, for that run only, and labels its tests `version`. Both READMEs give the release command, and F07's engine gives it in the brief's checks. F03's design gets a change-log row.
 - **F04 roles.**
   - TE5, a new task: the version tests of section 5.3.
   - TM7 says who runs each scenario. TM2 also reviews `[vX.Y tests]` PRs, against the version test plan.
   - PM4 drafts the changelog when the release starts, and sets the statuses after Troy accepts.
   - F04's design gets a change-log row.
-- **F07 entry skill.** The routing table sends "release" requests to F08. `status`, `brief`, and `approve` change as section 3 says. F07's rights gain the GitHub release of section 5.7. F07's design gets a change-log row.
+- **F07 entry skill.** The routing table sends "release" requests to F08. `status`, `brief`, and `approve` change as section 3 says. F07's rights gain the GitHub release of section 5.7. Every `git fetch origin` prunes: in the trial, the plan's update reused the branch `troy-mode/v0.1-test-plan`, and a stale `origin/troy-mode/v0.1-test-plan` made `git push --force-with-lease` refuse it. F07's design gets a change-log row.
 - **F05 and F06** do not change. The Test Engineer's scope is the `tests` class, which now holds `version-tests/`. troy-init's upgrade brings the new templates and troy-check to a project.
 
 **C/C++ registration.** In a C/C++ project, tests are registered in `CMakeLists.txt`, which is in the `dependencies` class. F07's check after each run flags a change there unless `--allow-dependency` names it, so a C/C++ test PR, and a C/C++ version tests PR, cannot pass that check yet. F07's trials used Python only. F08 does not fix this, because it belongs to every C/C++ test PR (section 12).
@@ -333,3 +334,4 @@ Requirements 1.24 records the approved changes:
 | 0.1 | 2026-11-08 | First draft. |
 | 1.0 | 2026-11-08 | Approved by Troy with D70 to D78, every recommended answer. |
 | 1.1 | 2026-11-08 | Section 11.3 and D78: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |
+| 1.2 | 2026-11-08 | Details the build settled: `status`'s `versions` and `release`, `next.step`, version items in `brief`, and the deferral comment (section 3.1). Facts from the trial (section 11.3): Claude's scenarios must run on Troy's PC (section 4); the release test's comment passes R19 (section 5.5); a release request stops at a feature not accepted (section 5.2); `accept-version` runs outside PM4's snapshot (section 5.7); review findings start with their rule or checklist item (section 7); the Python pack's ruff exempts `version-tests/**`, and every fetch prunes (section 9). |

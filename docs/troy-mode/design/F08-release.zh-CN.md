@@ -1,13 +1,13 @@
 # F08 设计：版本发布流程
 
-> 本文件是 [`F08-release.md`](F08-release.md) 的中文镜像，同步自英文版 1.1（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F08-release.md`](F08-release.md) 的中文镜像，同步自英文版 1.2（2026-11-08）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.24](../requirements.zh-CN.md#72-功能列表) 中的 F08 |
-| 版本 | 1.1 |
+| 版本 | 1.2 |
 | 日期 | 2026-11-08 |
-| 状态 | Troy 已于 2026-11-08 批准，含 D70 到 D78。1.1 版记录 Troy 为试运行设下的长期许可（第 11.3 节）。 |
+| 状态 | Troy 已于 2026-11-08 批准，含 D70 到 D78。1.1 版记录 Troy 为试运行设下的长期许可（第 11.3 节）。1.2 版记录构建时确定的细节和试运行发现的事实。 |
 | 事实来源 | 英文版 [`F08-release.md`](F08-release.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -60,6 +60,7 @@ python troy_flow.py retro          --tag <vX.Y.Z> [common options]
 | `retro` | 从 GitHub 收集复盘需要的证据并分组（第 7 节）。它不做任何改动。 |
 
 - `status` 增加发布状态和相应的下一步（第 3.2 和 3.3 节）。`brief` 学会 TM7 和 TE5，以及对版本测试 PR 的审查（第 5.3 节）。`approve` 增加 D77 的修改记录行（第 8 节）。
+- 构建时确定了细节。`status` 报告 `versions`（每个版本的功能、测试方案、已发布的标签，以及它的下一个补丁：其中的修复和挡住它的后续版本代码）和 `release`（进行中或该做的发布：第 5.2 节的就绪检查写在 `problems` 里，到发布测试这一步时它的命令写在 `checks` 里）。`next` 增加 `step`、`tag` 和 `commit`。`brief` 接受一个版本，比如 `--item v0.1`，用于 TM7、TE5 和版本测试的审查。推迟的 bug 是发布 PR 上的评论 `Bug deferred by Troy: #<n>`。就绪检查不改变 `next`：技能逐个解决，后续版本的代码则带上 Troy 的选项升级上报。
 - 和 F07 一样，引擎只读取 git 和 GitHub，从不提交、推送或写 GitHub。这些由技能来做（F04 D29）。退出码与 F07 相同。
 
 ### 3.2 状态
@@ -94,7 +95,7 @@ python troy_flow.py retro          --tag <vX.Y.Z> [common options]
 
 测试经理在版本规划时写出这个版本的测试方案（5.5 第 2 步）。实际做法是：这个版本里任何一个还没开始的功能，在它的第一个阶段之前，`status` 都会先要这份方案：
 
-1. **TM7** 根据需求文档里的用户流程、原型、性能指标和版本计划，填写 `version-test-plan` 模板，生成 `docs/versions/<vX.Y>/test-plan.md` 及其镜像。每个场景都写明由谁运行：Claude，作为自动化的版本测试；或者 Troy，在只有 Troy 才有的设备上手动运行，比如手机（D71）。性能和压力用例来自需求文档里的指标。
+1. **TM7** 根据需求文档里的用户流程、原型、性能指标和版本计划，填写 `version-test-plan` 模板，生成 `docs/versions/<vX.Y>/test-plan.md` 及其镜像。每个场景都写明由谁运行：Claude，作为自动化的版本测试；或者 Troy，在只有 Troy 才有的设备上手动运行，比如手机（D71）。Claude 的场景只在 Troy 电脑上的发布测试里运行，所以每个都必须能在那里运行：需要别的平台的场景交给 Troy，用 Troy 有的设备运行，或者写明理由后不测。试运行时，TM7 起初给了 Claude 一个还要在 Linux 上运行的场景，任何发布测试都运行不了它。性能和压力用例来自需求文档里的指标。
 2. **主会话**以产品经理的身份，对照需求文档检查这份方案：版本里的每个功能都出现了，这些功能的每个用户流程都有对应的场景。缺漏作为 Input 退回给 TM7。没有其他角色审查它。
 3. **PR** 是 `[docs] Add the v0.1 test plan`。由 F07 合并，因为需求文档 3.3 没有把它列为要 Troy 批准的内容。发布时请 Troy 测试，Troy 那时会读到它。
 
@@ -121,7 +122,7 @@ python troy_flow.py retro          --tag <vX.Y.Z> [common options]
 
 F08 检查以下各项，并为每个问题说明怎样解决：
 
-- 版本里的每个功能都已验收：它的 `accept` commit 在 `origin/main` 上。
+- 版本里的每个功能都已验收：它的 `accept` commit 在 `origin/main` 上。否则 F08 说出是哪些功能，然后停下：发布请求不会运行功能循环（F07 D63）。试运行时，“发布 v0.2”起初接着去做了 F02。
 - 没有开着的 troy-mode PR。开着的 PR 先由 F07 接着做完。
 - 没有带 `bug` 标签的未关闭 issue，除非 Troy 决定推迟它（D74）。
 - 自上一次发布以来，没有合入过后续版本功能的 mock、测试、实现或验收 PR。否则这个标签会包含一个不属于这个版本的功能。遇到这种情况，F08 升级上报（5.7），并给出 Troy 的选项。
@@ -150,7 +151,7 @@ F08 检查以下各项，并为每个问题说明怎样解决：
 
 1. **回归测试。** 语言包的步骤，和实现 PR 一样（F07 第 8.1 节），包括 `troy-check code`。每个测试都必须通过，或者在本平台跳过、以 CI 在 `main` 上的结果为准（F07 D69）。
 2. **版本测试。** 语言包的发布命令，来自任务简报里的检查。Python：`pytest version-tests --junitxml=reports/version-junit.xml`。C/C++：用 `TROY_VERSION_TESTS=ON` 构建，再运行带 `--output-junit reports/version-junit.xml` 的 `ctest -L version`。性能和压力用例也在这里、在 Troy 的电脑上运行（Q7）。
-3. **报告。** `release-test --version v0.1 --junit reports/junit.xml --junit reports/version-junit.xml`。F08 把它的评论发到发布 PR 上：`Release test, run 1: passed` 或 `failed`，接着是每个场景的结果和失败的测试。
+3. **报告。** `release-test --version v0.1 --junit reports/junit.xml --junit reports/version-junit.xml`。F08 把它的评论发到发布 PR 上：`Release test, run 1: passed` 或 `failed`，接着是每个场景的结果和失败的测试。这条评论原样就能通过 R19 的严格检查：试运行时，一个提到 agent 名字的标题没有通过 `check-text`。
 
 没有测试失败、并且 Claude 运行的每个场景都有通过的测试，这次运行才算通过。失败的情况先按第 5.8 节处理，然后才请 Troy 测试。
 
@@ -177,7 +178,7 @@ F08 把每次回复记录到发布 PR 上，标题为 `Release test by Troy, run
 Troy 验收之后：
 
 1. **PM4** 在发布分支上、用 `--role product-manager` 拍快照：把版本里每个功能的状态改为"在 Troy 的设备上可用"，中英文都改（F01 第 7 节，R13）；需求文档的 `version` 升一个次版本，并加一行修改记录；changelog 这一节的日期改为验收日期。
-2. **`accept-version --tag v0.1.0 --notes-file <文件>`**，Troy 的备注写在这个文件里。
+2. **`accept-version --tag v0.1.0 --notes-file <文件>`**，Troy 的备注写在这个文件里。它和 `approve` 一样，在检查完 PM4 的运行之后、任何快照之外运行：试运行时，在 PM4 的快照里运行它，让 `check-run` 把测试方案标成了问题。
 3. **合并。** F07 暂存这两部分的路径，修订 commit，运行本地检查，推送，等 CI，然后合并（F07 第 8.6 节）。
 4. **标签。** `release-notes --tag v0.1.0 --out <文件>`，然后 `gh release create v0.1.0 --target <合并 commit> --title v0.1.0 --notes-file <文件>`。GitHub 在这个 commit 上创建标签，所以不需要从 Troy 的电脑推送任何东西。
 5. **向 Troy 报告**，并运行 `status --write-progress`。
@@ -202,7 +203,7 @@ Troy 验收之后：
 
 一个版本打上标签之后，F08 把这个版本期间反复出现的问题变成规则提案（5.5 第 6 步）：
 
-1. **证据。** `retro --tag v0.1.0` 读取上一个版本的标签之后合入的 PR，没有上一个标签时从项目的第一个 PR 开始。它收集 F07 在这些 PR 上的评论：每次要求修改的审查，以及按每条意见所指的规则编号或检查项分组的意见（F04 第 5.2 节）；每次失败的尝试，以及失败的检查；以及每次升级上报。它再加上这段时间修好的 bug（来自它们的 issue），以及 Troy 电脑上还留着的 `hooks.log` 记录（F05 第 10 节）。它统计每一组出现在多少个 PR 里。出现在两个或更多 PR 里的一组就是反复出现的问题，这也是 `correct` 认定一类错误的方式。
+1. **证据。** `retro --tag v0.1.0` 读取上一个版本的标签之后合入的 PR，没有上一个标签时从项目的第一个 PR 开始。F07 把每次审查的意见写成编号的行，每行以规则编号或检查项开头，这样引擎才能分组。它收集 F07 在这些 PR 上的评论：每次要求修改的审查，以及按每条意见所指的规则编号或检查项分组的意见（F04 第 5.2 节）；每次失败的尝试，以及失败的检查；以及每次升级上报。它再加上这段时间修好的 bug（来自它们的 issue），以及 Troy 电脑上还留着的 `hooks.log` 记录（F05 第 10 节）。它统计每一组出现在多少个 PR 里。出现在两个或更多 PR 里的一组就是反复出现的问题，这也是 `correct` 认定一类错误的方式。
 2. **提案。** 主会话对这些反复出现的问题，按 `correct` 的方法（`${CLAUDE_PLUGIN_ROOT}/skills/correct/SKILL.md`）来做：为每个问题找出可行的最强执行方式（需求文档 5.8 第 2 步），并判断它属于这个项目还是所有 troy-mode 项目。它不写代码：每个提案都是交给规则变更流程的一条规则。
 3. **Troy 挑选。** 给 Troy 发一条消息：每个反复出现的问题及其证据和 PR 链接，每个提案附一个推荐。没有反复出现的问题时，消息就这样说明。F08 把同一份报告用英文发到发布 PR 上，标题为 `Retrospective: v0.1.0`，这次发布到此结束。
 4. **规则。** Troy 选中的每条规则逐条走规则变更流程（5.8，F09）。如果 F09 还没实现，F08 就这样说明，并把选中的规则写进进度文件的备注。
@@ -222,13 +223,13 @@ F08 让 `approve` 同时在文档的修改记录里加一行，中英文都加�
   - 新的标题种类：`[v<MAJOR>.<MINOR> tests] <summary>`，种类为 `version-tests`，可以改动 `tests` 和 `dependencies` 两个类别。R03 跳过它。
   - 内置的 `tests` 模式增加 `version-tests/**`。
   - F02 的设计加一行修改记录。
-- **F03 语言包和 `troy-check code`。** 对 R09 和 R10 来说，`version-tests` PR 属于"其他任何种类"：没有必须失败的测试，已验收功能和已修好 bug 的测试必须通过。Python 语言包不需要改动，因为 `testpaths = ["tests"]` 已经把 `version-tests/` 排除在外。C/C++ 语言包的 `cmake/troy.cmake` 增加 `troy_add_version_test`，只在 `TROY_VERSION_TESTS` 打开时构建版本测试，并给这些测试加上 `version` 标签。两个 README 都给出发布命令，F07 的引擎也在任务简报的检查里给出它。F03 的设计加一行修改记录。
+- **F03 语言包和 `troy-check code`。** 对 R09 和 R10 来说，`version-tests` PR 属于"其他任何种类"：没有必须失败的测试，已验收功能和已修好 bug 的测试必须通过。Python 语言包的 pytest 不需要改动，因为 `testpaths = ["tests"]` 已经把 `version-tests/` 排除在外；它的 ruff 对 `version-tests/**` 用和测试一样的豁免，比如 `assert`（试运行时发现）。C/C++ 语言包的 `cmake/troy.cmake` 增加 `troy_add_version_test`，只在那一次配置设了 `TROY_VERSION_TESTS=ON` 时构建版本测试（只对那一次有效），并给这些测试加上 `version` 标签。两个 README 都给出发布命令，F07 的引擎也在任务简报的检查里给出它。F03 的设计加一行修改记录。
 - **F04 角色。**
   - TE5，新任务：第 5.3 节的版本测试。
   - TM7 写明每个场景由谁运行。TM2 也对照版本测试方案审查 `[vX.Y tests]` PR。
   - PM4 在发布开始时起草 changelog，在 Troy 验收之后设置状态。
   - F04 的设计加一行修改记录。
-- **F07 入口技能。** 分派表把"发布"类请求交给 F08。`status`、`brief` 和 `approve` 按第 3 节改动。F07 的权限增加第 5.7 节的 GitHub release。F07 的设计加一行修改记录。
+- **F07 入口技能。** 分派表把"发布"类请求交给 F08。`status`、`brief` 和 `approve` 按第 3 节改动。F07 的权限增加第 5.7 节的 GitHub release。每次 `git fetch origin` 都带 prune：试运行时，测试方案的更新再次用了分支 `troy-mode/v0.1-test-plan`，过时的 `origin/troy-mode/v0.1-test-plan` 让 `git push --force-with-lease` 拒绝了它。F07 的设计加一行修改记录。
 - **F05 和 F06** 不改。测试工程师的范围是 `tests` 类别，现在包含 `version-tests/`。troy-init 的升级会把新的模板和 troy-check 带进项目。
 
 **C/C++ 的测试注册。** 在 C/C++ 项目里，测试在 `CMakeLists.txt` 里注册，而这个文件属于 `dependencies` 类别。F07 每次运行之后的检查，会把那里的改动标为问题，除非 `--allow-dependency` 点名放行，所以 C/C++ 的测试 PR 和 C/C++ 的版本测试 PR 目前都过不了这个检查。F07 的试运行只用了 Python。F08 不修这个问题，因为它涉及每一个 C/C++ 测试 PR（第 12 节）。
@@ -335,3 +336,4 @@ F07 到 D69 为止，所以 F08 从 D70 开始。Troy 于 2026-11-08 接受了�
 | 0.1 | 2026-11-08 | 初稿。 |
 | 1.0 | 2026-11-08 | Troy 批准，含 D70 到 D78，全部采用推荐答案。 |
 | 1.1 | 2026-11-08 | 第 11.3 节和 D78：试运行改为在 Troy 于 2026-11-08 设下的、针对 `ZJUCao/troy-mode-trial` 的 troy-mode 试运行长期许可之下运行，不再需要在聊天里同意。这是 Troy 的流程改动，不是需求变更。 |
+| 1.2 | 2026-11-08 | 构建时确定的细节：`status` 的 `versions` 和 `release`、`next.step`、`brief` 里的版本条目，以及推迟 bug 的评论（第 3.1 节）。试运行发现的事实（第 11.3 节）：Claude 的场景必须能在 Troy 的电脑上运行（第 4 节）；发布测试的评论能通过 R19（第 5.5 节）；发布请求遇到没有验收的功能就停下（第 5.2 节）；`accept-version` 在 PM4 的快照之外运行（第 5.7 节）；审查发现以规则或检查项开头（第 7 节）；Python 语言包的 ruff 豁免 `version-tests/**`，每次 fetch 都带 prune（第 9 节）。 |

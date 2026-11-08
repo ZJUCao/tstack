@@ -14,7 +14,7 @@ BUILTIN_PATHS: dict[str, list[str]] = {
     "config": [".troy-mode/**", ".github/**", "docs/rules.md", "docs/rules.zh-CN.md",
                ".gitignore", ".gitattributes", ".editorconfig"],
     "dependencies": [],
-    "tests": ["tests/**", "test/**"],
+    "tests": ["tests/**", "test/**", "version-tests/**"],
     "docs": ["docs/**", "**/*.md", "LICENSE*"],
     "lock": [],
     "generated": [],

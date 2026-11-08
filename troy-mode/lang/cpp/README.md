@@ -15,7 +15,7 @@ The C/C++ pack makes troy-check's language rules run in a C or C++ project: R04 
 | [`environment.yml`](environment.yml) | `environment.yml` | The series environment: Python, uv, CMake, Ninja, Doxygen, clang-format, and clang-tidy from conda-forge. `troy-init` fills in `{{environment}}`. |
 | [`requirements-tools.in`](requirements-tools.in) | `requirements-tools.in` | The Python tools, gcovr and lizard, compiled into `requirements-tools.lock`. |
 | [`CMakePresets.json`](CMakePresets.json) | `CMakePresets.json` | The `coverage` preset for the checks, and the `msvc` preset for building and debugging. |
-| [`cmake/troy.cmake`](cmake/troy.cmake) | `cmake/troy.cmake` | Language standards, warnings, coverage, GoogleTest, and `troy_add_test`. |
+| [`cmake/troy.cmake`](cmake/troy.cmake) | `cmake/troy.cmake` | Language standards, warnings, coverage, GoogleTest, `troy_add_test`, and `troy_add_version_test`. |
 | [`Doxyfile`](Doxyfile) | `.troy-mode/lang/cpp/Doxyfile` | Doxygen as the doc comment checker. |
 | [`.clang-format`](.clang-format) | `.clang-format` | Google style. |
 | [`.clang-tidy`](.clang-tidy) | `.clang-tidy` | Bug-finding checks. |
@@ -62,6 +62,7 @@ Run them in the activated environment, or as `mamba run -n <environment> <comman
 | Coverage report | `gcovr --root . --filter 'include/' --filter 'src/' --exclude-throw-branches --exclude-unreachable-branches --cobertura reports/coverage.xml build/coverage` |
 | Doc comments | `doxygen .troy-mode/lang/cpp/Doxyfile`, which writes `reports/doxygen.log` |
 | Rules | `python .troy-mode/checks/troy_check.py code --base <ref> --title <title> --junit reports/junit.xml --coverage reports/coverage.xml --doc-warnings reports/doxygen.log` |
+| Release command (version tests, at release only) | `cmake --preset coverage -DTROY_VERSION_TESTS=ON`, `cmake --build --preset coverage`, then `ctest --preset coverage -L version --output-junit <absolute path>/reports/version-junit.xml`. A failing version test does not stop it: the release test reports it. |
 
 troy-check needs lizard in a C/C++ project, so it runs with the environment's Python.
 
@@ -73,6 +74,7 @@ troy-check needs lizard in a C/C++ project, so it runs with the environment's Py
 - **clang-tidy** runs `bugprone-*` and `performance-*`, without `bugprone-easily-swappable-parameters`, and treats every finding as an error.
 - **C++20 modules** are off, because their GCC flags stop clang-tidy.
 - **Tests** are GoogleTest tests whose names start with the case ID, for example `TEST(ExportCsv, F04_T07_WritesHeader)`. `troy_add_test` registers each test with CTest on its own, so each name reaches the JUnit report.
+- **Version tests** live in `version-tests/` and start with their scenario ID, for example `TEST(Version, V0_1_S01_CountsWordsAndLines)`. `troy_add_version_test` builds them only when the configure run sets `TROY_VERSION_TESTS=ON`, and labels them `version`, so every PR's checks leave them out (F08 design 5.3).
 
 ## 5. CI job
 

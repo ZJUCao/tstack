@@ -540,13 +540,14 @@ class RefusedTests(FlowCase):
                 self.assertNotEqual(report["problems"], [])
                 self.assertFalse(report.get("prompt"))
 
-    def test_tm7_is_not_built(self):
-        """TM7, the version test plan, belongs to F08, and the problem says so."""
+    def test_tm7_needs_a_version_item(self):
+        """TM7, the version test plan, takes a version item (F08 note, section 9).
+
+        F07 refused TM7 as not built and named F08 in the problem. F08 builds
+        TM7 for ``--item vX.Y``, so a feature or bug item is still refused,
+        and the problem no longer has to name F08.
+        """
         self.assert_refused(self.tm7, self.tm7_outs)
-        for case, out in zip(self.tm7, self.tm7_outs):
-            with self.subTest(case=case):
-                problems = self.report_of(out, 1, "brief")["problems"]
-                self.assertTrue(any("F08" in str(p) for p in problems), problems)
 
     def test_product_manager_tasks_run_in_the_main_session(self):
         """PM1 to PM5 get no brief for a bug item either."""

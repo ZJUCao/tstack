@@ -1,6 +1,10 @@
-"""The status command: the state, the next action, and the progress file (F07 design 5)."""
+"""The status command: the state, the next action, and the progress file (F07 design 5).
 
-from . import github, nextstep, progress
+F08 adds the versions, the release state, and the release's next actions
+(F08 design 3.2 and 3.3).
+"""
+
+from . import github, nextstep, progress, releases
 from .progress import View
 from .requirements import approved
 from .stages import stage_name
@@ -17,8 +21,15 @@ _ACTIONS = {
     "order-problem": "The topological order breaks a dependency. Fixing it is a requirement "
                      "change; ask Troy.",
     "ask-approvals": "Ask Troy whether to go on approving PR 1 and PR 2 of later features.",
-    "all-accepted": "Every feature is accepted. The version release flow (F08) is not built "
-                    "yet.",
+    "all-accepted": "Every feature is accepted and every version is released.",
+}
+_STEPS = {
+    "version-tests": "start TE5 for the version tests: {title}.",
+    "release-pr": "open {title} with the changelog section (PM4).",
+    "release-test": "run the release test on Troy's PC and post its report on PR #{pr}.",
+    "troy-test": "Troy tests the version on Troy's devices and accepts it (PR #{pr}).",
+    "accept": "Troy accepted. Set the statuses (PM4), run accept-version, and merge PR #{pr}.",
+    "bugs": "fix bug {item} through the bug flow, then run the release test again.",
 }
 
 
@@ -34,6 +45,17 @@ def action_text(entry: dict) -> str:
                 f"with {entry['task']}: {entry['title']}.")
     if action == "bug":
         return f"Open PR B of {entry['item']} with DV3: {entry['title']}."
+    if action == "version-test-plan":
+        return f"Start TM7 for the {entry['item']} test plan: {entry['title']}."
+    if action == "release":
+        return f"Release {entry['tag']}: " + _STEPS[entry["step"]].format(**entry)
+    if action == "record-acceptance":
+        return f"Record Troy's acceptance of {entry['tag']} in {entry['title']}."
+    if action == "tag":
+        return f"Create the GitHub release {entry['tag']} on {entry['commit']}."
+    if action == "retro":
+        return (f"Run the retrospective of {entry['tag']} and post it on PR #{entry['pr']} "
+                "(retro).")
     if action == "rework":
         text = (f"{entry['item']} needs rework after a requirement change: run AR4, then redo "
                 "the earliest stage it names.")
@@ -61,7 +83,8 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
     if stage is None:
         if entry["action"] == "continue-pr":
             return f"none. PR #{entry['pr']} is open."
-        if entry["action"] == "bug":
+        if entry["action"] in ("bug", "version-test-plan", "release", "record-acceptance",
+                               "tag", "retro"):
             return f"none. {action_text(entry)}"
         return f"setup. {action_text(entry)}"
     text = f"{stage} of 6. {stage_name(stage).capitalize()}"
@@ -80,6 +103,8 @@ def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None) 
     if feature and feature.version:
         same = [f.id for f in state.features or [] if f.version == feature.version]
         version = f"{feature.version} ({', '.join(same)})"
+    elif entry.get("item") in state.versions:
+        version = f"{entry['item']} ({', '.join(state.versions[entry['item']])})"
     open_prs = "; ".join(f"#{p['number']} {p['title']} ({p['url']})" for p in prs) or "None"
     return View({
         "Current version": version,
@@ -162,9 +187,13 @@ def run_status(args) -> tuple[dict, int]:
         "order_problems": state.order_problems,
         "features": [feature_entry(state, f) for f in state.features or []],
         "next_feature": next_feature(state), "open_prs": prs, "bugs": state.bugs,
+        "versions": releases.version_entries(state) if state.origin else [],
+        "release": releases.release_entry(state) if state.origin else None,
         "waiting_on_troy": None,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
     }
+    if report["release"] is not None and entry.get("step") == "release-test":
+        report["release"]["checks"] = releases.release_checks(state, entry["title"], notes)
     if state.checks["outdated"]:
         notes.append("The project's troy-check differs from the plugin's. troy-init's upgrade "
                      "brings it up to date; [roles], [flow], and troy-check code --worktree "

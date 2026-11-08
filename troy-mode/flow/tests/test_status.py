@@ -19,6 +19,7 @@ Planted bugs of design 14.2 caught here:
 
 import os
 import unittest
+from dataclasses import replace
 
 from flow_helpers import (
     ANY, ARCHITECTURE, CONFIG, F01, F02, F03, F04, FIVE, PROGRESS, REQUIREMENTS, SCRATCH,
@@ -490,10 +491,17 @@ class NextFeatureTests(FlowCase):
 
     @classmethod
     def setUpClass(cls):
-        """Runs status with F01 accepted, and with both features accepted, side by side."""
+        """Runs status with F01 accepted, and with both features accepted, side by side.
+
+        F08 changed "all accepted": once every feature of a version is
+        accepted, status gives ``release`` (F08 note, section 0, item 2). The
+        case keeps F07's meaning with features whose Version cells name no
+        version, where ``all-accepted`` still follows.
+        """
+        unversioned = base_files((replace(F01, version="-"), replace(F02, version="Later")))
         cls.outs = status_runs({
             "first accepted": (history(stages(F01, 6)), []),
-            "all accepted": (history(stages(F01, 6), stages(F02, 6)), []),
+            "all accepted": (history(stages(F01, 6), stages(F02, 6), files=unversioned), []),
         })
 
     def test_next_feature_follows_an_accepted_one(self):
@@ -523,7 +531,7 @@ class NextFeatureTests(FlowCase):
                                  merged_by="troy" if number <= 2 else "f07")
 
     def test_all_accepted(self):
-        """Every feature accepted: no next feature."""
+        """Every feature accepted, and no feature has a version: no next feature."""
         report = self.report_of(self.outs["all accepted"])
         self.assertIsNone(report["next_feature"])
         self.assert_next(report, action="all-accepted")

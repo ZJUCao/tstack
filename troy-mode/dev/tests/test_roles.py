@@ -195,10 +195,11 @@ AGENT_ROLES = (
                 ("DV4", "Delete")),
          results=RESULTS["Developer"],
          scope=((CLASS, "source"), (CLASS, "dependencies"))),
+    # TE5 "Version tests" is F08's (F08 design section 9, interface note 13).
     Role(name="Test Engineer", stem="troy-test-engineer", model="sonnet",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash"),
          tasks=(("TE1", "Tests"), ("TE2", "Reproduction test"), ("TE3", "Test fix"),
-                ("TE4", "Added cases")),
+                ("TE4", "Added cases"), ("TE5", "Version tests")),
          results=RESULTS["Test Engineer"],
          scope=((CLASS, "tests"), (CLASS, "dependencies"))),
     Role(name="Code Reviewer", stem="troy-code-reviewer", model="opus",

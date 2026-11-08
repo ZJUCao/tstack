@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.3 |
-| Date | 2026-11-07 |
+| Version | 1.4 |
+| Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
 
@@ -146,6 +146,7 @@ The title grammar from F01 design D1, made exact. Spaces are single. IDs and sta
 | Bug test | `[<B-ID> A/B test] <summary>` | `[B12 A/B test] Crash on empty history` |
 | Bug fix | `[<B-ID> B/B fix] <summary>` | `[B12 B/B fix] Crash on empty history` |
 | Test fix | `[<F-ID or B-ID> test-fix] <summary>` | `[F04 test-fix] Wrong date format in F04-T03` |
+| Version tests | `[v<MAJOR>.<MINOR> tests] <summary>`, kind `version-tests` | `[v0.1 tests] End-to-end and stress tests` |
 | Other | `[docs] <summary>`, `[rules] <summary>`, `[refactor] <summary>` | `[rules] Add P01, no global state` |
 
 `<F-ID>` is `F` and two or three digits. `<B-ID>` is `B` and a GitHub issue number. A title that matches no pattern fails R02, and R03 is skipped.
@@ -158,7 +159,7 @@ Each changed path gets exactly one class. The first class in this order whose pa
 | --- | --- | --- | --- |
 | 1 | `config` | `.troy-mode/**`, `.github/**`, `docs/rules.md`, `docs/rules.zh-CN.md`, `.gitignore`, `.gitattributes`, `.editorconfig` | Project config |
 | 2 | `dependencies` | None | Language packs (F03), project config |
-| 3 | `tests` | `tests/**`, `test/**` | Language packs (F03), project config |
+| 3 | `tests` | `tests/**`, `test/**`, `version-tests/**` | Language packs (F03), project config |
 | 4 | `docs` | `docs/**`, `**/*.md`, `LICENSE*` | Project config |
 | 5 | `source` | Everything else | None |
 
@@ -170,7 +171,7 @@ What each kind may change (D9):
 | --- | --- |
 | `design`, `test-plan`, `accept`, `docs` | `docs` |
 | `mock`, `impl`, `fix`, `refactor` | `source`, `dependencies` |
-| `tests`, `test` (bug A), `test-fix` | `tests`, `dependencies` |
+| `tests`, `test` (bug A), `test-fix`, `version-tests` | `tests`, `dependencies` |
 | `rules` | `config`, `dependencies` |
 
 A renamed file is checked under both its old and its new path. R02 fails once per path whose class the kind may not change.
@@ -387,3 +388,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | 1.1 | 2026-11-05 | Section 3.3: with `--json`, annotations go to stderr. Found while implementing. |
 | 1.2 | 2026-11-07 | Section 6.4: files under `.troy-mode/` are not documents for R12, as R20 already does not scan them. Otherwise the templates troy-init copies there fail every setup PR and every later document PR. Found while building F06, approved by Troy on 2026-11-07. |
 | 1.3 | 2026-11-07 | Section 7: the config accepts `[roles.<role>]` with `model` and `effort`, and `[flow]` with `troy_approves_first`, for troy-mode's entry skill. From F07 design section 12. |
+| 1.4 | 2026-11-08 | Sections 4 and 5: the title kind `[v<MAJOR>.<MINOR> tests]`, kind `version-tests`, which may change the `tests` and `dependencies` classes and which R03 skips, and `version-tests/**` among the built-in `tests` patterns. From F08 design section 9. |

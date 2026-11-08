@@ -50,12 +50,13 @@ Run them in the activated environment, or as `mamba run -n <environment> <comman
 | Tests | `coverage run -m pytest --junitxml=reports/junit.xml`. Failing tests do not stop the job: troy-check decides which failures are allowed. |
 | Coverage report | `coverage xml -o reports/coverage.xml` |
 | Rules | `python .troy-mode/checks/troy_check.py code --base <ref> --title <title> --junit reports/junit.xml --coverage reports/coverage.xml` |
+| Release command (version tests, at release only) | `pytest version-tests --junitxml=reports/version-junit.xml`. A failing version test does not stop it: the release test reports it. |
 
 ## 4. Tool settings
 
-- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in troy-pstack. It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests may use `assert` and need no annotations.
+- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in troy-pstack. It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests, and the version tests in `version-tests/`, may use `assert` and need no annotations.
 - **mypy** checks `src` in strict mode.
-- **pytest** finds tests in `tests/` and runs with `-ra --strict-markers`.
+- **pytest** finds tests in `tests/` and runs with `-ra --strict-markers`. It leaves out the version tests in `version-tests/`, which run only in the release test (F08 design 5.3). Their names start with their scenario ID, for example `test_v0_1_s01_counts_words_and_lines`.
 - **coverage** measures lines and branches in `src`.
 
 A project adds its own settings, such as troy-voice's banned time functions, after the pack's tables. Dropping one of the pack's settings goes through the rule change flow.
