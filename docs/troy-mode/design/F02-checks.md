@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.4 |
+| Version | 1.5 |
 | Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
@@ -145,7 +145,7 @@ The title grammar from F01 design D1, made exact. Spaces are single. IDs and sta
 | Feature stage | `[<F-ID> <n>/6 <stage>] <summary>`, with `<n>` and `<stage>` one of: 1 `design`, 2 `test-plan`, 3 `mock`, 4 `tests`, 5 `impl`, 6 `accept` | `[F04 3/6 mock] Export history as CSV` |
 | Bug test | `[<B-ID> A/B test] <summary>` | `[B12 A/B test] Crash on empty history` |
 | Bug fix | `[<B-ID> B/B fix] <summary>` | `[B12 B/B fix] Crash on empty history` |
-| Test fix | `[<F-ID or B-ID> test-fix] <summary>` | `[F04 test-fix] Wrong date format in F04-T03` |
+| Test fix | `[<F-ID, B-ID, or P-ID> test-fix] <summary>`; a P ID (`P` and two or three digits) is a project rule's test cleanup (F09) | `[F04 test-fix] Wrong date format in F04-T03`, `[P01 test-fix] Apply P01 to tests` |
 | Version tests | `[v<MAJOR>.<MINOR> tests] <summary>`, kind `version-tests` | `[v0.1 tests] End-to-end and stress tests` |
 | Other | `[docs] <summary>`, `[rules] <summary>`, `[refactor] <summary>` | `[rules] Add P01, no global state` |
 
@@ -389,3 +389,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | 1.2 | 2026-11-07 | Section 6.4: files under `.troy-mode/` are not documents for R12, as R20 already does not scan them. Otherwise the templates troy-init copies there fail every setup PR and every later document PR. Found while building F06, approved by Troy on 2026-11-07. |
 | 1.3 | 2026-11-07 | Section 7: the config accepts `[roles.<role>]` with `model` and `effort`, and `[flow]` with `troy_approves_first`, for troy-mode's entry skill. From F07 design section 12. |
 | 1.4 | 2026-11-08 | Sections 4 and 5: the title kind `[v<MAJOR>.<MINOR> tests]`, kind `version-tests`, which may change the `tests` and `dependencies` classes and which R03 skips, and `version-tests/**` among the built-in `tests` patterns. From F08 design section 9. |
+| 1.5 | 2026-11-08 | Section 4: the `test-fix` title also takes a project rule's P ID, as in `[P01 test-fix] Apply P01 to tests`, a rule's test cleanup PR, which may change `tests` and `dependencies` as every test-fix PR does. From F09 design section 8. |

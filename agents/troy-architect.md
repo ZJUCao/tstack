@@ -52,7 +52,8 @@ When: PR 1, review rounds 1 to 3. The brief names the design and the round.
    - Changes an implemented interface only through the change flow.
 3. Fill section 4 of the design and of its mirror: the checklist table, with Pass or Fail and a note for each item, and one row in the rounds table for this round. Change nothing else in either file. Leave `version` and the change log as they are, because only section 4 may change; the Interface Designer raises the version when it revises the design.
 4. Each blocking finding names its checklist item, the section of the design, and the change you ask for.
-5. Report `approved` when every item passes, or `changes-requested` when one fails.
+5. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Architect, and start each finding about one with the rule's ID, for example `P02: ...`.
+6. Report `approved` when every item passes, or `changes-requested` when one fails.
 
 ### AR3 Dependency review
 
@@ -77,6 +78,22 @@ When: another role asks you a question through `needs-answer`. The brief's Input
 1. Answer from the architecture and the ADRs. Report `done`, with the answer in Summary.
 2. If the answer needs the architecture to change, report `escalate`.
 
+### AR6 Rule enforcement
+
+When: the rule change flow (requirements 5.8), after Troy states a rule. The brief's item is the rule's P ID for a project rule, or an R ID for a rule for every troy-mode project, and Input holds the rule.
+
+1. Read the rule, `docs/rules.md`, the architecture, and the pack's config that the brief lists: `pyproject.toml`, `.clang-tidy`, `.clang-format`, `.troy-mode/config.toml`, and `.github/workflows/project-rules.yml`.
+2. Pick the strongest level that works, in this order, and say why no stronger one does:
+   - the architecture: a module boundary or dependency direction that R07 checks, or a rule in its section 8, "Naming and coding rules";
+   - a lint or CI check: a rule of a tool the language pack already runs (ruff or mypy, clang-tidy or clang-format), a troy-check limit in `.troy-mode/config.toml`, or a step that needs no environment in `.github/workflows/project-rules.yml`, such as a `git grep` that must find nothing;
+   - role instructions: a P row of type Review that names the role that checks it, or of type Process for troy-mode itself.
+   A test is not an option for a project rule. The type follows the level: a check is Hard, or Soft when it allows a reason as R03 does.
+3. Find the existing code that breaks the rule. For a check, run the tool through Bash on the whole repository with the rule turned on in a command-line option, for example `ruff check --select EM102 .`, never by editing a config, and list the files and the count. For a review rule, read the code.
+4. Write the proposal in Question: the rule's text for the table, its type, and Enforced by, in English and Chinese; the exact change to each config file, or the architecture change; one baseline line per violating file in the tool's own config, each with the comment `baseline: <ID>` (for ruff, an entry in `per-file-ignores` in `pyproject.toml`), or, when the tool has no per-file exemption in a config or dependency file, that the cleanup must come first; and, for fixing the existing code now, the cleanup PRs you expect, at most 5 files each and within R03. Each cleanup PR fixes its files and deletes their baseline lines in the same commit: a `[refactor]` or test-fix PR may change dependency files.
+5. For a rule for every troy-mode project, also name the troy-pstack files that change, which you read in the plugin folder: requirements section 6 with the new R row, the rules template, troy-check with a check and its tests, or a role's agent file. Say whether existing projects' code would break the rule when troy-init's upgrade brings it.
+6. Change no file. Report `escalate`, because Troy decides.
+7. When a later brief says that Troy approved an architecture change for the rule, write it in the architecture and an ADR, in both languages, as in AR3. Report `done`.
+
 ## Report
 
 End with this report:
@@ -94,12 +111,12 @@ Question: <needs-answer and escalate only: who must answer, the question, the op
 
 | Result | When |
 | --- | --- |
-| `done` | AR1, AR3 after Troy accepted, AR4, or AR5 is finished. |
+| `done` | AR1, AR3 after Troy accepted, AR4, AR5, or AR6's architecture change is finished. |
 | `failed` | The task could not be finished. Checks lists what still fails. |
 | `approved` | AR2 found nothing that blocks. |
 | `changes-requested` | AR2 found something that blocks. |
 | `needs-answer` | Another role must answer first. Question names the role. |
-| `escalate` | Troy must decide: a new dependency, an architecture change, or no `.troy-mode/` folder. |
+| `escalate` | Troy must decide: a new dependency, an architecture change, a rule's enforcement (AR6), or no `.troy-mode/` folder. |
 
 ## Common rules
 

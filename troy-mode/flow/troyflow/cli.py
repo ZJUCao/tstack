@@ -1,4 +1,4 @@
-"""Command-line interface: options, the commands, and the report (F07 3.1, F08 3.1)."""
+"""Command-line interface: options, the commands, and the report (F07, F08, F09 3.1)."""
 
 import argparse
 import json
@@ -6,8 +6,8 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import acceptversion, approve, brief, releasetest, retro, runs, series, skips, status, \
-    textcheck
+from . import acceptversion, approve, brief, releasetest, retro, rulerow, runs, series, skips, \
+    status, textcheck
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -35,7 +35,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Builds the parser for F07's eight commands and F08's four (F08 design 3.1)."""
+    """Builds the parser for F07's eight commands, F08's four, and F09's two."""
     parser = _Parser(prog="troy_flow.py", description="troy-mode's flow engine.")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
@@ -74,9 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--out", required=True)
     cmd = sub.add_parser("retro", help="gather the evidence for a retrospective (F08)")
     cmd.add_argument("--tag", required=True)
+    sub.add_parser("rule-id", help="the next free P ID, the P rules, and their baselines (F09)")
+    cmd = sub.add_parser("rule-row", help="write one P row into the rules table (F09)")
+    cmd.add_argument("--id", required=True, help="the P ID, for example P01")
+    cmd.add_argument("--rule-file", required=True, help="the row's cells and change-log text")
+    cmd.add_argument("--retire", action="store_true", help="retire the rule")
+    cmd.add_argument("--date")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro"):
+                 "retro", "rule-id", "rule-row"):
         _common(sub.choices[name])
     return parser
 
@@ -89,6 +95,10 @@ def _text(report: dict) -> str:
     lines = [f"troy-flow {report['command']}: {'ok' if report['ok'] else 'stopped'}"]
     if report["command"] == "status":
         lines.append(f"next      {status.action_text(report['next'])}")
+    if report["command"] == "rule-id" and report.get("ok"):
+        lines.append(f"next      {report['next_id']}")
+        lines += [f"rule      {r['id']}{' (retired)' if r['retired'] else ''}: "
+                  f"{len(r['baseline'])} baseline lines" for r in report["rules"]]
         if report.get("waiting_on_troy"):
             lines.append(f"waiting   {report['waiting_on_troy']}")
     for key in ("run", "stage"):
@@ -112,7 +122,8 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "check-text": textcheck.run_check_text, "check-skips": skips.run_check_skips,
             "series": series.run_series, "release-test": releasetest.run_release_test,
             "accept-version": acceptversion.run_accept_version,
-            "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro}
+            "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
+            "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row}
 
 
 def main(argv: list[str]) -> int:

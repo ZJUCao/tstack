@@ -1,8 +1,9 @@
 """The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 8.7, 11).
 
 A brief is for a feature's stage, a side PR of a feature (a test fix or a
-[docs] PR), a bug, or a version: its test plan and its version tests (F08
-design 4 and 5.3). --title names the PR when the state cannot: a bug PR, a
+[docs] PR), a bug, a version: its test plan and its version tests (F08
+design 4 and 5.3), or a rule: AR6's proposal and the cleanup PRs (F09 design
+5 and 7). --title names the PR when the state cannot: a bug PR, a
 side PR, the redo of a stage after a requirement change, or a fix of a
 version's tests.
 """
@@ -12,7 +13,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import checksteps, repo as git
+from . import checksteps, repo as git, rulebrief
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -23,13 +24,13 @@ from .stages import STAGE_KINDS, STAGE_TASKS, current_stage, merged_stages, pars
 from .versions import VERSION, parse_plan, plan_path, versions_of
 
 # Every task ID of F04 section 6, written out so that a task added later
-# cannot leave a gap (F08 adds TE5).
+# cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6).
 ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
-             "AR1", "AR2", "AR3", "AR4", "AR5",
+             "AR1", "AR2", "AR3", "AR4", "AR5", "AR6",
              "IF1", "IF2", "IF3", "IF4",
              "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7",
-             "DV1", "DV2", "DV3", "DV4",
-             "TE1", "TE2", "TE3", "TE4", "TE5",
+             "DV1", "DV2", "DV3", "DV4", "DV5",
+             "TE1", "TE2", "TE3", "TE4", "TE5", "TE6",
              "CR1")
 # Tasks of F04 that the engine cannot brief yet, with the reason.
 NOT_BUILT: dict[str, str] = {}
@@ -152,9 +153,10 @@ class Target:
         why: The problem when the task is not allowed.
         stage: The feature's stage for the report, or None.
         title: The PR title, or None.
-        feature: The feature's row, or None for a bug or a version.
+        feature: The feature's row, or None for a bug, a version, or a rule.
         side: "test-fix" or "docs" for a side PR, else None.
         version: The version of a version item, else None.
+        rule: The context of a rule item, else None.
     """
 
     problems: list[str]
@@ -165,6 +167,7 @@ class Target:
     feature: object = None
     side: str | None = None
     version: str | None = None
+    rule: rulebrief.RuleContext | None = None
 
 
 def _stop(message: str) -> Target:
@@ -183,7 +186,7 @@ def check_task(task: str, item: str | None) -> None:
     if task == "AR1" and item is not None:
         raise FlowError("AR1 writes the architecture and takes no --item")
     if task != "AR1" and item is None:
-        raise FlowError(f"{task} needs --item <feature, bug, or version ID>")
+        raise FlowError(f"{task} needs --item <feature, bug, version, or rule ID>")
 
 
 def parse_option_title(text: str | None):
@@ -325,8 +328,11 @@ def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
         return _bug_target(item, task, parsed, args.title, subjects)
     if VERSION.fullmatch(item):
         return _version_target(repo, task, item, parsed, args.title, features)
+    if rulebrief.is_rule_item(item):
+        ctx = rulebrief.context(repo, task, item, parsed, args.title)
+        return Target(ctx.problems, ctx.allowed, ctx.why, None, ctx.title, rule=ctx)
     if not FEATURE_ID.fullmatch(item):
-        return _stop(f"{item} is neither a feature ID, a bug ID, nor a version.")
+        return _stop(f"{item} is neither a feature ID, a bug ID, a version, nor a rule ID.")
     return _feature_target(repo, task, item, parsed, args.title, features, subjects,
                            merged_stages(subjects))
 
@@ -436,15 +442,20 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     version = target.version
     checks = checksteps.steps(task, config, title or "", subjects, repo.root.name,
                               report["notes"], version_tests=version is not None)
+    read_first = (rulebrief.read_first(repo, task, target.rule) if target.rule
+                  else _read_first(repo, task, item, features or [], folder, version))
     report.update(ok=True, title=title, agent=_agent(report["role"], config),
-                  read_first=_read_first(repo, task, item, features or [], folder, version),
-                  input=text, round=args.round, checks=checks)
+                  read_first=read_first, input=text, round=args.round, checks=checks)
     sentences = dict(_SENTENCES)
     if item and BUG_ID.fullmatch(item) and target.side is None:
         sentences.update(_BUG_SENTENCES)
     if target.side == "docs":
         sentences.update(_DOCS_SENTENCES)
     values = {"item": item, "folder": folder, "title": title}
+    if target.rule:
+        sentences.update(rulebrief.sentences(target.rule))
+        values.update(run=checksteps.run_prefix(config, repo.root.name, report["notes"]),
+                      baseline=", ".join(target.rule.files) or "the config and dependency files")
     if version is not None:
         sentences.update(_VERSION_SENTENCES)
         under = version.replace(".", "_")

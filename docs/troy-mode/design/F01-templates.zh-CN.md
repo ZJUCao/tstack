@@ -1,11 +1,11 @@
 # F01 设计：模板和规则表
 
-> 本文件是 [`F01-templates.md`](F01-templates.md) 的中文镜像，同步自英文版 1.2（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F01-templates.md`](F01-templates.md) 的中文镜像，同步自英文版 1.3（2026-11-08）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.1](../requirements.zh-CN.md#72-功能列表) 中的 F01 |
-| 版本 | 1.2 |
+| 版本 | 1.3 |
 | 日期 | 2026-11-08 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D1 到 D6 |
 | 事实来源 | 英文版 [`F01-templates.md`](F01-templates.md)。本文件是中文镜像。 |
@@ -194,7 +194,7 @@ F02 依据这个文档头检查（R12）：
 
 ### 5.8 `rules`
 
-一张表，列为：编号、规则、类型、由什么保证、适用范围、起始版本。类型是硬、软、审查或流程，定义与需求文档第 6 节相同。适用范围：来自 troy-pstack 的规则填 `troy-mode`，本项目自己的规则填 `project`。模板自带 R01 到 R19，内容从需求文档第 6 节复制。
+一张表，列为：编号、规则、类型、由什么保证、适用范围、起始版本。类型是硬、软、审查或流程，定义与需求文档第 6 节相同。适用范围：来自 troy-pstack 的规则填 `troy-mode`，本项目自己的规则填 `project`。模板自带 R01 到 R19，内容从需求文档第 6 节复制。它的填写说明写明 F09 的规则变更流程怎样加 P 行：用下一个空闲编号；停用的行保留它的编号；每一行为某个文件豁免新检查的配置都带注释 `baseline: P01`（F09 设计第 8 节）。
 
 ### 5.9 `progress`
 
@@ -233,6 +233,7 @@ F02 依据这个文档头检查（R12）：
 | Bug PR A | `[B12 A/B test] Crash on empty history` | 测试 |
 | Bug PR B | `[B12 B/B fix] Crash on empty history` | 源码 |
 | 测试修正 | `[F04 test-fix] Wrong expected date format in F04-T03` | 测试 |
+| 规则测试清理 | `[P01 test-fix] Apply P01 to tests` | 按项目规则修正的测试 |
 | 版本测试 | `[v0.1 tests] End-to-end and stress tests` | `version-tests/` 里的测试 |
 | 文档 | `[docs] Requirements change for offline mode` | 文档 |
 | 规则变更 | `[rules] Add P01, no global state` | 规则表和检查配置 |
@@ -303,3 +304,4 @@ Troy 已于 2026-11-05 批准全部六项提议。
 | 1.0 | 2026-11-05 | Troy 批准，含 D1 到 D6。新增 PR 模板（第 5.11 节）和中文 README。 |
 | 1.1 | 2026-11-05 | 根据试填 requirements 和 feature-design 模板的结果修正：front matter 的值全部加引号；中文镜像与英文文档同时创建；双花括号内的任何文字都是标记；没有内容的部分写“无”。 |
 | 1.2 | 2026-11-08 | 来自 F08 设计第 9 节：`version-test-plan` 模板的场景表和性能与压力表都加了“由谁运行”一列（第 5.5 节），PR 类型加了 `[v0.1 tests]`（第 6 节）。 |
+| 1.3 | 2026-11-08 | 来自 F09 设计第 8 节：`rules` 模板的填写说明讲 P 行、停用的行和 `baseline: P01` 注释（第 5.8 节）；PR 类型加上 `[P01 test-fix]`（第 5.11 节）。 |

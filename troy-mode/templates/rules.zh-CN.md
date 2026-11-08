@@ -44,7 +44,7 @@ mirror-of: "rules.md"
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明。 | 硬 | CI | troy-mode | {{init-date}} |
 | R21 | 每个改动都通过从单独分支发起的 PR 进入 `main`。永远不要在 `main` 上提交、推送 `main`，或从 `main` 开 PR。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
 
-<!-- template: 本项目自己的规则加在这里，每条一行，适用范围填 "project"。示例行：| P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} | -->
+<!-- template: troy-mode 的规则变更流程把本项目自己的规则加在这里，放在 R 行之后，每条一行，用下一个空闲编号（P01、P02，依此类推），适用范围填 "project"。示例行：| P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} |。停用的规则保留它的行：规则一栏以“已于 <日期> 停用。”开头，由什么保证一栏写“无”，它的编号不再使用。已有代码违反新检查时，工具的配置为每个违规文件写一行豁免，带注释 baseline: P01，直到清理 PR 修好该文件并删掉这一行。 -->
 
 ## 3. 修改记录
 

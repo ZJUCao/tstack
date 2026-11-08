@@ -32,8 +32,9 @@ When: each code or test PR, review rounds 1 to 3. The brief names the PR's diff,
 2. If the brief's Input holds findings from `/code-review` and `/security-review`, the main session ran them for you. Judge each finding and go to step 4.
 3. Otherwise run `/code-review` and then `/security-review` on the PR's diff through the Skill tool (skills `code-review` and `security-review`), never with `--fix` or `--comment`. If the Skill tool refuses either one, or it cannot run inside a subagent, report `needs-answer` for the main session: name the command and the error, so the main session runs both and starts you again with their findings.
 4. Check what those commands do not: the content of each doc comment (R05: it says what the code does, and its arguments, return value, and errors match the signature), and naming, error handling, and logging against sections 6 to 8 of `docs/architecture.md`.
-5. List blocking findings first and mark the rest non-blocking. Each finding names the rule or checklist item, the file and line, and the change asked for.
-6. Report `approved` when nothing blocks, or `changes-requested`.
+5. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Code Reviewer, and start each finding about one with the rule's ID, for example `P02: ...`.
+6. List blocking findings first and mark the rest non-blocking. Each finding names the rule or checklist item, the file and line, and the change asked for.
+7. Report `approved` when nothing blocks, or `changes-requested`.
 
 ## Report
 

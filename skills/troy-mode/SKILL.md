@@ -1,12 +1,12 @@
 ---
 name: troy-mode
-description: troy-mode's entry skill. Routes a request in a troy-mode project to its flow (project setup, the feature loop with its side PRs, bug fixes, requirement changes, version releases, work outside the pipeline, or continuing) and runs it with troy-mode's roles, checks, and PRs. Use only when Troy types /troy-pstack:troy-mode.
+description: troy-mode's entry skill. Routes a request in a troy-mode project to its flow (project setup, the feature loop with its side PRs, bug fixes, requirement changes, version releases, rule changes, work outside the pipeline, or continuing) and runs it with troy-mode's roles, checks, and PRs. Use only when Troy types /troy-pstack:troy-mode.
 disable-model-invocation: true
 ---
 
 # troy-mode
 
-You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, and release versions. troy-pstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, and its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release.
+You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, release versions, and change the project's rules. troy-pstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release, and its F09 design (`docs/troy-mode/design/F09-rule-change.md`) for the rule change.
 
 Talk to Troy in Troy's language. Files, commits, PRs, issues, and PR comments are in English; documents get Chinese mirrors (R12). Never write Claude attribution anywhere: no `Co-Authored-By` line, no "Generated with" line, and in `strict` mode no word Claude or Anthropic in commits, PR titles, PR descriptions, issues, or comments (R19).
 
@@ -17,7 +17,8 @@ Every time this skill runs:
 1. Read `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md`. You are the Product Manager and the project manager of this project.
 2. If the folder is a git repository with an `origin` remote, run `git fetch origin --prune`. Every fetch below prunes too: a branch deleted after its merge, such as `troy-mode/v0.1-test-plan`, may be made again later, and a stale `origin/<branch>` makes `git push --force-with-lease` refuse it.
 3. Run `troy_flow.py status --json` (below) and read its report.
-4. Route the request (section "Routing").
+4. Read the report's `rules`: the project's P rules. Follow every P rule of type `Process` that is not retired, in every flow: troy-mode itself must follow it.
+5. Route the request (section "Routing").
 
 ## The engine
 
@@ -27,8 +28,8 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | --- | --- |
 | `troy_flow.py status [--write-progress] [--waiting <text>] [--note <text>]` | Reads the state from `origin/main`, the open PRs, and your comments on them, and gives the `next` action. `--write-progress` rewrites `.troy-mode/progress.md`; `--waiting` and `--note` also write it. It rebuilds a missing or old progress file by itself. |
 | `troy_flow.py brief --task <task ID> --item <feature or bug ID> [--title <PR title>] [--round <n>] [--input-file <path>]` | The brief for one role run: `prompt`, and `agent` with `subagent_type` and, when the project sets them, `model` and `effort`. AR1 takes no `--item`. Give `--title` for a bug PR, a side PR, or the redo of a stage; the state gives every other title. |
-| `troy_flow.py snapshot --role <role>` | Records the state before a run and prints its `run` ID. It refuses a working tree with changes. |
-| `troy_flow.py check-run --run <run ID> [--allow-dependency <path>]...` | Compares the tree after the run with the snapshot: the paths to `stage`, the `problems`, `escalate`, how to `undo` each change, and the role's `hooks_log` lines. |
+| `troy_flow.py snapshot --role <role>` | Records the state before a run and prints its `run` ID. It refuses a working tree with changes. `--role rules` is your own work on a `[rules]` PR. |
+| `troy_flow.py check-run --run <run ID> [--allow-dependency <path>]...` | Compares the tree after the run with the snapshot: the paths to `stage`, the `problems`, `escalate`, how to `undo` each change, and the role's `hooks_log` lines. A dependency change that only deletes `baseline:` lines needs no `--allow-dependency`. |
 | `troy_flow.py approve --doc <path> [--date <YYYY-MM-DD>]` | Records Troy's approval in a document's header and its mirror's: the next major version, the date, and the status, and adds "Approved by Troy." to each one's change log (F08 D77). |
 | `troy_flow.py check-text --file <path>` | Checks a PR comment, description, or issue for attribution in the project's `[attribution] mode`. |
 | `troy_flow.py check-skips --report <file> --junit <file>` | Reads `troy-check code`'s JSON report and the JUnit file: exit 0 when nothing failed but tests skipped on this platform, with those cases in `ci_only` (D69). |
@@ -37,6 +38,8 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py accept-version --tag <tag> --notes-file <file> [--date <YYYY-MM-DD>]` | Records Troy's acceptance in the version test plan and its mirror: the acceptance row, the next major version, the status, and a change-log row. |
 | `troy_flow.py release-notes --tag <tag> --out <file>` | Writes the tag's section of `CHANGELOG.md` on `origin/main` to a file, for the GitHub release's notes. |
 | `troy_flow.py retro --tag <tag>` | Groups the evidence for the retrospective: review findings by rule and checklist item, failed attempts, escalations, bugs, and `hooks.log` lines, with the groups seen in two or more PRs in `repeated`. It changes nothing. |
+| `troy_flow.py rule-id` | From `docs/rules.md` on `origin/main`: the next free P ID (`next_id`), the next R ID (`next_r_id`), and every P rule in `rules`, with whether it is retired, Troy's `choice` for existing code, and its `baseline` lines in config and dependency files. |
+| `troy_flow.py rule-row --id <ID> --rule-file <file> [--retire] [--date <YYYY-MM-DD>]` | Writes one P row into `docs/rules.md` and its mirror: adds a new ID after the last P row, replaces an existing one and keeps its Since date, or retires it. Both files move to the next major version, approved by Troy, with one change-log row. |
 
 - Exit code 0: done. 1: a problem stops the step; the report says which. 2: the engine could not run; show Troy its error.
 - The engine never commits, pushes, or writes to GitHub. You do, as below.
@@ -53,10 +56,9 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | "continue", "status", or nothing | Continue |
 | "upgrade troy-mode" | Upgrade |
 | "release v0.1", "release v0.1.1", "release" | Version release |
-| "add a rule ..." | Rule change: not built yet (F09) |
+| "add a rule ...", "change P01 ...", "retire P02", "a rule for every project ..." | Rule change |
 
 - **No `.troy-mode/`.** Answer a question, but change nothing. For any other request, ask Troy once whether to make this folder a troy-mode project.
-- **Rule change.** Say which flow it is and that it is not built yet (F09). Change nothing.
 - **Unclear.** When a request fits two flows, or none, ask Troy one question with a recommended answer.
 - **How far (D63).** One feature, one bug, or one change, unless the request names more, such as "F04 to F06" or "the rest of v0.1". Then report and stop.
 - **One PR at a time.** Work on one PR at a time in this checkout. A new request waits until that PR merges, unless Troy says to pause it. When a paused PR resumes, rebase its branch on `origin/main` first. A side PR, a bug PR, or a `[docs]` PR comes before the stage PR it interrupts; `status` continues it first.
@@ -65,7 +67,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 
 ## Running a role
 
-1. **Brief.** `troy_flow.py brief --task <task> --item <ID> [--title <title>] [--round <n>] [--input-file <file>]`. Write Input (findings, an answer, failing checks, a ruling, Troy's decision or comments) to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/` first.
+1. **Brief.** `troy_flow.py brief --task <task> --item <ID> [--title <title>] [--round <n>] [--input-file <file>]`. Write Input (findings, an answer, failing checks, a ruling, Troy's decision or comments) to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/` first. Write files there, such as Input, `rule-row`'s rule file, and PR descriptions, through Bash, for example with a heredoc: the agent's file tools may refuse a path inside the git folder.
 2. **Snapshot.** `troy_flow.py snapshot --role <role>`. The tree must be clean: you commit after every writing run.
 3. **Agent call.** `subagent_type` from `agent`, the brief's `prompt` as the prompt, and `model` and `effort` only when `agent` has them.
 4. **Wait.** Wait for the role's report and do nothing else in the checkout meanwhile: F05's hooks blame every change during the run on the role. Roles that only read may run together, such as TM2 and CR1 on one test PR, under one snapshot with `--role test-manager --role code-reviewer`; nothing may change.
@@ -303,11 +305,85 @@ After a version's tag, `status` gives `retro` until its release PR has a `Retros
 1. `troy_flow.py retro --tag <tag>` groups the evidence of the PRs merged since the previous version's tag: the findings of every review that requested changes, by the rule ID or checklist item each one names; every failed attempt; every escalation; the bugs fixed; and the `hooks.log` lines. `repeated` lists the groups seen in two or more PRs.
 2. Read `${CLAUDE_PLUGIN_ROOT}/skills/correct/SKILL.md` and follow its method on each repeated problem: the strongest enforcement that works, and whether it belongs to this project or to every troy-mode project. Write no code: every proposal is a rule for the rule change flow.
 3. Send Troy one message: each repeated problem with its evidence and PR links, and each proposal with a recommendation. When nothing repeated, say so. Post the same report in English on the release PR as `Retrospective: <tag>`, which ends the release.
-4. Each rule Troy picks runs through the rule change flow, one at a time. While that flow is not built, say so and list the picked rules in the progress file with `status --note`.
+4. Each rule Troy picks runs through the rule change flow (section "Rule change"), one at a time. List the picked rules in the progress file with `status --note`, so a new session finds those still to do.
+
+## Rule change
+
+troy-pstack's F09 design (`docs/troy-mode/design/F09-rule-change.md`) is the source for this flow. Only troy-init and this flow change `docs/rules.md` and `.troy-mode/**`; no role does.
+
+| Request, for example | What it is |
+| --- | --- |
+| "add a rule: no print calls in source", "a rule for this project: ..." | A project rule |
+| "a rule for every project: ..." | A rule for every project |
+| "change P01 ...", "retire P02" | A change or a retirement |
+| "in this project, R03's limit is 800 lines" | A project rule that adjusts an R rule |
+| The rules Troy picks in a retrospective | One at a time, as above |
+
+When the request does not say whether the rule is for this project or for every troy-mode project, ask Troy that one question and recommend this project: a rule for every project changes troy-pstack, which is a bigger step. Ask in the same message for anything else the rule needs, such as what it covers.
+
+### A project rule
+
+| Step | What happens | Who | PR | Merged by |
+| --- | --- | --- | --- | --- |
+| 1. Ask | The rule and its scope, when the request does not give them | You | None | |
+| 2. Enforcement | The strongest level that works, the exact config, and the existing violations | AR6 | None | |
+| 3. Proposal | One message to Troy, and Troy's answer | You | None | |
+| 4. Architecture | Only when the rule needs the architecture to change | AR6's second run | `[docs] Change the architecture for <ID>` | You |
+| 5. Rule PR | The rules table, the config, and the baseline | You, under `snapshot --role rules` | `[rules] Add <ID>, <summary>` | You |
+| 6. Cleanup | Only when Troy chose to fix the existing code now | DV5 or TE6; CR1, and TM2 for tests | `[refactor] Apply <ID> to <area>`, `[<ID> test-fix] Apply <ID> to tests` | You |
+
+Each PR has one commit whose subject is its title (R01). Troy's answer in step 3 is the approval, so no PR of this flow waits for Troy again (D82).
+
+**2. Enforcement (D79, D80).** Run `troy_flow.py rule-id`: `next_id` is the new rule's ID, and `rules` lists the P rules with their `baseline` lines. Run AR6 (`brief --task AR6 --item <ID>`) with Troy's words in Input, under a snapshot with `--role architect`. AR6 changes no file: undo anything it changed and run it once more. It reports `escalate` with the proposal in Question: the strongest level that works and why no stronger one does (the architecture, a check of a tool the pack runs or a troy-check limit, a step without an environment in `.github/workflows/project-rules.yml`, or a Review or Process row), the row's cells in both languages, the config change or the architecture change, the existing code that breaks the rule with the files and the count, the baseline lines, and the cleanup PRs it expects. A test never enforces a project rule (D80).
+
+**3. Proposal (D82).** Send Troy one message, in Troy's language:
+
+- the rule as the table will say it, in English and Chinese, with its ID, its type, and Enforced by;
+- the enforcement, and why no stronger level works;
+- the files the rule PR changes, and the architecture PR, if any;
+- the existing code that breaks it, and the choice, with your recommendation: fix it now in cleanup PRs, or apply the rule only to new and changed code. When the tool has no per-file exemption that a `[rules]` PR may change, such as clang-tidy, whose suppressions live in source files, offer only "fix it now": the cleanup PRs come first, and the rule PR turns the check on after them, with no baseline.
+
+Run `troy_flow.py status --waiting "Troy approves rule <ID>"` and stop. Troy's answer approves the rule and makes the choice, or asks for a change: then run AR6 again with Troy's words in Input and show the new proposal. Nothing is written before Troy approves.
+
+**4. Architecture.** Only when the approved enforcement changes the architecture: on `troy-mode/<id>-architecture` from `origin/main`, run AR6 again with `--title "[docs] Change the architecture for <ID>"` and Troy's approval in Input. It writes the change and an ADR in both languages. Commit, run `troy-check pr`, open the PR, and merge it. R02 keeps documents out of a `[rules]` PR, so this PR comes first.
+
+**5. Rule PR (D80, D81).** On `troy-mode/rule-<id>` from `origin/main` (for example `troy-mode/rule-p01`), run `troy_flow.py snapshot --role rules`. Its scope is the `config` and `dependencies` path classes, which is all a `[rules]` PR may change. Then:
+
+1. **Rules table.** Write the row's cells and the change-log text, each in English and Chinese, to a JSON file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/`: `{"rule": {"en": "...", "zh-CN": "..."}, "type": {...}, "enforced_by": {...}, "change": {...}}`. The type is `Hard` (硬), `Soft` (软), `Review` (审查), or `Process` (流程). The change-log text names the rule's ID and Troy's approval, and ends with Troy's choice in exactly these words, which `status` reads: `Existing code: fixed by cleanup PRs.` or `Existing code: fixed when touched.` (in Chinese, 已有代码：用清理 PR 修复。 or 已有代码：改到时修复。). Run `troy_flow.py rule-row --id <ID> --rule-file <file>`. It adds the row to `docs/rules.md` and its mirror, moves both to the next major version with "Approved by Troy on <date>", and adds the change-log row.
+2. **Config.** Make AR6's config change.
+3. **Baseline.** When existing code breaks a check, exempt today's violating files in the tool's own config, one line per file, each with the comment `baseline: <ID>`. In Python these are entries of ruff's `per-file-ignores` in `pyproject.toml`, for example `"src/wordcount/count.py" = ["EM102"]  # baseline: P01`. New files must follow the rule at once. Keep each baseline line on one line, so a cleanup removes it whole.
+4. **Check.** `troy_flow.py check-run --run <run ID>`, with `--allow-dependency <path>` for each dependency file the approved config change names, such as `pyproject.toml`. A docs, source, or tests path is a scope problem. Stage exactly the `stage` paths and commit as `[rules] Add <ID>, <summary>`.
+5. **Local checks.** `troy-check pr`, and, when a tool's config changed, that tool's steps of the pack in the project's environment, for example `mamba run -n <environment> ruff check` and `ruff format --check`, so the new rule and its baseline pass before the push.
+6. **PR and merge.** The description says Why (Troy's rule, in English), What (the row, the config, and the number of baseline lines), and Checks. Check it with `check-text`, push, open the PR, wait for CI, and merge it yourself (section "Merging"). No role reviews it: Troy approved its content in step 3.
+
+A review rule (type Review) needs no config: its rule PR adds only the row, and the reviewers that its Enforced by names check it from then on.
+
+**6. Cleanup (D81).** When Troy chose "fix it now", `status` gives `cleanup`, with the rule in `next.item`, until no `baseline: <ID>` line is left; the report's `rules` entry lists the lines, and a new session finds the cleanup the same way. It comes after the open PRs and before the feature loop's next stage. Group the baselined files into PRs of at most 5 files, each within R03:
+
+- **Source files:** `[refactor] Apply <ID> to <area>` on `troy-mode/<id>-cleanup-<area>`, written by DV5 (`brief --task DV5 --item <ID> --title "<title>"`, with the PR's files in Input) and reviewed by CR1.
+- **Test files:** `[<ID> test-fix] Apply <ID> to tests` on `troy-mode/<id>-test-fix`, written by TE6 and reviewed by TM2 and CR1 together.
+
+Each removes its files' baseline lines in the same commit. `check-run` lets a dependency change through without `--allow-dependency` when it only deletes `baseline:` lines. Commit, run the local checks of the brief, open the PR (Why: Troy's choice to fix the existing code now; What: the files and the baseline lines removed), run the reviewers with the same `--title`, and merge. A review rule's cleanup follows AR6's list of files the same way, without baseline lines. When Troy chose "only new and changed code", the baseline stays: the Developer and the Test Engineer fix a baselined file whenever they change it, and remove its line, as their instructions say.
+
+### Changing and retiring rules (D84)
+
+- **A P rule changes** through the same steps, with `[rules] Change <ID>, <summary>` on `troy-mode/rule-<id>-change`. `rule-row` replaces the row, keeps its Since date, and adds the change-log row. Its config and baseline lines change in the same PR.
+- **A P rule is retired** with no AR6 run: show Troy the row and the config and baseline lines the PR removes; Troy's yes approves it. On `troy-mode/rule-<id>-retire`, under `snapshot --role rules`, run `rule-row --id <ID> --rule-file <file> --retire`, with only `change` in the file, remove the rule's config and baseline lines, and commit as `[rules] Retire <ID>, <summary>`. The row stays, starting "Retired on <date>.", and its ID is never used again.
+- **An R rule** is troy-mode's, and troy-init's upgrade replaces the R rows, so never edit one. Where troy-check's config allows an adjustment, such as R03's limits, R11's coverage limits, or R19's attribution mode, a P row records it, for example "In this project, R03's limit is 800 changed lines.", and the same rule PR changes `.troy-mode/config.toml`. Any other change to an R rule is a rule for every project.
+- **`[flow] troy_approves_first`** stays its own `[rules] Set the features Troy approves` PR (section "Merging").
+
+### A rule for every project (D83)
+
+A rule for every troy-mode project lives in troy-pstack and ships in a new plugin version. This flow changes nothing in troy-pstack and nothing in the project:
+
+1. Run AR6 with `--item <R ID>`: `next_r_id` from `rule-id` for a new rule, or the R rule it changes. It proposes the enforcement as for a project rule, names the troy-pstack files that change, which it reads in the plugin folder, and says whether existing projects' code would break the rule when the upgrade brings it.
+2. Send Troy the proposal as in step 3 above, and ask whether to open an issue in troy-pstack.
+3. Only on Troy's yes: write the proposal in English to a file, check it with `troy_flow.py check-text --file <file>`, and run `gh issue create --repo <owner>/troy-pstack --title "Rule proposal: <summary>" --body-file <file>`. `<owner>/troy-pstack` comes from the plugin folder's `origin` remote: `git -C "${CLAUDE_PLUGIN_ROOT}" remote get-url origin`. Opening it reaches outside the project, so it always needs Troy's yes. When Troy says no, open nothing.
+4. troy-pstack builds the rule through its own design and build process, and the project gets it through the upgrade (section "Upgrade"). `status` says when the project's copy is older than the plugin's.
 
 ## Escalation
 
-Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; delete your own branches after their PR merges; and, after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`). Anything else asks Troy.
+Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; delete your own branches after their PR merges; after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`); and merge the PRs of a rule Troy approved. Opening an issue in troy-pstack for a rule for every project needs Troy's yes each time. Anything else asks Troy.
 
 Write the message in Troy's language, in the shape of `.troy-mode/templates/escalation.md` (Prototype C): where it stopped, why, the facts with links, the options, and a recommendation. Post it in English on the open PR as `Escalation: <trigger>`; when no PR is open yet, post it on the bug's issue if there is one, else only in chat. Run `troy_flow.py status --waiting "<what>"`, and stop. When Troy answers, in this session or a new one, put the decision into the next brief's Input and go on.
 
@@ -331,7 +407,7 @@ Answer questions and investigations here, following `how` or `why` (read their `
 
 ## Continue
 
-Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (D63): `continue-pr`, `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, and the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"). After the last feature of a version is accepted, `release` comes next; a release is a natural stop, so report and go on only if the request reaches it.
+Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (D63): `continue-pr`, `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"), and `cleanup`, the next cleanup PR of a rule (section "Rule change"). A rule's last cleanup PR finishes that rule change, which is a natural stop too: report, and go on only if the request reaches further. After the last feature of a version is accepted, `release` comes next; a release is a natural stop, so report and go on only if the request reaches it.
 
 ## Reports
 

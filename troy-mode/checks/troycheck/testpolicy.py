@@ -2,7 +2,8 @@
 
 Accepted features and fixed bugs come from the merge base's history. Each
 PR has one commit whose subject is its title (R01), so "[F04 6/6 accept]"
-and "[B12 B/B fix]" subjects on main record them.
+and "[B12 B/B fix]" subjects on main record them. A rule's test cleanup PR,
+"[P01 test-fix] ...", is "any other kind": it has no test plan (F09 design 8).
 """
 
 import re
@@ -159,7 +160,11 @@ def _plan_cases(ctx: PrContext, feature: str) -> tuple[str | None, set[str]]:
 
 
 def _plan_warnings(ctx: PrContext, run: RunData) -> list[Detail]:
-    """Compares the tests of the PR's feature with its test plan."""
+    """Compares the tests of the PR's feature with its test plan.
+
+    Only a feature's PR has a test plan: a bug's, a version's, or a rule's
+    (P ID) test-fix PR has none.
+    """
     title = ctx.title
     if title is None or title.kind not in PLAN_KINDS or not (title.id or "").startswith("F"):
         return []

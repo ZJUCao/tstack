@@ -1,7 +1,8 @@
 """The status command: the state, the next action, and the progress file (F07 design 5).
 
 F08 adds the versions, the release state, and the release's next actions
-(F08 design 3.2 and 3.3).
+(F08 design 3.2 and 3.3). F09 adds the P rules and the cleanup action (F09
+design 3.2).
 """
 
 from . import github, nextstep, progress, releases
@@ -56,6 +57,10 @@ def action_text(entry: dict) -> str:
     if action == "retro":
         return (f"Run the retrospective of {entry['tag']} and post it on PR #{entry['pr']} "
                 "(retro).")
+    if action == "cleanup":
+        return (f"Clean up {entry['item']}: fix the files its baseline lines name, at most 5 a "
+                f"PR, in [refactor] Apply {entry['item']} to <area> (DV5) or "
+                f"[{entry['item']} test-fix] Apply {entry['item']} to tests (TE6).")
     if action == "rework":
         text = (f"{entry['item']} needs rework after a requirement change: run AR4, then redo "
                 "the earliest stage it names.")
@@ -84,7 +89,7 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
         if entry["action"] == "continue-pr":
             return f"none. PR #{entry['pr']} is open."
         if entry["action"] in ("bug", "version-test-plan", "release", "record-acceptance",
-                               "tag", "retro"):
+                               "tag", "retro", "cleanup"):
             return f"none. {action_text(entry)}"
         return f"setup. {action_text(entry)}"
     text = f"{stage} of 6. {stage_name(stage).capitalize()}"
@@ -187,6 +192,7 @@ def run_status(args) -> tuple[dict, int]:
         "order_problems": state.order_problems,
         "features": [feature_entry(state, f) for f in state.features or []],
         "next_feature": next_feature(state), "open_prs": prs, "bugs": state.bugs,
+        "rules": state.rules,
         "versions": releases.version_entries(state) if state.origin else [],
         "release": releases.release_entry(state) if state.origin else None,
         "waiting_on_troy": None,

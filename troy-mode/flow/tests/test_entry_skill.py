@@ -107,22 +107,16 @@ class EntrySkillTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertIn(text, self.body)
 
-    def test_only_rule_change_is_not_built(self):
-        """``not built yet`` names the rule change (F09), and nothing else.
+    def test_nothing_is_marked_not_built(self):
+        """No line of the skill says ``not built`` (F09 note, section 10).
 
-        F07 allowed the version release here too; F08 builds it (F08 note,
-        section 12), so a "not built" line names the Rule change flow or F09.
+        F07 marked the version release and the rule change as not built yet.
+        F08 built the version release and F09 builds the rule change, so no
+        flow is left unbuilt.
         """
+        self.assertNotEqual(self.body, "")
         lines = [line for line in self.body.split("\n") if "not built" in line.lower()]
-        self.assertTrue(any("not built yet" in line.lower() and "rule change" in line.lower()
-                            for line in lines), self.body[:2000])
-        for line in lines:
-            with self.subTest(line=line):
-                lower = line.lower()
-                self.assertTrue("rule change" in lower or "f09" in lower, line)
-                self.assertNotIn("version release", lower)
-                self.assertNotIn("bug fix", lower)
-                self.assertNotIn("requirement change", lower)
+        self.assertEqual(lines, [])
 
     def test_bug_fix_and_requirement_change_are_built(self):
         """No line about the bug fix or the requirement change says it is not built."""
@@ -211,13 +205,13 @@ class VersionReleaseSkillTests(unittest.TestCase):
         self.assertIn("Version release", text)
         self.assertNotIn("not built", text.lower())
 
-    def test_rule_routing_row_is_still_not_built(self):
-        """The "add a rule" row still says the Rule change flow is not built (F09)."""
+    def test_rule_routing_row_is_built(self):
+        """The "add a rule" row routes to the Rule change and does not say "not built" (F09)."""
         rows = [row for row in routing_rows(self.body) if "add a rule" in row[0]]
         self.assertEqual(len(rows), 1, routing_rows(self.body))
         text = " | ".join(rows[0])
         self.assertIn("Rule change", text)
-        self.assertIn("not built", text.lower())
+        self.assertNotIn("not built", text.lower())
 
 
 if __name__ == "__main__":

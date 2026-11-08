@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F03 in [requirements 1.6](../requirements.md#72-feature-list) |
-| Version | 1.4 |
+| Version | 1.5 |
 | Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. Version 1.2 records the changes of F06's approved design (D49, D50). |
 | Source of truth | This English file. [`F03-language-packs.zh-CN.md`](F03-language-packs.zh-CN.md) is the Chinese mirror. |
@@ -112,7 +112,7 @@ This works because each PR has one commit (R01), and F03 makes R01 also require 
 | `test` for bug B12 | Every B12 test | Tests of accepted features and fixed bugs | Any other test |
 | `impl` or `accept` for F04 | None | F04's tests, plus those above | Any other test |
 | `fix` for B12 | None | B12's tests, plus those above | Any other test |
-| Any other kind, `version-tests` among them | None | Tests of accepted features and fixed bugs | Any other test |
+| Any other kind, `version-tests` and a rule's `[P01 test-fix]` among them | None | Tests of accepted features and fixed bugs | Any other test |
 
 - A JUnit failure or error counts as failing. A skipped test counts as not passing, so a skip cannot hide a must-pass test, and it cannot stand in for a must-fail test either.
 - A missing JUnit file, or one that reports a collection or build error, fails R10.
@@ -373,3 +373,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 1.2 | 2026-11-07 | Changes of F06's approved design (F06 design section 8). Both packs' CI jobs skip their code steps while the PR's head has no code (F06 D50, sections 8.5 and 9.6). The C/C++ config fragment puts `include/troy/not_implemented.h` in `config` (F06 D49) and lists `requirements*.in` (section 9.5). Each pack has a new project's build file (section 2). `build_sample.py` sets the samples up through troy-init's own functions, and each sample gains a design PR with no code. |
 | 1.3 | 2026-11-07 | Section 3: `troy-check code --worktree` checks the working tree as if it were committed, for authors who cannot commit. From F07 design section 12 (D60). |
 | 1.4 | 2026-11-08 | From F08 design section 9: a `[v0.1 tests]` PR is "any other kind" for R09 and R10 (section 4.2). Version tests live in `version-tests/`, which pytest's `testpaths` leaves out, and the Python pack's ruff gives them the tests' exemptions (found in F08's trial). The C/C++ pack's `cmake/troy.cmake` gains `troy_add_version_test`, which builds a version test only when the configure run sets `TROY_VERSION_TESTS=ON` and labels its tests `version`. Both READMEs give the release command. |
+| 1.5 | 2026-11-08 | From F09 design section 8: a project rule's test cleanup PR, `[P01 test-fix] ...`, is "any other kind" for R09 and R10 (section 4.2), and R10 looks for no feature test plan for it. |

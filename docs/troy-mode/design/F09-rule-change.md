@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F09 in [requirements 1.25](../requirements.md#72-feature-list) |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D79 to D85. Version 1.1 records Troy's standing permission for trials (section 10.3). |
+| Status | Approved by Troy on 2026-11-08, with D79 to D85. Version 1.1 records Troy's standing permission for trials (section 10.3). Version 1.2 records the details the build settled (section 3.3) and the trial's facts (section 10.3). |
 | Source of truth | This English file. [`F09-rule-change.zh-CN.md`](F09-rule-change.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -69,6 +69,15 @@ The rule state lives in git and on GitHub (F07 D58):
 | Cleanup still to do | Lines holding `baseline: P01` in config and dependency files on `origin/main` |
 
 `status` gives `next.action` `cleanup` when a rule's newest change-log row says "fixed by cleanup PRs" and its baseline lines remain. The next cleanup PR follows (section 5.4), and a new session finds it the same way. `cleanup` comes after the open PRs and before the feature loop's next stage.
+
+### 3.3 Details the build settled
+
+- **The rules table** is the first table with a row whose ID is an R or a P ID. A P ID is `P` and two or three digits. The next free ID is one more than the highest P number, retired rows included. A retired row's Rule cell starts with "Retired on <date>." in English and "已于 <date> 停用。" in Chinese; its Enforced by cell becomes "None" and "无".
+- **`--rule-file`** is `{"rule": {"en": ..., "zh-CN": ...}, "type": {...}, "enforced_by": {...}, "change": {...}}`; with `--retire` only `change` is needed. The type is Hard, Soft, Review, or Process, with the Chinese 硬, 软, 审查, or 流程. `rule-row` refuses, and writes nothing, when a cell is empty, holds a line break, or holds a `|` without a `\`; when the change-log text does not name the ID; when a new ID is not the next free one; when the row is retired; and when the two files' versions differ.
+- **A baseline line** is any line holding `baseline:` and a P ID, in a file of the `config` or `dependencies` class on `origin/main`, except Markdown files and troy-mode's copies under `.troy-mode/` other than its config. `check-run` reads a dependency change through `git diff` against the snapshot's head, so the checkout's line-ending conversion does not count as a change.
+- **Troy's choice** is read from the newest change-log row whose text names the rule's ID as a word.
+- **`rule-id`** also gives the next R ID (`next_r_id`), for a rule for every project. **`status`** gives the P rules, with their choice and baseline lines, in a new report key `rules`. `cleanup` names the rule in `next.item`, the lowest P number first, and comes after `release` and before `ask-approvals`. An open `[refactor] Apply P01 to ...`, `[P01 test-fix] ...`, or `[docs] Change the architecture for P01` PR is continued with DV5, TE6, or AR6.
+- **`brief`** takes a P ID or an R ID as the item. A P ID allows AR6 without a title (also for the next free ID, before the rule exists), AR6 and AR5 with a `[docs]` title, DV5, CR1, and AR5 with `[refactor] Apply P01 to <area>`, and TE6, TM2, CR1, and AR5 with `[P01 test-fix] ...`. An R ID allows AR6 alone, and its brief adds the plugin's requirements, rules template, troy-check, and agent files to Read first.
 
 ## 4. The flow
 
@@ -245,6 +254,8 @@ Before the PR opens, F09 runs in nested `claude -p` sessions on Troy's PC, with 
 
 It takes about 5 role runs (AR6 three times, DV5, CR1), about $4 to $7 from F07's trials, plus a few minutes of Actions for each of about 5 PRs.
 
+The trial ran on 2026-11-08 on `ZJUCao/troy-mode-trial`. Before it, Troy's approval in the prompt merged the open `[F02 1/6 design] Count lines` (PR 29). Step 1 was PR 30. Step 2 was PR 31, which added P01 (ruff EM102) with one baseline line for `counting.py`. In step 3 a new session got "continue": `status` gave `cleanup`, and DV5's `[refactor] Apply P01 to counting` (PR 32), reviewed by CR1, fixed the file and deleted the baseline line in the same commit; `check-run` staged `pyproject.toml` without `--allow-dependency` on a Windows checkout that converts line endings. Step 4 was PR 33, a review rule with only its row and the choice "fixed when touched". Step 5 was PR 34, which retired it with no AR6 run. In step 6 AR6 proposed R22 with the troy-pstack files it changes; Troy declined the issue, and none was opened. AR6 ran three times, DV5 twice (one run was stopped by hand and restarted), and CR1 once, for about $10. The trial found three gaps, now fixed: AR6 thought a cleanup PR could not delete baseline lines in the same commit, so AR6's brief and agent file say that a `[refactor]` or test-fix PR may change dependency files; "continue" after the last cleanup would go on to the next feature stage, so the skill makes a rule's last cleanup a natural stop; and the agent's file tools may refuse a path inside `.git`, so the skill writes the engine's input files through Bash.
+
 ### 10.4 Status
 
 | When | F09's status in requirements 7.2 |
@@ -289,3 +300,4 @@ Requirements 1.25 records the approved changes:
 | 0.1 | 2026-11-08 | First draft. |
 | 1.0 | 2026-11-08 | Approved by Troy with D79 to D85, every recommended answer. |
 | 1.1 | 2026-11-08 | Section 10.3 and D85: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |
+| 1.2 | 2026-11-08 | Section 3.3: the details the build settled: the rules table and its IDs, the rule file, baseline lines, how `status` and `brief` treat rules, and the next R ID. Section 10.3: what the trial ran and the three gaps it found, now fixed. |

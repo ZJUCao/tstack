@@ -44,7 +44,7 @@ mirror: "rules.zh-CN.md"
 | R20 | A merged document or PR description holds no template markers or template guidance. | Hard | CI | troy-mode | {{init-date}} |
 | R21 | Every change reaches `main` through a PR from its own branch. Never commit on `main`, push `main`, or open a PR from `main`. | Hard | Hook and CI | troy-mode | {{init-date}} |
 
-<!-- template: Add this project's own rules here, one row each, with Scope "project". Example row: | P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} | -->
+<!-- template: troy-mode's rule change flow adds this project's own rules here, after the R rows, one row each, with the next free ID (P01, P02, and so on) and Scope "project". Example row: | P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} |. A retired rule keeps its row: its Rule cell starts with "Retired on <date>.", its Enforced by cell says None, and its ID is never used again. When existing code breaks a new check, the tool's config exempts each violating file on one line with the comment baseline: P01, until a cleanup PR fixes the file and deletes the line. -->
 
 ## 3. Change log
 

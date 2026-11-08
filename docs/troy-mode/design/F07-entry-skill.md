@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F07 in [requirements 1.20](../requirements.md#72-feature-list) |
-| Version | 1.3 |
+| Version | 1.4 |
 | Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. Version 1.2 records Troy's D69 and the details part 2 settled. |
 | Source of truth | This English file. [`F07-entry-skill.zh-CN.md`](F07-entry-skill.zh-CN.md) is the Chinese mirror. |
@@ -19,7 +19,7 @@ F07 is the command Troy types for all work in a troy-mode project, `/troy-pstack
 5. commits, opens PRs, posts reviews, counts review rounds and attempts, escalates (5.7), and merges within the merge rights (R17, R18);
 6. keeps the progress file.
 
-The version release flow (5.5) and the rule change flow (5.8) are F08 and F09. F07 routes those requests and says that the flow is not built yet. Sections 5.6 (when tests run) and 5.7 (escalation) are not requests. They are steps inside the other flows.
+The version release flow (5.5) and the rule change flow (5.8) are F08's and F09's. F07 routes those requests to them. Sections 5.6 (when tests run) and 5.7 (escalation) are not requests. They are steps inside the other flows.
 
 F07 lands in two parts (D67). Part 1 holds routing, setup, the feature loop's main path, work outside the pipeline, and continuing. Part 2 adds the feature loop's side PRs (disputed tests, coverage gaps, and new dependencies), bug fixes, and requirement changes.
 
@@ -108,7 +108,7 @@ At every start, F07 reads `product-manager.md`, runs `status`, and then picks th
 | "continue", "status", or nothing | Continue | Section 11.4 |
 | "upgrade troy-mode" | troy-init's upgrade (F06 section 6) | Section 10 |
 | "release v0.1" | Version release (5.5) | F08 design |
-| "add a rule ..." | Rule change (5.8) | Not built: F09 |
+| "add a rule ..." | Rule change (5.8) | F09 design |
 
 - In a folder with no `.troy-mode/`, F07 answers a question but changes nothing. For any other request, it asks Troy once whether to make the folder a troy-mode project.
 - When a request fits two flows, or none, F07 asks Troy one question with a recommended answer.
@@ -482,3 +482,4 @@ Requirements 1.20 records the approved changes:
 | 1.1 | 2026-11-07 | Facts from part 1's trial (section 14.3): the Agent calls carry `[roles]` and the session waits for writing roles (section 1); the skill runs the engines, git, and gh through Bash (section 2); IF1 keeps section 4 free of template markers (section 6.1); the feature's name stays short (section 8.1); and `gh pr checks --watch` may need a second start right after a push (section 8.6). |
 | 1.2 | 2026-11-07 | Troy's D69: tests that run on another platform only are left to CI (section 8.6). Details part 2 settled: `brief --title`, `check-skips`, and `series` (section 3.1); history order, bugs, and side PRs first in the state (section 5.1); who writes each side PR (section 8.7); bug branches (section 11.1); rework, the redo, the skipped mock, and the change's approval (section 11.2); part 2's tests and planted bugs (sections 14.1 and 14.2). From part 2's trial: an escalation with no open PR goes on the bug's issue (section 9). |
 | 1.3 | 2026-11-08 | From F08 design section 9: "release" requests go to F08's version release flow (section 4); `status`, `brief`, and `approve` change as F08 section 3 says, and `approve` adds a change-log row (D77, section 8.6); the rights gain the GitHub release (section 9). From F08's trial: every fetch prunes (sections 8.2 and 8.6). |
+| 1.4 | 2026-11-08 | From F09 design section 8: "add a rule" requests go to F09's rule change flow (section 4); the engine gains `rule-id`, `rule-row`, the `rules` snapshot role, a `check-run` rule for dependency changes that only delete `baseline:` lines, and the `cleanup` action; the skill reads the P rows of type Process at every start. |

@@ -8,6 +8,8 @@ STAGES = {"1": "design", "2": "test-plan", "3": "mock", "4": "tests", "5": "impl
 _SUMMARY = r"(?P<summary>\S(?:.*\S)?)"
 _FEATURE = r"F\d{2,3}"
 _BUG = r"B[1-9]\d*"
+# A project rule's ID, in its test cleanup PR "[P01 test-fix] ..." (F09 design 5.4).
+_RULE = r"P\d{2,3}"
 _NUMBER = r"(?:0|[1-9]\d*)"
 _VERSION = rf"v{_NUMBER}\.{_NUMBER}"
 
@@ -15,7 +17,7 @@ _PATTERNS = [
     re.compile(rf"\[(?P<id>{_FEATURE}) (?P<n>[1-6])/6 (?P<name>[a-z-]+)\] {_SUMMARY}"),
     re.compile(rf"\[(?P<id>{_BUG}) (?P<stage>A/B) (?P<kind>test)\] {_SUMMARY}"),
     re.compile(rf"\[(?P<id>{_BUG}) (?P<stage>B/B) (?P<kind>fix)\] {_SUMMARY}"),
-    re.compile(rf"\[(?P<id>{_FEATURE}|{_BUG}) (?P<kind>test-fix)\] {_SUMMARY}"),
+    re.compile(rf"\[(?P<id>{_FEATURE}|{_BUG}|{_RULE}) (?P<kind>test-fix)\] {_SUMMARY}"),
     re.compile(rf"\[(?P<kind>docs|rules|refactor)\] {_SUMMARY}"),
     re.compile(rf"\[(?P<id>{_VERSION}) (?P<version_tests>tests)\] {_SUMMARY}"),
 ]
@@ -31,8 +33,9 @@ class Title:
     Attributes:
         kind: PR kind, for example "mock", "test", "fix", "test-fix", "docs", or
             "version-tests".
-        id: Feature or bug ID, the version ("v0.1") of a version-tests PR, or
-            None for docs, rules, and refactor PRs.
+        id: Feature or bug ID, the version ("v0.1") of a version-tests PR, the
+            P ID of a rule's test-fix PR, or None for docs, rules, and refactor
+            PRs.
         stage: "3/6" for a feature stage, "A/B" or "B/B" for a bug PR, else None.
         summary: The text after the bracket.
     """
@@ -95,7 +98,8 @@ def describe(title: Title | None, allowed: list[str]) -> str:
         return "Kind: unknown. The title matches no PR kind."
     parts = [title.kind]
     if title.id:
-        word = {"F": "feature ", "B": "bug ", "v": "version "}.get(title.id[0], "")
+        word = {"F": "feature ", "B": "bug ", "v": "version ", "P": "rule "}.get(
+            title.id[0], "")
         parts.append(word + title.id)
     if title.stage:
         parts.append(f"stage {title.stage}")
