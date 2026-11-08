@@ -23,7 +23,7 @@ import sys
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional, Sequence, Union
 
@@ -676,6 +676,161 @@ def stages(feature: Feature, upto: int, **kwargs) -> list:
         A list of steps.
     """
     return [stage_step(feature, n, **kwargs) for n in range(1, upto + 1)]
+
+
+# ------------------------------------------------------- part 2 history
+
+CHANGE_PREFIX = "[docs] Change the requirements: "
+RECORD_REQUIREMENTS = "[docs] Record Troy's approval of docs/requirements.md"
+BUG_TAGS = {"test": "A/B test", "fix": "B/B fix", "test-fix": "test-fix"}
+
+
+def bug_title(bug: str, kind: str, summary: str) -> str:
+    """A bug PR's title (F02 design 4).
+
+    Args:
+        bug: The bug ID, for example ``B12``.
+        kind: ``test`` (PR A), ``fix`` (PR B), or ``test-fix``.
+        summary: The summary after the bracket.
+
+    Returns:
+        For example ``[B12 A/B test] Crash on empty history``.
+    """
+    return f"[{bug} {BUG_TAGS[kind]}] {summary}"
+
+
+def bug_branch(bug: str, kind: str) -> str:
+    """A bug PR's branch (design 11.1), for example ``troy-mode/b12-fix``."""
+    return f"troy-mode/{bug.lower()}-{kind}"
+
+
+def bug_step(bug: str, kind: str, summary: str, pr: Optional[int] = None) -> Step:
+    """One merged bug PR, as a rebase (or, with ``pr``, a squash) leaves it on ``main``.
+
+    Args:
+        bug: The bug ID.
+        kind: ``test``, ``fix``, or ``test-fix``.
+        summary: The title's summary.
+        pr: The PR number for a squash subject with `` (#<pr>)``, or None.
+
+    Returns:
+        The step.
+    """
+    low = bug.lower()
+    if kind == "fix":
+        files = {f"src/wordcount/fix_{low}.py": f'"""The fix of {bug}."""\n'}
+    else:
+        files = {f"tests/test_{low}.py":
+                 f'"""Tests of {bug}."""\n\n\ndef test_{low}_empty_history():\n'
+                 '    """Fails before the fix."""\n    assert True\n'}
+    subject = bug_title(bug, kind, summary)
+    return step(subject + (f" (#{pr})" if pr is not None else ""), files)
+
+
+def rework(feature: Feature, change: str = "Count blank lines") -> Feature:
+    """The feature with PM2's Status cell ``Needs rework (<change>)`` (design 11.2).
+
+    Args:
+        feature: The feature.
+        change: The change named in the cell.
+
+    Returns:
+        A copy of the feature with the new Status cell.
+    """
+    return replace(feature, status=f"Needs rework ({change})")
+
+
+def requirements_files(features: Sequence[Feature] = TWO, version: str = "2.0") -> dict:
+    """Both requirements files at one version, for a commit that changes them.
+
+    Args:
+        features: The features table's rows.
+        version: The front matter's version.
+
+    Returns:
+        Paths mapped to content.
+    """
+    return {REQUIREMENTS: requirements_text(features, version=version),
+            REQUIREMENTS_ZH: requirements_zh(version)}
+
+
+def change_step(summary: str = "Count blank lines", features: Sequence[Feature] = TWO,
+                version: str = "2.0", pr: Optional[int] = None) -> Step:
+    """A merged ``[docs] Change the requirements: <summary>`` PR (design 11.2).
+
+    Args:
+        summary: The change's summary.
+        features: The features table after the change.
+        version: The requirements' version after the change: a next major
+            when Troy approved in chat (``approve``), a minor when he merged
+            on GitHub.
+        pr: The PR number for a squash subject, or None.
+
+    Returns:
+        The step.
+    """
+    subject = CHANGE_PREFIX + summary + (f" (#{pr})" if pr is not None else "")
+    return step(subject, requirements_files(features, version))
+
+
+def record_step(features: Sequence[Feature] = TWO, version: str = "2.0") -> Step:
+    """A merged ``[docs] Record Troy's approval of docs/requirements.md`` PR.
+
+    Args:
+        features: The features table.
+        version: The requirements' version after ``approve``.
+
+    Returns:
+        The step.
+    """
+    return step(RECORD_REQUIREMENTS, requirements_files(features, version))
+
+
+def custom_design(feature: Feature, section2: Optional[str], section1_extra: str = "",
+                  section3: str = "None\n", version: str = "1.0") -> str:
+    """An English design whose section 2 the test chooses (design 11.2, the skipped mock).
+
+    Args:
+        feature: The feature.
+        section2: The body under ``## 2. Interfaces``, or None for a design
+            without a ``## 2.`` heading.
+        section1_extra: Text appended to section 1.
+        section3: The body under ``## 3. Changes to existing interfaces``.
+        version: The front matter's version.
+
+    Returns:
+        The document text.
+    """
+    text = (front_matter(f"{feature.id}-design", "en", version, "design.zh-CN.md")
+            + f"# {feature.id} {feature.name}: interface design\n\n"
+            f"## 1. Feature\n\n- ID and name: {feature.id} {feature.name}\n"
+            "- Hard dependencies: None\n- Soft dependencies: None\n\n" + section1_extra)
+    if section2 is not None:
+        text += "## 2. Interfaces\n\n" + section2 + "\n"
+    return text + ("## 3. Changes to existing interfaces\n\n" + section3 + "\n"
+                   "## 4. Architect review\n\n| Item | Result | Note |\n| --- | --- | --- |\n"
+                   "| Fits the module layout and the data model | Pass | None |\n\n"
+                   "## 5. Change log\n\n| Version | Date | Change |\n| --- | --- | --- |\n"
+                   "| 0.1 | 2026-11-01 | First draft. |\n")
+
+
+def custom_design_step(feature: Feature, design: Optional[str]) -> Step:
+    """Stage 1 of a feature merged with a chosen English design, or with none.
+
+    Args:
+        feature: The feature.
+        design: The English design's text, or None for a stage 1 commit
+            that leaves no ``design.md`` in the feature folder.
+
+    Returns:
+        The step.
+    """
+    mirror = (front_matter(f"{feature.id}-design", "zh-CN", "1.0", "design.md")
+              + f"# {feature.id} {feature.name}：接口设计\n\n## 1. 功能\n\n无\n")
+    if design is None:
+        return step(feature.title(1), {f"{feature.folder}/notes.md": "# Notes\n"})
+    return step(feature.title(1), {feature.design: design,
+                                   f"{feature.folder}/design.zh-CN.md": mirror})
 
 
 def _data(content: bytes) -> bytes:

@@ -13,8 +13,15 @@ from pathlib import Path
 from .errors import FlowError
 from .stages import feature_stage
 
-CODE_TASKS = ("DV1", "DV2", "TE1", "TM2", "CR1")
-WORKTREE_TASKS = ("DV1", "DV2", "TE1")
+# Tasks that run the pack's steps and troy-check code, and the authors among
+# them, which check their own uncommitted work with --worktree (D60).
+CODE_TASKS = ("DV1", "DV2", "DV3", "DV4", "TE1", "TE2", "TE3", "TE4", "TM2", "TM3", "TM4",
+              "CR1")
+WORKTREE_TASKS = ("DV1", "DV2", "DV3", "DV4", "TE1", "TE2", "TE3", "TE4")
+# What a code task's brief says about a test that runs on another platform only (D69).
+PLATFORM_SKIP = ("A test that the test plan runs only on another platform is skipped here, and "
+                 "troy-check code reports it under R09 or R10; CI checks it, so name it in your "
+                 "report and do not count it as a failure.")
 PREFIX_VARIABLE = "TROY_MODE_ENV_PREFIX"
 TROY_CHECK = "python .troy-mode/checks/troy_check.py code --base origin/main --title {title} " \
              "--junit reports/junit.xml --coverage reports/coverage.xml"

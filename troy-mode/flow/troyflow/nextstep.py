@@ -1,17 +1,21 @@
-"""The next action, decided from the state (F07 design sections 4, 8, and 10).
+"""The next action, decided from the state (F07 design sections 4, 8, 10, and 11).
 
 The first rule that holds wins. The skill holds the judgment about what to do
 with it; this module only reads the exact rules.
 """
 
+from troycheck.frontmatter import version_key
+
 from . import repo as git
 from .repo import MAIN
 from .requirements import approved, doc_version
-from .stages import AUTHOR_TASK, branch, current_stage, feature_stage, parse_subject, title
+from .rework import change_index
+from .stages import AUTHOR_TASK, KIND_TASK, branch, feature_stage, parse_subject, plain, title
 from .state import ARCHITECTURE, REQUIREMENTS, SETUP_TITLE, State, is_approved, next_feature, \
     pr_entry
 
 ASK_TITLE = "[rules] Set the features Troy approves"
+RECORD_REQUIREMENTS = f"[docs] Record Troy's approval of {REQUIREMENTS}"
 _KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc")
 
 
@@ -30,14 +34,40 @@ def _record(doc: str, slug: str, **values) -> dict:
                  branch=f"troy-mode/approve-{slug}", merged_by="f07", **values)
 
 
+def _pr_order(pr: dict) -> tuple[int, int]:
+    """Sorts open PRs: side PRs before feature stage PRs, then by number (design 5.1, 8.7)."""
+    is_stage = feature_stage(str(pr.get("title") or "")) is not None
+    return (1 if is_stage else 0, int(pr.get("number", 0)))
+
+
 def _pr_next(state: State, pr: dict) -> dict:
     """The next entry for continuing an open PR."""
     entry = pr_entry(state, pr)
     found = feature_stage(entry["title"] or "")
+    task = AUTHOR_TASK.get(found[1]) if found else KIND_TASK.get(entry["kind"] or "")
     return _next("continue-pr", pr=entry["number"], title=entry["title"], branch=entry["branch"],
-                 item=entry["item"], stage=entry["stage"],
-                 task=AUTHOR_TASK.get(found[1]) if found else None,
+                 item=entry["item"], stage=entry["stage"], task=task,
                  merged_by=entry["merged_by"], rounds=entry["rounds"], attempts=entry["attempts"])
+
+
+def _stale_rework(state: State, pr: dict) -> dict | None:
+    """The rework entry for a stage PR opened before a requirement change, or None.
+
+    The PR's feature is in rework, and its branch on origin is missing or does
+    not hold the newest change commit, so AR4 must name the stage to redo
+    before the PR goes on (design 11.2).
+    """
+    found = feature_stage(str(pr.get("title") or ""))
+    if not found or not state.in_rework(found[0]):
+        return None
+    head = str(pr.get("headRefName") or "")
+    ref = f"refs/remotes/origin/{head}"
+    change = state.change_commit()
+    if head and change and git.commit_of(state.repo, ref) and git.is_ancestor(state.repo, change,
+                                                                             ref):
+        return None
+    return _next("rework", item=found[0], stage=state.current(found[0]), task="AR4",
+                 pr=int(pr.get("number", 0)), title=pr.get("title"), branch=pr.get("headRefName"))
 
 
 def _setup_next(state: State) -> dict | None:
@@ -57,6 +87,24 @@ def _setup_next(state: State) -> dict | None:
     return None
 
 
+def _change_record(state: State) -> dict | None:
+    """The record entry for a requirement change that Troy merged on GitHub, or None.
+
+    Approving in chat raises the requirements to a new major version inside the
+    change commit; a merge on GitHub leaves a minor part (design 11.2).
+    """
+    index = change_index(state.subjects)
+    if index is None:
+        return None
+    version = doc_version(git.read(state.repo, state.log[index][0], REQUIREMENTS))
+    key = version_key(version) if version else None
+    if key is None or len(key) < 2 or key[1] == 0:
+        return None
+    if any(plain(s) == RECORD_REQUIREMENTS for s in state.subjects[:index]):
+        return None
+    return _record(REQUIREMENTS, "requirements")
+
+
 def _approval_records(state: State) -> dict | None:
     """The next entry for a PR 1 or PR 2 that Troy merged on GitHub (design 8.6), or None."""
     for stage, name in ((1, "design"), (2, "test-plan")):
@@ -68,6 +116,24 @@ def _approval_records(state: State) -> dict | None:
             if doc and not approved(doc_version(git.read(state.repo, MAIN, doc))):
                 return _record(doc, f"{fid.lower()}-{name}", item=fid, stage=stage)
     return None
+
+
+def _bug_next(state: State) -> dict | None:
+    """The next entry for PR B of a bug whose PR A merged (design 11.1), or None."""
+    for bug in state.bugs:
+        if bug["test_merged"] and not bug["fixed"]:
+            bid = bug["id"]
+            return _next("bug", item=bid, task="DV3", title=f"[{bid} B/B fix] {bug['summary']}",
+                         branch=f"troy-mode/{bid.lower()}-fix", merged_by="f07")
+    return None
+
+
+def _rework_next(state: State) -> dict | None:
+    """The next entry for the next feature when a requirement change sent it back, or None."""
+    fid = next_feature(state)
+    if fid is None or not state.merged.get(fid) or not state.in_rework(fid):
+        return None
+    return _next("rework", item=fid, stage=state.current(fid), task="AR4")
 
 
 def _ask_due(state: State) -> bool:
@@ -89,11 +155,25 @@ def _stage_next(state: State, attempts: int) -> dict:
     feature = state.feature(fid)
     if fid is None or feature is None:
         return _next("all-accepted")
-    stage = current_stage(state.merged.get(fid, set()))
+    stage = state.current(fid)
     stage_title = title(fid, stage, feature.name)
     return _next("stage", item=fid, stage=stage, task=AUTHOR_TASK[stage], title=stage_title,
                  branch=branch(fid, stage), merged_by=state.merged_by(stage_title),
                  attempts=attempts)
+
+
+def _open_pr_next(state: State, current: list[dict], notes: list[str],
+                  attempts: int) -> dict:
+    """The next entry when troy-mode PRs are open: the first one in order goes on."""
+    if len(current) > 1:
+        notes.append(f"{len(current)} troy-mode PRs are open; PR #{current[0]['number']} "
+                     "comes first. troy-mode works on one PR at a time.")
+    stale = _stale_rework(state, current[0])
+    if stale:
+        return stale
+    entry = _pr_next(state, current[0])
+    entry["attempts"] = max(entry["attempts"], attempts)
+    return entry
 
 
 def decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
@@ -106,26 +186,23 @@ def decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
     Returns:
         The next entry and notes about the choice.
     """
-    notes = []
-    current = [pr for pr in state.prs if parse_subject(str(pr.get("title") or ""))]
+    notes: list[str] = []
+    current = sorted((pr for pr in state.prs if parse_subject(str(pr.get("title") or ""))),
+                     key=_pr_order)
     setup_open = any(pr.get("title") == SETUP_TITLE for pr in current)
     if state.repo is None or not state.origin or (not state.installed and not setup_open):
         return _next("setup", title=SETUP_TITLE, branch="troy-mode/init", merged_by="f07"), notes
     if current:
-        if len(current) > 1:
-            notes.append(f"{len(current)} troy-mode PRs are open; PR #{current[0]['number']} "
-                         "comes first. troy-mode works on one PR at a time.")
-        entry = _pr_next(state, current[0])
-        entry["attempts"] = max(entry["attempts"], attempts)
-        return entry, notes
+        return _open_pr_next(state, current, notes, attempts), notes
     found = _setup_next(state)
     if found:
         return found, notes
     if state.order_problems:
         return _next("order-problem"), notes
-    found = _approval_records(state)
-    if found:
-        return found, notes
+    for rule in (_change_record, _approval_records, _bug_next, _rework_next):
+        found = rule(state)
+        if found:
+            return found, notes
     if _ask_due(state):
         return _next("ask-approvals", title=ASK_TITLE, branch="troy-mode/approvals",
                      merged_by="f07"), notes

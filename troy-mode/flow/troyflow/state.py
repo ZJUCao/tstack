@@ -10,13 +10,16 @@ from . import github, plugincheck, repo as git
 from .repo import MAIN, Repo
 from .requirements import Feature, approved, doc_version, order_problems, parse_features, \
     parse_order
-from .stages import TROY_STAGES, feature_stage, merged_stages, parse_subject
+from .rework import change_index, in_rework, is_change
+from .sections import adds_no_interface
+from .stages import TROY_STAGES, current_stage, feature_stage, merged_stages, parse_subject
 
 INSTALL = ".troy-mode/install.toml"
 REQUIREMENTS = "docs/requirements.md"
 ARCHITECTURE = "docs/architecture.md"
 SETUP_TITLE = "[rules] Set up troy-mode"
 TROY_DOCS_TITLES = ("[docs] Add the requirements", "[docs] Add the architecture")
+BUG_KINDS = ("test", "fix", "test-fix")
 
 
 @dataclass
@@ -37,8 +40,10 @@ class State:
         order: The order line's IDs, or None.
         order_problems: What breaks the order (design 5.1).
         merged: Merged stage numbers by feature.
+        log: origin/main's commit IDs and subjects, newest first.
         subjects: origin/main's subjects, newest first.
         prs: The open PRs, each with its comments read.
+        bugs: The bugs found in subjects and open PR titles (design 11.1).
     """
 
     repo: Repo | None = None
@@ -54,8 +59,10 @@ class State:
     order: list[str] | None = None
     order_problems: list[str] = field(default_factory=list)
     merged: dict[str, set[int]] = field(default_factory=dict)
+    log: list[tuple[str, str]] = field(default_factory=list)
     subjects: list[str] = field(default_factory=list)
     prs: list[dict] = field(default_factory=list)
+    bugs: list[dict] = field(default_factory=list)
 
     def feature(self, fid: str | None) -> Feature | None:
         """Returns a feature of the table by its ID, or None."""
@@ -68,7 +75,7 @@ class State:
 
     def merged_by(self, title: str | None) -> str:
         """Says who merges a PR with this title: "troy" or "f07" (design 8.6)."""
-        if title in TROY_DOCS_TITLES:
+        if title in TROY_DOCS_TITLES or is_change(title or ""):
             return "troy"
         found = feature_stage(title or "")
         if found and found[1] in TROY_STAGES and self.troy_approves(found[0]):
@@ -80,6 +87,28 @@ class State:
         names = [name for name in git.folders(self.repo, MAIN, "docs/features")
                  if name.startswith(fid + "-")]
         return f"docs/features/{names[0]}" if names else None
+
+    def in_rework(self, fid: str | None) -> bool:
+        """Tells whether a feature is in rework after a requirement change (design 11.2)."""
+        return in_rework(self.feature(fid), self.subjects, self.merged.get(fid or "", set()))
+
+    def change_commit(self) -> str | None:
+        """Returns the newest requirement change commit on origin/main, or None."""
+        index = change_index(self.subjects)
+        return self.log[index][0] if index is not None else None
+
+    def skips_mock(self, fid: str) -> bool:
+        """Tells whether a feature skips stage 3: its merged design adds no interface (D65)."""
+        merged = self.merged.get(fid, set())
+        if 2 not in merged or 3 in merged:
+            return False
+        folder = self.feature_folder(fid)
+        return folder is not None and adds_no_interface(
+            git.read(self.repo, MAIN, f"{folder}/design.md"))
+
+    def current(self, fid: str) -> int | None:
+        """Returns a feature's current stage, counting a skipped mock as merged."""
+        return current_stage(self.merged.get(fid, set()), self.skips_mock(fid))
 
 
 def _read_install(state: State) -> None:
@@ -116,6 +145,37 @@ def _read_prs(state: State) -> None:
         state.prs.append(pr)
 
 
+def _bug_title(text: str):
+    """Parses a subject or title as a bug's test, fix, or test-fix PR, or returns None."""
+    parsed = parse_subject(text)
+    if parsed and parsed.kind in BUG_KINDS and (parsed.id or "").startswith("B"):
+        return parsed
+    return None
+
+
+def read_bugs(state: State) -> list[dict]:
+    """Finds the bugs in origin/main's subjects and the open PR titles (design 11.1).
+
+    Returns:
+        One entry per bug, by number: id, summary, test_merged, and fixed.
+    """
+    bugs: dict[str, dict] = {}
+    sources = [(s, True) for s in state.subjects]
+    sources += [(str(pr.get("title") or ""), False) for pr in state.prs]
+    for text, merged in sources:
+        parsed = _bug_title(text)
+        if parsed is None:
+            continue
+        bug = bugs.setdefault(parsed.id, {"id": parsed.id, "summary": None,
+                                          "test_merged": False, "fixed": False})
+        if merged:
+            bug["test_merged"] = bug["test_merged"] or parsed.kind == "test"
+            bug["fixed"] = bug["fixed"] or parsed.kind == "fix"
+        if bug["summary"] is None and parsed.kind in ("test", "fix"):
+            bug["summary"] = parsed.summary
+    return sorted(bugs.values(), key=lambda b: int(b["id"][1:]))
+
+
 def read_state(path: str | None) -> State:
     """Reads the project's state (design 5.1).
 
@@ -139,12 +199,14 @@ def read_state(path: str | None) -> State:
         return state
     _read_install(state)
     state.approves_first = git.config_at(state.repo, MAIN).troy_approves_first
-    state.subjects = git.subjects(state.repo, MAIN)
+    state.log = git.log(state.repo, MAIN)
+    state.subjects = [subject for _, subject in state.log]
     state.merged = merged_stages(state.subjects)
     _read_requirements(state)
     if state.installed:
         state.checks = plugincheck.compare(state.repo)
     _read_prs(state)
+    state.bugs = read_bugs(state)
     return state
 
 

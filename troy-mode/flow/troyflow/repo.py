@@ -111,6 +111,27 @@ def subjects(repo: Repo, ref: str) -> list[str]:
         raise FlowError(str(exc)) from exc
 
 
+def log(repo: Repo, ref: str) -> list[tuple[str, str]]:
+    """Lists the commit ID and subject of every commit reachable from a ref.
+
+    Returns:
+        Pairs, newest first, every commit before its parents (--topo-order).
+    """
+    out = git(repo, "log", "--no-show-signature", "--topo-order", "--format=%H%x00%s", ref)
+    pairs = []
+    for line in out.split("\n"):
+        sha, sep, subject = line.partition("\0")
+        if sep:
+            pairs.append((sha.strip(), subject))
+    return pairs
+
+
+def is_ancestor(repo: Repo, commit: str, ref: str) -> bool:
+    """Tells whether a commit is reachable from a ref."""
+    proc = gitio.run_git(repo.root, "merge-base", "--is-ancestor", commit, ref, check=False)
+    return proc.returncode == 0
+
+
 def folders(repo: Repo, ref: str, parent: str) -> list[str]:
     """Lists the folder names directly inside a folder of a commit, sorted."""
     proc = gitio.run_git(repo.root, "ls-tree", "-d", "-z", "--name-only", ref, "--",

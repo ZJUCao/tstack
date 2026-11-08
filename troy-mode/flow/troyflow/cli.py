@@ -6,7 +6,7 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import approve, brief, runs, status, textcheck
+from . import approve, brief, runs, series, skips, status, textcheck
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -34,7 +34,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Builds the parser for the six commands (design 3.1)."""
+    """Builds the parser for the eight commands (design 3.1)."""
     parser = _Parser(prog="troy_flow.py", description="troy-mode's flow engine.")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
@@ -44,6 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("brief", help="the brief for one role run")
     cmd.add_argument("--task", required=True)
     cmd.add_argument("--item")
+    cmd.add_argument("--title", help="the PR title, for a bug PR, a side PR, or a redo")
     cmd.add_argument("--round", type=_positive)
     cmd.add_argument("--input-file")
     cmd = sub.add_parser("snapshot", help="record the state before a role run")
@@ -56,7 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--date")
     cmd = sub.add_parser("check-text", help="check a PR comment for attribution (R19)")
     cmd.add_argument("--file", required=True)
-    for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text"):
+    cmd = sub.add_parser("check-skips", help="local failures that are only skipped tests (D69)")
+    cmd.add_argument("--report", required=True, help="troy-check code's JSON report")
+    cmd.add_argument("--junit", action="append", required=True, help="a JUnit XML file")
+    sub.add_parser("series", help="plan the series lock after a dependency change (D66)")
+    for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
+                 "check-skips", "series"):
         _common(sub.choices[name])
     return parser
 
@@ -89,7 +95,8 @@ def _utf8_stdio() -> None:
 
 COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.snapshot,
             "check-run": runs.check_run, "approve": approve.run_approve,
-            "check-text": textcheck.run_check_text}
+            "check-text": textcheck.run_check_text, "check-skips": skips.run_check_skips,
+            "series": series.run_series}
 
 
 def main(argv: list[str]) -> int:

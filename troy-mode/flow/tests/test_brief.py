@@ -239,15 +239,27 @@ class RefusalTests(FlowCase):
         project.commit("[rules] Break the config", {CONFIG: config_text(extra="[bogus]\nx = 1\n")})
         self.assert_exit(brief(project, "DV1"), 2)
 
-    def test_part_two_tasks_are_refused(self):
-        """Tasks of part 2 give exit 1 with a problem and no brief."""
-        tasks = ("TM4", "DV3", "TE2", "AR3", "AR4", "IF4", "TM3", "TM5", "TM6", "TM7", "DV4",
-                 "TE3", "TE4")
+    def test_part_two_tasks_at_stage_three(self):
+        """Part 2 tasks at F01's stage 3 (part 2 note, "Part 1 tests that part 2 changes").
+
+        TM4, IF4, TM3, TM6, and DV4 belong to stage 5; DV3, TE2, and TM5 to a
+        bug; TE3 and TE4 need a test-fix title; TM7 is F08's. AR3 and AR4 are
+        now allowed at any stage.
+        """
+        refused = ("TM4", "IF4", "TM3", "TM6", "DV4", "DV3", "TE2", "TM5", "TE3", "TE4", "TM7")
+        allowed = ("AR3", "AR4")
+        tasks = refused + allowed
         for task, out in zip(tasks, run_briefs([("stage3", t, "F01", ()) for t in tasks])):
             with self.subTest(task=task):
-                report = self.report_of(out, 1, "brief")
-                self.assertNotEqual(report["problems"], [])
-                self.assertFalse(report.get("prompt"), "a refused task has no brief")
+                if task in refused:
+                    report = self.report_of(out, 1, "brief")
+                    self.assertNotEqual(report["problems"], [])
+                    self.assertFalse(report.get("prompt"), "a refused task has no brief")
+                else:
+                    report = self.report_of(out, 0, "brief")
+                    self.assertEqual((report["task"], report["role"], report["item"],
+                                      report["stage"]), (task, "architect", "F01", 3))
+                    self.assertEqual(report["checks"], [])
 
     def test_product_manager_tasks_are_refused(self):
         """PM1 to PM5 run in the main session, so they get no brief."""

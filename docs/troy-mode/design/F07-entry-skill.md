@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F07 in [requirements 1.20](../requirements.md#72-feature-list) |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-07 |
-| Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. |
+| Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. Version 1.2 records Troy's D69 and the details part 2 settled. |
 | Source of truth | This English file. [`F07-entry-skill.zh-CN.md`](F07-entry-skill.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -48,12 +48,14 @@ troy-mode/
 
 ```text
 python troy_flow.py status     [--write-progress] [--waiting <text>] [--note <text>] [common options]
-python troy_flow.py brief      --task <task ID> --item <feature or bug ID> [--round <n>]
-                               [--input-file <path>] [common options]
+python troy_flow.py brief      --task <task ID> --item <feature or bug ID> [--title <PR title>]
+                               [--round <n>] [--input-file <path>] [common options]
 python troy_flow.py snapshot   --role <role> [common options]
 python troy_flow.py check-run  --run <run ID> [--allow-dependency <path>]... [common options]
 python troy_flow.py approve    --doc <path> [--date <YYYY-MM-DD>] [common options]
 python troy_flow.py check-text --file <path> [common options]
+python troy_flow.py check-skips --report <troy-check JSON> --junit <path>... [common options]
+python troy_flow.py series     [common options]
 
 common options: [--repo <path>] [--json]
 ```
@@ -61,11 +63,13 @@ common options: [--repo <path>] [--json]
 | Command | What it does |
 | --- | --- |
 | `status` | Reads the project's state (section 5) and prints it with the next action. `--write-progress` rewrites the progress file from it. |
-| `brief` | Prints the brief for one role run (section 6.1) and the Agent tool's parameters: `subagent_type`, `model`, and `effort`. |
+| `brief` | Prints the brief for one role run (section 6.1) and the Agent tool's parameters: `subagent_type`, `model`, and `effort`. `--title` names a PR whose title the state cannot give: a bug PR, a side PR (section 8.7), or the redo of a stage (section 11.2). |
 | `snapshot` | Records the state before a run (section 7) and prints its run ID. |
 | `check-run` | Compares the state after the run with the snapshot (section 7). Prints the paths to stage, the problems, and how to undo each one. |
 | `approve` | Records Troy's approval in a document's header and in its mirror's (section 8.6). |
 | `check-text` | Checks a PR comment with troy-check's attribution rules, in the project's `[attribution] mode` (R19). |
+| `check-skips` | Reads `troy-check code`'s JSON report and the JUnit files, and says whether the only failures are tests skipped on this platform (section 8.6, D69). |
+| `series` | Plans the series lock after an accepted dependency change: the commands that compile and install it, each member's tests, and the members whose lock is now stale (section 8.7, D66). The skill runs the commands. |
 
 - The engine reads git, and GitHub through read-only `gh` calls. It writes only the progress file, the header fields that `approve` changes, and its records in `<git dir>/troy-mode/flow/`. It never commits, pushes, or writes to GitHub. The skill does that (F04 D29).
 - The exit codes are those of F06 design 3.3: 0 for done, 1 when a problem stops the step and the report says which, and 2 when the engine could not run.
@@ -129,6 +133,9 @@ At every start, F07 reads `product-manager.md`, runs `status`, and then picks th
 
 - `status` checks the order line against the dependency columns: every dependency must come earlier. A mismatch stops the feature loop and names the features. Fixing it is a requirement change.
 - The next feature is the first in the order with no `accept` commit on `origin/main`.
+- Subjects count in history order. When a stage merges again, as the redo of section 11.2 does, the feature's later stages that merged before it no longer count. A feature's current stage is its lowest stage not merged, and a mock that section 11.2 skips counts as merged.
+- Bugs come from the subjects and the open PRs too: `[B12 A/B test]` merged means PR B comes next, and `[B12 B/B fix]` merged means the bug is fixed (section 11.1).
+- When more than one troy-mode PR is open, a PR that is not a feature stage, such as a side PR, a bug PR, or a `[docs]` PR, comes before the stage PR it interrupts (section 8.7). Otherwise the lowest number comes first.
 - `status` also compares the project's troy-check, in `.troy-mode/checks/`, with the plugin's. When the project's copy is older, it says that troy-init's upgrade brings it up to date. `[roles]`, `[flow]`, and `troy-check code --worktree` need the new copy (section 12).
 
 ### 5.2 The progress file
@@ -244,12 +251,13 @@ An attempt is an author run that reports `failed`, reports `done` while F07's lo
 F07 merges a PR only when all of these hold:
 
 - every review of the stage ended in `approved`;
-- the local checks passed on the pushed commit;
+- the local checks passed on the pushed commit, or failed only on tests skipped on this platform (D69, below);
 - `gh pr checks <n> --watch`, run once, ends with every check passing. Right after a push, GitHub may not have registered the workflow yet, and the command then says that no checks are reported; running it again is still the same wait (found in the trial);
 - the merge rights allow it. PR 1 and PR 2 of the first `troy_approves_first` features in the order wait for Troy (D61, D62). Every other PR is F07's to merge.
 
 F07 then runs `git switch --detach`, `gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`, `git fetch origin`, and `status --write-progress`. It detaches first so that `gh` does not try to check out `main` before it deletes the branch.
 
+- **A test that runs on another platform only (D69).** A case of the test plan may run on one platform only, such as F01-T17 of the trial, an unreadable file, which runs on Linux and skips on Windows. troy-check counts a skipped test as neither failing (R09) nor passing (R10), so the local `troy-check code` fails on Troy's PC while CI, on Ubuntu, runs the test. When `check-skips` says that the only local failures are such skipped tests, the local checks count as passed: no attempt is counted, the PR description's Checks section lists those cases as checked by CI only, and F07 merges on CI's result, which proves the tests ran. The test plan must say why the case runs on one platform only; TM2 and CR1 check that. Authors' briefs say the same, so an author reports the skip instead of failing on it.
 - **A failing CI check.** The author gets the failing log (`gh run view --log-failed`) as Input, and the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, F07 stops and tells Troy.
 - **A refused merge.** If Claude Code's permissions refuse `gh pr merge`, F07 stops and tells Troy which permission to add. It never works around a refusal.
 
@@ -275,7 +283,12 @@ A side PR interrupts a stage. F07 finishes the side PR, rebases the stage's bran
 
 **Series lock (D66).** When a lock file changes, F07 compiles the series lock from every member's manifest with troy-init's functions (F06 design 5.4), installs it in the shared environment, and runs each member's tests there before the merge (F03 design 8.1). The PR description lists the members whose lock is now stale. F07 opens no PR in them.
 
-In part 1, each case in this section escalates to Troy and says that the side flow is not built yet.
+How part 2 runs these cases:
+
+- **Who writes the side PRs.** Rulings change no file: TM3, TM4, TM6, IF4, and AR3's review. The Test Manager adds missed cases with TM1, the Interface Designer writes a design update with IF2, which AR2 reviews, and the Architect writes the dependency's ADR in AR3's second run, after Troy accepts. Each of these runs gets `brief --title` with its PR's title, so its checks name the right PR.
+- **Titles and branches.** A test fix is `[F04 test-fix] <summary>` on `troy-mode/f04-test-fix`. A `[docs]` side PR names what it adds, such as `[docs] Add cases to the F04 test plan`, on `troy-mode/f04-docs`. A bug's side PRs use the bug ID in the same way.
+- **The series lock.** `series` lists the commands that compile and install the lock and run each member's tests, with the members whose lock is now stale. F07 runs them after the author's run that `check-run` allowed, and stages the new lock with the author's files.
+- **Order.** While a side PR is open, `status` continues it before the stage PR it interrupts (section 5.1).
 
 ## 9. Escalation (5.7)
 
@@ -288,7 +301,7 @@ In part 1, each case in this section escalates to Troy and says that the side fl
 | An irreversible action outside the merge rights | F07 checks before it acts. Its rights: push its own branches with `--force-with-lease`; open, edit, comment on, close, and merge its own PRs within R18; open bug issues; and delete its own branches after their PR merges. Anything else asks Troy. |
 | A run changed `HEAD` or the branch, or broke its scope twice | `check-run` (section 7) |
 
-The message follows F01's `escalation` template, in Troy's language: where it stopped, why, the facts with links, the options, and a recommendation (Prototype C). F07 also posts it in English on the open PR, writes "Waiting on Troy" into the progress file, and stops. When Troy answers, in this session or a new one, F07 puts the decision into the next brief's Input and goes on.
+The message follows F01's `escalation` template, in Troy's language: where it stopped, why, the facts with links, the options, and a recommendation (Prototype C). F07 also posts it in English on the open PR, writes "Waiting on Troy" into the progress file, and stops. When no PR is open yet, F07 posts it on the bug's issue if there is one: in part 2's trial, the Developer asked for a dependency before PR B existed, and the escalation went on the issue. When Troy answers, in this session or a new one, F07 puts the decision into the next brief's Input and goes on.
 
 ## 10. Project setup (5.1)
 
@@ -309,6 +322,8 @@ A project that already has some of these steps resumes at the first missing one.
 3. PR A, `[B12 A/B test] <summary>`: TE2, reviewed by TM2 and CR1. `troy-check code` checks that B12's tests fail (R09).
 4. PR B, `[B12 B/B fix] <summary>`: DV3, reviewed by CR1. `troy-check code` checks that B12's tests pass. The description says "Fixes #12", so GitHub closes the issue when F07 merges the PR.
 
+The branches are `troy-mode/b12-test` and `troy-mode/b12-fix`. PR B's title repeats PR A's summary, and after PR A merges, `status` gives PR B as the next action, so a new session finishes the bug. TM5 changes no file. When DV3 disputes a test, TM4 rules and TE3 fixes it in `[B12 test-fix]`, as section 8.7 says for features.
+
 ### 11.2 Requirement change (5.4, part 2, D65)
 
 1. **PM2.** The Product Manager updates the requirements in a `[docs] Change the requirements: <summary>` PR. Troy approves it (section 8.6), and the affected features become "Needs rework".
@@ -317,6 +332,13 @@ A project that already has some of these steps resumes at the first missing one.
 4. **An accepted feature** gets a new feature for the change, which PM2 adds with a hard dependency on the old one. Its design lists the changed interfaces in section 3. Its test plan names the old cases that the change retires, and records them in the "Not tested" section of the old feature's test plan. Its tests PR deletes those tests and adds new cases, which fail against the current code (R09). Its mock PR holds only new interfaces, and F07 skips PR 3 when there are none. troy-check needs no change, because every test of the old feature that remains still passes.
 
 Every existing test runs as regression, as on every PR (5.6).
+
+How part 2 keeps this state in git (D58):
+
+- **Needs rework.** PM2 marks each affected feature that is not yet accepted "Needs rework (<the change>)" in the Status column. An accepted feature keeps its status, and the new feature's row carries the change. A feature is in rework while its Status says so and no stage of it has merged since the newest `[docs] Change the requirements:` commit. Then `status` asks for AR4, also in a new session.
+- **The redo.** The redo PR has the stage's usual title, and `brief --title` with that title accepts a stage before the current one while the feature is in rework. When the redo merges, the stages after it no longer count (section 5.1), so the loop runs on from there. A stage PR opened before the change, whose branch lacks the change commit, makes `status` ask for AR4 before it continues. When the feature's implementation has merged and its tests change, the redo starts at stage 3 at the latest: R09 needs every test of the feature to fail against a mock.
+- **The skipped mock.** "No new interfaces" means that section 2 of the new feature's merged design holds no interface subsection. `status` and `brief` then go from PR 2 to PR 4.
+- **Troy's approval.** The change PR waits for Troy like the requirements (section 8.6). `approve` raises the requirements to the next major version. When Troy merges it on GitHub instead, its version still has a minor part, and `status` asks for `[docs] Record Troy's approval of docs/requirements.md`.
 
 ### 11.3 Work outside the pipeline (5.9)
 
@@ -377,10 +399,11 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Approve and text | `approve` raises both languages to the next major and writes both status lines. `check-text` refuses attribution in strict mode. |
 | troy-check | `[roles]` and `[flow]` are accepted. An unknown role, an unknown key, a wrong effort value, and a negative count are refused. `--worktree` sees new files, skips ignored ones, gives the same results as a real commit, and leaves the index, the refs, and the working tree as they were. |
 | Skill | Front matter `name: troy-mode` and `disable-model-invocation: true`. It names every flow of section 4, every engine command, and the stage titles of section 8.1. |
+| Part 2 | Bugs from subjects and open PRs, and PR B as the next action. Side PRs before the stage PR. The redo of a stage and the rework that needs AR4. A skipped mock. A change PR merged by Troy, and its approval recorded. Briefs for every part 2 task, by stage, bug step, and title. `check-skips` with only skipped tests failing, and with other failures. `series`' commands and stale members. |
 
 ### 14.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: a stage read from the PR title instead of `origin/main`, the order line not checked, PR 2 of the third feature merged by F07, `troy_approves_first` off by one, rounds counted from every comment, `[roles]` read from the working tree, effort passed when unset, a dirty tree accepted by `snapshot`, the Developer's scope with the `tests` class, AR2 allowed to change the whole design, a dependency change allowed without `--allow-dependency`, another role's log lines reported, `approve` raising only the English file, and `--worktree` leaving a staged file in the index. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: a stage read from the PR title instead of `origin/main`, the order line not checked, PR 2 of the third feature merged by F07, `troy_approves_first` off by one, rounds counted from every comment, `[roles]` read from the working tree, effort passed when unset, a dirty tree accepted by `snapshot`, the Developer's scope with the `tests` class, AR2 allowed to change the whole design, a dependency change allowed without `--allow-dependency`, another role's log lines reported, `approve` raising only the English file, and `--worktree` leaving a staged file in the index. Part 2's include: PR B offered before PR A merged, a stage PR continued before its side PR, a redo that leaves the later stages counted, the mock skipped with an interface in section 2, a code task without `--worktree`, a fixed bug given a brief, `check-skips` passing a failure that is not a skip, and a member's stale lock missed. The counts go in the PR description.
 
 ### 14.3 Trial (D68)
 
@@ -440,6 +463,7 @@ F06 ends at D56, so F07 continues from D57.
 | D66 | F03 left a series' lock to F07: after a dependency change, every member's tests run in the shared environment, and the other members get the new lock in their own PRs. How much does F07 do? | A: F07 compiles the lock, installs it, runs every member's tests, and lists the members whose lock is now stale. It opens no PR in other repositories. B: F07 also opens a `[rules]` PR in each member that is a troy-mode project. | A. Nothing happens outside the project without Troy, and no series has a second troy-mode member yet. B can come with the first such series. |
 | D67 | How does F07 land? Q10 says one PR per feature. | A: two PRs (section 14.4). Part 1 has routing, setup, the feature loop's main path, and continuing. Part 2 has the side PRs, bug fixes, and requirement changes. B: one PR. C: two PRs by layer, the engine first and the skill second. | A. Part 1 is already usable for setup and features, and each PR stays reviewable. C leaves nothing usable after the first PR. This adds F07 to Q10's exceptions. |
 | D68 | How is F07 tried out, and when does its status move? | A: tests and planted bugs, plus a trial of each part on `ZJUCao/troy-mode-trial`, including a session break and a resume in a fresh worktree (section 14.3). B: the same, but on a local bare `origin`, so no PR or CI really runs. Status "Written" until the pilot. | A. Only a real repository shows that reviews, CI, and merges run end to end. It costs about 26 role runs in all and a few Actions minutes, and each part's trial starts only on Troy's yes in chat. |
+| D69 | A case of the test plan runs on one platform only, so the local `troy-check code` fails on Troy's PC while CI passes (found in part 1's trial). How does F07 merge? | A: when the only local failures are tests skipped on this platform, F07 counts no attempt, lists those cases in the PR, and merges on CI's result (section 8.6). B: escalate each time. C: forbid such cases; the Test Manager writes every case to run everywhere, or puts it under "Not tested". D: troy-check stops counting a skipped test as a failure. | A, approved by Troy on 2026-11-07. CI passing proves the tests ran. B asks Troy on PR 4 and PR 5 of every such feature. C loses tests of real behavior. D would also pass in CI, so a test skipped everywhere would never be checked. Requirements need no change, because R09 and R10 are CI rules. |
 
 Requirements 1.20 records the approved changes:
 
@@ -456,3 +480,4 @@ Requirements 1.20 records the approved changes:
 | 0.1 | 2026-11-07 | First draft. |
 | 1.0 | 2026-11-07 | Approved by Troy with D57 to D68, every recommended answer. |
 | 1.1 | 2026-11-07 | Facts from part 1's trial (section 14.3): the Agent calls carry `[roles]` and the session waits for writing roles (section 1); the skill runs the engines, git, and gh through Bash (section 2); IF1 keeps section 4 free of template markers (section 6.1); the feature's name stays short (section 8.1); and `gh pr checks --watch` may need a second start right after a push (section 8.6). |
+| 1.2 | 2026-11-07 | Troy's D69: tests that run on another platform only are left to CI (section 8.6). Details part 2 settled: `brief --title`, `check-skips`, and `series` (section 3.1); history order, bugs, and side PRs first in the state (section 5.1); who writes each side PR (section 8.7); bug branches (section 11.1); rework, the redo, the skipped mock, and the change's approval (section 11.2); part 2's tests and planted bugs (sections 14.1 and 14.2). From part 2's trial: an escalation with no open PR goes on the bug's issue (section 9). |

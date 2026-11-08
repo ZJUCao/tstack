@@ -1,22 +1,45 @@
-"""The brief for one role run and the Agent call's parameters (F07 design 3.2 and 6.1)."""
+"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 8.7, 11).
+
+A brief is for a feature's stage, a side PR of a feature (a test fix or a
+[docs] PR), or a bug. --title names the PR when the state cannot: a bug PR, a
+side PR, or the redo of a stage after a requirement change.
+"""
 
 import re
+from dataclasses import dataclass
+
+from troycheck.titles import parse_title
 
 from . import checksteps, repo as git
 from .errors import FlowError
 from .repo import MAIN
-from .requirements import parse_features
-from .stages import STAGE_TASKS, current_stage, merged_stages, title as stage_title
+from .requirements import FEATURE_ID, parse_features
+from .rework import in_rework
+from .sections import adds_no_interface
+from .stages import STAGE_KINDS, STAGE_TASKS, current_stage, merged_stages, parse_subject, \
+    title as stage_title
 
-# Every task ID of F04 section 6, and the ones part 1 builds (design 14.4).
+# Every task ID of F04 section 6.
 ALL_TASKS = (tuple(f"PM{n}" for n in range(1, 6)) + tuple(f"AR{n}" for n in range(1, 6))
              + tuple(f"IF{n}" for n in range(1, 5)) + tuple(f"TM{n}" for n in range(1, 8))
              + tuple(f"DV{n}" for n in range(1, 5)) + tuple(f"TE{n}" for n in range(1, 5))
              + ("CR1",))
-PART1 = ("AR1", "AR2", "AR5", "IF1", "IF2", "IF3", "TM1", "TM2", "DV1", "DV2", "TE1", "CR1")
+NOT_BUILT = {"TM7": "TM7 writes a version test plan, which belongs to the version release flow "
+                    "(F08) and is not built yet."}
 ROLE_OF = {"AR": "architect", "IF": "interface-designer", "TM": "test-manager",
            "DV": "developer", "TE": "test-engineer", "CR": "code-reviewer"}
 ARCHITECTURE_TITLE = "[docs] Add the architecture"
+BUG_ID = re.compile(r"B[1-9]\d*")
+
+# The tasks each context outside a feature's stage allows (design 8.7 and 11.1).
+ACCEPTED_TASKS = ("AR4",)
+TEST_FIX_TASKS = ("TE3", "TE4", "TM2", "CR1", "AR3", "AR5")
+DOCS_TASKS = ("TM1", "IF2", "AR2", "IF3", "AR3", "AR4", "AR5")
+BUG_A_TASKS = ("TM5", "AR3", "AR5", "TE2", "TM2", "CR1")
+BUG_TEST_TASKS = ("TE2", "TM2", "CR1", "AR3", "AR5")
+BUG_FIX_TASKS = ("DV3", "CR1", "TM4", "AR3", "AR5")
+BUG_TEST_FIX_TASKS = ("TE3", "TM2", "CR1", "AR3", "AR5")
+BUG_DOCS_TASKS = ("AR3", "AR5")
 
 _SENTENCES = {
     "AR1": "write the architecture in docs/architecture.md and its mirror "
@@ -24,6 +47,13 @@ _SENTENCES = {
     "AR2": "review the interface design of {item} in {folder}/design.md and fill its section 4 "
            "in both languages. Change nothing else in the design or its mirror, not even the "
            "header or the change log.",
+    "AR3": "review the new dependency that Input names, for {item}: its license, maintenance, "
+           "size, security record, and the option of no dependency. Report escalate with a "
+           "recommendation, because Troy decides. When Input says that Troy accepted it, add it "
+           "to the architecture's dependency table with an ADR, in both languages.",
+    "AR4": "list the interfaces, tests, and parts of the architecture that the requirement "
+           "change in Input changes for {item}, and the earliest stage of {item} that must be "
+           "redone. Write an ADR only for an architecture change.",
     "AR5": "answer the question in Input from the architecture, for {item}.",
     "IF1": "write the interface design of {item} in {folder}/design.md and its mirror. Section 4 "
            "is the Architect's: write \"Not reviewed yet.\" in each Result and Note cell of its "
@@ -31,13 +61,76 @@ _SENTENCES = {
     "IF2": "revise the interface design of {item} in {folder}/design.md and its mirror with the "
            "Architect's findings in Input.",
     "IF3": "answer the Test Manager's question in Input from the design of {item}.",
+    "IF4": "rule on the code that Input names, which the design of {item} does not describe: "
+           "say whether the design missed it, and the design update it needs, or the Developer "
+           "overreached, so the code is deleted. Change no file.",
     "TM1": "write the test plan of {item} in {folder}/test-plan.md and its mirror.",
     "TM2": "review the tests of {item} against its test plan.",
+    "TM3": "classify each part of {item}'s code that the coverage report leaves uncovered "
+           "(Input) with the coverage gap table in your instructions, and name who fixes it. "
+           "Never order tests aimed at uncovered lines. Change no file.",
+    "TM4": "rule on the disputed test in Input: is the test or the code of {item} wrong? Change "
+           "no file.",
+    "TM5": "triage the bug report in Input: a bug, for which the Test Engineer writes a "
+           "reproduction test, or a misunderstood requirement, which goes to the Product Manager "
+           "as a change. Name the features it touches. Change no file.",
+    "TM6": "approve or reject the written reason for the coverage exclusion in Input (R11). "
+           "Change no file.",
     "DV1": "write the mock of {item}'s interfaces.",
     "DV2": "implement {item} so that its tests pass.",
+    "DV3": "fix bug {item} so that its reproduction test and every other test that must pass "
+           "pass, without changing a test.",
+    "DV4": "delete the code of {item} that the ruling in Input names, and nothing else.",
     "TE1": "write the tests of {item}'s test plan.",
+    "TE2": "write a test named with {item} that reproduces the bug in Input and fails on the "
+           "current code for the reported reason.",
+    "TE3": "change only what the Test Manager's ruling in Input names, in the tests of {item}, "
+           "and give the reason in your report.",
+    "TE4": "write tests for the cases that the Test Manager added to the test plan of {item} "
+           "(Input names them), as in TE1.",
     "CR1": "review the PR {title}.",
 }
+# A bug has no test plan: its tests are checked against the bug report.
+_BUG_SENTENCES = {
+    "TM2": "review the reproduction tests of {item} against the bug report in Input: each test's "
+           "name starts with {item}, and each fails on the current code for the reported reason "
+           "(R09, R15).",
+}
+# A [docs] side PR asks the authors of documents for an addition, not a first draft.
+_DOCS_SENTENCES = {
+    "TM1": "add the cases in Input to the test plan of {item} in {folder}/test-plan.md and its "
+           "mirror.",
+    "IF2": "update the interface design of {item} in {folder}/design.md and its mirror as Input "
+           "says.",
+}
+
+
+@dataclass
+class Target:
+    """What a brief is for, from --item and --title.
+
+    Attributes:
+        problems: What stops the brief before the task is looked at.
+        allowed: The tasks this context allows.
+        why: The problem when the task is not allowed.
+        stage: The feature's stage for the report, or None.
+        title: The PR title, or None.
+        feature: The feature's row, or None for a bug.
+        side: "test-fix" or "docs" for a side PR, else None.
+    """
+
+    problems: list[str]
+    allowed: tuple[str, ...] = ()
+    why: str = ""
+    stage: int | None = None
+    title: str | None = None
+    feature: object = None
+    side: str | None = None
+
+
+def _stop(message: str) -> Target:
+    """A target that stops the brief with one problem."""
+    return Target([message])
 
 
 def check_task(task: str, item: str | None) -> None:
@@ -51,7 +144,21 @@ def check_task(task: str, item: str | None) -> None:
     if task == "AR1" and item is not None:
         raise FlowError("AR1 writes the architecture and takes no --item")
     if task != "AR1" and item is None:
-        raise FlowError(f"{task} needs --item <feature ID>")
+        raise FlowError(f"{task} needs --item <feature or bug ID>")
+
+
+def parse_option_title(text: str | None):
+    """Parses --title.
+
+    Raises:
+        FlowError: The text is not a troy-mode PR title.
+    """
+    if text is None:
+        return None
+    parsed = parse_title(text)
+    if parsed is None:
+        raise FlowError(f"--title {text!r} is not a troy-mode PR title (F02 design 4)")
+    return parsed
 
 
 def slug(name: str) -> str:
@@ -65,39 +172,128 @@ def feature_folder(repo, item: str, name: str) -> str:
     return f"docs/features/{names[0]}" if names else f"docs/features/{item}-{slug(name)}"
 
 
+def _skips_mock(repo, item: str, merged: set[int]) -> bool:
+    """Tells whether the feature's design on origin/main adds no interface (D65)."""
+    if 2 not in merged or 3 in merged:
+        return False
+    names = [n for n in git.folders(repo, MAIN, "docs/features") if n.startswith(item + "-")]
+    return bool(names) and adds_no_interface(
+        git.read(repo, MAIN, f"docs/features/{names[0]}/design.md"))
+
+
+def _redo_target(task: str, item: str, parsed, title: str, feature, subjects: list[str],
+                 merged: set[int], stage: int | None) -> Target:
+    """The target for a feature stage --title: the current stage, or a redo in rework."""
+    number = int(parsed.stage[0])
+    if parsed.id != item:
+        return _stop(f"--title {title!r} names {parsed.id}, not {item}.")
+    if parsed.summary != feature.name:
+        return _stop(f"--title {title!r} does not end with {item}'s name, {feature.name!r}.")
+    if stage is None:
+        return _stop(f"{item} is accepted: all six stages merged on origin/main.")
+    if number != stage and not (number < stage and in_rework(feature, subjects, merged)):
+        return _stop(f"Stage {number} is not {item}'s current stage ({stage}), and {item} is not "
+                     "in rework after a requirement change.")
+    return Target([], STAGE_TASKS[number], f"{task} does not belong to stage {number} of {item}.",
+                  number, title, feature)
+
+
+def _feature_target(repo, task: str, item: str, parsed, title: str | None, features,
+                    subjects: list[str], merged_all: dict) -> Target:
+    """The target for a feature item: its stage, a redo, or a side PR."""
+    feature = next((f for f in features or [] if f.id == item), None)
+    if feature is None:
+        return _stop(f"{item} is not in the features table of docs/requirements.md on "
+                     "origin/main.")
+    merged = merged_all.get(item, set())
+    stage = current_stage(merged, _skips_mock(repo, item, merged))
+    if parsed is None and stage is None:
+        return Target([], ACCEPTED_TASKS, f"{item} is accepted: all six stages merged on "
+                                          "origin/main.", None, None, feature)
+    if parsed is None:
+        own = None if task == "AR4" else stage_title(item, stage, feature.name)
+        return Target([], STAGE_TASKS[stage], f"{task} does not belong to stage {stage} of "
+                                              f"{item}, its current stage.", stage, own, feature)
+    if parsed.kind in STAGE_KINDS:
+        return _redo_target(task, item, parsed, title, feature, subjects, merged, stage)
+    if parsed.kind == "test-fix" and parsed.id == item:
+        if 4 not in merged:
+            return _stop(f"{item}'s tests stage has not merged, so it has no tests to fix.")
+        return Target([], TEST_FIX_TASKS, f"{task} does not belong to a test fix PR.", stage,
+                      title, feature, "test-fix")
+    if parsed.kind == "docs":
+        return Target([], DOCS_TASKS, f"{task} does not belong to a [docs] side PR.", stage,
+                      title, feature, "docs")
+    return _stop(f"--title {title!r} is not a title for {item}'s work.")
+
+
+def _bug_target(item: str, task: str, parsed, title: str | None, subjects: list[str]) -> Target:
+    """The target for a bug item: step A (PR A), step B (PR B), or a side PR (design 11.1)."""
+    titles = [p for p in map(parse_subject, subjects) if p and p.id == item]
+    if any(p.kind == "fix" for p in titles):
+        return _stop(f"{item} is fixed: [{item} B/B fix] merged on origin/main.")
+    test = next((p for p in titles if p.kind == "test"), None)
+    step = "B" if test else "A"
+    why = f"{task} does not belong to step {step} of bug {item}."
+    if parsed is None and test:
+        return Target([], BUG_FIX_TASKS, why, None, f"[{item} B/B fix] {test.summary}")
+    if parsed is None:
+        return Target([], BUG_A_TASKS, why)
+    if parsed.kind == "docs":
+        return Target([], BUG_DOCS_TASKS, why, None, title, side="docs")
+    allowed = {("test", "A"): BUG_TEST_TASKS, ("fix", "B"): BUG_FIX_TASKS,
+               ("test-fix", "B"): BUG_TEST_FIX_TASKS}.get((parsed.kind, step))
+    if parsed.id != item or allowed is None:
+        return _stop(f"--title {title!r} does not fit step {step} of bug {item}.")
+    side = "test-fix" if parsed.kind == "test-fix" else None
+    return Target([], allowed, why, None, title, side=side)
+
+
+def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
+    """Finds what the brief is for and what stops it (exit 1)."""
+    task, item = args.task, args.item
+    if task.startswith("PM"):
+        return _stop(f"{task} runs in the main session as the Product Manager; it gets no brief.")
+    if task in NOT_BUILT:
+        return _stop(NOT_BUILT[task])
+    if task == "AR1":
+        return Target([], ("AR1",), "", None, ARCHITECTURE_TITLE)
+    if BUG_ID.fullmatch(item):
+        return _bug_target(item, task, parsed, args.title, subjects)
+    if not FEATURE_ID.fullmatch(item):
+        return _stop(f"{item} is neither a feature ID nor a bug ID.")
+    return _feature_target(repo, task, item, parsed, args.title, features, subjects,
+                           merged_stages(subjects))
+
+
+def _problems(task: str, target: Target, config) -> list[str]:
+    """Lists what stops the brief once its target is known."""
+    if target.problems:
+        return target.problems
+    if task not in target.allowed:
+        return [target.why]
+    if task in checksteps.CODE_TASKS and not config.lang.get("name"):
+        return [f"{task} needs the language pack, and the config at HEAD has no [lang] name."]
+    if task in checksteps.CODE_TASKS and target.title is None:
+        return [f"{task} runs troy-check code on its PR: give the PR's title with --title."]
+    return []
+
+
 def _read_first(repo, task: str, item: str | None, features: list, folder: str | None) -> list:
     """Lists the files the role reads first (design 6.1)."""
     paths = ["docs/rules.md", "docs/requirements.md"]
     if task == "AR1":
         return paths
-    candidates = ["docs/architecture.md", f"{folder}/design.md", f"{folder}/test-plan.md"]
-    feature = next(f for f in features if f.id == item)
-    for dep in feature.hard + feature.soft:
-        candidates.append(f"{feature_folder(repo, dep, dep)}/design.md")
+    candidates = ["docs/architecture.md"]
+    feature = next((f for f in features if f.id == item), None)
+    if feature is not None:
+        candidates += [f"{folder}/design.md", f"{folder}/test-plan.md"]
+        for dep in feature.hard + feature.soft:
+            candidates.append(f"{feature_folder(repo, dep, dep)}/design.md")
     for path in candidates:
         if path not in paths and git.exists(repo, "HEAD", path):
             paths.append(path)
     return paths
-
-
-def _problems(task: str, item: str | None, features, stage: int | None, config) -> list[str]:
-    """Finds what stops this brief (exit 1)."""
-    if task.startswith("PM"):
-        return [f"{task} runs in the main session as the Product Manager; it gets no brief."]
-    if task not in PART1:
-        return [f"{task} belongs to F07 part 2 (side PRs, bug fixes, and requirement changes) "
-                "and is not built yet."]
-    if task == "AR1":
-        return []
-    if features is None or not any(f.id == item for f in features):
-        return [f"{item} is not in the features table of docs/requirements.md on origin/main."]
-    if stage is None:
-        return [f"{item} is accepted: all six stages merged on origin/main."]
-    if task not in STAGE_TASKS[stage]:
-        return [f"{task} does not belong to stage {stage} of {item}, its current stage."]
-    if task in checksteps.CODE_TASKS and not config.lang.get("name"):
-        return [f"{task} needs the language pack, and the config at HEAD has no [lang] name."]
-    return []
 
 
 def _agent(role: str, config) -> dict:
@@ -125,7 +321,7 @@ def build(args) -> tuple[dict, int]:
     """Builds the brief for one role run.
 
     Args:
-        args: Parsed options: task, item, round, input_file, and repo.
+        args: Parsed options: task, item, title, round, input_file, and repo.
 
     Returns:
         The report and the exit code: 0, or 1 when a problem stops the brief.
@@ -134,35 +330,41 @@ def build(args) -> tuple[dict, int]:
         FlowError: Bad options, not a repository, or an invalid config at HEAD.
     """
     check_task(args.task, args.item)
+    parsed = parse_option_title(args.title)
     text = checksteps.read_input(args.input_file)
     repo = git.need_repo(args.repo)
     config = git.config_at(repo, "HEAD")
     has_main = git.commit_of(repo, MAIN) is not None
     features = parse_features(git.read(repo, MAIN, "docs/requirements.md")) if has_main else None
-    subjects = git.subjects(repo, MAIN) if has_main else []
-    merged = merged_stages(subjects).get(args.item or "", set())
-    stage = current_stage(merged) if args.item else None
+    subjects = [s for _, s in git.log(repo, MAIN)] if has_main else []
+    target = _target(repo, args, parsed, features, subjects)
     report = {"command": "brief", "ok": False, "notes": [], "task": args.task,
-              "role": ROLE_OF.get(args.task[:2]), "item": args.item, "stage": stage}
-    report["problems"] = _problems(args.task, args.item, features, stage, config)
+              "role": ROLE_OF.get(args.task[:2]), "item": args.item, "stage": target.stage}
+    report["problems"] = _problems(args.task, target, config)
     if report["problems"]:
         return report, 1
-    return _fill(report, args, repo, config, features, subjects, text), 0
+    return _fill(report, args, repo, config, features, subjects, text, target), 0
 
 
-def _fill(report: dict, args, repo, config, features, subjects, text) -> dict:
+def _fill(report: dict, args, repo, config, features, subjects, text, target: Target) -> dict:
     """Fills a brief that has no problem."""
-    task, item, stage = args.task, args.item, report["stage"]
-    feature = next((f for f in features or [] if f.id == item), None)
-    title = stage_title(item, stage, feature.name) if feature else ARCHITECTURE_TITLE
+    task, item, title, feature = args.task, args.item, target.title, target.feature
     folder = feature_folder(repo, item, feature.name) if feature else None
-    checks = checksteps.steps(task, config, title, subjects, repo.root.name, report["notes"])
+    checks = checksteps.steps(task, config, title or "", subjects, repo.root.name,
+                              report["notes"])
     report.update(ok=True, title=title, agent=_agent(report["role"], config),
                   read_first=_read_first(repo, task, item, features or [], folder),
                   input=text, round=args.round, checks=checks)
-    sentence = _SENTENCES[task].format(item=item, folder=folder, title=title)
-    item_text = f"{item}, {title}" if item else title
-    shown = [p if p != "docs/requirements.md" or not item
+    sentences = dict(_SENTENCES)
+    if item and BUG_ID.fullmatch(item) and target.side is None:
+        sentences.update(_BUG_SENTENCES)
+    if target.side == "docs":
+        sentences.update(_DOCS_SENTENCES)
+    sentence = sentences[task].format(item=item, folder=folder, title=title)
+    if task in checksteps.CODE_TASKS:
+        sentence += " " + checksteps.PLATFORM_SKIP
+    item_text = f"{item}, {title}" if item and title else (item or title)
+    shown = [p if p != "docs/requirements.md" or feature is None
              else f"{p} (the {item} row in section 4)" for p in report["read_first"]]
     report["prompt"] = render({"task": f"{task}, {sentence}", "item": item_text,
                                "read_first": shown, "input": text, "round": args.round,
