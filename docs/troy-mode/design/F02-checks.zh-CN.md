@@ -1,11 +1,11 @@
 # F02 设计：与语言无关的检查
 
-> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.4（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.5（2026-11-08）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.3](../requirements.zh-CN.md#72-功能列表) 中的 F02 |
-| 版本 | 1.4 |
+| 版本 | 1.5 |
 | 日期 | 2026-11-08 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D7 到 D14 |
 | 事实来源 | 英文版 [`F02-checks.md`](F02-checks.md)。本文件是中文镜像。 |
@@ -147,7 +147,7 @@ JSON 报告（`--json`）：
 | 功能阶段 | `[<F-ID> <n>/6 <stage>] <summary>`，`<n>` 和 `<stage>` 只能是以下配对之一：1 `design`、2 `test-plan`、3 `mock`、4 `tests`、5 `impl`、6 `accept` | `[F04 3/6 mock] Export history as CSV` |
 | bug 测试 | `[<B-ID> A/B test] <summary>` | `[B12 A/B test] Crash on empty history` |
 | bug 修复 | `[<B-ID> B/B fix] <summary>` | `[B12 B/B fix] Crash on empty history` |
-| 测试修正 | `[<F-ID or B-ID> test-fix] <summary>` | `[F04 test-fix] Wrong date format in F04-T03` |
+| 测试修正 | `[<F-ID, B-ID, or P-ID> test-fix] <summary>`；P 编号（`P` 加两位或三位数字）表示项目规则的测试清理（F09） | `[F04 test-fix] Wrong date format in F04-T03`、`[P01 test-fix] Apply P01 to tests` |
 | 版本测试 | `[v<MAJOR>.<MINOR> tests] <summary>`，类型 `version-tests` | `[v0.1 tests] End-to-end and stress tests` |
 | 其他 | `[docs] <summary>`、`[rules] <summary>`、`[refactor] <summary>` | `[rules] Add P01, no global state` |
 
@@ -391,3 +391,4 @@ F02 的 PR 合并时，F02 的状态改为"已编写"。
 | 1.2 | 2026-11-07 | 第 6.4 节：R12 不把 `.troy-mode/` 下的文件当文档，和 R20 不扫描这里一样。否则 troy-init 复制到这里的模板会让每个初始化 PR 和之后每个改文档的 PR 都失败。构建 F06 时发现，Troy 于 2026-11-07 批准。 |
 | 1.3 | 2026-11-07 | 第 7 节：配置接受带 `model` 和 `effort` 的 `[roles.<role>]`，以及带 `troy_approves_first` 的 `[flow]`，供 troy-mode 的入口技能使用。来自 F07 设计第 12 节。 |
 | 1.4 | 2026-11-08 | 第 4、5 节：标题类型 `[v<MAJOR>.<MINOR> tests]`，类型 `version-tests`，可以改 `tests` 和 `dependencies` 类别，R03 跳过它；内置的 `tests` 模式加上 `version-tests/**`。来自 F08 设计第 9 节。 |
+| 1.5 | 2026-11-08 | 第 4 节：`test-fix` 标题也接受项目规则的 P 编号，例如 `[P01 test-fix] Apply P01 to tests`，即规则的测试清理 PR，和所有测试修正 PR 一样可以改 `tests` 和 `dependencies`。来自 F09 设计第 8 节。 |

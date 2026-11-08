@@ -2,7 +2,9 @@
 
 The tree is clean at the snapshot, so every change git lists after the run is
 the run's own. The engine reports what to stage, what is wrong, and how to undo
-it; the skill does the staging and the undoing.
+it; the skill does the staging and the undoing. F09 adds the "rules" role, the
+main session's own work on a [rules] PR, and lets a dependency change through
+when it only deletes baseline lines (F09 design 3.1).
 """
 
 import json
@@ -17,16 +19,21 @@ from troyhook.scopes import SCOPES
 from troyhook.writes import allows
 
 from . import repo as git
+from .baseline import only_deletes_baseline
 from .errors import FlowError
 from .repo import Repo
 from .sections import outside_section_four
 
 ROLES = ("architect", "interface-designer", "test-manager", "developer", "test-engineer",
-         "code-reviewer", "product-manager")
+         "code-reviewer", "product-manager", "rules")
+# The roles that are the main session's own work, which F05 does not limit.
+MAIN_SESSION = ("product-manager", "rules")
 # The Product Manager's scope (F04 section 3). F05 does not limit the main
 # session, so F07 does.
 PRODUCT_MANAGER = ("docs/requirements*.md", "docs/prototypes/**", "CHANGELOG*.md",
                    ".troy-mode/progress.md")
+# What a [rules] PR may change (F02 D9, F09 design 3.1).
+RULES_CLASSES = ("config", "dependencies")
 DESIGNS = "docs/features/*/design*.md"
 _TIME = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -81,13 +88,15 @@ def _load(repo: Repo, run: str) -> dict:
         raise FlowError(f"no snapshot with run ID {run!r}") from exc
 
 
-def _in_scope(roles: list[str], path: str, paths: dict) -> bool:
+def _in_scope(roles: list[str], entry: dict, paths: dict) -> bool:
     """Tells whether one changed path lies in the write scope of the run's role."""
     if len(roles) != 1:
         return False
-    role = roles[0]
+    role, path = roles[0], entry["path"]
     if role == "product-manager":
         return matches_any(path, list(PRODUCT_MANAGER))
+    if role == "rules":
+        return entry["class"] in RULES_CLASSES
     return allows(SCOPES[f"troy-{role}"], path, paths)[0]
 
 
@@ -97,11 +106,12 @@ def _path_problems(repo: Repo, record: dict, changed: list[dict], allowed: set[s
     problems, roles = [], record["roles"]
     for entry in changed:
         path = entry["path"]
-        if not _in_scope(roles, path, paths):
+        if not _in_scope(roles, entry, paths):
             who = " and ".join(roles)
             problems.append({"kind": "scope", "path": path, "message":
                              f"{path} ({entry['class']}) is outside the write scope of {who}."})
-        elif entry["class"] == "dependencies" and path not in allowed:
+        elif entry["class"] == "dependencies" and path not in allowed and \
+                not only_deletes_baseline(repo, record["head"], path):
             problems.append({"kind": "dependency", "path": path, "message":
                              f"{path} is a dependency file, and no --allow-dependency names it "
                              "(R16)."})
@@ -136,7 +146,7 @@ def _hooks_log(repo: Repo, record: dict) -> list[dict]:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
-    types = {f"troy-pstack:troy-{r}" for r in record["roles"] if r != "product-manager"}
+    types = {f"troy-pstack:troy-{r}" for r in record["roles"] if r not in MAIN_SESSION}
     found = []
     for line in lines:
         try:
@@ -145,7 +155,7 @@ def _hooks_log(repo: Repo, record: dict) -> list[dict]:
             continue
         if not isinstance(entry, dict) or str(entry.get("time", "")) < record["time"]:
             continue
-        main = "product-manager" in record["roles"] and not entry.get("agent_id")
+        main = bool(set(MAIN_SESSION) & set(record["roles"])) and not entry.get("agent_id")
         if main or entry.get("agent_type") in types:
             found.append(entry)
     return found

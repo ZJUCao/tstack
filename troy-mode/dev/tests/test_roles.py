@@ -168,10 +168,13 @@ class Role(NamedTuple):
 
 
 AGENT_ROLES = (
+    # AR6 "Rule enforcement", DV5 "Cleanup", and TE6 "Test cleanup" are F09's
+    # (F09 design section 7, interface note section 0).
     Role(name="Architect", stem="troy-architect", model="opus",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash", "WebSearch", "WebFetch"),
          tasks=(("AR1", "Architecture"), ("AR2", "Design review"),
-                ("AR3", "Dependency review"), ("AR4", "Change impact"), ("AR5", "Answer")),
+                ("AR3", "Dependency review"), ("AR4", "Change impact"), ("AR5", "Answer"),
+                ("AR6", "Rule enforcement")),
          results=RESULTS["Architect"],
          scope=((PATTERN, "docs/architecture*.md"), (PATTERN, "docs/adr/**"),
                 (PATTERN, "docs/features/*/design*.md"))),
@@ -192,14 +195,14 @@ AGENT_ROLES = (
     Role(name="Developer", stem="troy-developer", model="sonnet",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash"),
          tasks=(("DV1", "Mock"), ("DV2", "Implementation"), ("DV3", "Bug fix"),
-                ("DV4", "Delete")),
+                ("DV4", "Delete"), ("DV5", "Cleanup")),
          results=RESULTS["Developer"],
          scope=((CLASS, "source"), (CLASS, "dependencies"))),
     # TE5 "Version tests" is F08's (F08 design section 9, interface note 13).
     Role(name="Test Engineer", stem="troy-test-engineer", model="sonnet",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash"),
          tasks=(("TE1", "Tests"), ("TE2", "Reproduction test"), ("TE3", "Test fix"),
-                ("TE4", "Added cases"), ("TE5", "Version tests")),
+                ("TE4", "Added cases"), ("TE5", "Version tests"), ("TE6", "Test cleanup")),
          results=RESULTS["Test Engineer"],
          scope=((CLASS, "tests"), (CLASS, "dependencies"))),
     Role(name="Code Reviewer", stem="troy-code-reviewer", model="opus",

@@ -89,9 +89,10 @@ The PR title is `[<ID> <stage>] <summary>`, or `[<kind>] <summary>` for a PR tha
 | Bug PR A | `[B12 A/B test] Crash on empty history` | Tests |
 | Bug PR B | `[B12 B/B fix] Crash on empty history` | Source |
 | Test fix | `[F04 test-fix] Wrong expected date format in F04-T03` | Tests |
+| Rule test cleanup | `[P01 test-fix] Apply P01 to tests` | Tests fixed for a project rule |
 | Version tests | `[v0.1 tests] End-to-end and stress tests` | Tests in `version-tests/` |
 | Documents | `[docs] Requirements change for offline mode` | Documents |
 | Rule change | `[rules] Add P01, no global state` | Rules table and check config |
-| Refactor | `[refactor] Split storage.py` | Source |
+| Refactor | `[refactor] Split storage.py`, or a rule's cleanup: `[refactor] Apply P01 to storage` | Source |
 
 The description has four sections: Why, What, Checks, and Soft-limit reason.

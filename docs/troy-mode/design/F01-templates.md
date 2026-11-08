@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F01 in [requirements 1.1](../requirements.md#72-feature-list) |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-05, with D1 to D6 |
 | Source of truth | This English file. [`F01-templates.zh-CN.md`](F01-templates.zh-CN.md) is the Chinese mirror. |
@@ -192,7 +192,7 @@ One section per version, newest first, headed `vMAJOR.MINOR.PATCH (YYYY-MM-DD)`.
 
 ### 5.8 `rules`
 
-A table with columns ID, Rule, Type, Enforced by, Scope, Since. Type is Hard, Soft, Review, or Process, defined as in requirements section 6. Scope is `troy-mode` for rules from troy-pstack and `project` for this project's own rules. The template ships with R01 to R19 copied from requirements section 6.
+A table with columns ID, Rule, Type, Enforced by, Scope, Since. Type is Hard, Soft, Review, or Process, defined as in requirements section 6. Scope is `troy-mode` for rules from troy-pstack and `project` for this project's own rules. The template ships with R01 to R19 copied from requirements section 6. Its guidance says how F09's rule change flow adds a P row: the next free ID, a retired row that keeps its ID, and the `baseline: P01` comment on each line that exempts a file from a new check (F09 design section 8).
 
 ### 5.9 `progress`
 
@@ -231,6 +231,7 @@ The fields of an escalation message. troy-mode writes it in the language Troy us
 | Bug PR A | `[B12 A/B test] Crash on empty history` | Tests |
 | Bug PR B | `[B12 B/B fix] Crash on empty history` | Source |
 | Test fix | `[F04 test-fix] Wrong expected date format in F04-T03` | Tests |
+| Rule test cleanup | `[P01 test-fix] Apply P01 to tests` | Tests fixed for a project rule |
 | Version tests | `[v0.1 tests] End-to-end and stress tests` | Tests in `version-tests/` |
 | Documents | `[docs] Requirements change for offline mode` | Documents |
 | Rule change | `[rules] Add P01, no global state` | Rules table and check config |
@@ -301,3 +302,4 @@ Troy approved all six proposals on 2026-11-05.
 | 1.0 | 2026-11-05 | Approved by Troy with D1 to D6. Adds the PR template (section 5.11) and the Chinese README. |
 | 1.1 | 2026-11-05 | Fixes from a trial fill of the requirements and feature-design templates. Every front matter value is quoted. The mirror is created with the English document. A marker is any text in double braces. Empty parts say None. |
 | 1.2 | 2026-11-08 | From F08 design section 9: the `version-test-plan` template's scenarios table and performance and stress table gain a Run by column (section 5.5), and the PR kinds gain `[v0.1 tests]` (section 6). |
+| 1.3 | 2026-11-08 | From F09 design section 8: the `rules` template's guidance describes P rows, a retired row, and the `baseline: P01` comment (section 5.8), and the PR kinds gain `[P01 test-fix]` (section 5.11). |

@@ -6,7 +6,7 @@ them. The progress file is only a view of it (progress.py).
 
 from dataclasses import dataclass, field
 
-from . import github, plugincheck, repo as git
+from . import github, plugincheck, repo as git, rulestate
 from .repo import MAIN, Repo
 from .requirements import Feature, approved, doc_version, order_problems, parse_features, \
     parse_order
@@ -49,6 +49,8 @@ class State:
         plans: Each version's test plan on origin/main, or None.
         gh_releases: The tags of GitHub's releases, once read.
         open_bugs: The open bug issues, once read.
+        rules: The P rules on origin/main, with their choices and baseline
+            lines (F09 design 3.2).
     """
 
     repo: Repo | None = None
@@ -72,6 +74,7 @@ class State:
     plans: dict[str, Plan | None] = field(default_factory=dict)
     gh_releases: set[str] | None = None
     open_bugs: list[dict] | None = None
+    rules: list[dict] = field(default_factory=list)
 
     def feature(self, fid: str | None) -> Feature | None:
         """Returns a feature of the table by its ID, or None."""
@@ -215,6 +218,7 @@ def read_state(path: str | None) -> State:
     state.subjects = [subject for _, subject in state.log]
     state.merged = merged_stages(state.subjects)
     _read_requirements(state)
+    state.rules = rulestate.read_rules(state.repo).entries()
     if state.installed:
         state.checks = plugincheck.compare(state.repo)
     _read_prs(state)

@@ -1,4 +1,5 @@
-"""The next action, decided from the state (F07 design sections 4, 8, 10, and 11, F08 3.3).
+"""The next action, decided from the state (F07 design sections 4, 8, 10, and 11, F08 3.3,
+F09 3.2).
 
 The first rule that holds wins. The skill holds the judgment about what to do
 with it; this module only reads the exact rules.
@@ -8,7 +9,7 @@ import re
 
 from troycheck.frontmatter import version_key
 
-from . import releases
+from . import releases, rulestate
 from . import repo as git
 from .nextentry import make
 from .repo import MAIN
@@ -60,6 +61,9 @@ def _pr_next(state: State, pr: dict) -> dict:
     elif entry["kind"] == "version-tests":
         summary = parse_subject(entry["title"] or "").summary
         task = "TE3" if summary.startswith("Fix ") else "TE5"
+    rule = rulestate.pr_rule(entry["title"] or "")
+    if rule:
+        item, task = rule
     return _next("continue-pr", pr=entry["number"], title=entry["title"], branch=entry["branch"],
                  item=item, stage=entry["stage"], task=task,
                  merged_by=entry["merged_by"], rounds=entry["rounds"], attempts=entry["attempts"])
@@ -221,7 +225,8 @@ def decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
         if found:
             return found, notes
     found = (releases.retro_rule(state, notes)
-             or releases.release_rule(state, release_first))
+             or releases.release_rule(state, release_first)
+             or rulestate.cleanup_rule(state.rules))
     if found:
         return found, notes
     if _ask_due(state):

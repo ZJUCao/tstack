@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-11-08 |
 | Status | Approved by Troy on 2026-11-06, with D27 to D38 |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
@@ -155,6 +155,7 @@ Owns: the architecture, coding rules, module dependency rules, ADRs, and approva
 | AR3 Dependency review | A role asks for a new dependency (R16) | Check the license, maintenance, size, security record, and the option of no dependency. Report `escalate` with a recommendation, because Troy decides (5.7). After Troy accepts, add it to the architecture's dependency table with an ADR. |
 | AR4 Change impact | Change flow (5.4.3) | List the interfaces, tests, and parts of the architecture that change. Write an ADR for an architecture change. |
 | AR5 Answer | Another role asks | Answer from the architecture. If the answer needs the architecture to change, report `escalate`. |
+| AR6 Rule enforcement | The rule change flow (F09) | Pick the strongest enforcement that works for a rule Troy states, give the rule's cells and the exact config, and find the existing code that breaks it by running the tool with the rule turned on in a command-line option. Change no file, and report `escalate` with the proposal. After Troy approves an architecture change, write it with an ADR. |
 
 ### 6.3 Interface Designer
 
@@ -174,7 +175,7 @@ Owns: each feature's test plan, each version's test plan, and triage of coverage
 | Task | When | Steps |
 | --- | --- | --- |
 | TM1 Test plan | PR 2 | Fill the `test-plan` template from the design: unit, functional, integration, and performance cases, with IDs from `F04-T01` on, each saying what it tests. Plan performance cases only for interfaces with a target (R14), and vet them with `benchmark-checklist`. Ask the Interface Designer through `needs-answer`, and keep the alignment log. |
-| TM2 Test review | PR 4, bug PR A, test-fix PRs, `[vX.Y tests]` PRs (against the version test plan) | Check that every planned case has a test whose name starts with its ID (R10), that no test lies outside the plan, that tests check behavior through external interfaces, and that every new test fails against the mock for the right reason (R09). |
+| TM2 Test review | PR 4, bug PR A, test-fix PRs (a rule's `[P01 test-fix]` against the rule), `[vX.Y tests]` PRs (against the version test plan) | Check that every planned case has a test whose name starts with its ID (R10), that no test lies outside the plan, that tests check behavior through external interfaces, and that every new test fails against the mock for the right reason (R09). |
 | TM3 Coverage gap | R11 fails | Classify the uncovered code with the table in requirements 5.2 and name who fixes it. Never order tests aimed at uncovered lines. |
 | TM4 Disputed test | The Developer disputes a test | Rule whether the test or the code is wrong. The Test Engineer fixes a wrong test in its own PR (TE3). |
 | TM5 Bug triage | A bug report (5.3) | Decide whether it is a bug, for which the Test Engineer writes a reproduction test, or a misunderstood requirement, which goes to the Product Manager as a change. |
@@ -182,6 +183,8 @@ Owns: each feature's test plan, each version's test plan, and triage of coverage
 | TM7 Version test plan | A version is planned (5.5.2) | Fill the `version-test-plan` template: end-to-end scenarios from the requirements, performance and stress cases, and devices. Each scenario says who runs it: Claude or Troy (F08 D71). |
 
 Every fixed bug keeps its reproduction test (R15). The Test Manager checks this in TM2 and TM5.
+
+The reviewers (AR2, TM2, and CR1) also check every P rule of type Review whose Enforced by names their role, and name the rule's ID in a finding (F09 design section 7).
 
 ### 6.5 Developer
 
@@ -193,6 +196,7 @@ Owns: mock PRs, implementation PRs, and bug fix PRs. Reviews: nothing. Must not:
 | DV2 Implementation | PR 5 | Make the feature's tests pass without changing them. Write only what the design and the tests need. Keep functions within R04 by calling single-purpose internal functions. Run the language pack's steps and `troy-check code` before reporting. If the change cannot stay within R03, give the reason for the PR's soft-limit section. |
 | DV3 Bug fix | Bug PR B | Fix the bug so that its reproduction test and every other must-pass test pass. |
 | DV4 Delete | A coverage gap ruling | Delete the code that the Test Manager or the Interface Designer named. |
+| DV5 Cleanup | A rule's cleanup PR (F09) | Fix the source files that the brief names for the rule, and delete their baseline lines. Stay within R03. |
 
 If a test looks wrong, report `needs-answer` for the Test Manager with the test ID and the reason, and change nothing to get around it. If the code needs a new dependency, report `needs-answer` for the Architect. If tests still fail at the end of a run, report `failed` and list them. The main session counts each `failed` run as one attempt (requirements 5.7).
 
@@ -207,8 +211,11 @@ Owns: test code, bug reproduction tests, version tests, and the test fixes the T
 | TE3 Test fix | A Test Manager ruling | Change only what the ruling names, and give the reason in the report. |
 | TE4 Added cases | The Test Manager added cases | Write tests for the new cases from the design, as in TE1. |
 | TE5 Version tests | A version's release (F08) | Write one test for each scenario and each performance and stress case of the version test plan that Claude runs, in `version-tests/`, named with its scenario ID. Run them against `origin/main`'s code; a test that fails there stays as written and goes in the report. |
+| TE6 Test cleanup | A rule's test cleanup PR (F09) | Fix the test files that the brief names for the rule, and delete their baseline lines. Each test still checks what it checked before. |
 
 If a case cannot be tested without a change to source code, report `needs-answer` for the Test Manager.
+
+The Developer and the Test Engineer fix a file that a P rule's baseline names whenever they change it for any other reason, and delete its `baseline: P01` line (F09 design section 5.4).
 
 ### 6.7 Code Reviewer
 
@@ -271,6 +278,7 @@ The structure tests (section 10.1) check every part of this format.
 | 5.5 Version release | TM7, TE5, TM2, PM4 |
 | 5.6 Performance | IF1 copies targets, TM1 plans cases, DV2 runs them |
 | 5.7 Escalation | The `escalate` and `failed` results, common rule 11, AR3 |
+| 5.8 Rule change | AR6, DV5, TE6, and TM2 and CR1 for their PRs (F09) |
 | R05, R08 to R10, R13 to R16 | R05: DV1, DV2, CR1. R08: section 3 and DV2. R09 and R10: TE1, TM2. R13: PM5. R14: TM1. R15: TM2, TM5. R16: AR3 |
 | Section 8, new names start with `troy-` and no upstream file changes | Section 2. Every file is new, and every agent is named `troy-*` |
 | Section 8, privacy | Web tools for the Architect only and no MCP tools (D30), common rule 10 |
@@ -385,3 +393,4 @@ Requirements 1.13 records the approved changes:
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D27 to D38, every recommended answer. |
 | 1.1 | 2026-11-08 | From F08 design section 9: TE5 writes the version tests (section 6.6); TM7 says who runs each scenario, and TM2 also reviews `[vX.Y tests]` PRs (section 6.4); PM4 drafts the changelog when the release starts and sets the statuses after Troy accepts (section 6.1). |
+| 1.2 | 2026-11-08 | From F09 design sections 7 and 8: AR6 picks a rule's enforcement (section 6.2), DV5 and TE6 clean up the code and tests that a rule's baseline names (sections 6.5 and 6.6), the reviewers also check the Review-type P rules that name them, and the Developer and the Test Engineer fix a baselined file they change. The structure tests count the new tasks. |

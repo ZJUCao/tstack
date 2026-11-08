@@ -1,13 +1,13 @@
 # F09 设计：规则变更流程
 
-> 本文件是 [`F09-rule-change.md`](F09-rule-change.md) 的中文镜像，同步自英文版 1.1（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F09-rule-change.md`](F09-rule-change.md) 的中文镜像，同步自英文版 1.2（2026-11-08）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.25](../requirements.zh-CN.md#72-功能列表) 中的 F09 |
-| 版本 | 1.1 |
+| 版本 | 1.2 |
 | 日期 | 2026-11-08 |
-| 状态 | Troy 已于 2026-11-08 批准，含 D79 到 D85。1.1 版记录 Troy 为试运行设下的长期许可（第 10.3 节）。 |
+| 状态 | Troy 已于 2026-11-08 批准，含 D79 到 D85。1.1 版记录 Troy 为试运行设下的长期许可（第 10.3 节）。1.2 版记录构建时确定的细节（第 3.3 节）和试运行确认的事实（第 10.3 节）。 |
 | 事实来源 | 英文版 [`F09-rule-change.md`](F09-rule-change.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -71,6 +71,15 @@ python troy_flow.py snapshot  --role rules [common options]
 | 还要做的清理 | `origin/main` 上配置文件和依赖文件里带 `baseline: P01` 的行 |
 
 当一条规则最近的修改记录行写的是 "fixed by cleanup PRs"、而它的基线行还在时，`status` 给出 `next.action` `cleanup`。接下来是下一个清理 PR（第 5.4 节），新会话也用同样的方式找到它。`cleanup` 排在开着的 PR 之后、功能循环的下一个阶段之前。
+
+### 3.3 构建时确定的细节
+
+- **规则表**是第一张含有 R 或 P 编号行的表。P 编号是 `P` 加两位或三位数字。下一个可用编号是最大的 P 编号加一，已废止的行也算在内。已废止行的 Rule 单元格英文以 "Retired on <日期>." 开头，中文以 "已于 <日期> 停用。" 开头；它的 Enforced by 单元格改为 "None" 和 "无"。
+- **`--rule-file`** 是 `{"rule": {"en": ..., "zh-CN": ...}, "type": {...}, "enforced_by": {...}, "change": {...}}`；用 `--retire` 时只需要 `change`。类型是 Hard、Soft、Review 或 Process，中文对应硬、软、审查或流程。以下情况 `rule-row` 拒绝写入，什么也不改：某个单元格为空、含换行，或含有前面没有 `\` 的 `|`；修改记录的文字没有写出这个编号；新编号不是下一个可用编号；这一行已废止；两个文件的版本不同。
+- **基线行**是 `origin/main` 上 `config` 或 `dependencies` 类别的文件里，任何含有 `baseline:` 和 P 编号的行；Markdown 文件不算，`.troy-mode/` 下除配置文件以外的 troy-mode 副本也不算。`check-run` 通过对快照 head 做 `git diff` 读取依赖改动，所以检出时的换行符转换不算改动。
+- **Troy 的选择**从修改记录里最新一条以完整单词写出这条规则编号的行读取。
+- **`rule-id`** 还给出下一个 R 编号（`next_r_id`），用于适用于所有项目的规则。**`status`** 在新的报告字段 `rules` 里给出 P 规则及其选择和基线行。`cleanup` 在 `next.item` 里写出规则，P 编号小的先做，排在 `release` 之后、`ask-approvals` 之前。开着的 `[refactor] Apply P01 to ...`、`[P01 test-fix] ...` 或 `[docs] Change the architecture for P01` PR，分别由 DV5、TE6 或 AR6 接着做。
+- **`brief`** 接受 P 编号或 R 编号作为条目。P 编号允许：不带标题的 AR6（下一个可用编号在规则存在之前也可以）；带 `[docs]` 标题的 AR6 和 AR5；带 `[refactor] Apply P01 to <area>` 的 DV5、CR1 和 AR5；带 `[P01 test-fix] ...` 的 TE6、TM2、CR1 和 AR5。R 编号只允许 AR6，它的任务说明把插件里的需求文档、规则模板、troy-check 和角色文件加进"先读"列表。
 
 ## 4. 流程
 
@@ -247,6 +256,8 @@ PR 开出之前，F09 在 Troy 电脑上的嵌套 `claude -p` 会话里运行，
 
 按 F07 试运行的花费估算，大约运行 5 次角色（AR6 三次、DV5、CR1），约 4 到 7 美元，另外大约 5 个 PR 各用几分钟 Actions 时间。
 
+试运行于 2026-11-08 在 `ZJUCao/troy-mode-trial` 上进行。开始前，提示里给出的 Troy 批准让开着的 `[F02 1/6 design] Count lines`（PR 29）合并。第 1 步是 PR 30。第 2 步是 PR 31，加上 P01（ruff EM102），为 `counting.py` 写了一行基线。第 3 步，新会话收到"继续"：`status` 给出 `cleanup`，DV5 的 `[refactor] Apply P01 to counting`（PR 32）经 CR1 审查，在同一个提交里修好文件并删掉基线行；在会转换换行符的 Windows 检出上，`check-run` 不用 `--allow-dependency` 就把 `pyproject.toml` 列入暂存。第 4 步是 PR 33，一条审查规则，只加了它的行，选择是"fixed when touched"。第 5 步是 PR 34，不运行 AR6 就把它废止了。第 6 步，AR6 提出 R22，并列出 troy-pstack 里要改的文件；Troy 拒绝开 issue，也确实没有开。AR6 运行三次，DV5 两次（其中一次被手动停下后重开），CR1 一次，约 10 美元。试运行发现三处缺口，现已修好：AR6 以为清理 PR 不能在同一个提交里删基线行，所以 AR6 的任务说明和角色文件写明 `[refactor]` 或测试修正 PR 可以改依赖文件；最后一个清理之后说"继续"会接着做下一个功能阶段，所以技能把一条规则的最后一个清理 PR 定为自然停止点；代理的文件工具可能拒绝 `.git` 里的路径，所以技能通过 Bash 写引擎的输入文件。
+
 ### 10.4 状态
 
 | 时间点 | 需求文档 7.2 中 F09 的状态 |
@@ -291,3 +302,4 @@ F08 的设计到 D78 为止，所以 F09 从 D79 开始。Troy 于 2026-11-08 �
 | 0.1 | 2026-11-08 | 初稿。 |
 | 1.0 | 2026-11-08 | Troy 批准，含 D79 到 D85，全部采用推荐答案。 |
 | 1.1 | 2026-11-08 | 第 10.3 节和 D85：试运行改为在 Troy 于 2026-11-08 设下的、针对 `ZJUCao/troy-mode-trial` 的 troy-mode 试运行长期许可之下运行，不再需要在聊天里同意。这是 Troy 的流程改动，不是需求变更。 |
+| 1.2 | 2026-11-08 | 第 3.3 节：构建时确定的细节：规则表及其编号、规则文件、基线行、`status` 和 `brief` 怎样处理规则，以及下一个 R 编号。第 10.3 节：试运行做了什么，以及它发现的三处缺口，现已修好。 |

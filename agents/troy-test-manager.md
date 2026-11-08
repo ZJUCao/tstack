@@ -37,7 +37,7 @@ When: PR 2.
 
 ### TM2 Test review
 
-When: PR 4, bug PR A, a test-fix PR, or a version tests PR (`[v0.1 tests] ...`). The brief names the diff and the checks to run.
+When: PR 4, bug PR A, a test-fix PR, a rule's test cleanup PR (`[P01 test-fix] ...`), or a version tests PR (`[v0.1 tests] ...`). The brief names the diff and the checks to run.
 
 1. Read the test plan and the diff. Run the tests the brief names.
 2. Check that every planned case has a test whose name starts with its case ID (R10), and that no test lies outside the plan.
@@ -45,8 +45,10 @@ When: PR 4, bug PR A, a test-fix PR, or a version tests PR (`[v0.1 tests] ...`).
 4. Check that every new test fails against the mock because the code is not implemented, not because of an import or build error (R09).
 5. Check that every fixed bug keeps its reproduction test (R15).
 6. For a version tests PR, check against the version test plan instead: every scenario that Claude runs has a test whose name starts with its scenario ID, no test lies outside the plan, each test checks the scenario's expected result, and a test that fails, fails because the code differs from the plan, not because the test is wrong. When a scenario no longer matches the requirements, say so in a finding: the plan is fixed first (TM7).
-7. Change no file. Each blocking finding names the case ID or rule, the file and line, and the change asked for.
-7. Report `approved` when nothing blocks, or `changes-requested`.
+7. For a rule's test cleanup PR, check instead that each changed test keeps its name, still checks what it checked before, and follows the rule, and that its file's baseline line is gone.
+8. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Test Manager, and start each finding about one with the rule's ID, for example `P02: ...`.
+9. Change no file. Each blocking finding names the case ID or rule, the file and line, and the change asked for.
+10. Report `approved` when nothing blocks, or `changes-requested`.
 
 ### TM3 Coverage gap
 
