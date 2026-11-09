@@ -18,7 +18,9 @@ from .fill import add_lines, check_filled, fill_lang
 from .gitops import current_branch, git, is_root, ref_exists
 from .install import INSTALL_PATH, Install, parse, render
 from .packs import Pack, get_pack
-from .plan import FileAction, Plan, exists, file_hash, lf_bytes, read_project_file
+from .plan import (
+    FileAction, Plan, edited_bytes, exists, file_hash, lf_bytes, read_project_file,
+)
 from .plugin import WORKFLOW_DEST, Plugin, pack_job, read_source
 from .setup import CONFIG_PATH, GITIGNORE
 from .workflow import append_job, workflow_problems
@@ -81,6 +83,11 @@ def project_text(repo: Path, path: str) -> str | None:
     return None if raw is None else raw.decode("utf-8", "replace").replace("\r\n", "\n")
 
 
+def _edited(repo: Path, path: str, text: str) -> bytes:
+    """The bytes of a project file's new text, in the line endings it has now."""
+    return edited_bytes(text, read_project_file(repo, path))
+
+
 def _pack_config(plugin: Plugin, pack: Pack, options: LangOptions) -> dict:
     """The pack's config fragment, with the environment and series filled in."""
     relative = pack.source("config.toml")
@@ -114,7 +121,8 @@ def _config_action(repo: Path, values: dict, legacy: list[str]) -> tuple[FileAct
     text = project_text(repo, CONFIG_PATH)
     if text is None:
         return None, [f"{CONFIG_PATH} is missing. Run setup first."]
-    return FileAction(CONFIG_PATH, "edit", lf_bytes(fill_lang(text, values, legacy))), []
+    text = fill_lang(text, values, legacy)
+    return FileAction(CONFIG_PATH, "edit", _edited(repo, CONFIG_PATH, text)), []
 
 
 def _held_tables(text: str, fragment: str) -> list[str]:
@@ -155,7 +163,7 @@ def _pyproject_action(plugin: Plugin, repo: Path, pack: Pack,
         tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
         return None, [f"pyproject.toml would not be valid TOML with the pack's tables: {exc}"]
-    return FileAction(pack.build_file, action, lf_bytes(text)), []
+    return FileAction(pack.build_file, action, _edited(repo, pack.build_file, text)), []
 
 
 def _cmake_action(plugin: Plugin, repo: Path, pack: Pack,
@@ -182,7 +190,7 @@ def _workflow_action(plugin: Plugin, repo: Path, pack: Pack) -> tuple[FileAction
     if problems:
         return None, problems
     text = append_job(current, pack_job(plugin, pack.name))
-    return FileAction(WORKFLOW_DEST, "edit", lf_bytes(text)), []
+    return FileAction(WORKFLOW_DEST, "edit", _edited(repo, WORKFLOW_DEST, text)), []
 
 
 def _pack_files(plugin: Plugin, pack: Pack, options: LangOptions) -> list[FileAction]:
@@ -202,7 +210,8 @@ def _pack_files(plugin: Plugin, pack: Pack, options: LangOptions) -> list[FileAc
 def _gitignore_action(repo: Path, pack: Pack) -> FileAction:
     """Adds the pack's lines to .gitignore."""
     text, action = add_lines(project_text(repo, GITIGNORE), list(pack.gitignore))
-    return FileAction(GITIGNORE, action, None if action == "keep" else lf_bytes(text))
+    content = None if action == "keep" else _edited(repo, GITIGNORE, text)
+    return FileAction(GITIGNORE, action, content)
 
 
 def _install_action(plugin: Plugin, repo: Path, pack: Pack, actions: list[FileAction],
@@ -221,7 +230,7 @@ def _install_action(plugin: Plugin, repo: Path, pack: Pack, actions: list[FileAc
             files[item.path] = file_hash(item.content or b"")
     record = Install(plugin.version, plugin.commit, {**install.steps, "lang": date}, pack.name,
                      files)
-    return FileAction(INSTALL_PATH, "edit", lf_bytes(render(record))), []
+    return FileAction(INSTALL_PATH, "edit", edited_bytes(render(record), raw)), []
 
 
 def lang_files(plugin: Plugin, repo: Path, options: LangOptions) -> LangFiles:

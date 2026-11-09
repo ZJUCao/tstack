@@ -25,6 +25,23 @@ def lf_bytes(text: str) -> bytes:
     return text.replace("\r\n", "\n").encode("utf-8")
 
 
+def edited_bytes(text: str, original: bytes | None) -> bytes:
+    """Encodes the new text of a file edited in place, with the file's line endings.
+
+    A Windows checkout with core.autocrlf has CRLF endings. A file troy-init
+    edits keeps them, so the edit is the only change in the working tree; a
+    file that does not exist yet gets LF, as every file troy-init creates.
+
+    Args:
+        text: The file's new text, with LF or CRLF endings.
+        original: The file's bytes before the edit, or None when it is new.
+    """
+    data = lf_bytes(text)
+    if original is not None and b"\r\n" in original:
+        return data.replace(b"\n", b"\r\n")
+    return data
+
+
 def file_hash(data: bytes) -> str:
     """SHA-256 of a file's bytes with CRLF turned into LF.
 
@@ -56,7 +73,8 @@ class FileAction:
     Attributes:
         path: Repository path with "/" separators.
         action: One of ACTIONS.
-        content: The bytes to write, LF endings; None for delete and keep.
+        content: The bytes to write: LF endings, or for an edit or append the
+            endings the file has (edited_bytes); None for delete and keep.
         owned: True for a file troy-init owns, whose hash goes into the record.
         executable: True for a git hook, staged with --chmod=+x.
         generated: True for a file a tool writes after apply(), such as the

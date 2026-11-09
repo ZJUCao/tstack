@@ -6,7 +6,7 @@ from pathlib import Path
 from .errors import InitError
 from .gitops import config_get, current_branch, is_root
 from .install import INSTALL_PATH, Install, parse, render
-from .plan import FileAction, Plan, exists, file_hash, lf_bytes, read_project_file
+from .plan import FileAction, Plan, edited_bytes, exists, file_hash, read_project_file
 from .packdiff import pack_differences
 from .plugin import HOOKS_DEST, Plugin, owned_contents, pack_patterns
 from .rules import RULES_EN, RULES_ZH, upgrade_pair
@@ -111,8 +111,8 @@ def _rules_actions(plugin: Plugin, repo: Path, date: str, plan: Plan) -> None:
     if result is None:
         plan.actions += [FileAction(RULES_EN, "keep"), FileAction(RULES_ZH, "keep")]
     else:
-        plan.actions += [FileAction(RULES_EN, "edit", lf_bytes(result[0])),
-                         FileAction(RULES_ZH, "edit", lf_bytes(result[1]))]
+        plan.actions += [FileAction(RULES_EN, "edit", edited_bytes(result[0], en)),
+                         FileAction(RULES_ZH, "edit", edited_bytes(result[1], zh))]
 
 
 def config_differences(plugin: Plugin, repo: Path,
@@ -156,15 +156,18 @@ def _hooks_note(repo: Path, plan: Plan) -> None:
 
 
 def _finish(plugin: Plugin, install: Install, hashes: dict[str, str], date: str,
-            plan: Plan) -> None:
-    """Adds the rewritten install record and the next steps, or says nothing changes."""
+            plan: Plan, current: bytes | None) -> None:
+    """Adds the rewritten install record and the next steps, or says nothing changes.
+
+    current is the record's bytes as they are, whose line endings it keeps.
+    """
     if not plan.changed:
         plan.notes.append(f"Nothing to upgrade: troy-mode's files already match troy-pstack "
                           f"{plugin.version}.")
         return
     steps = {**install.steps, "upgrade": date}
     record = Install(plugin.version, plugin.commit, steps, install.lang, hashes)
-    plan.actions.append(FileAction(INSTALL_PATH, "edit", lf_bytes(render(record))))
+    plan.actions.append(FileAction(INSTALL_PATH, "edit", edited_bytes(render(record), current)))
     title = UPGRADE_TITLE.format(version=plugin.version)
     plan.next_steps += [
         "Stage exactly the paths in stage, those in executable with git add --chmod=+x.",
@@ -193,11 +196,12 @@ def plan_upgrade(plugin: Plugin, repo: Path, top: Path, date: str, replace: list
     plan.problems = upgrade_problems(repo, top)
     if plan.problems:
         return plan
-    install = parse((read_project_file(repo, INSTALL_PATH) or b"").decode("utf-8", "replace"))
+    raw = read_project_file(repo, INSTALL_PATH)
+    install = parse((raw or b"").decode("utf-8", "replace"))
     hashes = _owned_actions(plugin, repo, install, replace, plan)
     _rules_actions(plugin, repo, date, plan)
     plan.differences += config_differences(plugin, repo, install.lang)
     _hooks_note(repo, plan)
-    _finish(plugin, install, hashes, date, plan)
+    _finish(plugin, install, hashes, date, plan, raw)
     plan.actions.sort(key=lambda a: a.path)
     return plan
