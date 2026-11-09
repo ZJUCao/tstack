@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F07 in [requirements 1.20](../requirements.md#72-feature-list) |
-| Version | 1.4 |
-| Date | 2026-11-08 |
+| Version | 1.5 |
+| Date | 2026-11-09 |
 | Status | Approved by Troy on 2026-11-07, with D57 to D68. Version 1.1 records the facts the trial of section 14.3 settled for part 1. Version 1.2 records Troy's D69 and the details part 2 settled. |
 | Source of truth | This English file. [`F07-entry-skill.zh-CN.md`](F07-entry-skill.zh-CN.md) is the Chinese mirror. |
 
@@ -162,7 +162,7 @@ At every start, F07 reads `product-manager.md`, runs `status`, and then picks th
 
 - IF1's Task also says that section 4 is the Architect's and asks for "Not reviewed yet." in it. In the trial, IF1 left section 4's template markers for the Architect, so `troy-check pr` failed R20 on the design until AR2 filled the section in.
 - For the first mock, DV1's checks start with the setup steps that need code: `uv pip install -e . --no-deps` for Python and `cmake --preset coverage` for C/C++ (F06 design 5.4).
-- Commands run through `mamba run -n <environment>`, or `mamba run -p <folder>` when `TROY_MODE_ENV_PREFIX` is set. Trials set it, so they leave no named environment behind. mamba is found the way troy-init finds it (F06 design 5.4).
+- Commands run through `mamba run -n <environment>`, or `mamba run -p <folder>` when `TROY_MODE_ENV_PREFIX` is set. Trials set it, so they leave no named environment behind. mamba is found the way troy-init finds it when no `--mamba` is given: on the PATH, then in `$MAMBA_EXE` (F06 design 5.4). `brief` has no `--mamba` option.
 - A revision is a fresh run of the same task, or of IF2 for a design, with the findings in Input and the next round (F04 D33).
 
 ### 6.2 One writing role at a time
@@ -483,3 +483,4 @@ Requirements 1.20 records the approved changes:
 | 1.2 | 2026-11-07 | Troy's D69: tests that run on another platform only are left to CI (section 8.6). Details part 2 settled: `brief --title`, `check-skips`, and `series` (section 3.1); history order, bugs, and side PRs first in the state (section 5.1); who writes each side PR (section 8.7); bug branches (section 11.1); rework, the redo, the skipped mock, and the change's approval (section 11.2); part 2's tests and planted bugs (sections 14.1 and 14.2). From part 2's trial: an escalation with no open PR goes on the bug's issue (section 9). |
 | 1.3 | 2026-11-08 | From F08 design section 9: "release" requests go to F08's version release flow (section 4); `status`, `brief`, and `approve` change as F08 section 3 says, and `approve` adds a change-log row (D77, section 8.6); the rights gain the GitHub release (section 9). From F08's trial: every fetch prunes (sections 8.2 and 8.6). |
 | 1.4 | 2026-11-08 | From F09 design section 8: "add a rule" requests go to F09's rule change flow (section 4); the engine gains `rule-id`, `rule-row`, the `rules` snapshot role, a `check-run` rule for dependency changes that only delete `baseline:` lines, and the `cleanup` action; the skill reads the P rows of type Process at every start. |
+| 1.5 | 2026-11-09 | Section 6.1: the brief finds mamba on the PATH or in `$MAMBA_EXE` only, as built. Found by F10's facts review, together with two skill sentences and the Product Manager's PM2, which now say what F09 and D65 decided: the rule change flow changes the config too, and an accepted feature keeps its status after a change. |

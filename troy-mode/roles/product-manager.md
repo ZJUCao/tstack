@@ -40,7 +40,7 @@ When: project setup (requirements 5.1), or a new version.
 When: Troy asks for a change (requirements 5.4).
 
 1. Update the requirements in both languages and get Troy's approval.
-2. List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark them "Needs rework" in the status table.
+2. List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark each one that is not yet accepted "Needs rework (<the change>)" in the status table. An accepted feature keeps its status, and the change becomes a new feature with a hard dependency on it (F07 design D65), as troy-mode's skill says in "Requirement change".
 3. Hand the list to the Architect for the change impact (AR4).
 
 ### PM3 Acceptance

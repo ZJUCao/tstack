@@ -1,12 +1,12 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.4（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.5（2026-11-09）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.4 |
-| 日期 | 2026-11-08 |
+| 版本 | 1.5 |
+| 日期 | 2026-11-09 |
 | 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
@@ -164,7 +164,7 @@ troy_approves_first = 3
 
 - IF1 的 Task 还说明第 4 节归架构师，并要求在那里写 "Not reviewed yet."。试运行里 IF1 把第 4 节的模板标记留给了架构师，于是在 AR2 填好这一节之前，`troy-check pr` 一直因 R20 不通过。
 - 第一个 mock 时，DV1 的检查以需要代码的初始化步骤开头：Python 是 `uv pip install -e . --no-deps`，C/C++ 是 `cmake --preset coverage`（F06 设计 5.4）。
-- 命令通过 `mamba run -n <environment>` 运行；设置了 `TROY_MODE_ENV_PREFIX` 时，用 `mamba run -p <folder>`。试运行会设置它，这样不会留下有名字的环境。mamba 的查找方式和 troy-init 相同（F06 设计 5.4）。
+- 命令通过 `mamba run -n <environment>` 运行；设置了 `TROY_MODE_ENV_PREFIX` 时，用 `mamba run -p <folder>`。试运行会设置它，这样不会留下有名字的环境。mamba 的查找方式和不带 `--mamba` 时的 troy-init 相同：先找 PATH，再找 `$MAMBA_EXE`（F06 设计 5.4）。`brief` 没有 `--mamba` 选项。
 - 修改是同一个任务的一次新运行（设计的修改用 IF2），Input 里是审查意见，Round 是下一轮（F04 D33）。
 
 ### 6.2 同一时间只运行一个会写文件的角色
@@ -485,3 +485,4 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | 1.2 | 2026-11-07 | Troy 的 D69：只在另一个平台上运行的测试交给 CI（第 8.6 节）。第二部分确定的细节：`brief --title`、`check-skips` 和 `series`（第 3.1 节）；状态里的历史顺序、bug 和旁支 PR 优先（第 5.1 节）；谁写每个旁支 PR（第 8.7 节）；bug 的分支（第 11.1 节）；返工、重做、跳过的 mock 和变更的批准（第 11.2 节）；第二部分的测试和埋 bug（第 14.1 和 14.2 节）。来自第二部分试运行：没有开着的 PR 时，升级上报发到 bug 的 issue 上（第 9 节）。 |
 | 1.3 | 2026-11-08 | 来自 F08 设计第 9 节：“发布”请求交给 F08 的版本发布流程（第 4 节）；`status`、`brief` 和 `approve` 按 F08 第 3 节修改，`approve` 会加一行修改记录（D77，第 8.6 节）；权限加上 GitHub release（第 9 节）。来自 F08 的试运行：每次 fetch 都带 prune（第 8.2、8.6 节）。 |
 | 1.4 | 2026-11-08 | 来自 F09 设计第 8 节：“加一条规则”的请求交给 F09 的规则变更流程（第 4 节）；引擎加上 `rule-id`、`rule-row`、`rules` 快照角色、`check-run` 对只删 `baseline:` 行的依赖改动的规则，以及 `cleanup` 动作；技能每次启动时读取类型为流程的 P 行。 |
+| 1.5 | 2026-11-09 | 第 6.1 节：按实际构建，brief 只在 PATH 和 `$MAMBA_EXE` 里找 mamba。由 F10 的事实核查发现；同时发现技能里的两句话和产品经理的 PM2 与 F09 和 D65 的决定不符，现已改正：规则变更流程也会改配置，已验收的功能在变更后保留原状态。 |

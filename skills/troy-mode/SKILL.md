@@ -167,7 +167,7 @@ Detach first, so that `gh` does not try to check out `main` before it deletes th
 - **Troy asks for changes.** The author revises, as a round.
 - **Troy merged on GitHub.** The document's approval is not recorded, and `status` gives `record-approval`: on `next.branch`, run `approve --doc <next.doc>`, commit as `next.title` (`[docs] Record Troy's approval of <document>`), check, open the PR, and merge it yourself.
 
-**After the first features (D62).** When `status` gives `ask-approvals`, ask Troy once whether to go on approving PR 1 and PR 2 of later features, and how many. Record the answer in `.troy-mode/config.toml`'s `[flow] troy_approves_first`, with a comment line above it that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merge it. This is the only config change you make.
+**After the first features (D62).** When `status` gives `ask-approvals`, ask Troy once whether to go on approving PR 1 and PR 2 of later features, and how many. Record the answer in `.troy-mode/config.toml`'s `[flow] troy_approves_first`, with a comment line above it that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merge it. Apart from troy-init's steps and the rule change flow (section "Rule change"), this is the only config change you make.
 
 ## Side PRs
 
