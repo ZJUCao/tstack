@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.3 |
-| Date | 2026-11-07 |
+| Version | 1.4 |
+| Date | 2026-11-09 |
 | Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
 
@@ -115,7 +115,7 @@ Setup can run before or after the Product Manager writes the requirements. It ne
 | `.gitignore` | Lines added | `.troy-mode/progress.md`. The file is created when it does not exist. |
 
 - Every path is in the `config` class of F02's built-in patterns, so the setup PR is a valid `[rules]` PR.
-- Files are written with LF line endings.
+- Files troy-init creates are written with LF line endings. A file it edits in place, such as an existing `.gitignore`, keeps the line endings it has in the working tree: in a Windows checkout with `core.autocrlf`, that is CRLF, and git still commits LF.
 - The git hook scripts are staged with `git add --chmod=+x`, because a Windows checkout does not record the executable bit.
 
 ### 4.3 The config
@@ -380,3 +380,4 @@ Requirements 1.16 records the approved changes:
 | 1.1 | 2026-11-07 | Section 8: troy-check's R12 skips `.troy-mode/`, approved by Troy on 2026-11-07. Section 11.5: part 1 also brings that change and the D49 config line. Found while building part 1. |
 | 1.2 | 2026-11-07 | Section 3.2: `lang` also takes `--project-name`, which the option table already gives the build files. Found while building part 2. Sections 3.1 and 7: the language step and upgrade create their branch before the dry run, because every step stops on `main`. Found by the trial of 11.4, where the dry runs of both steps stopped on `main`. |
 | 1.3 | 2026-11-07 | Section 7, step 8: detach before the merge and end with `git fetch origin`, in place of `git switch main` and `git pull --ff-only`, so troy-init also works in a worktree, where `main` is often checked out elsewhere. The skill's upgrade with nothing to change detaches the same way before it deletes its branch. From F07 design section 12. |
+| 1.4 | 2026-11-09 | Section 4.2: a file troy-init edits in place keeps its line endings, and only the files it creates get LF. Upgrade also reads a rules table with CRLF line endings, as a Windows checkout with `core.autocrlf` has it. Found by F09's trial, where upgrade left the R rows alone on such a checkout because it found no version in the table's header. |

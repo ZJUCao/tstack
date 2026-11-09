@@ -21,6 +21,15 @@ _CHANGE_TEXT = {
 }
 
 
+def _lf(text: str) -> str:
+    """The text with CRLF line endings turned into LF.
+
+    A Windows checkout with core.autocrlf has CRLF endings, and the patterns
+    here end at "$", which does not match before a "\\r".
+    """
+    return text.replace("\r\n", "\n")
+
+
 def _since(row: str) -> str:
     """Returns the last cell of a table row, the "Since" date."""
     match = _LAST_CELL.search(row)
@@ -62,12 +71,12 @@ def merge_rows(project: str, template: str, date: str) -> str:
     Raises:
         InitError: Either text has no R rows.
     """
-    lines = project.replace("\r\n", "\n").split("\n")
+    lines = _lf(project).split("\n")
     start, end = _rule_block(lines)
     block = lines[start:end]
     since = {m.group(1): _since(row) for row in block if (m := _R_ROW.match(row))}
     others = [row for row in block if not _R_ROW.match(row)]
-    template_lines = template.replace("\r\n", "\n").split("\n")
+    template_lines = _lf(template).split("\n")
     t_start, t_end = _rule_block(template_lines)
     rows = []
     for row in template_lines[t_start:t_end]:
@@ -122,6 +131,9 @@ def upgrade_pair(en: str, zh: str, en_template: str, zh_template: str, date: str
                  plugin_version: str) -> tuple[str, str] | None:
     """Upgrades the rules table and its mirror together.
 
+    Both texts are read with LF line endings, so that a checkout with CRLF
+    endings is upgraded as an LF one is.
+
     Args:
         en: docs/rules.md as it is.
         zh: docs/rules.zh-CN.md as it is.
@@ -131,12 +143,14 @@ def upgrade_pair(en: str, zh: str, en_template: str, zh_template: str, date: str
         plugin_version: troy-pstack's version.
 
     Returns:
-        The new English and Chinese texts, both at the same raised version,
-        or None when the R rows already match the templates.
+        The new English and Chinese texts with LF line endings, both at the
+        same raised version, or None when the R rows already match the
+        templates.
     """
+    en, zh = _lf(en), _lf(zh)
     en_rows = merge_rows(en, en_template, date)
     zh_rows = merge_rows(zh, zh_template, date)
-    if en_rows == en.replace("\r\n", "\n") and zh_rows == zh.replace("\r\n", "\n"):
+    if en_rows == en and zh_rows == zh:
         return None
     version = next_version(en)
     return (bump(en_rows, version, date, "en", plugin_version),

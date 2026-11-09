@@ -6,7 +6,9 @@ from pathlib import Path
 from .fill import add_lines, fill_config, fill_progress, fill_rules, progress_values
 from .gitops import config_get, current_branch, has_remote, is_root, ref_exists
 from .install import INSTALL_PATH, Install, render
-from .plan import FileAction, Plan, exists, file_hash, lf_bytes, read_project_file
+from .plan import (
+    FileAction, Plan, edited_bytes, exists, file_hash, lf_bytes, read_project_file,
+)
 from .plugin import HOOKS_DEST, Plugin, owned_sources, pack_patterns, read_source
 from .rules import RULES_EN, RULES_ZH
 
@@ -46,7 +48,8 @@ def _gitignore(repo: Path) -> FileAction:
     existing = read_project_file(repo, GITIGNORE)
     text, action = add_lines(None if existing is None else existing.decode("utf-8", "replace"),
                              GITIGNORE_LINES)
-    return FileAction(GITIGNORE, action, None if action == "keep" else lf_bytes(text))
+    content = None if action == "keep" else edited_bytes(text, existing)
+    return FileAction(GITIGNORE, action, content)
 
 
 def setup_files(plugin: Plugin, repo: Path, options: SetupOptions) -> list[FileAction]:
