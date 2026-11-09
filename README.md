@@ -21,7 +21,7 @@ In Claude Code:
 
 This folder is both the plugin and a one-plugin marketplace (`.claude-plugin/marketplace.json`). To try it for one session without installing, start Claude Code with `claude --plugin-dir D:/Troy/Projects/troy-pstack`.
 
-Claude Code prefixes plugin skills and agents, so type `/troy-pstack:poteto-mode`, `/troy-pstack:setup-pstack`, and so on. The agents are `troy-pstack:poteto-agent` and `troy-pstack:comment-sicko`.
+Claude Code prefixes plugin skills and agents, so type `/troy-pstack:poteto-mode`, `/troy-pstack:setup-pstack`, and so on. The agents are `troy-pstack:poteto-agent` and `troy-pstack:comment-sicko`, plus troy-mode's six roles ([troy-mode](#troy-mode)).
 
 After you edit the plugin, raise `version` in [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json), then run `claude plugin update troy-pstack@troy-pstack` and restart Claude Code.
 
@@ -32,6 +32,46 @@ After you edit the plugin, raise `version` in [`.claude-plugin/plugin.json`](./.
 3. Unsure which skill fits? Ask `/troy-pstack:poteto-help <question>`.
 
 The [guide](./docs/guide/README.md) walks through a first real task. It is Lauren's guide, adapted for Claude Code.
+
+## troy-mode
+
+> **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of troy-pstack.
+
+troy-mode is a fixed pipeline of roles that takes a project from its requirements to a released version. Each role works in its own context, and a different role reviews its output. Automated checks enforce the rules, so they do not depend on Claude remembering them.
+
+### Quick start
+
+1. Once per project: `/troy-pstack:troy-init` turns the folder into a troy-mode project. `/troy-pstack:troy-mode start a project: <idea>` runs it for you.
+2. For all work: `/troy-pstack:troy-mode <request>`, such as `next feature`, `bug: ...`, `release v0.1`, or `continue`.
+
+troy-mode waits for Troy at five steps only: the requirements, the architecture, the design and test plan PRs of the first features, each version's test on Troy's own devices, and each escalation ([requirements 3.3](./docs/troy-mode/requirements.md#33-where-troy-takes-part)).
+
+The main path of each flow has run on a scratch project, and some side paths have not run yet. The pilot (F11) is troy-mode's first use on a real project; the status of each part is in [requirements 7.2](./docs/troy-mode/requirements.md#72-feature-list).
+
+### troy-mode or poteto-mode
+
+Choose by project, not by task.
+
+| Situation | Use |
+| --- | --- |
+| A troy-mode project, any change that lands on `main` | troy-mode |
+| A troy-mode project, a question or an experiment | troy-mode, which opens no PR for it |
+| Another project, when the task needs rigor | poteto-mode |
+| A quick question or a small edit | No mode |
+
+### What it adds to the plugin
+
+- The skills `troy-init` and `troy-mode`, which run only when Troy types them.
+- Six agents, one per role: `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, and `troy-code-reviewer`. The main session is the Product Manager.
+- The hooks in [`hooks/hooks.json`](./hooks/hooks.json), which keep each role inside its write scope and exit at once outside troy-mode projects.
+- Everything under [`troy-mode/`](./troy-mode/), such as troy-check, troy-init's engine, the entry skill's engine, the hook code, the Product Manager's instructions, the templates, the Python and C/C++ language packs, and troy-pstack's own checks of them.
+
+The [skill table](#skill-table) below records the port of upstream's skills. troy-mode's parts are not a port, so they are not in it.
+
+### Read more
+
+- The guide, in [English](./docs/troy-mode/guide/README.md) and [Chinese](./docs/troy-mode/guide/README.zh-CN.md): install, a project's setup, every flow, and work on troy-mode itself.
+- The [requirements](./docs/troy-mode/requirements.md) and the [designs](./docs/troy-mode/design/), one per feature, each with a Chinese mirror.
 
 ## How the port works
 
@@ -124,7 +164,7 @@ That is 57 of upstream's 58 skills shipped. Troy chose to keep all of Lauren's p
 
 ## Make it yours
 
-Lauren's README says it best: `poteto-mode` is her style. Run `/troy-pstack:automate-me` to draft a `troy-mode` skill from your own transcripts, and keep troy-pstack underneath it.
+Lauren's README says it best: `poteto-mode` is her style. troy-mode is Troy's own mode, built in this fork on top of troy-pstack's skills: see [troy-mode](#troy-mode).
 
 ## Pull in upstream changes
 
