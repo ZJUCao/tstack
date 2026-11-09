@@ -16,7 +16,7 @@ troy-init turns a folder into a troy-mode project and keeps troy-mode's files in
 
 ## The engine
 
-The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/init/troy_init.py`. Run it from the project's root with Python 3.11 or newer: `python` on Windows, `python3` elsewhere. It uses the standard library only.
+The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/init/troy_init.py`. Run it from the project's root with Python 3.11 or newer: `$TROY_MODE_PYTHON` when that is set, else `python` on Windows and `python3` elsewhere, as troy-mode's skill runs its engines. It uses the standard library only.
 
 - It changes files and the repository's git config only. It never commits, pushes, or calls GitHub. You do those, in the PR flow below.
 - `--dry-run --json` checks and plans without changing anything. The JSON report lists each path with its action, the `conflicts` and `problems` that stop the step, the exact paths to `stage`, the `executable` paths among them, the `email` check, and `next_steps`.
