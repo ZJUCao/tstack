@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F10 in [requirements 1.26](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-08 |
+| Version | 1.1 |
+| Date | 2026-11-09 |
 | Status | Approved by Troy on 2026-11-08, with D86 to D92. |
 | Source of truth | This English file. [`F10-docs.zh-CN.md`](F10-docs.zh-CN.md) is the Chinese mirror. |
 
@@ -160,6 +160,8 @@ After F10 merges, Troy runs `claude plugin update troy-pstack@troy-pstack` and r
 
 It prints each broken link with its file and line. Exit codes are those of `check_pairs.py`: 0 when every link resolves, 1 when one does not, and 2 when the script cannot run.
 
+As built, it also skips links inside HTML comments, treats a fence at any indentation as a fence, so that code blocks in list items count, resolves a path that starts with `/` from the repository root, drops a `?query`, decodes percent-encoding, and checks an anchor only when the target is a Markdown file. A file it cannot read as UTF-8 makes it exit with 2. It runs `git ls-files`, so a file on disk that git does not track is a broken target.
+
 ### 9.2 Tests and planted bugs
 
 A separate agent writes `test_check_links.py` from this design before the script exists, with `unittest` and a temporary git repository. Cases include: a missing file, an untracked file, a folder link, an anchor in the same file and in another file, Chinese headings, repeated headings, headings with punctuation and inline code, links inside a code block and inside inline code (ignored), reference-style links, and `https:` links (ignored).
@@ -239,3 +241,4 @@ Requirements 1.26 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-08 | First draft. |
 | 1.0 | 2026-11-08 | Approved by Troy with D86 to D92, every recommended answer. |
+| 1.1 | 2026-11-09 | Build details. Section 9.1: what the link check does beyond the design's list. Section 4.1: each guide page has a header table with its version, 0.1 until the pilot has used the guide, so `check_pairs.py` checks the pair's version. Section 4.2: the examples also quote F06's trial on the same repository (the setup and language PRs) and a real escalation from F07's trial in place of Prototype C. Found while building F10. |
