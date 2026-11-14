@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.31 |
-| Date | 2026-11-13 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. Version 1.13 records the F04 design decisions Troy approved: D31, D32, and D35, and the answer to Q5, and 1.14 updates F04's status. Version 1.15 records the F05 design decisions Troy approved: D40, D41, D44, and D45, and 1.16 records the F06 design decisions Troy approved: D48, D52, D53, D54, and D55. Versions 1.17 and 1.19 update F06's status, and 1.18 updates F05's status. Version 1.20 records the F07 design decisions Troy approved: D57 to D61, D64, D65, and D67, 1.21 updates the status of F07, F04, and F05, 1.22 updates F07's status, and 1.23 updates F02's status. Version 1.24 records the F08 design decisions Troy approved: D70, D71, D73, D75, and D77, 1.25 records the F09 design decisions Troy approved: D80, D81, and D83, 1.26 records the F10 design decisions Troy approved: D90 and D91, and 1.27 records the F11 design decisions Troy approved: D93 to D97. Version 1.28 updates F08's status, 1.29 updates F09's status, and 1.30 updates F10's status. Version 1.31 updates the status of F01 to F07 and F11 from the pilot. No question is open. |
+| Version | 1.32 |
+| Date | 2026-11-14 |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. Version 1.13 records the F04 design decisions Troy approved: D31, D32, and D35, and the answer to Q5, and 1.14 updates F04's status. Version 1.15 records the F05 design decisions Troy approved: D40, D41, D44, and D45, and 1.16 records the F06 design decisions Troy approved: D48, D52, D53, D54, and D55. Versions 1.17 and 1.19 update F06's status, and 1.18 updates F05's status. Version 1.20 records the F07 design decisions Troy approved: D57 to D61, D64, D65, and D67, 1.21 updates the status of F07, F04, and F05, 1.22 updates F07's status, and 1.23 updates F02's status. Version 1.24 records the F08 design decisions Troy approved: D70, D71, D73, D75, and D77, 1.25 records the F09 design decisions Troy approved: D80, D81, and D83, 1.26 records the F10 design decisions Troy approved: D90 and D91, and 1.27 records the F11 design decisions Troy approved: D93 to D97. Version 1.28 updates F08's status, 1.29 updates F09's status, and 1.30 updates F10's status. Version 1.31 updates the status of F01 to F07 and F11 from the pilot. Version 1.32 records what Troy approved on 2026-11-14: F12 to F19, the changes they bring to sections 3, 4.1, 5, and 6 and to Q4, and the proposals for Q11 to Q16. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -49,7 +49,7 @@ Choose by project, not by task.
 | A project that does not use troy-mode, or a one-off script | poteto-mode when the task needs rigor |
 | A quick question or a small edit | No mode |
 
-In a troy-mode project, CI enforces the PR rules whichever mode made the change.
+In a troy-mode project, CI enforces the PR rules whichever mode made the change. A hook there refuses `/poteto-mode` and `/no-comments`, whose ways of working break troy-mode's rules (F13).
 
 ### 3.3 Where Troy takes part
 
@@ -61,9 +61,15 @@ Only these steps wait for Troy's approval:
 4. Each version, by testing it on Troy's own devices.
 5. Every escalation (section 5.7).
 
+Every other step goes on without asking Troy, and its PR or the progress file says what was done and why. This is pstack's never-block-on-the-human principle with an explicit list, so troy-mode never judges for itself which steps need Troy (F18).
+
+Each interface design PR opens with a one-page summary for Troy: what changes for Troy, the points Troy must decide, and the risks (F14).
+
 Troy approves steps 1 to 3 in chat or by merging the PR on GitHub. After an approval in chat, troy-mode records it in the document's header and change log (F08 design D77) and merges the PR. After a merge on GitHub, troy-mode records the approval in a `[docs]` PR (F07 design D61).
 
-Troy follows progress in the progress file and in the feature status table of the requirements document.
+Once real-run acceptance (F12) and the role exam (F16) give enough evidence, Troy can turn the approvals of step 3 into spot checks: Claude merges, and Troy reviews a sample and every PR marked as risky (F18, Q15).
+
+Troy follows progress in the progress file, in the feature status table of the requirements document, and in each feature's progress issue on GitHub (F15).
 
 ### 3.4 Interaction prototypes
 
@@ -158,7 +164,13 @@ troy-mode calls these troy-pstack skills where they fit, without changing them.
 | `interrogate` | Adversarial review of a contested design |
 | `benchmark-checklist` | Checking performance numbers before trusting them |
 | `technical-writing` | Writing requirements, design, and test plan documents |
-| `correct`, `reflect` | Turning repeated mistakes into rules and checks after a version |
+| `correct` | Turning repeated mistakes into rules and checks after a version |
+| `reflect` | Reviewing a version's sessions at the retrospective for lessons to put into skills. Listed here since 1.0, but the retrospective does not call it yet. F17 adds it. |
+| `create-verification-skill`, `maintain-verification-skill` | Making and keeping current a project's tool that drives the real program as a user does, with its feature map (F12) |
+| `principle-prove-it-works` | Checking the real program, not a proxy, before a feature is accepted (F12) |
+| The `eval` and `hillclimb` playbooks of `poteto-mode` | Testing role instructions blind, and improving them against the score (F16) |
+
+F17 adds more of pstack where the pilot shows the need, when the same mistake shows up twice. troy-mode reads these skills and playbooks and follows them. It borrows from `poteto-mode` and never changes it, so upstream updates keep merging cleanly.
 
 Where a pstack rule conflicts with a troy-mode rule, troy-mode's rule wins inside a troy-mode project. The comment rule is one example. pstack keeps comments only for a non-obvious reason. troy-mode requires a Google-style doc comment on every function.
 
@@ -193,12 +205,12 @@ flowchart LR
 
 | PR | Content | Author | Reviewer | Merge condition | Merged by |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Interface design (English and Chinese). For each external interface: name, purpose, parameters, return value, errors, and a performance target when the requirements set one. | Interface Designer | Architect, against the checklist below, at most 3 rounds | Document checks pass | Troy for the first features (Q2), or Claude after Troy approves in chat (R18). Then Claude. |
+| 1 | Interface design (English and Chinese). For each external interface: name, purpose, parameters, return value, errors, and a performance target when the requirements set one. The PR description opens with a one-page summary for Troy: what changes for Troy, the points Troy must decide with a recommendation for each, and the risks (F14). | Interface Designer | Architect, against the checklist below, at most 3 rounds | Document checks pass | Troy for the first features (Q2), or Claude after Troy approves in chat (R18). Then Claude. |
 | 2 | Test plan (English and Chinese). Unit, functional, integration, and performance cases. Each case says what it tests. | Test Manager | Agreed with the Interface Designer, at most 3 rounds | Document checks pass | Troy for the first features (Q2), or Claude after Troy approves in chat (R18). Then Claude. |
 | 3 | Mock. Signatures and full Google-style doc comments, no bodies. | Developer | Code Reviewer | Checks pass. Existing tests pass. | Claude |
 | 4 | Test code, each test tagged with the feature ID. | Test Engineer | Test Manager (matches the plan) and Code Reviewer | Every new test fails against the mock. Existing tests pass. | Claude |
 | 5 | Implementation. | Developer | Code Reviewer | New and existing tests pass. Performance tests pass where a target exists. Coverage meets R11. Size rules hold. | Claude |
-| 6 | Acceptance. Status update in English and Chinese. The feature's tests become must-pass. | Product Manager | None | Checks pass | Claude |
+| 6 | Acceptance. Status update in English and Chinese. The feature's tests become must-pass. First the Product Manager runs the real program through every command of the feature's prototype and puts the real output, compared with the prototype, in the PR description. A mismatch goes to the bug flow (5.3) before acceptance (F12). | Product Manager | None | Checks pass | Claude |
 
 **Architect's interface checklist.**
 
@@ -230,7 +242,7 @@ The Code Reviewer reviews both PRs.
 
 ### 5.4 Requirement change
 
-1. Troy asks for the change. The Product Manager updates the requirements document, and Troy approves it.
+1. Troy asks for the change, in chat or in an issue with the `idea` label (F15). The Product Manager updates the requirements document, and Troy approves it.
 2. The Product Manager lists the affected features from the dependency graph: the changed feature and every feature that depends on it.
 3. The Architect decides which interfaces, tests, and parts of the architecture change. An architecture change gets an ADR.
 4. A change to a feature that is already accepted becomes a new feature with a hard dependency on the old one. Its tests PR retires the old tests that the change makes wrong and adds new ones, and its mock PR is skipped when it adds no interface (F07 design D65).
@@ -240,7 +252,7 @@ The Code Reviewer reviews both PRs.
 
 1. The version plan groups consecutive features in the order into versions. Each version is usable on its own.
 2. The Test Manager writes the version test plan when the version is planned, not at the end: before the version's first feature starts (F08 design D70).
-3. The release test runs end-to-end tests of the user scenarios in the requirements, stress tests, and performance tests, on Troy's devices. Each scenario says who runs it. The Test Engineer writes the ones Claude runs as version tests, which run on Troy's PC at release only. Troy runs the ones that need Troy's devices (F08 design D71). Troy accepts the version.
+3. The release test runs end-to-end tests of the user scenarios in the requirements, stress tests, and performance tests, on Troy's devices. Each scenario says who runs it. The Test Engineer writes the ones Claude runs as version tests, which run on Troy's PC at release only. Troy runs the ones that need Troy's devices (F08 design D71), from a checklist issue for the version that Troy ticks while testing (F15). Troy accepts the version.
 4. Bugs found go through the bug flow (5.3).
 5. After acceptance, `main` gets a tag `vMAJOR.MINOR.PATCH`, made as a GitHub release whose notes are the version's changelog section (F08 design D73), and the changelog is updated in English and Chinese.
 6. A retrospective turns problems that repeated during the version into new rules or checks (5.8).
@@ -261,13 +273,14 @@ A patch release, such as v0.1.1, releases the bug fixes merged since the version
 
 troy-mode stops and asks Troy when:
 
-- A review loop reaches 3 rounds without agreement.
 - A change needs the requirements or the architecture to change.
-- An author's work still fails its checks after 3 attempts (F07 design D64).
+- An author's work still fails its checks after 3 attempts (F07 design D64), and after one more attempt that first tests the premise the failed attempts share (F18).
 - A new third-party dependency is needed. The Architect reviews it first.
 - An irreversible action falls outside the merge rights, for example a force push or deleting data.
 
 Each escalation says what stopped, why, the options, and a recommendation (Prototype C).
+
+When a review loop reaches 3 rounds without agreement, troy-mode does not stop. The Architect decides, or the Product Manager when the loop is the Architect's own review, and writes the reason in the PR. Troy can overturn the decision later (F18). Until F18 is built, troy-mode stops and asks Troy after a review loop's third round and after an author's third attempt.
 
 ### 5.8 Adding or changing a rule
 
@@ -308,7 +321,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 | R14 | Only interfaces with a performance target get performance tests. They run on a fixed machine, with a margin, against the previous baseline. | Review | Test Manager |
 | R15 | Every fixed bug keeps its reproduction test. | Review | Test Manager |
 | R16 | A new third-party dependency needs the Architect's approval. | Review | Architect. CI flags every change to dependency files. |
-| R17 | A review loop stops at 3 rounds and escalates. | Process | troy-mode |
+| R17 | A review loop stops at 3 rounds and escalates. After F18, the Architect, or the Product Manager when the loop is the Architect's own review, decides instead and records the reason (5.7). | Process | troy-mode |
 | R18 | Troy approves PR 1 and PR 2 of the first features (Q2), in chat or by merging them. After an approval in chat, Claude merges them (F07 design D61). Claude merges every other PR once its checks and reviews pass. Troy decides when Claude merges everything. | Process | troy-mode |
 | R19 | Commits use the email in Troy's global CLAUDE.md. Commit messages, PR titles, and PR descriptions carry no Claude attribution and, by default, do not mention Claude or Anthropic at all (F02 design D10). | Hard | Hook and CI |
 | R20 | A merged document or PR description holds no template markers or template guidance (F01 design D2, F02 design D11). | Hard | CI |
@@ -342,6 +355,14 @@ The IDs are already in topological order.
 | F09 | Rule change flow (5.8). The Architect picks the strongest enforcement that works and finds the existing code that breaks the rule ([F09 design](design/F09-rule-change.md) D79). A project rule is enforced by the architecture, a tool the project already runs, a troy-check limit, a step in the project's own workflow, or its row in the rules table (D80). Its `[rules]` PR carries a baseline of today's violations, which cleanup PRs remove when Troy chooses to fix them now (D81). Troy approves each rule in one message (D82). A rule for every project becomes an issue in troy-pstack (D83). Project rules can be changed and retired, and troy-mode rules adjusted only through troy-check's config (D84). | F07 | Runs on a sample project: troy-mode added two rules to a scratch GitHub project, one checked by a lint with a baseline and a cleanup PR, one checked in review, retired one, and proposed a rule for every project, with Troy's answers given in the trial's messages. Not yet used on a real project. |
 | F10 | troy-pstack documentation. A troy-mode section in `README.md`, in English, and a usage guide in English and Chinese in `docs/troy-mode/guide/`, covering install, project setup, every flow, where Troy takes part, and work on troy-mode itself ([F10 design](design/F10-docs.md) D86, D87, D92). A note in both, and in the plugin's descriptions, says that troy-mode is Troy's own work and not part of Lauren Tan's pstack (D88). The plugin version rises to 0.2.0, so an installed troy-pstack receives troy-mode (D89). The pair check, a link check in CI, a facts review, and a reader test in both languages check the documents (D90). Built after F09 and before the pilot (D91). | F08, F09 | Written: the README section and the guide in English and Chinese, describing F01 to F09 as built. The pair and link checks pass, a facts review found no open mismatch, and a reader test answered all 19 questions from the guide alone in each language. Not yet followed on a real project. |
 | F11 | Pilot. Take one small real project through one version with troy-mode. The project is a new Python command-line project for recipes, a week's menu, and its shopping list, with Chinese and English text ([F11 design](design/F11-pilot.md) D93). One version is its v0.1, with 4 or 5 features, released, accepted on Troy's devices, and its retrospective done (D94). Troy types the requests in a desktop session in the pilot folder (D95). A problem that blocks the pilot pauses it until troy-pstack fixes it through its own process and a new plugin version (D96). A pilot report in troy-pstack, and an issue with the `pilot` label for each problem, record what the pilot found (D97). | F08, F09, F10 | Used on a real project, in progress: troy-mode set up `ZJUCao/recipe-menu` and accepted the first 8 of v0.1's 13 features, F01 to F08 ("Passes tests on main"). F09 is in progress. v0.1 is not released yet. |
+| F12 | Real-run acceptance. Before a feature's acceptance PR, the Product Manager runs the real program the way Troy would, through every command of the feature's prototype, and puts the real output and its comparison with the prototype in the PR (5.2). A mismatch goes to the bug flow (5.3). Command-line projects come first: their prototypes' terminal transcripts are the script. Projects with a graphical or web interface come later, with a verification tool and feature map from `create-verification-skill` (4.1, Q13). Built during the pilot, before its v0.1 release (Q11). | F07 | Not started |
+| F13 | Mode guard. In a troy-mode project, a hook refuses `/poteto-mode` and `/no-comments` typed by Troy, and says to use troy-mode instead (3.2). The design first checks that a hook can see a slash command Troy types. | F05 | Not started |
+| F14 | Summary for Troy. Each interface design PR opens with a one-page summary for Troy: what changes for Troy as a user, the points Troy must decide with a recommendation for each, and the risks (3.3, 5.2). In the pilot, one feature's design and test plan hold 60,000 to 185,000 characters of English, so Troy needs a short way in. Its language, and whether other PRs that wait on Troy get one too, are open (Q16). | F01, F07 | Not started |
+| F15 | Issues for Troy. troy-mode uses GitHub issues where Troy reads or writes from a phone: an issue with the `idea` label for each new idea or change request, which the Product Manager turns into a requirement change (5.4); one progress issue per feature, with its six PRs as a checklist, updated at each stage and closed at acceptance (3.3); and one checklist issue per version with the scenarios Troy runs on Troy's devices, ticked while testing (5.5). Documents stay in the repository: the checks and the hooks read them as files, and 12 of the pilot's 44 English documents are longer than GitHub's 65,536-character limit for an issue. | F07, F08 | Not started |
+| F16 | Role exam. Trap tasks for each role, run in a scratch project, and graded blind by a fresh session that did not do the task and cannot tell which version of the instructions it grades. A change to a role's instructions passes the exam before it merges. The cases come from the pilot's real mistakes. Runs on Troy's PC only, not in CI. Follows poteto-mode's `eval` and `hillclimb` playbooks (4.1). Built after the pilot. | F04, F11 | Not started |
+| F17 | More pstack in troy-mode. Adds a pstack skill where the pilot showed the same mistake twice. The candidates: principle cards in the role instructions, for example `principle-test-behavior-not-implementation` for the Test Manager and `principle-fix-root-causes` for bug fixes; `blast-radius` in code review and requirement changes; `reflect` in the retrospective; poteto-mode's investigation playbooks in bug triage; and `interrogate` for designs that change a data format or several modules. Each addition passes the role exam (F16) first. | F11, F16 | Not started |
+| F18 | Fewer stops. The Product Manager's instructions say that only the approvals in 3.3 and the escalations in 5.7 wait for Troy, and every other step goes on and reports in its PR. A review loop's third round no longer stops, and an author's third failed attempt first tests its premise once more (5.7, R17). Once F12 and F16 give evidence, Troy can turn the approvals of design and test plan PRs into spot checks (3.3, Q15). | F07, F12, F16 | Not started |
+| F19 | Rename to tstack. The plugin `troy-pstack` becomes `tstack`, Troy's own stack, as Lauren Tan's `pstack` is named after poteto. Commands become `/tstack:troy-mode` and `/tstack:troy-init`, and the skill, agent, and folder names inside stay. The hooks' agent-name match, the tests, the documents, and the GitHub repository change with it. The README and the plugin descriptions say that most skills come from Lauren Tan's pstack under its MIT license, and that troy-mode is Troy's own work. Done in one PR after the pilot's v0.1 release and before a second project adopts troy-mode (Q4). | F11 | Not started |
 
 ```mermaid
 flowchart LR
@@ -363,9 +384,23 @@ flowchart LR
   F08 --> F11
   F09 --> F11
   F10 --> F11
+  F07 --> F12
+  F05 --> F13
+  F01 --> F14
+  F07 --> F14
+  F07 --> F15
+  F08 --> F15
+  F04 --> F16
+  F11 --> F16
+  F11 --> F17
+  F16 --> F17
+  F07 --> F18
+  F12 --> F18
+  F16 --> F18
+  F11 --> F19
 ```
 
-F02, F03, and F04 depend only on F01, so they can be built in parallel.
+F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F15 do not depend on each other either.
 
 ## 8. Non-functional requirements
 
@@ -392,20 +427,26 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel.
 
 ## 10. Open questions
 
-Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Troy answered Q1 and extended Q9 the same day (version 1.2).
+Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Troy answered Q1 and extended Q9 the same day (version 1.2). Troy approved version 1.32 on 2026-11-14, which accepts the proposals for Q11 to Q16.
 
 | ID | Question | Proposal |
 | --- | --- | --- |
 | Q1 | Which languages come first? Each needs its own language pack (F03). | Decided by Troy: Python and C/C++ first. TypeScript/JavaScript is wanted too, at lower priority. |
 | Q2 | For how many first features does Troy merge PR 1 and PR 2? | 3 per project. Then Troy decides. |
 | Q3 | Which model does each role use? | opus for the Architect, Interface Designer, Test Manager, and Code Reviewer. sonnet for the Developer and Test Engineer. The Product Manager uses the main session's model. |
-| Q4 | Names. | `troy-mode`, `troy-init`. Agents `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, `troy-code-reviewer`. Marker folder `.troy-mode/` in the project root. |
+| Q4 | Names. | `troy-mode`, `troy-init`. Agents `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, `troy-code-reviewer`. Marker folder `.troy-mode/` in the project root. Version 1.32 renames the plugin from `troy-pstack` to `tstack`, and these names stay (F19). |
 | Q5 | R08 needs a hook to know that the Developer is the one editing. Whether Claude Code tells a hook which subagent made a call has to be checked during design. | Answered by the F04 design (section 9.1): it can. The hook input names the subagent in `agent_type`, so a hook enforces R08, and CI's R02 stays as the backstop. |
 | Q6 | When an existing project (for example troy-voice) adopts troy-mode, must old code meet the rules? | No. Only new and changed code. Old code is fixed when it is touched. |
 | Q7 | Which machine runs performance tests? | Troy's PC, locally, at version release. Not CI, whose runners are too noisy. |
 | Q8 | Is the progress file committed? Committing it means a PR for every update, which R01 and R02 make heavy. | Keep it local and git-ignored. The durable state is the status table, which PR 6 updates. |
 | Q9 | What format do project prototypes use? | Clickable HTML wireframes in `docs/prototypes/`, plus Mermaid diagrams in the documents. A command-line project may also write a prototype as a Markdown file in `docs/prototypes/` that holds a terminal session transcript (added by Troy in 1.2). |
 | Q10 | How is troy-mode itself built? The pipeline does not exist until F07. | One PR per feature (F01 to F10) on troy-pstack, each with one commit. Check scripts are built test-first. The pilot (F11) is the first full run of the pipeline. F03, F06, and F07 are the exceptions: F03 is built in four PRs (F03 design D15), F06 in two (F06 design D55), and F07 in two (F07 design D67). |
+| Q11 | When does real-run acceptance (F12) start? | During the pilot, before its v0.1 release, through a new plugin version as F11 design D96 allows, so the pilot's last features and its release use it. The pilot report says which features had it. |
+| Q12 | Does a project get a new status label between "passes tests on main" and "usable on Troy's devices"? | Yes: "ran for real on Troy's PC", set by an acceptance PR that carries real-run evidence (F12). |
+| Q13 | How does real-run acceptance work for a project with a graphical or web interface? | `create-verification-skill` makes the project's verification tool and feature map at setup, and `maintain-verification-skill` keeps them current at each release. The details are decided when the first such project adopts troy-mode. |
+| Q14 | Does a small feature get a lighter path than six PRs? | Decide from the pilot's numbers in the pilot report. Today only a requirement change that adds no interface skips its mock PR (F07 design D65). |
+| Q15 | When approvals become spot checks (F18), how are the PRs picked? | F18's design proposes a rule, for example a share of the PRs plus every PR a reviewer marks as risky, and Troy decides then. |
+| Q16 | Which PRs get the summary for Troy (F14), and in which language? | Every interface design PR, in English and Chinese like the documents. F14's design decides whether the test plan, requirements, and architecture PRs, which Troy also approves, get one too. |
 
 ## 11. Change log
 
@@ -444,3 +485,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.29 | 2026-11-08 | F09 status: Runs on a sample project. F09's trial (F09 design 10.3) on `ZJUCao/troy-mode-trial` added P01 (ruff EM102) with one baseline line, removed it in a cleanup PR that a new session found through `status`, added the review rule P02 and retired it, and proposed R22 for every project, for which Troy declined the issue. Troy's answers were given in the trial's messages. |
 | 1.30 | 2026-11-09 | F10 status: Written. F10's PR added the guide in English and Chinese (`docs/troy-mode/guide/`, version 0.1), the README section, plugin version 0.2.0, and the link check in CI (F10 design 9). The pair and link checks pass, a facts review found no open mismatch, and a reader test answered all 19 questions from the guide alone in each language. The guide has not yet been followed on a real project; the pilot (F11) is its first use. |
 | 1.31 | 2026-11-13 | Status of F01 to F07 and F11: Used on a real project, from the pilot's first status PR (F11 design 9). On `ZJUCao/recipe-menu`, troy-mode set up the project and accepted F01 to F08 of v0.1, whose 13 features Troy chose to keep, rather than F11 design D94's 4 or 5. F08, F09, and F10 keep their statuses: no version is released yet, no rule has been added, and the guide's fixes come at the end of the pilot. |
+| 1.32 | 2026-11-14 | Approved by Troy, from Troy's comparison of troy-mode with Lauren Tan's pstack. New features F12 to F19: real-run acceptance, a mode guard, a summary for Troy on each design PR, issues for Troy, a role exam, more pstack skills, fewer stops, and the rename to tstack. 3.2: the mode guard. 3.3: every other step goes on without asking, design PRs open with a summary, approvals can become spot checks, and progress issues. 4.1: the skills that F12 and F16 borrow, and `reflect`, which the retrospective does not call yet. 5.2: PR 1's summary and PR 6's real run. 5.4: idea issues. 5.5: the release checklist issue. 5.7 and R17: a review loop's third round and an author's third attempt (F18). Q4: the plugin's new name. New questions Q11 to Q16, with their proposals accepted. |
