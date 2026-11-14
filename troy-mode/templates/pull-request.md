@@ -13,6 +13,7 @@ template: PR title is [<ID> <stage>] <summary>, or [<kind>] <summary> for a PR t
   [rules]              rules table and check config
   [refactor]           source
 Each PR has exactly one commit (R01) and holds one stage's output only (R02).
+A design, test plan, requirements, or architecture PR starts with the author's summary for Troy, from .troy-mode/templates/summary-for-troy.md, before Why (R22). Other PRs start with Why.
 Remove this comment and every {{marker}} before opening the PR.
 -->
 

@@ -25,6 +25,7 @@
 | [`progress`](progress.md) | `.troy-mode/progress.md` | 无 | 主会话 | 每个阶段。只在本地，被 git 忽略。 |
 | [`escalation`](escalation.md) | 无。它是一条聊天消息的格式。 | 无 | 主会话 | 每次升级上报 |
 | [`pull-request`](pull-request.md) | `.github/pull_request_template.md` | 无。PR 用英文写。 | 开 PR 的角色 | 每个 PR |
+| [`summary-for-troy`](summary-for-troy.md) | 无。它放在 PR 描述的开头。 | 无。一个文件里有两种语言，中文在前。 | 写这份文档的角色 | 每个设计、测试计划、需求和架构 PR |
 
 `<名字>.md` 的中文镜像是同一文件夹下的 `<名字>.zh-CN.md`。`<短名>` 是用连字符连接的小写英文单词，例如 `F04-export-csv`。
 
@@ -97,4 +98,4 @@ PR 标题为 `[<编号> <阶段>] <概要>`；不属于任何功能或 bug 的 P
 | 规则变更 | `[rules] Add P01, no global state` | 规则表和检查配置 |
 | 重构 | `[refactor] Split storage.py`，或规则清理：`[refactor] Apply P01 to storage` | 源码 |
 
-描述分四部分：Why、What、Checks、Soft-limit reason。
+描述分四部分：Why、What、Checks、Soft-limit reason。设计、测试计划、需求和架构 PR 在它们之前先放给 Troy 的摘要，先中文后英文（R22）。

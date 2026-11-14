@@ -72,6 +72,7 @@ mirror-of: "design.md"
 | 只依赖排序在前面的功能 | {{Pass or Fail}} | {{note}} |
 | 不在模块之间增加隐性耦合 | {{Pass or Fail}} | {{note}} |
 | 修改已实现的接口时走了变更流程 | {{Pass or Fail}} | {{note}} |
+| 给 Troy 的摘要和设计说的一致，并列出了需要 Troy 决定的每一件事 | {{Pass or Fail}} | {{note}} |
 
 <!-- template: 每轮审查一行。3 轮仍未达成一致时，troy-mode 向 Troy 升级上报（R17）。 -->
 

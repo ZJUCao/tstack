@@ -95,6 +95,20 @@ When you write a document yourself as the Product Manager (PM1, PM2, PM3), take 
 
 When a role asks for `how`, `why`, or `interrogate`, read that skill's `SKILL.md` under `${CLAUDE_PLUGIN_ROOT}/skills/`, follow it, and put the result in the next brief's Input.
 
+## The summary for Troy
+
+The description of every interface design (PR 1), test plan (PR 2), requirements, and architecture PR opens with the summary for Troy, in Chinese and then English, from `.troy-mode/templates/summary-for-troy.md`: what changes for Troy as a user, each point Troy decides with a recommendation, and the risks, in plain words. This holds whoever merges the PR. troy-check's R22 checks its shape, its length (`[summary] max_chars`, 2,000 characters in each language by default), and that it holds no internal IDs (troy-pstack's F14 design, `docs/troy-mode/design/F14-summary.md`).
+
+1. **Who writes it.** The role that writes the document, in its report's `For Troy` field: IF1 and IF2 for a design, TM1 for a test plan, AR1 for the architecture, and AR6 or AR4 for an architecture change. The engine's brief asks for it in those tasks; for AR4, Input asks (section "Requirement change"). You write the requirements' summary yourself, as the Product Manager (PM1, PM2). Never write the summary of another role's document: that would mean reading the whole document here.
+2. **The description.** The report's For Troy block first, unchanged, then Why, What, Checks, and Soft-limit reason.
+3. **Read it once** against the template's plain-words rules. You may reword a sentence to make it plainer, but never change what a point, an option, or a recommendation says. A change of meaning goes back to the author as a round.
+4. **Local checks.** `troy-check pr --body-file` runs R22. A failure goes back to the author as Input and counts as an attempt, and so does a report with no For Troy block.
+5. **AR2** gets the design's summary in its brief's Input, for the checklist's seventh item.
+6. **After each revision**, put the new summary in place of the old one: `gh pr edit <number> --body-file <file>`. CI runs again on the edit.
+7. **When the PR waits for Troy**, post `Waiting for Troy: approve this PR` with one line under it: "What to decide is in the summary at the top of the description." Then send Troy the summary in chat, in the language Troy writes in, as the description has it, with the PR's link.
+
+Troy's reply works as section "Merging" says. "全按推荐", "all as recommended", or "approved" approves the PR with every recommendation: record the approval, and say in the description's What that Troy took every recommendation. A reply that picks another option, such as "2: option 2", asks for changes: the author revises, as a round, and the PR waits for Troy again.
+
 ## Feature loop
 
 `status` gives the next stage in `next` (`action` `stage`), or the open PR to continue (`continue-pr`). The stage before must have merged on `origin/main`, and `status` only names a stage when it has.
@@ -116,8 +130,8 @@ When a role asks for `how`, `why`, or `interrogate`, read that skill's `SKILL.md
 2. **Author.** Run the stage's author (section "Running a role"). For PM3, check the feature against its requirement row and prototypes, set its status to "Passes tests on main" in both languages, and raise the requirements' `version` by one minor step in both, with `updated`.
 3. **Commit.** `git add -- <path>` for exactly the paths in `stage`. The first run makes the commit, whose subject is the PR title (R01): `git commit -m "<title>"`. Later runs amend it with `git commit --amend --no-edit`, so the PR keeps one commit. The git hooks check R19.
 4. **Local checks**, on the commit (section "Local checks"). A failure goes back to the author as Input and counts as an attempt.
-5. **PR.** Write the description from `.github/pull_request_template.md`: Why (the feature's goal), What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`.
-6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input.
+5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why (the feature's goal), What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
+6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input.
 7. **Merge** (section "Merging").
 8. **Progress.** After every step (each role run, commit, push, review, merge, and escalation) run `troy_flow.py status --write-progress`.
 
@@ -140,7 +154,7 @@ Post every review, failed attempt, escalation, and request to Troy as a PR comme
 - `<Role> review, round <n>: <result>`, for example `Architect review, round 2: changes-requested`, then the findings;
 - `<Role> attempt <n>: failed`, then the failing checks;
 - `Escalation: <trigger>`, then the escalation message in English;
-- `Waiting for Troy: approve this PR`, or `Waiting for Troy: accept <tag>` on a release PR;
+- `Waiting for Troy: approve this PR`, with one line under it, "What to decide is in the summary at the top of the description.", or `Waiting for Troy: accept <tag>` on a release PR;
 - on a release PR (section "Version release"): `Release test, run <n>: passed` or `failed`, `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, `Bug deferred by Troy: #<n>`, and `Retrospective: <tag>`.
 
 Under a review heading, write the findings as the role reports them, one numbered line each, starting with the rule ID or checklist item and a colon, for example `1. R05: src/wc.py:12 ...`, so the retrospective can group them.
@@ -161,7 +175,7 @@ Detach first, so that `gh` does not try to check out `main` before it deletes th
 - **A failing check.** Give the author the failing log (`gh run view <run ID> --log-failed`) as Input; the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, stop and tell Troy.
 - **A refused merge.** If the agent's permissions refuse `gh pr merge`, stop and tell Troy which permission to add. Never work around a refusal.
 
-**Troy's approval (D61).** When `merged_by` is `troy` (PR 1 and PR 2 of the first `troy_approves_first` features, the requirements, the architecture, and a requirement change), post `Waiting for Troy: approve this PR`, run `troy_flow.py status --waiting "<what>"`, tell Troy with the PR's link, and stop. Troy replies in chat or merges on GitHub.
+**Troy's approval (D61).** When `merged_by` is `troy` (PR 1 and PR 2 of the first `troy_approves_first` features, the requirements, the architecture, and a requirement change), post `Waiting for Troy: approve this PR` with its one line, run `troy_flow.py status --waiting "<what>"`, send Troy the summary for Troy with the PR's link (section "The summary for Troy"), and stop. Troy replies in chat or merges on GitHub.
 
 - **Troy approves in chat.** Run `troy_flow.py approve --doc <document>` (the design for PR 1, the test plan for PR 2, `docs/requirements.md`, or `docs/architecture.md`). It changes only header fields, so no role runs. Stage both files, amend the commit, run the local checks, push, wait for the checks, and merge.
 - **Troy asks for changes.** The author revises, as a round.
@@ -217,8 +231,8 @@ A dispute or a new dependency during a bug runs as in section "Side PRs", with t
    - each affected feature that is accepted (D65): keep its status and add a new feature for the change, with the next free ID, a short name, a hard dependency on the old one, and Status `Not started`; put it in the topological order right after the features it depends on and before the features not started yet, unless Troy says otherwise, and in the version plan;
    - raise `version` by one minor step in both, with `updated`, and add a change log row.
 
-   Commit as `[docs] Change the requirements: <summary>`, run `troy-check pr`, open the PR, and wait for Troy's approval (section "Merging"). A Feature cell keeps to the feature's short name.
-2. **AR4.** For each affected feature, run AR4 with the change in Input (`brief --task AR4 --item <ID>`). When AR4 reports an architecture change, escalate it with AR4's ADR as the recommendation; on Troy's yes, put the ADR in a `[docs]` PR and merge it.
+   Write the summary for Troy of the change (section "The summary for Troy"). Commit as `[docs] Change the requirements: <summary>`, run `troy-check pr`, open the PR with the summary at the top of its description, and wait for Troy's approval (section "Merging"). A Feature cell keeps to the feature's short name.
+2. **AR4.** For each affected feature, run AR4 with the change in Input (`brief --task AR4 --item <ID>`), and add to Input: "If the architecture must change, write the summary for Troy from the summary-for-troy template in your report's For Troy field." When AR4 reports an architecture change, escalate it with AR4's ADR as the recommendation; on Troy's yes, put the ADR in a `[docs] Change the architecture for <ID>` PR on `troy-mode/<id>-architecture`, with AR4's summary at the top of its description, and merge it.
 3. **A feature not yet accepted** goes back to the earliest stage AR4 names. When its open PR's stage is at or after that stage, close it unmerged: `gh pr close <number>`. Then run that stage again with its usual title and branch, giving the title with `brief --title` (a redo; the engine allows it while the feature is in rework). When the feature's implementation has merged and its tests change, start at stage 3 at the latest: R09 needs every test of the feature to fail against a mock. Once the redo merges, `status` goes on from there.
 4. **An accepted feature** gets its new feature through the feature loop. Put AR4's list into each brief's Input:
    - IF1: section 2 holds only new interfaces, or says there are none (no subsection); section 3 lists the changed interfaces.
@@ -345,7 +359,7 @@ Each PR has one commit whose subject is its title (R01). Troy's answer in step 3
 
 Run `troy_flow.py status --waiting "Troy approves rule <ID>"` and stop. Troy's answer approves the rule and makes the choice, or asks for a change: then run AR6 again with Troy's words in Input and show the new proposal. Nothing is written before Troy approves.
 
-**4. Architecture.** Only when the approved enforcement changes the architecture: on `troy-mode/<id>-architecture` from `origin/main`, run AR6 again with `--title "[docs] Change the architecture for <ID>"` and Troy's approval in Input. It writes the change and an ADR in both languages. Commit, run `troy-check pr`, open the PR, and merge it. R02 keeps documents out of a `[rules]` PR, so this PR comes first.
+**4. Architecture.** Only when the approved enforcement changes the architecture: on `troy-mode/<id>-architecture` from `origin/main`, run AR6 again with `--title "[docs] Change the architecture for <ID>"` and Troy's approval in Input. It writes the change and an ADR in both languages, and the summary for Troy in its report. Commit, run `troy-check pr`, open the PR with that summary at the top of its description, and merge it. R02 keeps documents out of a `[rules]` PR, so this PR comes first.
 
 **5. Rule PR (D80, D81).** On `troy-mode/rule-<id>` from `origin/main` (for example `troy-mode/rule-p01`), run `troy_flow.py snapshot --role rules`. Its scope is the `config` and `dependencies` path classes, which is all a `[rules]` PR may change. Then:
 
@@ -392,8 +406,8 @@ Write the message in Troy's language, in the shape of `.troy-mode/templates/esca
 `status` gives the step to do next; a project that already has some steps resumes at the first missing one.
 
 1. **Setup** (`next.action` `setup`). When Troy says yes, read `${CLAUDE_PLUGIN_ROOT}/skills/troy-init/SKILL.md` and follow it: troy-init's engine `setup --email <address>` with `--dry-run --json` first, Troy's two questions (whether to create the private GitHub repository, and whether to replace files troy-init did not write) in one message, and its PR flow. Its step 8 already detaches before the merge and ends with `git fetch origin`.
-2. **Requirements** (`requirements`), after the setup PR merges, so troy-check checks them. Work as the Product Manager (PM1) under a snapshot with `--role product-manager`, on the branch `troy-mode/requirements`. In the features table, the Feature cell holds only the feature's short name, such as `Export history as CSV`: it becomes every PR title and the feature's folder name. Describe the feature in the requirements' other sections. Open `[docs] Add the requirements`, and get Troy's approval as section "Merging" says.
-3. **Architecture** (`architecture`). Run AR1 (`brief --task AR1`) on `troy-mode/architecture`, then open `[docs] Add the architecture`, approved the same way. The message that asks Troy for this approval also asks the language step's question: which series the project belongs to, if any.
+2. **Requirements** (`requirements`), after the setup PR merges, so troy-check checks them. Work as the Product Manager (PM1) under a snapshot with `--role product-manager`, on the branch `troy-mode/requirements`. In the features table, the Feature cell holds only the feature's short name, such as `Export history as CSV`: it becomes every PR title and the feature's folder name. Describe the feature in the requirements' other sections. Open `[docs] Add the requirements` with your summary for Troy at the top of its description (section "The summary for Troy"), and get Troy's approval as section "Merging" says.
+3. **Architecture** (`architecture`). Run AR1 (`brief --task AR1`) on `troy-mode/architecture`, then open `[docs] Add the architecture` with AR1's summary for Troy at the top of its description, approved the same way. The message that asks Troy for this approval also asks the language step's question: which series the project belongs to, if any.
 4. **Language step** (`language`). The language comes from the architecture's tech stack. Create the branch `troy-mode/lang-<name>` from `origin/main` first, then run troy-init's engine `lang <python|cpp>` with `--dry-run --json`, then without `--dry-run`, and take it through troy-init's PR flow. Add `--env-prefix "$TROY_MODE_ENV_PREFIX"` when that variable is set, and `--mamba <path>` when mamba is not on the PATH or in `$MAMBA_EXE`.
 5. **Next.** Report, and go on to the first feature only if the request asked for it.
 

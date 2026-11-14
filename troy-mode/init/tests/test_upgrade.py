@@ -13,7 +13,7 @@ from init_helpers import (
 )
 from rules_helpers import (
     CHANGE_LOG_ROW, CHANGED_CHECK, CHANGED_HOOK, CHANGED_TEMPLATE, DROPPED_TEMPLATE,
-    KEPT_TEMPLATE, NEW_PATTERN, NEW_TEMPLATE, NEW_VERSION, P_ROWS, R22, ROW, RULE_TEMPLATES,
+    KEPT_TEMPLATE, NEW_PATTERN, NEW_TEMPLATE, NEW_VERSION, P_ROWS, R23, ROW, RULE_TEMPLATES,
     UPGRADE_STAGE, add_rows_after, apply_upgrade_changes, change_log_rows, front_matter,
     row_since, rule_rows,
 )
@@ -37,7 +37,7 @@ class UpgradeChangesTest(InitCase):
         apply_upgrade_changes(cls.plugin)
         cls.project = project = setup_project(cls.old)
         for path in RULES:
-            project.write(path, add_rows_after(project.read(path), "R21", P_ROWS[path]))
+            project.write(path, add_rows_after(project.read(path), "R22", P_ROWS[path]))
         project.commit_paths(list(RULES), "[rules] Add P01 and P02")
         cls.before = {path: project.read_bytes(path) for path in (CONFIG, ".gitignore", *RULES)}
         project.git("switch", "-q", "-c", f"troy-mode/upgrade-{NEW_VERSION}")
@@ -116,12 +116,12 @@ class UpgradeChangesTest(InitCase):
                 self.assertEqual(actual, expected)
 
     def test_upgrade_dates_a_new_rule_with_the_upgrade_date(self):
-        """R22, new in the template, has the upgrade date; R01 keeps the setup date."""
+        """R23, new in the template, has the upgrade date; R01 keeps the setup date."""
         self.report()
         for path in RULES:
             with self.subTest(path=path):
                 rows = {row[2:5]: row for row in rule_rows(self.project.read(path))}
-                self.assertEqual(rows["R22"], R22[path].replace("{{init-date}}", UPGRADE_DATE))
+                self.assertEqual(rows["R23"], R23[path].replace("{{init-date}}", UPGRADE_DATE))
                 self.assertEqual(row_since(rows["R01"]), DATE)
 
     def test_upgrade_changes_the_text_of_a_changed_r_row(self):
@@ -135,9 +135,9 @@ class UpgradeChangesTest(InitCase):
                 self.assertIn(text, rows["R03"])
 
     def test_upgrade_keeps_p_rows_after_the_r_rows_in_order(self):
-        """P01 and P02 stay in both tables, right after R22, in their order."""
+        """P01 and P02 stay in both tables, right after R23, in their order."""
         self.report()
-        expected_ids = [f"R{n:02d}" for n in range(1, 23)] + ["P01", "P02"]
+        expected_ids = [f"R{n:02d}" for n in range(1, 24)] + ["P01", "P02"]
         for path in RULES:
             with self.subTest(path=path):
                 rows = rule_rows(self.project.read(path))

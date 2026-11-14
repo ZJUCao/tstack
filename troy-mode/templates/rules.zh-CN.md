@@ -9,7 +9,7 @@ mirror-of: "rules.md"
 
 # {{project-name}} 规则
 
-<!-- template: troy-init 填写 {{project-name}} 和 {{init-date}}。R01 到 R21 来自 troy-mode。本项目自己的规则通过规则变更流程（troy-mode 需求文档 5.8）加在它们后面，编号为 P01、P02，依此类推。没有内容的章节、字段或表格写“无”。文档合入前，删除所有 template 注释和所有 {{标记}}。 -->
+<!-- template: troy-init 填写 {{project-name}} 和 {{init-date}}。R01 到 R22 来自 troy-mode。本项目自己的规则通过规则变更流程（troy-mode 需求文档 5.8）加在它们后面，编号为 P01、P02，依此类推。没有内容的章节、字段或表格写“无”。文档合入前，删除所有 template 注释和所有 {{标记}}。 -->
 
 ## 1. 规则类型
 
@@ -43,6 +43,7 @@ mirror-of: "rules.md"
 | R19 | commit 使用 Troy 全局 CLAUDE.md 里规定的邮箱。commit 信息、PR 标题和 PR 描述不带任何 Claude 署名，也完全不提 Claude 或 Anthropic，除非 `.troy-mode/config.toml` 把署名检查模式设为 `trailers`。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明。 | 硬 | CI | troy-mode | {{init-date}} |
 | R21 | 每个改动都通过从单独分支发起的 PR 进入 `main`。永远不要在 `main` 上提交、推送 `main`，或从 `main` 开 PR。 | 硬 | Hook 和 CI | troy-mode | {{init-date}} |
+| R22 | 每个接口设计、测试计划、需求和架构 PR 的描述都以给 Troy 的摘要开头，先中文后英文：对 Troy 有什么变化、需要 Troy 决定的每一件事及推荐，以及风险。每种语言最多 2,000 个字符（`.troy-mode/config.toml` 里的 `[summary] max_chars`），不含内部编号。 | 硬 | CI | troy-mode | {{init-date}} |
 
 <!-- template: troy-mode 的规则变更流程把本项目自己的规则加在这里，放在 R 行之后，每条一行，用下一个空闲编号（P01、P02，依此类推），适用范围填 "project"。示例行：| P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} |。停用的规则保留它的行：规则一栏以“已于 <日期> 停用。”开头，由什么保证一栏写“无”，它的编号不再使用。已有代码违反新检查时，工具的配置为每个违规文件写一行豁免，带注释 baseline: P01，直到清理 PR 修好该文件并删掉这一行。 -->
 
@@ -50,4 +51,4 @@ mirror-of: "rules.md"
 
 | 版本 | 日期 | 修改 |
 | --- | --- | --- |
-| 1.0 | {{init-date}} | 初始化，包含来自 troy-mode 的 R01 到 R21。 |
+| 1.0 | {{init-date}} | 初始化，包含来自 troy-mode 的 R01 到 R22。 |

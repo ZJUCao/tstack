@@ -19,6 +19,7 @@ from .pr_rules import check_r01, check_r02, check_r16
 from .report import Result, is_ok, render_json, render_text, write_github_outputs
 from .shape import check_r04, check_r05, check_r06, load_code
 from .size import check_r03
+from .summary import check_r22
 from .testpolicy import check_r09, check_r10, load_run
 from .titles import describe, parse_title
 from .worktree import worktree_commit
@@ -27,7 +28,8 @@ EXIT_OK = 0
 EXIT_FAIL = 1
 EXIT_ERROR = 2
 
-PR_CHECKS = (check_r01, check_r02, check_r03, check_r12, check_r16, check_r19, check_r20)
+PR_CHECKS = (check_r01, check_r02, check_r03, check_r12, check_r16, check_r19, check_r20,
+             check_r22)
 
 
 class UsageError(Exception):

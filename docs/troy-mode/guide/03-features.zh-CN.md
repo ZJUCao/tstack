@@ -29,8 +29,8 @@ troy-mode 同一时间只处理一个 PR。新的请求要等开着的 PR 合入
 
 | PR | 标题 | 内容 | 作者 | 审查 | 谁来合并 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `[F04 1/6 design] <name>` | 接口设计，中英文：每个对外接口的名称、功能、参数、返回值和错误，需求里定了性能指标时还有性能指标 | 接口设计师 | 架构师，按它的检查清单 | troy-mode，前几个功能在你批准之后 |
-| 2 | `[F04 2/6 test-plan] <name>` | 测试方案，中英文：单元、功能、集成和性能用例 | 测试经理，参考接口设计师的回答 | 和接口设计师对齐，最多 3 轮提问 | 同 PR 1 |
+| 1 | `[F04 1/6 design] <name>` | 接口设计，中英文：每个对外接口的名称、功能、参数、返回值和错误，需求里定了性能指标时还有性能指标。描述以给你的摘要开头。 | 接口设计师 | 架构师，按它的检查清单 | troy-mode，前几个功能在你批准之后 |
+| 2 | `[F04 2/6 test-plan] <name>` | 测试方案，中英文：单元、功能、集成和性能用例。描述以给你的摘要开头。 | 测试经理，参考接口设计师的回答 | 和接口设计师对齐，最多 3 轮提问 | 同 PR 1 |
 | 3 | `[F04 3/6 mock] <name>` | 函数签名和完整的文档注释，不写函数体 | 开发工程师 | 代码审查员 | troy-mode |
 | 4 | `[F04 4/6 tests] <name>` | 测试。每个新测试对着 mock 都失败（R09）。 | 测试工程师 | 测试经理和代码审查员一起审查 | troy-mode |
 | 5 | `[F04 5/6 impl] <name>` | 功能实现。每个测试都通过，覆盖率满足 R11。 | 开发工程师 | 代码审查员 | troy-mode |
@@ -54,6 +54,8 @@ F01 is one of the first 3 features whose design Troy approves (D61). The Archite
 the design in round 1, troy-check pr passes locally on a4eb7a1, and both CI checks pass.
 Approve in chat, ask for changes, or merge on GitHub.
 ```
+
+从 F14 起，PR 1 和 PR 2 的描述以给你的一页摘要开头，先中文后英文：对你作为用户有什么变化、需要你决定的每一件事和推荐，以及风险。测试方案的摘要说明测试检查了你会看到的哪些东西、没有测什么，以及哪些要你手动运行。这时 `Waiting for Troy: approve this PR` 评论下面只有一行：“What to decide is in the summary at the top of the description.”，troy-mode 还会在聊天里把摘要发给你。[F14 设计](../design/F14-summary.zh-CN.md#35-一个例子)里有一份真实设计的摘要，[第 7.1 节](07-taking-part.zh-CN.md#71-等你处理的步骤)说明怎样回答。
 
 每一步之后，troy-mode 还会告诉你接下来是什么，以及需不需要你。下面是 F09 试运行第一个会话的结尾。那个会话用英文进行：
 

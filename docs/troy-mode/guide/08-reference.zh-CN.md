@@ -65,7 +65,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `<Role> review, round <n>: <result>` | 某个审查方报告时，例如 `Architect review, round 2: changes-requested`。后面是审查意见，每条一行、带编号，以规则编号或检查项开头。 |
 | `<Role> attempt <n>: failed` | 产出方的一次尝试失败时。后面是失败的检查。 |
 | `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。 |
-| `Waiting for Troy: approve this PR` | PR 等你批准时。 |
+| `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行指向描述开头给你的摘要。 |
 | `Waiting for Troy: accept <tag>` | 发布等你在自己的设备上测试时。 |
 | `Release test, run <n>: passed` 或 `failed` | 发布测试的报告。 |
 | `Release test by Troy, run <n>: accepted`、`failed` 或 `not accepted` | 你对发布的回复，附上你的原话。 |
@@ -113,6 +113,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `[attribution]` | `mode` | R19：`strict`（默认），或 `trailers`，用于关于 Claude 本身的项目。 |
 | `[roles.<role>]` | `model`、`effort` | 一个角色在这个项目里的模型和 effort（[第 1.5 节](01-install.zh-CN.md#15-模型和-effort)）。 |
 | `[flow]` | `troy_approves_first` | 顺序里排在最前面的多少个功能的 PR 1 和 PR 2 由你批准。默认 3；0 表示一个都没有。 |
+| `[summary]` | `max_chars` | R22：设计、测试计划、需求和架构 PR 开头给你的摘要，每种语言最多多少个字符。默认 2000。 |
 
 ## 8.6 常见问题
 
@@ -126,7 +127,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | **找不到 Python。** hook 停下，提示“troy-mode: no Python 3.11 or newer found”。 | 把 `TROY_MODE_PYTHON` 设为一个 Python 3.11 或更新版本（[第 1.1 节](01-install.zh-CN.md#11-你的电脑需要什么)）。 |
 | **CI 检查在产出方的文件之外失败了**，比如运行器上的下载错误。 | troy-mode 停下来告诉你；它自己不重新运行 CI。运行器上的下载错误通常在第二次运行时就能通过：你可以自己重新运行失败的任务，比如用 `gh run rerun <run ID> --failed`，然后输入“继续”。 |
 
-## 8.7 规则 R01 到 R21
+## 8.7 规则 R01 到 R22
 
 完整的规则文字在[规则模板](../../../troy-mode/templates/rules.zh-CN.md)里，每个项目都把它复制成 `docs/rules.md`；也在[需求文档第 6 节](../requirements.zh-CN.md#6-规则)里。硬规则不满足就不能合并，软规则要在 PR 描述里写明原因，审查由某个角色检查，流程由 troy-mode 自己遵守。
 
@@ -153,3 +154,4 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | R19 | commit 使用你的邮箱，不带 Claude 署名 | 硬 |
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明 | 硬 |
 | R21 | 每个改动都通过从单独分支发起的 PR 进入 `main` | 硬 |
+| R22 | 设计、测试计划、需求和架构 PR 以给你的中英文摘要开头 | 硬 |

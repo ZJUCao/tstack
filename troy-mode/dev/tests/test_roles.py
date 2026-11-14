@@ -46,7 +46,8 @@ leaves a detail open, the tests require the following.
 7. Report. The `## Report` section holds exactly one fenced code block, in
    the shape of design section 5.2. Every non-blank line in it is
    `<Field>: <value>`, and the fields are Role, Task, Result, Changed files,
-   Checks, Summary, Findings, and Question, in that order. The Result value
+   Checks, Summary, Findings, and Question, in that order, then For Troy for
+   the three roles that write the summary for Troy (F14 design 5.2). The Result value
    lists the results the role sends, separated by ` | `, in the order of
    section 5.2. RESULTS below says which results each role sends.
 8. Must not. The role's Must not cell in the requirements section 4 table
@@ -109,6 +110,9 @@ BODY_SECTIONS = ("Who you are", "Must not", "Write scope", "Tasks", "Report", "C
 # The report fields of design section 5.2, in order.
 REPORT_FIELDS = ("Role", "Task", "Result", "Changed files", "Checks", "Summary", "Findings",
                  "Question")
+# The last field of the roles that write the summary for Troy (F14 design 5.2).
+FOR_TROY = "For Troy"
+SUMMARY_AUTHORS = ("Architect", "Interface Designer", "Test Manager")
 
 # The only frontmatter fields an agent sets (design section 7).
 FRONTMATTER_KEYS = ("name", "description", "tools", "model")
@@ -718,11 +722,13 @@ class BodyTests(RoleFileCase):
                 self.assertEqual(expected, found, f"{where(role)}: headings with task IDs")
 
     def test_report_has_the_fields_of_design_section_5_2(self) -> None:
-        """The report block's fields are those of section 5.2, in order."""
+        """The report block's fields are those of section 5.2, in order, then For Troy (F14)."""
         for role in self.agent_roles():
             with self.subTest(role=role.name):
                 names = [name for name, _ in self.report_lines(role)]
-                self.assertEqual(list(REPORT_FIELDS), names, f"{where(role)}: report fields")
+                extra = [FOR_TROY] if role.name in SUMMARY_AUTHORS else []
+                self.assertEqual(list(REPORT_FIELDS) + extra, names,
+                                 f"{where(role)}: report fields")
 
     def test_report_lists_exactly_the_results_the_role_sends(self) -> None:
         """The Result line lists the role's results from RESULTS, separated by ' | '."""

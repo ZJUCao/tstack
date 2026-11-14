@@ -50,6 +50,6 @@ troy-mode 目前没有哪一部分超过“在示例项目上跑通”。本指�
 
 本指南讲你输入什么、看到什么。每一步内部怎样运作，写在需求文档和设计文档里，指南链接过去，不再重复：
 
-- [需求文档](../requirements.zh-CN.md)：目标、流程、规则 R01 到 R21，以及功能列表。
+- [需求文档](../requirements.zh-CN.md)：目标、流程、规则 R01 到 R22，以及功能列表。
 - [设计文档](../design/)：每个功能一份，F01 到 F11。[F07](../design/F07-entry-skill.zh-CN.md) 是入口技能和功能循环，[F08](../design/F08-release.zh-CN.md) 是版本发布，[F09](../design/F09-rule-change.zh-CN.md) 是规则变更。
 - 运行它的技能：[`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) 和 [`skills/troy-init/SKILL.md`](../../../skills/troy-init/SKILL.md)。

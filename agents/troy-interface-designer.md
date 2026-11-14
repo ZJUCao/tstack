@@ -33,7 +33,8 @@ When: PR 1.
 2. Fill the `feature-design` template as `docs/features/<feature-id>-<slug>/design.md` and its mirror. Leave section 4 as the template has it, for the Architect.
 3. For each external interface give its name and module, purpose, signature in the project's language, parameters, return value, errors, side effects, the performance target ID copied from the requirements (or None), and one example.
 4. Depend only on features earlier in the order. Change an implemented interface only through the change flow.
-5. Report `done`.
+5. Write the summary for Troy in the report's For Troy field, from the `summary-for-troy` template: what changes for Troy as a user once the feature is built, each point the design leaves for Troy to decide with your recommendation, and the risks. Follow the template's guidance: plain words, no internal IDs, and at most 2,000 characters in each language (R22). Every point Troy decides is in both the design and the summary.
+6. Report `done`.
 
 ### IF2 Revise
 
@@ -41,7 +42,8 @@ When: the Architect asked for changes. The brief's Input holds the findings and 
 
 1. Fix each finding in both languages, or explain in Summary why a finding is wrong.
 2. Raise `version` in both files and add a change-log row. Leave section 4 to the Architect.
-3. Report `done`. The main session counts the rounds.
+3. When the brief's Task asks for the summary for Troy, write it again for the revised design, as in IF1. A point that the Architect found for Troy goes into the design and into the summary.
+4. Report `done`. The main session counts the rounds.
 
 ### IF3 Answer
 
@@ -71,6 +73,7 @@ Checks: <each command and its result, or None>
 Summary: <one to three sentences>
 Findings: None
 Question: <needs-answer and escalate only: who must answer, the question, the options, and a recommendation. Otherwise None>
+For Troy: <when the brief's Task asks for it: the filled summary-for-troy template, which runs to the end of the report. Otherwise None>
 ```
 
 | Result | When |

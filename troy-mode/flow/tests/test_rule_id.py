@@ -72,9 +72,9 @@ class NextIdTests(FlowCase):
         return self.report_of(self.outs[name], 0, "rule-id")
 
     def test_next_id_after_three_rules(self):
-        """P01 to P03: the next free ID is P04, and the next R ID is R22."""
+        """P01 to P03: the next free ID is P04, and the next R ID is R23."""
         report = self.report("three rules")
-        self.assertEqual((report["next_id"], report["next_r_id"]), ("P04", "R22"))
+        self.assertEqual((report["next_id"], report["next_r_id"]), ("P04", "R23"))
         self.assertEqual(report["problems"], [])
 
     def test_retired_id_is_not_reused(self):
@@ -88,10 +88,10 @@ class NextIdTests(FlowCase):
         self.assertEqual(report["rules"][3]["enforced_by"], "None")
 
     def test_table_without_a_p_row(self):
-        """The seeded table: P01 is next, no rule, and R22 is the next R ID."""
+        """The seeded table: P01 is next, no rule, and R23 is the next R ID."""
         report = self.report("no P row")
         self.assertEqual((report["next_id"], report["next_r_id"], report["rules"]),
-                         ("P01", "R22", []))
+                         ("P01", "R23", []))
 
     def test_next_id_after_p99_has_three_digits(self):
         """The highest number counts: after P99 comes P100."""
@@ -108,7 +108,7 @@ class NextIdTests(FlowCase):
     def test_fenced_table_and_other_tables_are_not_the_rules_table(self):
         """A fenced P99 row and a table without rule rows before the rules table are skipped."""
         report = self.report("fenced example")
-        self.assertEqual((report["next_id"], report["next_r_id"]), ("P04", "R22"))
+        self.assertEqual((report["next_id"], report["next_r_id"]), ("P04", "R23"))
         self.assertEqual([r["id"] for r in report["rules"]], ["P01", "P02", "P03"])
 
 
