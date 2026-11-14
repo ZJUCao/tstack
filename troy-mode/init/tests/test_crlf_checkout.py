@@ -15,7 +15,7 @@ from init_helpers import (
 )
 from lang_helpers import lang_project, run_lang
 from rules_helpers import (
-    NEW_VERSION, P_ROWS, R22, UPGRADE_STAGE, add_rows_after, apply_upgrade_changes,
+    NEW_VERSION, P_ROWS, R23, UPGRADE_STAGE, add_rows_after, apply_upgrade_changes,
     change_log_rows, front_matter, rule_rows,
 )
 
@@ -56,7 +56,7 @@ class UpgradeCrlfTest(CrlfCase):
         apply_upgrade_changes(cls.plugin)
         source = setup_project(old)
         for path in RULES:
-            source.write(path, add_rows_after(source.read(path), "R21", P_ROWS[path]))
+            source.write(path, add_rows_after(source.read(path), "R22", P_ROWS[path]))
         source.commit_paths(list(RULES), "[rules] Add P01 and P02")
         cls.project = project = Project(source=source.root, clone_config=AUTOCRLF)
         cls.before = {path: project.read_bytes(path) for path in (*RULES, RECORD)}
@@ -102,7 +102,7 @@ class UpgradeCrlfTest(CrlfCase):
                 self.assertEqual((fields["version"], fields["updated"]), ("1.1", UPGRADE_DATE))
 
     def test_upgrade_in_a_crlf_checkout_replaces_r_rows_and_keeps_p_rows(self):
-        """R22 arrives with the upgrade date, R03 gets its new wording, P rows stay last."""
+        """R23 arrives with the upgrade date, R03 gets its new wording, P rows stay last."""
         self.report()
         wording = {"docs/rules.md": "changes at most 400 lines",
                    "docs/rules.zh-CN.md": "最多改动 400 行"}
@@ -110,7 +110,7 @@ class UpgradeCrlfTest(CrlfCase):
             with self.subTest(path=path):
                 rows = rule_rows(self.project.read(path))
                 by_id = {row[2:5]: row for row in rows}
-                self.assertEqual(by_id["R22"], R22[path].replace("{{init-date}}", UPGRADE_DATE))
+                self.assertEqual(by_id["R23"], R23[path].replace("{{init-date}}", UPGRADE_DATE))
                 self.assertIn(wording[path], by_id["R03"])
                 self.assertEqual(rows[-2:], P_ROWS[path])
 

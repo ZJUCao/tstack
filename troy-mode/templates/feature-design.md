@@ -72,6 +72,7 @@ Example:
 | Depends only on features earlier in the order | {{Pass or Fail}} | {{note}} |
 | Adds no hidden coupling between modules | {{Pass or Fail}} | {{note}} |
 | Changes an implemented interface only through the change flow | {{Pass or Fail}} | {{note}} |
+| The summary for Troy says what the design says, and lists every point Troy decides | {{Pass or Fail}} | {{note}} |
 
 <!-- template: One row per review round. After round 3 without agreement, troy-mode escalates to Troy (R17). -->
 

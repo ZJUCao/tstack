@@ -8,7 +8,7 @@
 | 日期 | 2026-11-09 |
 | 事实来源 | 英文版 [`06-rules.md`](06-rules.md)。本文件是中文镜像。 |
 
-每个 troy-mode 项目都有一张规则表：`docs/rules.md` 及其镜像。R01 到 R21 这几行是 troy-mode 对每个项目都适用的规则。P01、P02 等行是项目自己的规则。加一条项目规则，你只需要一个请求和一次回答，其余的由 troy-mode 写好并合并（[F09 设计](../design/F09-rule-change.zh-CN.md)）。
+每个 troy-mode 项目都有一张规则表：`docs/rules.md` 及其镜像。R01 到 R22 这几行是 troy-mode 对每个项目都适用的规则。P01、P02 等行是项目自己的规则。加一条项目规则，你只需要一个请求和一次回答，其余的由 troy-mode 写好并合并（[F09 设计](../design/F09-rule-change.zh-CN.md)）。
 
 ## 6.1 为这个项目加一条规则
 

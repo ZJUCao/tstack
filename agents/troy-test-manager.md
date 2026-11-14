@@ -33,7 +33,8 @@ When: PR 2.
 2. Fill the `test-plan` template as `docs/features/<feature-id>-<slug>/test-plan.md` and its mirror: unit, functional, integration, and performance cases, with IDs from `<feature-id>-T01` on, for example `F04-T01`. Each case says what it tests and through which external interface.
 3. Plan performance cases only for interfaces with a performance target (R14), and vet them with `${CLAUDE_PLUGIN_ROOT}/skills/benchmark-checklist/SKILL.md`.
 4. When the design leaves a case unclear, report `needs-answer` for the Interface Designer. Record each question and its answer in the plan's alignment log.
-5. Report `done`.
+5. When the brief's Task asks for the summary for Troy, write it in the report's For Troy field, from the `summary-for-troy` template: what the tests check of what Troy will type and see, what they leave out, anything Troy runs by hand, each point Troy decides with your recommendation, and the risks. Follow the template's guidance: plain words, no internal IDs, and at most 2,000 characters in each language (R22).
+6. Report `done`.
 
 ### TM2 Test review
 
@@ -106,6 +107,7 @@ Checks: <each command and its result, or None>
 Summary: <one to three sentences>
 Findings: <TM2 and TM6 only: numbered, each with the case ID or rule, the file and line, and the change asked for. Otherwise None>
 Question: <needs-answer and escalate only: who must answer, the question, the options, and a recommendation. Otherwise None>
+For Troy: <when the brief's Task asks for it: the filled summary-for-troy template, which runs to the end of the report. Otherwise None>
 ```
 
 | Result | When |

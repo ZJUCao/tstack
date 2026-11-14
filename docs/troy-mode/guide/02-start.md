@@ -48,7 +48,7 @@ On GitHub's free plan, a private repository has no branch protection. troy-mode'
 
 The Product Manager, which is the main session, asks you the questions it needs, then writes `docs/requirements.md` and its Chinese mirror. The document holds the goal, the features with their IDs, the dependency graph, the topological order, the prototypes, and the version plan ([requirements section 5.1](../requirements.md#51-project-setup-once-per-project)). Each feature has a short name, such as "Export history as CSV", because the name becomes part of every PR title of that feature and the name of its folder.
 
-It opens `[docs] Add the requirements` on `troy-mode/requirements`, posts `Waiting for Troy: approve this PR`, and stops. You approve in one of two ways:
+It opens `[docs] Add the requirements` on `troy-mode/requirements`. The PR's description opens with a one-page summary for you, in Chinese and then English: what the program will do, each point you decide with a recommendation, and the risks ([section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you)). troy-mode posts `Waiting for Troy: approve this PR`, sends you the same summary in chat, and stops. You approve in one of two ways:
 
 - **In chat.** Reply that you approve, for example "Approved". troy-mode records your approval in the document's header and change log, and merges the PR.
 - **On GitHub.** Merge the PR yourself. troy-mode then records the approval in a `[docs] Record Troy's approval of <document>` PR, which it merges.
@@ -57,7 +57,7 @@ To ask for changes, say what to change. The Product Manager revises, and the PR 
 
 ## 2.4 The architecture
 
-After the requirements merge, the Architect writes `docs/architecture.md` and its mirror: the tech stack, the modules and the directions they may depend on each other, the data model, error handling, logging, naming, and coding rules. It opens `[docs] Add the architecture` on `troy-mode/architecture`, and you approve it the same way.
+After the requirements merge, the Architect writes `docs/architecture.md` and its mirror: the tech stack, the modules and the directions they may depend on each other, the data model, error handling, logging, naming, and coding rules. It opens `[docs] Add the architecture` on `troy-mode/architecture`, with the Architect's summary for you at the top of the description: what you will notice, such as speed, the files the program keeps, and tools to install. You approve it the same way.
 
 The message that asks for this approval also asks one more question: which series the project belongs to, if any. Projects that will run together on one platform form a series and share one mamba environment, named after the series ([requirements section 8](../requirements.md#8-non-functional-requirements)). With no series, the environment is named after the project.
 

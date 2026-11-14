@@ -8,7 +8,7 @@ docs/rules.md on origin/main.
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import repo as git
+from . import repo as git, summary
 from .repo import MAIN
 from .rulestate import RULES, RuleState, read_rules
 from .ruletable import P_ID, R_ID
@@ -55,7 +55,8 @@ SENTENCES = {
 }
 DOCS_SENTENCES = {
     "AR6": "write the architecture change for {item} that Troy approved, as Input says, in "
-           "docs/architecture.md and its mirror, with an ADR in both languages, and report done.",
+           "docs/architecture.md and its mirror, with an ADR in both languages, and report done. "
+           + summary.SENTENCE,
 }
 R_SENTENCES = {
     "AR6": "propose how to enforce the rule for every troy-mode project in Input, as {item} of "

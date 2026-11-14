@@ -27,8 +27,8 @@ troy-mode works on one PR at a time. A new request waits until the open PR merge
 
 | PR | Title | What it holds | Written by | Reviewed by | Merged by |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `[F04 1/6 design] <name>` | The interface design, in English and Chinese: each external interface's name, purpose, parameters, return value, errors, and a performance target when the requirements set one | Interface Designer | Architect, against its checklist | troy-mode, after your approval for the first features |
-| 2 | `[F04 2/6 test-plan] <name>` | The test plan, in English and Chinese: unit, functional, integration, and performance cases | Test Manager, with the Interface Designer's answers | Agreed with the Interface Designer, at most 3 rounds of questions | As PR 1 |
+| 1 | `[F04 1/6 design] <name>` | The interface design, in English and Chinese: each external interface's name, purpose, parameters, return value, errors, and a performance target when the requirements set one. The description opens with a summary for you. | Interface Designer | Architect, against its checklist | troy-mode, after your approval for the first features |
+| 2 | `[F04 2/6 test-plan] <name>` | The test plan, in English and Chinese: unit, functional, integration, and performance cases. The description opens with a summary for you. | Test Manager, with the Interface Designer's answers | Agreed with the Interface Designer, at most 3 rounds of questions | As PR 1 |
 | 3 | `[F04 3/6 mock] <name>` | Signatures and full doc comments, no bodies | Developer | Code Reviewer | troy-mode |
 | 4 | `[F04 4/6 tests] <name>` | The tests. Every new test fails against the mock (R09). | Test Engineer | Test Manager and Code Reviewer, together | troy-mode |
 | 5 | `[F04 5/6 impl] <name>` | The implementation. Every test passes, and coverage meets R11. | Developer | Code Reviewer | troy-mode |
@@ -52,6 +52,8 @@ F01 is one of the first 3 features whose design Troy approves (D61). The Archite
 the design in round 1, troy-check pr passes locally on a4eb7a1, and both CI checks pass.
 Approve in chat, ask for changes, or merge on GitHub.
 ```
+
+Since F14, the description of PR 1 and PR 2 opens with a one-page summary for you, in Chinese and then English: what changes for you as a user, each point you decide with a recommendation, and the risks. For a test plan, it says what the tests check of what you will see, what they leave out, and anything you run by hand. The comment `Waiting for Troy: approve this PR` then has one line under it, "What to decide is in the summary at the top of the description.", and troy-mode sends you the summary in chat. The [F14 design](../design/F14-summary.md#35-an-example) shows the summary of a real design, and [section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you) says how to answer it.
 
 After a step, troy-mode also tells you what comes next and whether it needs you. The first session of the F09 trial ended:
 

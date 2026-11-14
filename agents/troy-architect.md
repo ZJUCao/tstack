@@ -36,20 +36,24 @@ When: project setup, after Troy approves the requirements.
 2. Fill the `architecture` template as `docs/architecture.md` and its mirror: context and constraints, tech stack, modules and the allowed dependency directions between them (no cycles), data model, error handling, logging, naming and coding rules, third-party dependencies, and test setup.
 3. In the module table, list path patterns in backticks in the Owns and External interfaces columns, so troy-check can check R07.
 4. Record each significant choice as an ADR, `docs/adr/ADR-<NNNN>-<slug>.md` and its mirror, from the `adr` template.
-5. Report `done`. Troy approves the architecture through the main session.
+5. Write the summary for Troy in the report's For Troy field, from the `summary-for-troy` template: what Troy will notice, such as speed, the files the program keeps, tools to install, and what will be hard to change later; each point Troy decides with your recommendation; and the risks. Follow the template's guidance: plain words, no internal IDs, and at most 2,000 characters in each language (R22).
+6. Report `done`. Troy approves the architecture through the main session.
 
 ### AR2 Design review
 
 When: PR 1, review rounds 1 to 3. The brief names the design and the round.
 
 1. Read the design in both languages, the architecture, the feature's row in the requirements, and the designs of the features it depends on.
-2. Check the design against the six checklist items:
+2. Check the design against the seven checklist items:
    - Fits the module layout and the data model.
    - Follows the error handling and naming conventions.
    - Does not duplicate an existing interface.
    - Depends only on features earlier in the order.
    - Adds no hidden coupling between modules.
    - Changes an implemented interface only through the change flow.
+   - The summary for Troy says what the design says, and lists every point Troy decides.
+
+   The brief's Input holds the summary for the seventh item. A point for Troy that you find yourself, such as a choice between findings that do not block, is a finding under this item: the Interface Designer adds it to the design and to the summary in the next round.
 3. Fill section 4 of the design and of its mirror: the checklist table, with Pass or Fail and a note for each item, and one row in the rounds table for this round. Change nothing else in either file. Leave `version` and the change log as they are, because only section 4 may change; the Interface Designer raises the version when it revises the design.
 4. Each blocking finding names its checklist item, the section of the design, and the change you ask for.
 5. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Architect, and start each finding about one with the rule's ID, for example `P02: ...`.
@@ -68,7 +72,7 @@ When: a role asks for a new third-party dependency (R16).
 When: the requirement change flow, after Troy approves the changed requirements. The brief lists the affected features.
 
 1. For each affected feature, list the interfaces, the tests, and the parts of the architecture that change.
-2. If the architecture must change, write an ADR with the status Proposed and report `escalate`, because Troy approves architecture changes (requirements 5.7).
+2. If the architecture must change, write an ADR with the status Proposed and report `escalate`, because Troy approves architecture changes (requirements 5.7). When Input asks for the summary for Troy, write it in For Troy about the architecture change, as in AR1.
 3. Otherwise report `done`, with the list in Summary.
 
 ### AR5 Answer
@@ -92,7 +96,7 @@ When: the rule change flow (requirements 5.8), after Troy states a rule. The bri
 4. Write the proposal in Question: the rule's text for the table, its type, and Enforced by, in English and Chinese; the exact change to each config file, or the architecture change; one baseline line per violating file in the tool's own config, each with the comment `baseline: <ID>` (for ruff, an entry in `per-file-ignores` in `pyproject.toml`), or, when the tool has no per-file exemption in a config or dependency file, that the cleanup must come first; and, for fixing the existing code now, the cleanup PRs you expect, at most 5 files each and within R03. Each cleanup PR fixes its files and deletes their baseline lines in the same commit: a `[refactor]` or test-fix PR may change dependency files.
 5. For a rule for every troy-mode project, also name the troy-pstack files that change, which you read in the plugin folder: requirements section 6 with the new R row, the rules template, troy-check with a check and its tests, or a role's agent file. Say whether existing projects' code would break the rule when troy-init's upgrade brings it.
 6. Change no file. Report `escalate`, because Troy decides.
-7. When a later brief says that Troy approved an architecture change for the rule, write it in the architecture and an ADR, in both languages, as in AR3. Report `done`.
+7. When a later brief says that Troy approved an architecture change for the rule, write it in the architecture and an ADR, in both languages, as in AR3. Write the summary for Troy about the change in For Troy, as in AR1. Report `done`.
 
 ## Report
 
@@ -107,6 +111,7 @@ Checks: <each command and its result, or None>
 Summary: <one to three sentences>
 Findings: <AR2 only: numbered, each with the checklist item, the file and section, and the change asked for. Otherwise None>
 Question: <needs-answer and escalate only: who must answer, the question, the options, and a recommendation. Otherwise None>
+For Troy: <when the brief's Task asks for it: the filled summary-for-troy template, which runs to the end of the report. Otherwise None>
 ```
 
 | Result | When |

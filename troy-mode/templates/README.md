@@ -23,6 +23,7 @@
 | [`progress`](progress.md) | `.troy-mode/progress.md` | No | Main session | Every stage. Local and git-ignored. |
 | [`escalation`](escalation.md) | None. It is the shape of a chat message. | No | Main session | Each escalation |
 | [`pull-request`](pull-request.md) | `.github/pull_request_template.md` | No. PRs are in English. | Whoever opens the PR | Every PR |
+| [`summary-for-troy`](summary-for-troy.md) | None. It opens a PR's description. | No. It holds both languages, Chinese first. | The role that writes the document | Every design, test plan, requirements, and architecture PR |
 
 The Chinese mirror of `<name>.md` is `<name>.zh-CN.md` in the same folder. `<slug>` is lowercase words joined by hyphens, for example `F04-export-csv`.
 
@@ -95,4 +96,4 @@ The PR title is `[<ID> <stage>] <summary>`, or `[<kind>] <summary>` for a PR tha
 | Rule change | `[rules] Add P01, no global state` | Rules table and check config |
 | Refactor | `[refactor] Split storage.py`, or a rule's cleanup: `[refactor] Apply P01 to storage` | Source |
 
-The description has four sections: Why, What, Checks, and Soft-limit reason.
+The description has four sections: Why, What, Checks, and Soft-limit reason. A design, test plan, requirements, or architecture PR opens with the summary for Troy before them, in Chinese and then English (R22).

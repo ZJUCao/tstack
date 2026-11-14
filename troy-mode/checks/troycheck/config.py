@@ -30,6 +30,8 @@ ROLES = ("architect", "interface-designer", "test-manager", "developer", "test-e
 ROLE_KEYS = ("model", "effort")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 APPROVES_FIRST_DEFAULT = 3
+# R22: the most characters in each language of the summary for Troy (F14 design 3.3).
+SUMMARY_MAX_CHARS_DEFAULT = 2000
 
 LIMIT_DEFAULTS = {
     "source_lines": 500,
@@ -48,6 +50,7 @@ _SCHEMA: dict[str, dict[str, type]] = {
     "tests": {"legacy": list},
     "lang": {"name": str, "source_roots": list, "include_dirs": list, "environment": str,
              "series": list},
+    "summary": {"max_chars": int},
 }
 
 
@@ -73,6 +76,8 @@ class Config:
             role, for troy-mode's entry skill (F07 design 3.2).
         troy_approves_first: [flow] troy_approves_first, the number of
             features whose PR 1 and PR 2 Troy approves (F07 design D62).
+        summary_max_chars: [summary] max_chars, R22's limit on each language
+            of the summary for Troy (F14 design 3.3).
     """
 
     commit_email: str | None
@@ -85,6 +90,7 @@ class Config:
     lang: dict = field(default_factory=dict)
     roles: dict[str, dict[str, str]] = field(default_factory=dict)
     troy_approves_first: int = APPROVES_FIRST_DEFAULT
+    summary_max_chars: int = SUMMARY_MAX_CHARS_DEFAULT
 
 
 def _check_value(section: str, key: str, value, expected: type) -> None:
@@ -186,4 +192,5 @@ def parse_config(text: str | None) -> Config:
         roles={role: dict(values) for role, values in data.get("roles", {}).items()},
         troy_approves_first=data.get("flow", {}).get("troy_approves_first",
                                                      APPROVES_FIRST_DEFAULT),
+        summary_max_chars=data.get("summary", {}).get("max_chars", SUMMARY_MAX_CHARS_DEFAULT),
     )

@@ -64,6 +64,12 @@ legacy = []
 # environment = "troy-agent-env"
 # series = ["."]
 
+[summary]
+# R22. The most characters in each language of the summary for Troy that
+# opens the description of a design, test plan, requirements, or
+# architecture PR. A Chinese character and a letter each count as one.
+max_chars = 2000
+
 [attribution]
 # R19. "strict" also blocks any word Claude or Anthropic in commit messages,
 # PR titles, and PR descriptions. "trailers" blocks only attribution lines,

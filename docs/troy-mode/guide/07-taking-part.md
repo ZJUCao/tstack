@@ -18,9 +18,11 @@ Only these steps wait for your approval ([requirements section 3.3](../requireme
 4. Each version, by testing it on your own devices ([section 5.4](05-release.md#54-your-test-on-your-devices)).
 5. Every escalation (section 7.3).
 
+For steps 1 to 3, the PR's description opens with a one-page summary for you, first in Chinese, then in English ([F14 design](../design/F14-summary.md)): what changes for you as a user, each point you decide, numbered, with its options and a recommendation, and the risks. troy-mode also sends you the summary in chat, in the language you write in, with the PR's link. The comment `Waiting for Troy: approve this PR` only points to it. Every design, test plan, requirements, and architecture PR opens with such a summary, even one that troy-mode merges itself, and CI checks it (R22).
+
 You approve steps 1 to 3 in chat or by merging the PR on GitHub:
 
-- **In chat**, reply that you approve. troy-mode records "Approved by Troy" with the date in the document's header and change log, in both languages, and merges the PR ([F08 design D77](../design/F08-release.md#13-decisions-for-troy)).
+- **In chat**, reply that you approve. "全按推荐", "all as recommended", or "approved" takes every recommendation of the summary. To pick another option, give its number and the option, for example "2: option 2": troy-mode treats that as a request for changes. troy-mode records "Approved by Troy" with the date in the document's header and change log, in both languages, and merges the PR ([F08 design D77](../design/F08-release.md#13-decisions-for-troy)).
 - **On GitHub**, merge the PR. troy-mode then records the approval in a `[docs] Record Troy's approval of <document>` PR, which it merges ([F07 design D61](../design/F07-entry-skill.md#16-decisions-for-troy)).
 - **To ask for changes**, say what to change, in chat or as a comment on the PR. The author revises, as a review round, and the PR waits for you again.
 

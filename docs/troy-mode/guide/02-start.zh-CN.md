@@ -50,7 +50,7 @@ Next: the requirements (Product Manager writes docs/requirements.md).
 
 产品经理就是主会话。它先问你它需要知道的问题，然后写 `docs/requirements.md` 和它的中文镜像。文档包括目标、带编号的功能、依赖图、拓扑排序、原型和版本计划（[需求文档第 5.1 节](../requirements.zh-CN.md#51-项目初始化每个项目一次)）。每个功能都有一个短名，比如 “Export history as CSV”，因为这个名字会成为这个功能每个 PR 标题的一部分，也会成为它的文件夹名。
 
-它在 `troy-mode/requirements` 上开 `[docs] Add the requirements`，发一条 `Waiting for Troy: approve this PR` 评论，然后停下。你可以用两种方式批准：
+它在 `troy-mode/requirements` 上开 `[docs] Add the requirements`。PR 描述的开头是给你的一页摘要，先中文后英文：程序会做什么、需要你决定的每一件事和推荐，以及风险（[第 7.1 节](07-taking-part.zh-CN.md#71-等你处理的步骤)）。troy-mode 发一条 `Waiting for Troy: approve this PR` 评论，在聊天里把同样的摘要发给你，然后停下。你可以用两种方式批准：
 
 - **在聊天里。** 回复说你批准，比如“批准”。troy-mode 把你的批准记进文档的文件头和修改记录，然后合并 PR。
 - **在 GitHub 上。** 自己合并 PR。troy-mode 随后用一个 `[docs] Record Troy's approval of <document>` PR 记下这次批准，并合并它。
@@ -59,7 +59,7 @@ Next: the requirements (Product Manager writes docs/requirements.md).
 
 ## 2.4 架构
 
-需求文档合入之后，架构师写 `docs/architecture.md` 和它的镜像：技术栈、模块划分及模块之间允许的依赖方向、数据模型、错误处理、日志、命名和编码规范。它在 `troy-mode/architecture` 上开 `[docs] Add the architecture`，你用同样的方式批准。
+需求文档合入之后，架构师写 `docs/architecture.md` 和它的镜像：技术栈、模块划分及模块之间允许的依赖方向、数据模型、错误处理、日志、命名和编码规范。它在 `troy-mode/architecture` 上开 `[docs] Add the architecture`，描述开头是架构师写给你的摘要：你会注意到什么，比如速度、程序保存的文件、要安装的工具。你用同样的方式批准。
 
 请你批准的那条消息还会多问一个问题：这个项目属于哪个系列，如果有的话。将来要在同一个平台上一起运行的项目组成一个系列，共用一个以系列命名的 mamba 环境（[需求文档第 8 节](../requirements.zh-CN.md#8-非功能需求)）。不属于任何系列时，环境以项目命名。
 

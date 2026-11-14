@@ -20,9 +20,11 @@ troy-mode 的设计让你只在需要做决定时出场。本页列出等你处�
 4. 每个版本，方式是在你自己的设备上测试它（[第 5.4 节](05-release.zh-CN.md#54-你在自己的设备上测试)）。
 5. 每一次升级上报（第 7.3 节）。
 
+第 1 到 3 步的 PR 描述以给你的一页摘要开头，先中文后英文（[F14 设计](../design/F14-summary.zh-CN.md)）：对你作为用户有什么变化、需要你决定的每一件事（带编号，写明各个方案和推荐），以及风险。troy-mode 还会在聊天里用你写的语言把摘要发给你，附上 PR 链接。`Waiting for Troy: approve this PR` 评论只是指向它。每个设计、测试计划、需求和架构 PR 都以这样的摘要开头，troy-mode 自己合并的也一样，CI 会检查它（R22）。
+
 第 1 到 3 步，你可以在聊天里批准，也可以在 GitHub 上合并 PR 来批准：
 
-- **在聊天里**，回复说你批准，比如“批准”。troy-mode 在文档的文件头和修改记录里记下“Approved by Troy”和日期，中英文都记，然后合并 PR（[F08 设计 D77](../design/F08-release.zh-CN.md#13-需要-troy-决定的事项)）。
+- **在聊天里**，回复说你批准，比如“批准”。回复「全按推荐」、"all as recommended" 或“批准”，就采用摘要里的全部推荐。要选别的方案，写出编号和方案，比如“2：方案 2”：troy-mode 把它当作要求修改。troy-mode 在文档的文件头和修改记录里记下“Approved by Troy”和日期，中英文都记，然后合并 PR（[F08 设计 D77](../design/F08-release.zh-CN.md#13-需要-troy-决定的事项)）。
 - **在 GitHub 上**，合并这个 PR。troy-mode 随后用一个 `[docs] Record Troy's approval of <document>` PR 记下这次批准，并合并它（[F07 设计 D61](../design/F07-entry-skill.zh-CN.md#16-需要-troy-决定的事项)）。
 - **要求修改**时，在聊天里或在 PR 的评论里说要改什么。产出方修改，算作一轮审查，然后这个 PR 再次等你。
 

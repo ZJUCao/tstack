@@ -48,6 +48,6 @@ Read them in this order the first time.
 
 This guide says what you type and what you see. How each step works inside is in the requirements and the designs, and the guide links to them instead of repeating them:
 
-- [Requirements](../requirements.md): the goal, the process, the rules R01 to R21, and the feature list.
+- [Requirements](../requirements.md): the goal, the process, the rules R01 to R22, and the feature list.
 - [Designs](../design/): one per feature, F01 to F11. [F07](../design/F07-entry-skill.md) is the entry skill and the feature loop, [F08](../design/F08-release.md) the release, and [F09](../design/F09-rule-change.md) the rule change.
 - The skills that run it: [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) and [`skills/troy-init/SKILL.md`](../../../skills/troy-init/SKILL.md).

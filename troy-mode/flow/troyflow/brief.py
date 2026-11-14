@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import checksteps, repo as git, rulebrief
+from . import checksteps, repo as git, rulebrief, summary
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -56,7 +56,7 @@ VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
 
 _SENTENCES = {
     "AR1": "write the architecture in docs/architecture.md and its mirror "
-           "docs/architecture.zh-CN.md.",
+           "docs/architecture.zh-CN.md. " + summary.SENTENCE,
     "AR2": "review the interface design of {item} in {folder}/design.md and fill its section 4 "
            "in both languages. Change nothing else in the design or its mirror, not even the "
            "header or the change log.",
@@ -70,14 +70,15 @@ _SENTENCES = {
     "AR5": "answer the question in Input from the architecture, for {item}.",
     "IF1": "write the interface design of {item} in {folder}/design.md and its mirror. Section 4 "
            "is the Architect's: write \"Not reviewed yet.\" in each Result and Note cell of its "
-           "table and in its rounds log row, so no template marker is left.",
+           "table and in its rounds log row, so no template marker is left. " + summary.SENTENCE,
     "IF2": "revise the interface design of {item} in {folder}/design.md and its mirror with the "
-           "Architect's findings in Input.",
+           "Architect's findings in Input. " + summary.SENTENCE,
     "IF3": "answer the Test Manager's question in Input from the design of {item}.",
     "IF4": "rule on the code that Input names, which the design of {item} does not describe: "
            "say whether the design missed it, and the design update it needs, or the Developer "
            "overreached, so the code is deleted. Change no file.",
-    "TM1": "write the test plan of {item} in {folder}/test-plan.md and its mirror.",
+    "TM1": "write the test plan of {item} in {folder}/test-plan.md and its mirror. "
+           + summary.SENTENCE,
     "TM2": "review the tests of {item} against its test plan.",
     "TM3": "classify each part of {item}'s code that the coverage report leaves uncovered "
            "(Input) with the coverage gap table in your instructions, and name who fixes it. "

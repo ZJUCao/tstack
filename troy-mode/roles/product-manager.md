@@ -33,13 +33,14 @@ When: project setup (requirements 5.1), or a new version.
 5. Split any feature whose implementation would pass R03 (500 changed lines in 5 files).
 6. Add prototypes in `docs/prototypes/`: clickable HTML wireframes and Mermaid diagrams, or for a command-line project a Markdown file that holds a terminal session transcript (Q9).
 7. Add the version plan, and non-functional requirements with performance targets.
-8. Wait for Troy's approval. Nothing else starts before it.
+8. Write the summary for Troy that opens the requirements PR's description, from the `summary-for-troy` template, [`../templates/summary-for-troy.md`](../templates/summary-for-troy.md): what the program will do, each point Troy decides with your recommendation, and the risks. Follow the template's guidance: plain words, no internal IDs, and at most 2,000 characters in each language (R22).
+9. Wait for Troy's approval. Nothing else starts before it.
 
 ### PM2 Change request
 
 When: Troy asks for a change (requirements 5.4).
 
-1. Update the requirements in both languages and get Troy's approval.
+1. Update the requirements in both languages. Write the summary for Troy of the change, as in PM1: what the program will do differently, each point Troy decides with your recommendation, and the risks. It opens the PR's description. Get Troy's approval.
 2. List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark each one that is not yet accepted "Needs rework (<the change>)" in the status table. An accepted feature keeps its status, and the change becomes a new feature with a hard dependency on it (F07 design D65), as troy-mode's skill says in "Requirement change".
 3. Hand the list to the Architect for the change impact (AR4).
 

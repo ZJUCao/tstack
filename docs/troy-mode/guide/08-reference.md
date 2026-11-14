@@ -63,7 +63,7 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | `<Role> review, round <n>: <result>` | A reviewer reports, for example `Architect review, round 2: changes-requested`. Findings follow, one numbered line each, starting with the rule ID or checklist item. |
 | `<Role> attempt <n>: failed` | An author's attempt fails. The failing checks follow. |
 | `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). |
-| `Waiting for Troy: approve this PR` | The PR waits for your approval. |
+| `Waiting for Troy: approve this PR` | The PR waits for your approval. One line under it points to the summary for you at the top of the description. |
 | `Waiting for Troy: accept <tag>` | The release waits for your test on your devices. |
 | `Release test, run <n>: passed` or `failed` | The release test's report. |
 | `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted` | Your reply to the release, with your words. |
@@ -111,6 +111,7 @@ Each role's write scope is enforced by hooks while it runs, and checked again af
 | `[attribution]` | `mode` | R19: `strict` (default) or `trailers`, for a project about Claude. |
 | `[roles.<role>]` | `model`, `effort` | A role's model and effort in this project ([section 1.5](01-install.md#15-models-and-effort)). |
 | `[flow]` | `troy_approves_first` | How many features, first in the order, have PR 1 and PR 2 approved by you. Default 3; 0 means none. |
+| `[summary]` | `max_chars` | R22: the most characters in each language of the summary for you that opens a design, test plan, requirements, or architecture PR. Default 2000. |
 
 ## 8.6 Problems
 
@@ -124,7 +125,7 @@ Each role's write scope is enforced by hooks while it runs, and checked again af
 | **No Python found.** The hooks stop with "troy-mode: no Python 3.11 or newer found". | Set `TROY_MODE_PYTHON` to a Python 3.11 or newer ([section 1.1](01-install.md#11-what-your-pc-needs)). |
 | **A CI check failed outside the author's files**, for example a download error on the runner. | troy-mode stops and tells you; it does not re-run CI itself. A download error on the runner usually passes on a second run: you can re-run the failed jobs yourself, for example with `gh run rerun <run ID> --failed`, then type `continue`. |
 
-## 8.7 Rules R01 to R21
+## 8.7 Rules R01 to R22
 
 The full text is in the [rules template](../../../troy-mode/templates/rules.md), which every project copies into `docs/rules.md`, and in [requirements section 6](../requirements.md#6-rules). Hard blocks the merge, Soft needs a reason in the PR description, Review is checked by a role, and Process is followed by troy-mode itself.
 
@@ -151,3 +152,4 @@ The full text is in the [rules template](../../../troy-mode/templates/rules.md),
 | R19 | Commits use your email and carry no Claude attribution | Hard |
 | R20 | No template markers or guidance in a merged document or PR description | Hard |
 | R21 | Every change reaches `main` through a PR from its own branch | Hard |
+| R22 | A design, test plan, requirements, or architecture PR opens with a summary for you, in Chinese and English | Hard |
