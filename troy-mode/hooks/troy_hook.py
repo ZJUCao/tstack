@@ -3,9 +3,9 @@
 Usage:
     python troy_hook.py <Event>
 
-<Event> is SessionStart, SubagentStart, PreToolUse, PostToolUse, or
-SubagentStop. The hook input is JSON on stdin. See
-docs/troy-mode/design/F05-hooks.md in troy-pstack.
+<Event> is SessionStart, SubagentStart, PreToolUse, PostToolUse,
+SubagentStop, or UserPromptExpansion. The hook input is JSON on stdin. See
+docs/troy-mode/design/F05-hooks.md and F13-mode-guard.md in troy-pstack.
 
 This file checks the Python version before it imports anything else, so it
 must stay readable by old Pythons: no annotations and no f-strings here.
