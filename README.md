@@ -59,6 +59,8 @@ Choose by project, not by task.
 | Another project, when the task needs rigor | poteto-mode |
 | A quick question or a small edit | No mode |
 
+In a troy-mode project, a hook refuses `/poteto-mode` and `/no-comments` and points to troy-mode (F13).
+
 ### What it adds to the plugin
 
 - The skills `troy-init` and `troy-mode`, which run only when Troy types them.

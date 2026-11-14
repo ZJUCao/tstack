@@ -1,10 +1,16 @@
 """hooks.json group (F05 design sections 2, 3, and 10, and 13.1; contract section 8).
 
-hooks/hooks.json parses; its events, matchers, and timeouts are those of
-design section 3; and its commands name existing scripts. The commands are
-also run in bash, where one is found, to check that they reach troy_hook.py,
-and that a missing Python blocks in a troy-mode project and passes elsewhere
-(D39).
+hooks/hooks.json parses; its six events, matchers, and timeouts are those of
+F05 design section 3 and F13 design 7.1; and its commands name existing
+scripts. The commands are also run in bash, where one is found, to check that
+they reach troy_hook.py, and that a missing Python blocks in a troy-mode
+project and passes elsewhere (D39).
+
+F13 (design sections 7.1, 9, and 11.1) adds the sixth event,
+UserPromptExpansion: one group whose matcher, applied with Python's re.search
+because Claude Code tests a matcher unanchored, matches every name
+test_mode_guard.py refuses and none it lets through. The F13 planted bugs
+these tests catch are listed in test_mode_guard.py.
 """
 
 import json
@@ -17,13 +23,17 @@ import unittest
 from pathlib import Path
 
 from hook_helpers import (
-    DEV, HOOKS_JSON, NEUTRAL, REPO, SCRATCH, HookRun, HookTestCase, Project, hook_env,
+    DEV, HOOKS_JSON, MAIN, NEUTRAL, REPO, SCRATCH, HookRun, HookTestCase, Project, hook_env,
     hook_input, write_call,
 )
+from test_mode_guard import LET_THROUGH, REFUSED
 
 # Design section 3 (version 1.1): (event, matcher, has the if rule). The trial
 # of design 13.3 showed that the if rule filters only Read, so Glob|Grep has
-# its own entry without it, as design section 9 planned.
+# its own entry without it, as design section 9 planned. F13 design 7.1 adds
+# UserPromptExpansion.
+GUARD_EVENT = "UserPromptExpansion"
+GUARD_MATCHER = "^([^:]+:)?(poteto-mode|no-comments)$"
 EXPECTED = (
     ("SessionStart", None, False),
     ("SubagentStart", "^troy-pstack:troy-", False),
@@ -32,6 +42,7 @@ EXPECTED = (
     ("PreToolUse", "Glob|Grep", False),
     ("PostToolUse", "Bash|PowerShell|Skill", False),
     ("SubagentStop", "^troy-pstack:troy-", False),
+    (GUARD_EVENT, GUARD_MATCHER, False),
 )
 SCOPE_TOOLS = {"Bash", "PowerShell", "Edit", "Write", "NotebookEdit", "Skill"}
 READ_TOOLS = {"Read", "Glob", "Grep"}
@@ -100,15 +111,20 @@ class HooksJsonTests(unittest.TestCase):
         return result
 
     def test_events_are_those_of_design_section_3(self):
-        """Exactly the five events, one group each, and three for PreToolUse."""
+        """Exactly the six events, one group each, and three for PreToolUse (F13 7.1 and 9)."""
         counts = {event: len(groups) for event, groups in self.data["hooks"].items()}
+        self.assertEqual(6, len(counts), f"events: {sorted(counts)}")
         self.assertEqual({e for e, _, _ in EXPECTED}, set(counts))
-        for event in ("SessionStart", "SubagentStart", "PostToolUse", "SubagentStop"):
+        for event in ("SessionStart", "SubagentStart", "PostToolUse", "SubagentStop",
+                      GUARD_EVENT):
             self.assertEqual(1, counts[event], event)
         self.assertEqual(3, counts["PreToolUse"], "the scope, Read, and Glob|Grep entries")
 
     def test_matchers_and_if_rules(self):
-        """Each group has the matcher of design section 3, and no if rule but the read one."""
+        """Each group has the matcher of F05 design 3 or F13 7.1, and no if rule but the read one.
+
+        Planted bug caught: a UserPromptExpansion matcher without ^ (F13 11.2).
+        """
         found = self.found()
         for event, matcher, _ in EXPECTED:
             if event == "PreToolUse":
@@ -169,6 +185,74 @@ class HooksJsonTests(unittest.TestCase):
                 self.assertRegex(command, r"\bpython3\b")
                 self.assertRegex(command, r"\bpython\b(?!3)")
                 self.assertRegex(command, r"\$\{?CLAUDE_PROJECT_DIR\}?/\.troy-mode")
+
+    def guard_group(self):
+        """Returns the one UserPromptExpansion group."""
+        groups = self.data["hooks"].get(GUARD_EVENT)
+        self.assertIsInstance(groups, list, f"hooks.json has no {GUARD_EVENT} entry")
+        self.assertEqual(1, len(groups), f"{GUARD_EVENT}: one group")
+        return groups[0]
+
+    def test_user_prompt_expansion_entry(self):
+        """F13 7.1: the design's matcher, one bash command hook, timeout 10, and no if rule.
+
+        Planted bugs caught: a matcher without ^, and no-comments left out of
+        the matcher (F13 11.2).
+        """
+        group = self.guard_group()
+        self.assertEqual(GUARD_MATCHER, group.get("matcher"))
+        self.assertNotIn("if", group)
+        self.assertEqual(1, len(group.get("hooks", [])), f"{GUARD_EVENT}: one hook")
+        hook = group["hooks"][0]
+        self.assertEqual({"type": "command", "shell": "bash", "timeout": 10},
+                         {key: hook.get(key) for key in ("type", "shell", "timeout")})
+        self.assertNotIn("if", hook)
+        self.assertRegex(hook.get("command", ""),
+                         r"\$\{CLAUDE_PLUGIN_ROOT\}/troy-mode/hooks/troy_hook\.py[\"']?\s+"
+                         r"UserPromptExpansion$")
+
+    def test_user_prompt_expansion_command_equals_the_others(self):
+        """F13 7.1: the command is every other entry's command with the event word changed.
+
+        So the interpreter pick, TROY_MODE_PYTHON, and the missing-Python rule
+        stay F05's (F05 section 10).
+        """
+        def generic(command, event):
+            """Replaces the event word after troy_hook.py with a placeholder."""
+            return re.sub(r"(troy_hook\.py[\"']?\s+)" + re.escape(event) + r"\b",
+                          lambda match: match.group(1) + "<event>", command)
+
+        guard = generic(self.guard_group()["hooks"][0]["command"], GUARD_EVENT)
+        self.assertIn("<event>", guard, "the command does not name UserPromptExpansion")
+        for event, group in self.groups():
+            if event == GUARD_EVENT:
+                continue
+            with self.subTest(event=event, matcher=group.get("matcher")):
+                self.assertEqual(generic(group["hooks"][0]["command"], event), guard)
+
+    def test_user_prompt_expansion_matcher_matches_only_the_guarded_names(self):
+        """F13 11.1: re.search with the file's matcher hits each refused name and no other.
+
+        Claude Code tests a matcher unanchored (JavaScript RegExp.test), so
+        this uses re.search, not re.fullmatch (F13 contract 6).
+
+        Planted bugs caught: a matcher without ^ (my-poteto-mode and
+        a:b:poteto-mode match it); no-comments left out of the matcher (F13
+        11.2).
+        """
+        matcher = re.compile(self.guard_group().get("matcher") or "")
+        for name in REFUSED:
+            with self.subTest(refused=name):
+                self.assertIsNotNone(matcher.search(name), f"{matcher.pattern} misses {name}")
+        for name in LET_THROUGH + ("",):
+            with self.subTest(let_through=name):
+                self.assertIsNone(matcher.search(name), f"{matcher.pattern} matches {name!r}")
+
+    def test_description_names_f05_and_f13(self):
+        """The top-level description names F13 next to F05 (F13 7.1)."""
+        description = self.data.get("description", "")
+        self.assertRegex(description, r"\bF05\b")
+        self.assertRegex(description, r"\bF13\b")
 
     def test_commands_name_existing_scripts(self):
         """Every ${CLAUDE_PLUGIN_ROOT}/<path> in a command exists in troy-pstack."""
@@ -236,6 +320,49 @@ class HooksJsonRunTests(HookTestCase):
         call = write_call(self.troy, DEV, self.troy.path("src/pkg/app.py"))
         out = self.run_command("PreToolUse", call.payload, self.troy.root, with_python=False)
         self.assertEqual(2, out.code, out.describe())
+
+    def expansion(self, project, name, args="build the export feature"):
+        """Builds a UserPromptExpansion input for a typed command (F13 contract 1)."""
+        return hook_input(GUARD_EVENT, project.root, MAIN, expansion_type="slash_command",
+                          command_name=name, command_args=args, command_source="plugin",
+                          prompt=f"/{name} {args}")
+
+    def test_user_prompt_expansion_command_refuses_in_troy_mode(self):
+        """F13: the hooks.json command blocks troy-pstack:poteto-mode with JSON and exit code 0.
+
+        Planted bug caught: exit code 2 in place of JSON (F13 11.2).
+        """
+        payload = self.expansion(self.troy, "troy-pstack:poteto-mode")
+        out = self.run_command(GUARD_EVENT, payload, self.troy.root)
+        self.assert_blocked(out, "troy-mode: /troy-pstack:poteto-mode is off here. ",
+                            "troy-mode：这里停用 /troy-pstack:poteto-mode。",
+                            " /troy-pstack:troy-mode ")
+        self.assertEqual({"decision", "reason"}, set(out.data()), out.describe())
+        self.assertEqual("", out.stderr.strip(), out.describe())
+
+    def test_user_prompt_expansion_command_is_silent_outside_troy_mode(self):
+        """Pair: the same input in a project without .troy-mode/ exits 0 and prints nothing.
+
+        Planted bug caught: the gate skipped (F13 11.2).
+        """
+        payload = self.expansion(self.plain, "troy-pstack:poteto-mode")
+        self.assert_silent(self.run_command(GUARD_EVENT, payload, self.plain.root))
+
+    def test_user_prompt_expansion_command_lets_troy_mode_through(self):
+        """Pair: troy-pstack:troy-mode in the troy-mode project exits 0 and prints nothing."""
+        payload = self.expansion(self.troy, "troy-pstack:troy-mode", "status")
+        self.assert_silent(self.run_command(GUARD_EVENT, payload, self.troy.root))
+
+    def test_user_prompt_expansion_without_python_blocks_in_troy_mode_only(self):
+        """F13 7.2: with no interpreter, exit 2 in a troy-mode project, 0 and nothing elsewhere."""
+        troy = self.run_command(GUARD_EVENT, self.expansion(self.troy, "troy-pstack:no-comments"),
+                                self.troy.root, with_python=False)
+        self.assertEqual(2, troy.code, troy.describe())
+        plain = self.run_command(GUARD_EVENT,
+                                 self.expansion(self.plain, "troy-pstack:no-comments"),
+                                 self.plain.root, with_python=False)
+        self.assertEqual(0, plain.code, plain.describe())
+        self.assertEqual("", plain.stdout.strip(), plain.describe())
 
     def test_missing_python_passes_outside_troy_mode(self):
         """Pair: with no interpreter, the command exits 0 and prints nothing elsewhere."""

@@ -227,13 +227,25 @@ def session_start(ctx: Context) -> dict | None:
                                    "additionalContext": " ".join(notes)}}
 
 
+def user_prompt_expansion(ctx: Context) -> dict | None:
+    """UserPromptExpansion: refuses poteto-mode's commands, with no log line (F13 design 7.2)."""
+    from . import modeguard  # noqa: PLC0415
+
+    return modeguard.check(ctx.data.get("command_name"))
+
+
 HANDLERS = {
     "SessionStart": session_start,
     "SubagentStart": subagent_start,
     "PreToolUse": pre_tool_use,
     "PostToolUse": post_tool_use,
     "SubagentStop": subagent_stop,
+    "UserPromptExpansion": user_prompt_expansion,
 }
+
+# Events whose errors only warn, whoever the caller is: Troy's own typed
+# commands must never be blocked by a hook error (F13 design 7.2).
+_WARN_ONLY = ("SessionStart", "SubagentStart", "UserPromptExpansion")
 
 
 def _on_error(ctx: Context, exc: Exception) -> tuple[dict | None, int]:
@@ -241,7 +253,7 @@ def _on_error(ctx: Context, exc: Exception) -> tuple[dict | None, int]:
     from .verdict import Refusal  # noqa: PLC0415
 
     message = f"troy-mode hook error: {type(exc).__name__}: {exc}"
-    if ctx.caller.kind == MAIN or ctx.event in ("SessionStart", "SubagentStart"):
+    if ctx.caller.kind == MAIN or ctx.event in _WARN_ONLY:
         sys.stderr.write(message + "\n")
         return None, 1
     refusal = Refusal("error", message + ". The call is refused because the hook cannot "
