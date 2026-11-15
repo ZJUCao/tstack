@@ -34,11 +34,12 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py check-text --file <path>` | Checks a PR comment, description, or issue for attribution in the project's `[attribution] mode`. |
 | `troy_flow.py check-skips --report <file> --junit <file>` | Reads `troy-check code`'s JSON report and the JUnit file: exit 0 when nothing failed but tests skipped on this platform, with those cases in `ci_only` (D69). |
 | `troy_flow.py series` | After a dependency change Troy accepted: the `commands` that compile and install the series lock, each member's `tests`, and the members whose lock is now `stale` (D66). It runs nothing. |
-| `troy_flow.py release-test --version <version> --junit <file>...` | The release test's report from the version test plan and the JUnit files: each scenario's result, the failed tests, Troy's scenarios, and the `comment` to post, headed `Release test, run <n>: passed` or `failed`. Exit 1 when anything failed. |
+| `troy_flow.py release-test --version <version> --junit <file>... [--real-run <file>]` | The release test's report from the version test plan and the JUnit files: each scenario's result, the failed tests, Troy's scenarios, and the `comment` to post, headed `Release test, run <n>: passed` or `failed`. With `--real-run`, the JSON report of `real-run --all` adds a "Real run" part, and a mismatch fails the run. Exit 1 when anything failed. |
 | `troy_flow.py accept-version --tag <tag> --notes-file <file> [--date <YYYY-MM-DD>]` | Records Troy's acceptance in the version test plan and its mirror: the acceptance row, the next major version, the status, and a change-log row. |
 | `troy_flow.py release-notes --tag <tag> --out <file>` | Writes the tag's section of `CHANGELOG.md` on `origin/main` to a file, for the GitHub release's notes. |
 | `troy_flow.py retro --tag <tag>` | Groups the evidence for the retrospective: review findings by rule and checklist item, failed attempts, escalations, bugs, and `hooks.log` lines, with the groups seen in two or more PRs in `repeated`. It changes nothing. |
 | `troy_flow.py rule-id` | From `docs/rules.md` on `origin/main`: the next free P ID (`next_id`), the next R ID (`next_r_id`), and every P rule in `rules`, with whether it is retired, Troy's `choice` for existing code, and its `baseline` lines in config and dependency files. |
+| `troy_flow.py real-run --item <ID> [--keep]` or `real-run --all [--keep]` | Runs the real program the way Troy types it, through every `PS> ` command of the prototypes of the feature and of every accepted feature (`--all`: every accepted feature), each section set up by its run file, `docs/prototypes/<name>.run.toml`, in a scratch home folder. It compares each output with the prototype and gives each command's `result` (`matches`, `mismatch`, `waits for <ID>`, or `not run`), the `counts`, the one-line `summary`, the feature's `label`, the `open_bugs` of earlier real runs, the `description` for the PR's "Real run" section, and the `comments` its real output needs when it is too long. It writes the report to `files.json` and `files.md` in the git folder. The working tree must be clean. |
 | `troy_flow.py rule-row --id <ID> --rule-file <file> [--retire] [--date <YYYY-MM-DD>]` | Writes one P row into `docs/rules.md` and its mirror: adds a new ID after the last P row, replaces an existing one and keeps its Since date, or retires it. Both files move to the next major version, approved by Troy, with one change-log row. |
 
 - Exit code 0: done. 1: a problem stops the step; the report says which. 2: the engine could not run; show Troy its error.
@@ -77,7 +78,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
    - A `scope`, `section`, or `dependency` problem: run every `undo` command, then run the role once more with Input that names the paths and the scope. A second problem in the same stage escalates.
    - Mention `hooks_log` lines in your report; they do not stop the flow.
 
-Rulings change no file: TM3, TM4, TM5, TM6, IF4, AR4 without an architecture change, and AR3's first run. If one changed something, undo it and run it once more.
+Rulings change no file: TM3, TM4, TM5, TM6, TM8, IF4, AR4 without an architecture change, and AR3's first run. If one changed something, undo it and run it once more.
 
 When you write a document yourself as the Product Manager (PM1, PM2, PM3), take the snapshot with `--role product-manager` and check it the same way.
 
@@ -120,20 +121,55 @@ Troy's reply works as section "Merging" says. "全按推荐", "all as recommende
 | 3 | `[<ID> 3/6 mock] <name>` | DV1 | CR1 | `troy-check pr`, the pack's steps, `troy-check code` | You |
 | 4 | `[<ID> 4/6 tests] <name>` | TE1 | TM2 and CR1, together | As PR 3 | You |
 | 5 | `[<ID> 5/6 impl] <name>` | DV2 | CR1 | As PR 3, plus the feature's performance cases on Troy's PC when it has a target | You |
-| 6 | `[<ID> 6/6 accept] <name>` | PM3, yourself | None | `troy-check pr` | You |
+| 6 | `[<ID> 6/6 accept] <name>` | PM3, yourself, with the real run (section "PR 6: the real run") | None. TM8 rules on each mismatch. | `troy-check pr`, `real-run` | You |
 
 `<name>` is the feature's name in the requirements; `next.title` and `next.branch` give the title and the branch (`troy-mode/f04-3-mock`). `next.merged_by` says whether Troy approves it. When `continue-pr` names a PR whose `task` is null (a test fix or a `[docs]` PR), read its description and your comments on it to find its author.
 
 ### One stage
 
 1. **Branch.** `git fetch origin --prune`, then `git switch -c <branch> origin/main`. Never check out `main`: in a worktree, `main` is often checked out elsewhere.
-2. **Author.** Run the stage's author (section "Running a role"). For PM3, check the feature against its requirement row and prototypes, set its status to "Passes tests on main" in both languages, and raise the requirements' `version` by one minor step in both, with `updated`.
+2. **Author.** Run the stage's author (section "Running a role"). For PM3, follow section "PR 6: the real run".
 3. **Commit.** `git add -- <path>` for exactly the paths in `stage`. The first run makes the commit, whose subject is the PR title (R01): `git commit -m "<title>"`. Later runs amend it with `git commit --amend --no-edit`, so the PR keeps one commit. The git hooks check R19.
 4. **Local checks**, on the commit (section "Local checks"). A failure goes back to the author as Input and counts as an attempt.
 5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why (the feature's goal), What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
 6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input.
 7. **Merge** (section "Merging").
 8. **Progress.** After every step (each role run, commit, push, review, merge, and escalation) run `troy_flow.py status --write-progress`.
+
+### PR 6: the real run
+
+PR 6 is yours, as the Product Manager (PM3). Before the feature is accepted, run the real program the way Troy types it, through every command of the prototypes of this feature and of every accepted feature, and put the real output and its comparison in the PR (F12 design). The engine runs and compares; you write the run files and act on the Test Manager's rulings, so you never judge your own prototypes.
+
+1. **Branch.** As in "One stage". Then run `troy_flow.py real-run --item <ID> --json` once on the clean branch: its `no-run-file` problems name the prototypes that need a run file, and its `open_bugs` the bugs of an earlier real run of this feature (step 4).
+2. **Run files.** Take a snapshot with `--role product-manager`. Read `${CLAUDE_PLUGIN_ROOT}/skills/principle-prove-it-works/SKILL.md`. Write the run file of every prototype that needs one, `docs/prototypes/<name>.run.toml` next to `docs/prototypes/<name>.md`, from each section's prose. The transcript is the script; the run file holds only what the prose says in words:
+   - `[paths]`: each folder the prototype names and where it is during the run, under `<home>` (the run's home folder) or `<scratch>`, for example `'C:\Users\Troy' = '<home>'`, in TOML literal strings.
+   - `[environment]`: `unset` and `set`, for variables such as the program's data folder variable.
+   - `[start]`: how every section starts: `copy` a folder git tracks, such as the project's test data that matches the example data (`[{ from = "tests/data/example", to = '<home>\recipe-menu' }]`), `mkdir` for empty folders, and `setup` commands such as `["recipe-menu init"]`. A project with no such folder gets one under `docs/prototypes/data/`.
+   - `[programs]`: only a command that is not a console script of the project's Python environment, with the repository path of the built program.
+   - `[sections."<heading>"]`, with the heading as written (`"<heading> (2)"` for a repeated one): `start` (`"previous"`, `"empty"`, or a table like `[start]`), `replace` (`[{ file, text, with }]`, a text found exactly once, for a section's mistakes), `write`, `delete`, `commands` (`[{ typed, run, reason }]` for a word that depends on the day, such as `next`, replaced by the week it means on the prototype's date; never edit the output), `later` (`[{ feature }]` or `[{ feature, typed }]` for a command that needs a feature not yet accepted), `skip` (`[{ reason }]` or `[{ typed, reason }]` for a command that reads keys or opens an editor), and `files` (`[{ path, block }]` to compare a file the program writes with the section's n-th fenced block that is not a transcript).
+
+   The first PR 6 after F12 reaches a project writes the run files of the earlier features' prototypes too. Check the run, then commit with the PR title as the subject. Do not push yet.
+3. **Run.** `troy_flow.py real-run --item <ID> --json` on the clean tree.
+4. **Open bugs.** When `open_bugs` names open `bug` issues titled `Real run of <ID>: ...`, their bug flows come first (section "Bug fix"), and you open no second issue for the same mismatch. A new session that reaches stage 6 runs `real-run` first, so it finds them too.
+5. **Mismatches.** Exit 1 with mismatches: TM8 rules on all of them in one run, `brief --task TM8 --item <ID> --input-file <files.md>`, with the report's Markdown file as Input. Act on each ruling:
+   - `bug`: write the issue to a file, with the prototype, the section, the command, the commit, the diff, and TM8's Summary, check it with `check-text`, and open it with `gh issue create --label bug --title "Real run of <ID>: <summary>" --body-file <file>`. TM8 has triaged it, so TM5 does not run. Its PR A and PR B are side PRs that interrupt stage 6: this stage's commit waits unpushed, and after PR B merges, rebase the branch on `origin/main` and run again.
+   - `prototype`: update the prototype in this PR, and list the change with its design section in the description.
+   - `requirement`: the requirement change flow; Troy decides which output stays.
+   - `later <ID>`: a `later` mark in the run file.
+   - `setup`: fix the run file. The description lists every run file change after the first run.
+   - `console`: a `skip` mark with the reason.
+
+   Amend the run file and prototype changes into the commit under a new snapshot, and run again (step 3). The PR shows only the last run. A command that still mismatches on its third run escalates (D64).
+6. **Problems.** Exit 1 with `problems` only: a run file mistake (`run-file`, `unknown-section`, `unknown-command`, `copy-untracked`, `replace-count`, `unknown-later-feature`, `missing-block`, `unmapped-path`, or `setup-failed`) is yours to fix in the run file; then run again. A problem with the program or its environment (`program-not-found`, `environment`, or `code-location`) escalates, with the problem's `fix` as your recommendation when it gives one.
+7. **Acceptance.** Exit 0: set the feature's status from the report's `label` in both languages, "Ran for real on Troy's PC" or "Passes tests on main", and raise the requirements' `version` by one minor step in both, with `updated`. Delete the marks that `out_of_date` lists. Amend. The description's Checks section gets the report's `summary`, and a new section after Checks holds the report's `description`, which starts with `## Real run`. Under its "Points at later features", replace "None." with each hint in the real output that names a command or option of a feature not yet accepted, with that feature. With "Passes tests on main", What says why, from `label_reason`. Then `check-text`, `troy-check pr`, push, open the PR, post each of the report's `comments` (each checked with `check-text`), wait for CI, and merge.
+
+Report it to Troy in the shape of Prototype B, for example:
+
+```text
+[6/6] Real run: 41 commands of 6 prototypes match on your PC. 3 wait for F12.
+      Acceptance PR #96 merged. F11 status is now "Ran for real on Troy's PC".
+      Not yet checked in Windows Terminal itself or on your devices.
+```
 
 ### Local checks
 
@@ -155,6 +191,7 @@ Post every review, failed attempt, escalation, and request to Troy as a PR comme
 - `<Role> attempt <n>: failed`, then the failing checks;
 - `Escalation: <trigger>`, then the escalation message in English;
 - `Waiting for Troy: approve this PR`, with one line under it, "What to decide is in the summary at the top of the description.", or `Waiting for Troy: accept <tag>` on a release PR;
+- on an acceptance PR: `Real run output, part <n>`, the real output that does not fit the description (section "PR 6: the real run");
 - on a release PR (section "Version release"): `Release test, run <n>: passed` or `failed`, `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, `Bug deferred by Troy: #<n>`, and `Retrospective: <tag>`.
 
 Under a review heading, write the findings as the role reports them, one numbered line each, starting with the rule ID or checklist item and a colon, for example `1. R05: src/wc.py:12 ...`, so the retrospective can group them.
@@ -217,7 +254,7 @@ An author reports `needs-answer` for the Architect about a new third-party depen
 ## Bug fix
 
 1. **Issue.** When Troy names an issue ("fix #12"), read it with `gh issue view <n>`. Otherwise open one: write the report in English to a file, check it with `troy_flow.py check-text`, and run `gh issue create --label bug --title "<summary>" --body-file <file>`. The issue's number gives the bug ID: issue 12 is `B12`.
-2. **Triage.** TM5, with the issue in Input (`brief --task TM5 --item B12`). A misunderstood requirement goes to the requirement change flow: tell Troy, with a recommendation. A bug goes on.
+2. **Triage.** TM5, with the issue in Input (`brief --task TM5 --item B12`). A misunderstood requirement goes to the requirement change flow: tell Troy, with a recommendation. A bug goes on. A bug from a real run starts at its issue, `Real run of <ID>: <summary>`, which TM8 has triaged, so TM5 does not run for it.
 3. **PR A.** On `troy-mode/b12-test`, TE2 writes the reproduction test with `--title "[B<n> A/B test] <summary>"` (the issue's summary). Its local checks show that B12's tests fail (R09). Open the PR (Why: the issue's link; What: the test), run TM2 and CR1 together with the same `--title`, and merge.
 4. **PR B.** `status` now gives `bug` with `next.title` (`[B<n> B/B fix] <summary>`) and `next.branch` (`troy-mode/b12-fix`), so a new session finishes the bug too. DV3 fixes it (`brief --task DV3 --item B12`); B12's tests must pass. The description's Why says `Fixes #<n>`, so GitHub closes the issue when you merge. CR1 reviews it, and you merge.
 
@@ -261,7 +298,7 @@ troy-pstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source 
 | 1. Ready | Read `release.problems` and fix each one first (below) | None | |
 | 2. `version-tests` | TE5 writes the tests of the scenarios Claude runs; TM2 and CR1 review them together | `[<version> tests] End-to-end and stress tests` on `troy-mode/<version>-tests` | You |
 | 3. `release-pr` | PM4: the changelog section | `[docs] Release <tag>` on `troy-mode/release-<tag>` | You, after Troy accepts |
-| 4. `release-test` | The regression and the version tests on Troy's PC; the report goes on the release PR | None | |
+| 4. `release-test` | The regression, the version tests, and the real run of every accepted feature's prototypes on Troy's PC; the report goes on the release PR | None | |
 | 5. `troy-test` | Troy runs Troy's scenarios on Troy's devices and replies | None | |
 | 6. `accept` | PM4 sets the statuses, `accept-version` fills the acceptance record, then the merge | The release PR | You |
 | 7. `tag` | A GitHub release on the release PR's merge commit | None | |
@@ -283,8 +320,9 @@ troy-pstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source 
 **4. Release test.** On the release branch, on Troy's PC:
 
 1. Run every command in `release.checks` (`status` fills it at this step): the pack's steps, `troy-check code` with the release PR's title, and the release command, which writes `reports/version-junit.xml` (Python: `pytest version-tests`; C/C++: a build with `TROY_VERSION_TESTS=ON`, then `ctest -L version`). Performance and stress cases run here. Every regression test must pass, or skip on this platform with CI's result on `main` (`check-skips`, D69).
-2. `troy_flow.py release-test --version <version> --junit reports/junit.xml --junit reports/version-junit.xml`. Write its `comment` to a file, check it with `check-text`, and post it on the release PR. Its first line is `Release test, run <n>: passed` or `failed`.
-3. A failed run goes to "Failures and bugs" below before Troy is asked to test.
+2. `troy_flow.py real-run --all --json`, on the same commit, after the version tests: the command Troy types, through the prototypes of every accepted feature (F12 design 11). Its JSON report is `files.json`.
+3. `troy_flow.py release-test --version <version> --junit reports/junit.xml --junit reports/version-junit.xml --real-run <files.json>`. Write its `comment` to a file, check it with `check-text`, and post it on the release PR. Its first line is `Release test, run <n>: passed` or `failed`; a real run mismatch fails it.
+4. A failed run goes to "Failures and bugs" below before Troy is asked to test.
 
 **5. Troy's test.** After a run that passed, post `Waiting for Troy: accept <tag>` on the release PR, run `troy_flow.py status --waiting "Troy tests <tag>"`, and tell Troy in Troy's language: the commit to test and the release PR's link with the changelog; the scenarios Claude ran, with their results; and each scenario Troy runs, with its device, steps, and expected result (the report's `scenarios` with `run_by` Troy). Then stop. Record Troy's reply, in chat or as a comment on the release PR, as a comment `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, followed by Troy's words:
 
@@ -304,6 +342,7 @@ If Troy merges the release PR on GitHub instead, `status` gives `record-acceptan
 
 ### Failures and bugs (D74)
 
+- A real run mismatch goes to TM8 with `real-run`'s Markdown report in Input (`brief --task TM8 --item <version> --input-file <files.md>`), and its rulings are acted on as in section "PR 6: the real run", with each bug's issue titled `Real run of <feature ID>: <summary>`.
 - A failed test or scenario, in the release test or in Troy's test, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (section "Bug fix"). A wrong version test gets TE3's fix. A misunderstood requirement goes to the requirement change flow.
 - `status` gives the step `bugs` with the first open bug issue that Troy has not deferred; the release waits until every open `bug` issue is fixed or deferred.
 - After the fixes, PM4 adds the fixed bugs to the changelog section, rebase the release branch on `origin/main`, amend the commit, and push; `status` then gives `release-test` again, and the release test runs as the next run. It runs every version test; Troy tests again only what failed.

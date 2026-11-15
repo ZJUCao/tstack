@@ -3,9 +3,12 @@
 It reads the version test plan on origin/main and the JUnit files of the
 regression and the version tests, matches each scenario to its tests by ID,
 and writes the comment F08 posts on the release PR. The run passes when no
-test failed and every scenario Claude runs has a passing test.
+test failed and every scenario Claude runs has a passing test. With
+--real-run, it also reads the report of `real-run --all`, and a mismatch or
+problem there fails the run (F12 design 11, D112).
 """
 
+import json
 from pathlib import Path
 
 from troycheck.junit import FAILED, PASSED, SKIPPED, JUnitCase, ReportError, own_name, read_junit
@@ -86,8 +89,57 @@ def _entry(plan, scenario: Scenario, tests: list[JUnitCase]) -> dict:
             "result": scenario_result(own) if scenario.run_by == "Claude" else None}
 
 
+def read_real_run(path: str, commit: str) -> dict:
+    """Reads the JSON report of `real-run --all` for the release test (F12 design 11).
+
+    Args:
+        path: The report file.
+        commit: The commit the release test checks, HEAD.
+
+    Returns:
+        The counts, the mismatches, the problems, and whether it passed.
+
+    Raises:
+        FlowError: The file cannot be read as a real-run report.
+    """
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise FlowError(f"cannot read the real-run report {path}: {exc}") from exc
+    counts = data.get("counts") if isinstance(data, dict) else None
+    if not isinstance(data, dict) or data.get("command") != "real-run" \
+            or not isinstance(counts, dict) or not isinstance(counts.get("all"), dict):
+        raise FlowError(f"{path} is not the JSON report of real-run")
+    mismatches = [{"prototype": p.get("file"), "section": s.get("heading"),
+                   "typed": c.get("typed")}
+                  for p in data.get("prototypes", []) for s in p.get("sections", [])
+                  for c in s.get("commands", []) if c.get("result") == "mismatch"]
+    problems = [p.get("message", str(p)) if isinstance(p, dict) else str(p)
+                for p in data.get("problems", [])]
+    if not data.get("all"):
+        problems.append("The real run was not run with --all, so it did not run every accepted "
+                        "feature's prototypes.")
+    if data.get("commit") != commit:
+        problems.append(f"The real run checked {str(data.get('commit'))[:7]}, not the commit "
+                        f"tested, {commit[:7]}.")
+    return {"file": path, "counts": data["counts"]["all"], "mismatches": mismatches,
+            "problems": problems, "passed": not mismatches and not problems}
+
+
+def _real_run_part(real: dict) -> list[str]:
+    """The comment's "Real run" part: the counts, then each mismatch and problem."""
+    counts = real["counts"]
+    lines = ["", f"Real run: {counts.get('matches', 0)} commands match, "
+                 f"{counts.get('mismatch', 0)} do not match, {counts.get('waits', 0)} wait for "
+                 f"a later feature, {counts.get('not_run', 0)} did not run."]
+    lines += [f"- Mismatch: {m['prototype']}, {m['section']}: {m['typed']}"
+              for m in real["mismatches"]]
+    lines += [f"- Problem: {p}" for p in real["problems"]]
+    return lines
+
+
 def _comment(heading: str, commit: str, plan_file: str, scenarios: list[dict],
-             failed: list[str], skipped: list[str]) -> str:
+             failed: list[str], skipped: list[str], real: dict | None = None) -> str:
     """Writes the comment F08 posts on the release PR (design 5.5, step 3)."""
     lines = [heading, "", f"Commit tested: {commit}", f"Test plan: {plan_file}", "",
              "Automated scenarios (version tests):"]
@@ -97,6 +149,8 @@ def _comment(heading: str, commit: str, plan_file: str, scenarios: list[dict],
         lines.append(f"- {s['id']} {s['scenario']}: {s['result']} ({tests})")
     if not claude:
         lines.append("- None")
+    if real is not None:
+        lines += _real_run_part(real)
     lines += ["", "Failed tests:"] + ([f"- {t}" for t in failed] or ["- None"])
     if skipped:
         lines += ["", "Skipped on this platform:"] + [f"- {t}" for t in skipped]
@@ -137,6 +191,8 @@ def run_release_test(args) -> tuple[dict, int]:
         report["problems"] = [f"{sid} says neither Claude nor Troy in its Run by column."
                               for sid in odd]
         return report, 1
+    commit = git.commit_of(repo, "HEAD") or ""
+    real = read_real_run(args.real_run, commit) if getattr(args, "real_run", None) else None
     pr, run = _release_pr(repo, version, report["notes"])
     scenarios = [_entry(plan, s, tests) for s in plan.scenarios]
     failed = [t.label for t in tests if t.outcome == FAILED]
@@ -144,14 +200,16 @@ def run_release_test(args) -> tuple[dict, int]:
     problems = [f"{t} failed." for t in failed]
     problems += [f"{s['id']} has no passing test: {s['result']}." for s in scenarios
                  if s["run_by"] == "Claude" and s["result"] != "passed"]
+    if real is not None:
+        problems += [f"Real run mismatch: {m['prototype']}, {m['section']}: {m['typed']}."
+                     for m in real["mismatches"]] + [f"Real run: {p}" for p in real["problems"]]
     passed = not problems
     heading = f"Release test, run {run}: {'passed' if passed else 'failed'}"
-    commit = git.commit_of(repo, "HEAD") or ""
     report.update(ok=passed, problems=problems, pr=pr, run=run, commit=commit, passed=passed,
                   tests=len(tests), failed_tests=failed, skipped_tests=skipped,
                   scenarios=scenarios, troy_scenarios=[s["id"] for s in scenarios
                                                        if s["run_by"] == "Troy"],
-                  heading=heading,
-                  comment=_comment(heading, commit, path, scenarios, failed, skipped))
+                  heading=heading, real_run=real,
+                  comment=_comment(heading, commit, path, scenarios, failed, skipped, real))
     return report, 0 if passed else 1
 

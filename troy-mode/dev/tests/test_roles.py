@@ -192,7 +192,7 @@ AGENT_ROLES = (
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash"),
          tasks=(("TM1", "Test plan"), ("TM2", "Test review"), ("TM3", "Coverage gap"),
                 ("TM4", "Disputed test"), ("TM5", "Bug triage"), ("TM6", "Exclusion"),
-                ("TM7", "Version test plan")),
+                ("TM7", "Version test plan"), ("TM8", "Real-run mismatches")),
          results=RESULTS["Test Manager"],
          scope=((PATTERN, "docs/features/*/test-plan*.md"),
                 (PATTERN, "docs/versions/*/test-plan*.md"))),

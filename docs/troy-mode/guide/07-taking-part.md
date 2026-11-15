@@ -77,10 +77,11 @@ A feature's status in the requirements' features table says how far it really go
 | --- | --- |
 | Not started | The requirements are approved. |
 | Passes tests on main | PR 6 merges. The feature's tests are now must-pass. It has not been checked on your devices. |
+| Ran for real on Troy's PC | PR 6 merges with a real run in which the feature's own prototype commands ran on your PC and matched, apart from those that wait for a later feature (F12). It has not been checked in Windows Terminal itself or on your devices. |
 | Usable on Troy's devices | You accept the version that contains it, after testing it on your devices. |
 | Needs rework (...) | An approved requirement change affects it before it is accepted. The brackets name the change. |
 
-So "Passes tests on main" means the code and its tests are merged and pass in CI. "Usable on Troy's devices" means you tested the whole version on your own devices and accepted it. The stage in between lives in the progress file.
+So "Passes tests on main" means the code and its tests are merged and pass in CI. "Ran for real on Troy's PC" also means that troy-mode ran the commands you type on your PC, and their output matched the prototypes. "Usable on Troy's devices" means you tested the whole version on your own devices and accepted it. The stage in between lives in the progress file.
 
 ## 7.5 Continue in a new session
 

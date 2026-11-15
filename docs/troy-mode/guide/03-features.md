@@ -32,7 +32,7 @@ troy-mode works on one PR at a time. A new request waits until the open PR merge
 | 3 | `[F04 3/6 mock] <name>` | Signatures and full doc comments, no bodies | Developer | Code Reviewer | troy-mode |
 | 4 | `[F04 4/6 tests] <name>` | The tests. Every new test fails against the mock (R09). | Test Engineer | Test Manager and Code Reviewer, together | troy-mode |
 | 5 | `[F04 5/6 impl] <name>` | The implementation. Every test passes, and coverage meets R11. | Developer | Code Reviewer | troy-mode |
-| 6 | `[F04 6/6 accept] <name>` | The feature's status, "Passes tests on main", in both languages | Product Manager | None | troy-mode |
+| 6 | `[F04 6/6 accept] <name>` | The real run of the prototypes, and the feature's status in both languages: "Ran for real on Troy's PC" or "Passes tests on main". It holds the run files; its description holds the real output, compared with the prototypes. | Product Manager | None. The Test Manager rules on each mismatch. | troy-mode |
 
 Before each push, troy-mode runs the local checks: `troy-check pr` on every PR, and for PRs 3 to 5 also the language pack's steps and `troy-check code`. CI runs the same checks on GitHub. troy-mode merges only when every review of the stage approved, the local checks passed, and every CI check passed ([F07 design section 8.6](../design/F07-entry-skill.md#86-merging-r18-f02-d14)).
 
@@ -62,7 +62,15 @@ I did nothing else. The next step is [F02 2/6 test-plan] Count lines. Its PR als
 your approval, because F02 is among the first 3 features you approve.
 ```
 
-PR 6 sets the feature's status to "Passes tests on main". The feature has not been checked on your devices yet: that happens when you test its version ([section 5](05-release.md)).
+Since F12, PR 6 first runs the real program the way you type it. `troy_flow.py real-run` replays every `PS> ` command of the prototypes of the feature and of every accepted feature, in a scratch home folder, and compares the output with the prototype character for character, the spaces that line up Chinese columns included. A run file next to each prototype, `docs/prototypes/<name>.run.toml`, says how each section's data folder starts. The Test Manager rules on each mismatch: a bug goes to the bug flow before acceptance, and a prototype changes only where a design you approved chose the new output ([F12 design](../design/F12-real-run.md)). The description gets a "Real run" section with the commit, the counts, a row per command, and the real output, and troy-mode reports, for example:
+
+```text
+[6/6] Real run: 41 commands of 6 prototypes match on your PC. 3 wait for F12.
+      Acceptance PR #96 merged. F11 status is now "Ran for real on Troy's PC".
+      Not yet checked in Windows Terminal itself or on your devices.
+```
+
+PR 6 sets the feature's status to "Ran for real on Troy's PC" when all its own commands ran on your PC and matched, apart from those that wait for a later feature, and otherwise to "Passes tests on main", with the reason in the PR. The run goes through pipes, not a console, so it does not show how Windows Terminal draws the text. The feature has not been checked on your devices yet: that happens when you test its version ([section 5](05-release.md)).
 
 ## 3.4 After the first features
 

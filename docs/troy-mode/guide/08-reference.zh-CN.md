@@ -67,7 +67,8 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。 |
 | `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行指向描述开头给你的摘要。 |
 | `Waiting for Troy: accept <tag>` | 发布等你在自己的设备上测试时。 |
-| `Release test, run <n>: passed` 或 `failed` | 发布测试的报告。 |
+| `Real run output, part <n>` | PR 6 真跑的真实输出放不进描述时，放在这里。 |
+| `Release test, run <n>: passed` 或 `failed` | 发布测试的报告；跑了 `real-run --all` 时带一段 “Real run”。 |
 | `Release test by Troy, run <n>: accepted`、`failed` 或 `not accepted` | 你对发布的回复，附上你的原话。 |
 | `Bug deferred by Troy: #<n>` | 你把一个未关闭的 bug 推迟到这次发布之后时。 |
 | `Retrospective: <tag>` | 复盘，它结束这次发布。 |
@@ -78,6 +79,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | --- | --- | --- |
 | `docs/requirements.md` 及镜像 | 需求、功能、顺序、版本、状态 | 产品经理 |
 | `docs/prototypes/` | 原型 | 产品经理 |
+| `docs/prototypes/<name>.run.toml` | 原型的运行文件：路径映射、每一节的数据文件夹怎样开始、替换掉的日期词，以及 `later` 和 `skip` 标记，由 `troy_flow.py real-run --item <ID>` 和 `real-run --all` 读取（[F12 设计第 4 节](../design/F12-real-run.zh-CN.md#4-运行文件d103)） | 产品经理，在 PR 6 里 |
 | `docs/architecture.md` 及镜像、`docs/adr/` | 架构及其决策记录 | 架构师 |
 | `docs/features/<id>-<slug>/design.md` 及镜像 | 一个功能的接口设计 | 接口设计师；架构师写其中的审查一节 |
 | `docs/features/<id>-<slug>/test-plan.md` 及镜像 | 一个功能的测试方案 | 测试经理 |
