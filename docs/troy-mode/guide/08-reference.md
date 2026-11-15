@@ -65,7 +65,8 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). |
 | `Waiting for Troy: approve this PR` | The PR waits for your approval. One line under it points to the summary for you at the top of the description. |
 | `Waiting for Troy: accept <tag>` | The release waits for your test on your devices. |
-| `Release test, run <n>: passed` or `failed` | The release test's report. |
+| `Real run output, part <n>` | The real output of PR 6's real run, when it does not fit the description. |
+| `Release test, run <n>: passed` or `failed` | The release test's report, with a "Real run" part for `real-run --all`. |
 | `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted` | Your reply to the release, with your words. |
 | `Bug deferred by Troy: #<n>` | You deferred an open bug past the release. |
 | `Retrospective: <tag>` | The retrospective, which ends the release. |
@@ -76,6 +77,7 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | --- | --- | --- |
 | `docs/requirements.md` and mirror | Requirements, features, order, versions, statuses | Product Manager |
 | `docs/prototypes/` | Prototypes | Product Manager |
+| `docs/prototypes/<name>.run.toml` | A prototype's run file: the path map, how each section's data folder starts, replaced date words, and the `later` and `skip` marks, which `troy_flow.py real-run --item <ID>` and `real-run --all` read ([F12 design section 4](../design/F12-real-run.md#4-the-run-file-d103)) | Product Manager, in PR 6 |
 | `docs/architecture.md` and mirror, `docs/adr/` | Architecture and its decision records | Architect |
 | `docs/features/<id>-<slug>/design.md` and mirror | A feature's interface design | Interface Designer; the Architect writes its review section |
 | `docs/features/<id>-<slug>/test-plan.md` and mirror | A feature's test plan | Test Manager |

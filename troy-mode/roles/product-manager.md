@@ -49,7 +49,10 @@ When: Troy asks for a change (requirements 5.4).
 When: PR 6 of a feature.
 
 1. Check the finished feature against its requirement row and its prototypes.
-2. Set its status to "Passes tests on main" in both languages. Its tests become must-pass.
+2. Write or update the run file of each prototype that the real run needs and that has none yet, `docs/prototypes/<name>.run.toml`, from each section's prose: the path map, how each section's data folder starts, the edits that add a section's mistakes, the replaced date words with their reasons, and the `later` and `skip` marks ([F12 design](../../docs/troy-mode/design/F12-real-run.md) section 4). Read [`../../skills/principle-prove-it-works/SKILL.md`](../../skills/principle-prove-it-works/SKILL.md) first. The first PR 6 after F12 reaches a project writes the run files of the earlier features' prototypes too.
+3. Run the real program the way Troy types it, with `troy_flow.py real-run --item <ID>`, as troy-mode's skill says in "One stage". Never compare by eye, and never edit the prototype's output to match.
+4. Hand every mismatch of a run to the Test Manager (TM8), and act on each ruling: a bug goes to the bug flow, a prototype that an approved design changed is updated with its design section, a requirement question goes to Troy, a `later` or `skip` mark or a run file fix goes into the run file. Then run again.
+5. When the run passes, set the feature's status from the report's `label` in both languages: "Ran for real on Troy's PC" when all its own commands ran and matched, else "Passes tests on main", with the report's reason in the PR. Its tests become must-pass. Read the real output for hints that name a command or option of a feature not yet accepted, and list each with its feature under "Points at later features" in the PR.
 
 ### PM4 Version
 

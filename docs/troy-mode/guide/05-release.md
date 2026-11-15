@@ -34,7 +34,7 @@ After the version's last feature is accepted, type:
 | 1. Ready | Open PRs merge first. Open bugs are fixed first, unless you defer them. | None | Defer a bug, if you want |
 | 2. Version tests | The Test Engineer writes one test per scenario troy-mode runs, in `version-tests/` | `[v0.1 tests] End-to-end and stress tests` | |
 | 3. Release PR | The Product Manager adds the version's section to `CHANGELOG.md` and its mirror | `[docs] Release v0.1.0` on `troy-mode/release-v0.1.0` | |
-| 4. Release test | The regression tests and the version tests run on your PC. The report goes on the release PR. | None | |
+| 4. Release test | The regression tests and the version tests run on your PC, then `real-run --all` runs the prototypes of every accepted feature the way you type them. A mismatch fails the release test. The report goes on the release PR. | None | |
 | 5. Your test | You run your scenarios on your devices and reply | None | Test and reply |
 | 6. Acceptance | Each feature's status becomes "Usable on Troy's devices", and the release PR merges | The release PR | |
 | 7. Tag | A GitHub release `v0.1.0` on the release PR's merge commit, with the changelog section as its notes | None | |

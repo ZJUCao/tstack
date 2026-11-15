@@ -1,4 +1,4 @@
-"""Command-line interface: options, the commands, and the report (F07, F08, F09 3.1)."""
+"""Command-line interface: options, the commands, and the report (F07, F08, F09 3.1, F12 5.1)."""
 
 import argparse
 import json
@@ -6,8 +6,8 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import acceptversion, approve, brief, releasetest, retro, rulerow, runs, series, skips, \
-    status, textcheck
+from . import acceptversion, approve, brief, realreport, realrun, releasetest, retro, rulerow, \
+    runs, series, skips, status, textcheck
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -35,7 +35,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Builds the parser for F07's eight commands, F08's four, and F09's two."""
+    """Builds the parser for F07's eight commands, F08's four, F09's two, and F12's one."""
     parser = _Parser(prog="troy_flow.py", description="troy-mode's flow engine.")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
@@ -65,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("release-test", help="the release test's report and comment (F08)")
     cmd.add_argument("--version", required=True, help="the version, for example v0.1")
     cmd.add_argument("--junit", action="append", required=True, help="a JUnit XML file")
+    cmd.add_argument("--real-run", help="the JSON report of real-run --all (F12)")
     cmd = sub.add_parser("accept-version", help="record Troy's acceptance of a version (F08)")
     cmd.add_argument("--tag", required=True, help="the tag, for example v0.1.0")
     cmd.add_argument("--notes-file", required=True, help="Troy's notes")
@@ -80,9 +81,14 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--rule-file", required=True, help="the row's cells and change-log text")
     cmd.add_argument("--retire", action="store_true", help="retire the rule")
     cmd.add_argument("--date")
+    cmd = sub.add_parser("real-run", help="run the prototypes on the real program (F12)")
+    which = cmd.add_mutually_exclusive_group(required=True)
+    which.add_argument("--item", help="the feature being accepted")
+    which.add_argument("--all", action="store_true", help="every accepted feature (release)")
+    cmd.add_argument("--keep", action="store_true", help="keep the scratch folder")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro", "rule-id", "rule-row"):
+                 "retro", "rule-id", "rule-row", "real-run"):
         _common(sub.choices[name])
     return parser
 
@@ -101,6 +107,12 @@ def _text(report: dict) -> str:
                   f"{len(r['baseline'])} baseline lines" for r in report["rules"]]
         if report.get("waiting_on_troy"):
             lines.append(f"waiting   {report['waiting_on_troy']}")
+    if report["command"] == "real-run":
+        lines.append(f"result    {realreport.result_line(report)}")
+        if report.get("label"):
+            lines.append(f"label     {report['label']}: {report['label_reason']}")
+        if report.get("files"):
+            lines.append(f"report    {report['files']['md']}")
     for key in ("run", "stage"):
         if report.get(key):
             lines.append(f"{key:<9} {report[key]}")
@@ -123,7 +135,8 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "series": series.run_series, "release-test": releasetest.run_release_test,
             "accept-version": acceptversion.run_accept_version,
             "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
-            "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row}
+            "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
+            "real-run": realrun.run_real_run}
 
 
 def main(argv: list[str]) -> int:

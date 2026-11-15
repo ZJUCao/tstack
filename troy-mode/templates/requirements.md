@@ -37,7 +37,7 @@ mirror: "requirements.zh-CN.md"
 
 ## 4. Features
 
-<!-- template: Break features down finely. Each feature's implementation must fit in one source PR (R03: at most 500 changed lines in at most 5 files). A hard dependency means the feature cannot be built without the other one. A soft dependency means it can be built against the other one's mock. Separate several dependencies in one cell with commas. Status is one of: Not started, Passes tests on main, Usable on Troy's devices, Needs rework (name the change). -->
+<!-- template: Break features down finely. Each feature's implementation must fit in one source PR (R03: at most 500 changed lines in at most 5 files). A hard dependency means the feature cannot be built without the other one. A soft dependency means it can be built against the other one's mock. Separate several dependencies in one cell with commas. Status is one of: Not started, Passes tests on main, Ran for real on Troy's PC, Usable on Troy's devices, Needs rework (name the change). -->
 
 | ID | Feature | Hard dependencies | Soft dependencies | Version | Status |
 | --- | --- | --- | --- | --- | --- |

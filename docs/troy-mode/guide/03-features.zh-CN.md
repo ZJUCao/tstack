@@ -34,7 +34,7 @@ troy-mode 同一时间只处理一个 PR。新的请求要等开着的 PR 合入
 | 3 | `[F04 3/6 mock] <name>` | 函数签名和完整的文档注释，不写函数体 | 开发工程师 | 代码审查员 | troy-mode |
 | 4 | `[F04 4/6 tests] <name>` | 测试。每个新测试对着 mock 都失败（R09）。 | 测试工程师 | 测试经理和代码审查员一起审查 | troy-mode |
 | 5 | `[F04 5/6 impl] <name>` | 功能实现。每个测试都通过，覆盖率满足 R11。 | 开发工程师 | 代码审查员 | troy-mode |
-| 6 | `[F04 6/6 accept] <name>` | 功能的状态改为“在 main 上通过测试”，中英文都改 | 产品经理 | 无 | troy-mode |
+| 6 | `[F04 6/6 accept] <name>` | 原型的真跑，以及功能的状态，中英文都改：“在 Troy 的电脑上真跑过”或“在 main 上通过测试”。PR 里有运行文件；描述里是真实输出和它与原型的对比。 | 产品经理 | 无。每处不一致由测试经理裁定。 | troy-mode |
 
 每次推送之前，troy-mode 先运行本地检查：每个 PR 都跑 `troy-check pr`，PR 3 到 PR 5 还要跑语言包的各个步骤和 `troy-check code`。CI 在 GitHub 上运行同样的检查。只有这个阶段的每个审查都通过、本地检查通过、每个 CI 检查也都通过，troy-mode 才合并（[F07 设计第 8.6 节](../design/F07-entry-skill.zh-CN.md#86-合并r18f02-d14)）。
 
@@ -64,7 +64,15 @@ I did nothing else. The next step is [F02 2/6 test-plan] Count lines. Its PR als
 your approval, because F02 is among the first 3 features you approve.
 ```
 
-PR 6 把功能的状态改为“在 main 上通过测试”。这个功能还没在你的设备上验证过：那要等你测试它所在的版本时才做（[第 5 节](05-release.zh-CN.md)）。
+从 F12 起，PR 6 先像你打字那样真跑一遍程序。`troy_flow.py real-run` 在一个临时的主文件夹里，把这个功能和每个已验收功能的原型里的每条 `PS> ` 命令重放一遍，把输出和原型逐字比较，对齐中文列的空格也算在内。每个原型旁边有一个运行文件 `docs/prototypes/<name>.run.toml`，写明每一节的数据文件夹怎样开始。每处不一致都由测试经理裁定：bug 在验收之前走 bug 流程；只有你批准的设计有意选了新的输出时，原型才改（[F12 设计](../design/F12-real-run.zh-CN.md)）。PR 描述里多一节 “Real run”，写着 commit、计数、每条命令一行，以及真实输出。troy-mode 随后会这样报告，下面是英文的例子：
+
+```text
+[6/6] Real run: 41 commands of 6 prototypes match on your PC. 3 wait for F12.
+      Acceptance PR #96 merged. F11 status is now "Ran for real on Troy's PC".
+      Not yet checked in Windows Terminal itself or on your devices.
+```
+
+功能自己的命令都在你的电脑上跑过并且一致时（等待后续功能的命令除外），PR 6 把它的状态改为“在 Troy 的电脑上真跑过”，否则改为“在 main 上通过测试”，并在 PR 里写明原因。真跑通过管道而不是控制台，所以看不出 Windows Terminal 怎样显示文字。这个功能还没在你的设备上验证过：那要等你测试它所在的版本时才做（[第 5 节](05-release.zh-CN.md)）。
 
 ## 3.4 前几个功能之后
 

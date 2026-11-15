@@ -24,11 +24,11 @@ from .stages import STAGE_KINDS, STAGE_TASKS, current_stage, merged_stages, pars
 from .versions import VERSION, parse_plan, plan_path, versions_of
 
 # Every task ID of F04 section 6, written out so that a task added later
-# cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6).
+# cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6; F12 adds TM8).
 ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
              "AR1", "AR2", "AR3", "AR4", "AR5", "AR6",
              "IF1", "IF2", "IF3", "IF4",
-             "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7",
+             "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7", "TM8",
              "DV1", "DV2", "DV3", "DV4", "DV5",
              "TE1", "TE2", "TE3", "TE4", "TE5", "TE6",
              "CR1")
@@ -53,6 +53,8 @@ BUG_DOCS_TASKS = ("AR3", "AR5")
 VERSION_DOCS_TASKS = ("TM7",)
 VERSION_TESTS_TASKS = ("TE5", "TE3", "TM2", "CR1", "TM4", "AR5")
 VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
+# The release test's real run (F12 design 11): TM8 rules on its mismatches.
+REAL_RUN_TASKS = ("TM8",)
 
 _SENTENCES = {
     "AR1": "write the architecture in docs/architecture.md and its mirror "
@@ -90,6 +92,12 @@ _SENTENCES = {
            "as a change. Name the features it touches. Change no file.",
     "TM6": "approve or reject the written reason for the coverage exclusion in Input (R11). "
            "Change no file.",
+    "TM8": "rule on each mismatch of the real run in Input, for {item}: give its kind (bug, "
+           "prototype, requirement, later <feature ID>, setup, or console), the prototype, the "
+           "section, the command, and the reason, one line per mismatch. Read the prototypes and "
+           "run files that Input names, and the designs of their features. A mismatch is a "
+           "prototype change only when a design that Troy approved chose that output; a design "
+           "that only the Architect approved makes it a requirement question. Change no file.",
     "DV1": "write the mock of {item}'s interfaces.",
     "DV2": "implement {item} so that its tests pass.",
     "DV3": "fix bug {item} so that its reproduction test and every other test that must pass "
@@ -300,6 +308,8 @@ def _version_target(repo, task: str, version: str, parsed, title: str | None,
                      "docs/requirements.md on origin/main.")
     plan = parse_plan(git.read(repo, MAIN, plan_path(version)))
     why = f"{task} does not belong to version {version}."
+    if parsed is None and task in REAL_RUN_TASKS:
+        return Target([], REAL_RUN_TASKS, why, None, None, version=version)
     if parsed is None and task in VERSION_DOCS_TASKS:
         verb = "Add" if plan is None else "Update"
         return Target([], VERSION_DOCS_TASKS, why, None,
@@ -359,8 +369,8 @@ def _version_files(repo, task: str, version: str, features: list) -> list[str]:
     paths += [f"{feature_folder(repo, f.id, f.name)}/design.md" for f in rows]
     if task == "TM7":
         paths += [f"{feature_folder(repo, f.id, f.name)}/test-plan.md" for f in rows]
-        if git.files(repo, "HEAD", "docs/prototypes"):
-            paths.append("docs/prototypes/")
+    if task == "TM8" or (task == "TM7" and git.files(repo, "HEAD", "docs/prototypes")):
+        paths.append("docs/prototypes/")
     return paths
 
 
@@ -378,6 +388,8 @@ def _read_first(repo, task: str, item: str | None, features: list, folder: str |
         candidates += [f"{folder}/design.md", f"{folder}/test-plan.md"]
         for dep in feature.hard + feature.soft:
             candidates.append(f"{feature_folder(repo, dep, dep)}/design.md")
+        if task == "TM8":
+            candidates.append("docs/prototypes/")
     for path in candidates:
         if path in paths:
             continue

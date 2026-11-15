@@ -72,6 +72,7 @@ The features table in `docs/requirements.md` changes only in PR 6, at version ac
 | --- | --- |
 | Not started | The requirements are approved. |
 | Passes tests on main | PR 6 merges. The feature's tests are now must-pass. |
+| Ran for real on Troy's PC | PR 6 merges with a real run in which the feature's own commands ran on Troy's PC and matched, apart from those that wait for a later feature (F12). |
 | Usable on Troy's devices | Troy accepts the version that contains it. |
 | Needs rework | An approved change affects it. The label names the change. |
 

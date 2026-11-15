@@ -36,7 +36,7 @@ troy-mode 在 `troy-mode/v0.1-test-plan` 上开出 `[docs] Add the v0.1 test pla
 | 1. 就绪 | 开着的 PR 先合并。未关闭的 bug 先修好，除非你推迟它。 | 无 | 如果你愿意，推迟一个 bug |
 | 2. 版本测试 | 测试工程师为 troy-mode 运行的每个场景写一个测试，放在 `version-tests/` 里 | `[v0.1 tests] End-to-end and stress tests` | |
 | 3. 发布 PR | 产品经理在 `CHANGELOG.md` 及其镜像里加上这个版本的一节 | `troy-mode/release-v0.1.0` 上的 `[docs] Release v0.1.0` | |
-| 4. 发布测试 | 在你的电脑上运行回归测试和版本测试。报告发到发布 PR 上。 | 无 | |
+| 4. 发布测试 | 在你的电脑上运行回归测试和版本测试，然后 `real-run --all` 像你打字那样跑一遍每个已验收功能的原型。有一处不一致，发布测试就失败。报告发到发布 PR 上。 | 无 | |
 | 5. 你的测试 | 你在自己的设备上运行你的场景，然后回复 | 无 | 测试并回复 |
 | 6. 验收 | 每个功能的状态改为“在 Troy 的设备上可用”，发布 PR 合并 | 发布 PR | |
 | 7. 标签 | 在发布 PR 的合并 commit 上创建 GitHub release `v0.1.0`，说明取自 changelog 的这一节 | 无 | |

@@ -12,14 +12,15 @@ KIND_TASK = {"test": "TE2", "fix": "DV3"}
 # The tasks each stage allows in a brief (design 6.1, 8.1, and 8.7). AR5
 # answers questions and AR3 reviews a new dependency in any stage before
 # acceptance; AR4 lists a requirement change's impact. The side flows of
-# stage 5 rule on disputed tests and coverage gaps.
+# stage 5 rule on disputed tests and coverage gaps. In stage 6, TM8 rules on
+# the mismatches of the real run (F12 design 7.1).
 STAGE_TASKS = {
     1: ("IF1", "IF2", "AR2", "AR5", "AR3", "AR4"),
     2: ("TM1", "IF3", "AR5", "AR3", "AR4"),
     3: ("DV1", "CR1", "AR5", "AR3", "AR4"),
     4: ("TE1", "TM2", "CR1", "AR5", "AR3", "AR4"),
     5: ("DV2", "CR1", "AR5", "AR3", "AR4", "TM3", "TM4", "TM6", "IF4", "DV4"),
-    6: (),
+    6: ("TM8",),
 }
 STAGE_KINDS = tuple(STAGES.values())
 # Approvals by Troy (D61, D62) apply to these stages of the first features.
