@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.1 |
-| Date | 2026-11-09 |
+| Version | 0.2 |
+| Date | 2026-11-16 |
 | Source of truth | This English file. [`07-taking-part.zh-CN.md`](07-taking-part.zh-CN.md) is the Chinese mirror. |
 
 troy-mode is built so that you appear only for decisions. This page lists the steps that wait for you, what troy-mode does alone, what the status labels mean, and how to pick up work in a new session.
@@ -102,4 +102,6 @@ F02 is one of the first 3 features you approve, so this PR will wait for your ap
 This run did only the cleanup. To go on with F02, say "continue".
 ```
 
-That excerpt is translated from Chinese, the language that session ran in. Only the progress file's notes and the attempts counted before a PR existed are lost when the file is lost.
+That excerpt is translated from Chinese, the language that session ran in. Only the progress file's notes and the attempts counted before a PR existed are lost when the file is lost. A note also lasts only while its feature and stage stay the same, so a note for a later feature, such as a reviewer's point for F12's design written during F03, is dropped when the stage moves on. In the pilot, the session kept such notes in its own memory for the project folder, which a session on another PC does not have ([issue #67](https://github.com/ZJUCao/troy-pstack/issues/67)).
+
+**After a usage limit.** When your plan's 5-hour limit stops the session in the middle of a step, wait for the reset and reply in the same session, for example with "continue". In the pilot this happened five times in six days, once in the middle of an Interface Designer run, and the session went on each time. A long session also fills its context: Claude Code then compacts the conversation, 15 times in the pilot's one session, and troy-mode goes on from the state in git and on GitHub.

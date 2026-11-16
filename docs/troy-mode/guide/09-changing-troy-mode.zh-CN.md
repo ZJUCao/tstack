@@ -1,11 +1,11 @@
 # 9. 修改 troy-mode
 
-> 本文件是 [`09-changing-troy-mode.md`](09-changing-troy-mode.md) 的中文镜像，同步自英文版 0.1（2026-11-09）。两者如有出入，以英文版为准。
+> 本文件是 [`09-changing-troy-mode.md`](09-changing-troy-mode.md) 的中文镜像，同步自英文版 0.2（2026-11-16）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 0.1 |
-| 日期 | 2026-11-09 |
+| 版本 | 0.2 |
+| 日期 | 2026-11-16 |
 | 事实来源 | 英文版 [`09-changing-troy-mode.md`](09-changing-troy-mode.md)。本文件是中文镜像。 |
 
 本页讲的是在 troy-pstack 里改 troy-mode 本身的工作：由你来做，或者由你在那里启动的 Claude Code 会话来做。troy-mode 自己的流水线不在这里运行。troy-pstack 有它自己的流程，写在本页，这样每个会话都能找到（[F10 设计 D92](../design/F10-docs.zh-CN.md#11-需要-troy-决定的事项)）。
@@ -86,4 +86,4 @@ python troy-mode/dev/check_links.py
 - 修复升补丁号，比如从 0.2.0 到 0.2.1；
 - 功能升次版本号，比如从 0.2.0 到 0.3.0。
 
-合入之后，运行 `claude plugin update troy-pstack@troy-pstack`，并重启 Claude Code。然后每个项目用 `/troy-pstack:troy-mode 升级 troy-mode` 拿到新版本，这个请求开出的 PR 标题写明版本号（[第 8.6 节](08-reference.zh-CN.md#86-常见问题)）。试点（F11）靠这一点把修复带进它的项目（[F11 设计](../design/F11-pilot.zh-CN.md)）。
+合入之后，按[第 1.3 节](01-install.zh-CN.md#13-插件出新版本后更新)更新已安装的插件：拉取 troy-pstack 的主检出，用自带的命令行更新插件市场和插件，然后重启 Claude Code。然后每个项目用 `/troy-pstack:troy-mode 升级 troy-mode` 拿到新版本，这个请求开出的 PR 标题写明版本号（[第 8.6 节](08-reference.zh-CN.md#86-常见问题)）。试点（F11）靠这一点把修复带进它的项目（[F11 设计](../design/F11-pilot.zh-CN.md)）。

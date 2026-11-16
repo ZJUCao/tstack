@@ -2,15 +2,15 @@
 
 | | |
 | --- | --- |
-| Version | 0.1 |
-| Date | 2026-11-09 |
+| Version | 0.2 |
+| Date | 2026-11-16 |
 | Source of truth | This English file. [`02-start.zh-CN.md`](02-start.zh-CN.md) is the Chinese mirror. |
 
 A project becomes a troy-mode project in four steps: setup, the requirements, the architecture, and the language step. You approve the requirements and the architecture. troy-mode does the rest and merges each step's PR ([requirements section 5.1](../requirements.md#51-project-setup-once-per-project)).
 
 ## 2.1 The request
 
-Before you start, give the project the merge permission ([section 1.4](01-install.md#14-the-merge-permission)). Then open Claude Code in the project's folder, new or existing, and type what you want to build:
+Before you start, give the project the merge permission ([section 1.4](01-install.md#14-the-merge-permission)). Then open a new Claude Code session in the project's folder, new or existing. In the desktop app, choose the folder itself: the pilot ran there for its whole version, and a session in a git worktree of the project has not been tried. Type every troy-mode request for the project in such a session, not in a session of another project. Then type what you want to build:
 
 ```text
 /troy-pstack:troy-mode start a project: a command-line tool that counts the words in a text file

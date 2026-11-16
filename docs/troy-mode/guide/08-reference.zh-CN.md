@@ -1,11 +1,11 @@
 # 8. 参考
 
-> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.1（2026-11-09）。两者如有出入，以英文版为准。
+> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.2（2026-11-16）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 0.1 |
-| 日期 | 2026-11-09 |
+| 版本 | 0.2 |
+| 日期 | 2026-11-16 |
 | 事实来源 | 英文版 [`08-reference.md`](08-reference.md)。本文件是中文镜像。 |
 
 日常查阅用的表。这里的每个请求、标题和评论标题，都以入口技能 [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) 为准。
@@ -121,14 +121,17 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 
 | 问题 | 怎么办 |
 | --- | --- |
-| **合并被权限拒绝了。** troy-mode 停下来，说出了要加的权限。 | 在项目的 `.claude/settings.local.json` 的 `allow` 列表里加上 `"Bash(gh pr merge *)"`（[第 1.4 节](01-install.zh-CN.md#14-合并权限)），然后输入 `/troy-pstack:troy-mode 继续`。troy-mode 从不绕过拒绝。 |
-| **hook 挡住了一个角色。** | 通常什么都不用做。troy-mode 的 hook 让每个角色留在自己的写入范围之内，并把每次拦截记进 `<git dir>/troy-mode/hooks.log`，日志里没有命令行，也没有文件内容。troy-mode 会在报告里点出这次运行的日志行。角色在范围之外改的文件会被撤销，角色再运行一次。同一个阶段里第二次发生时，troy-mode 升级上报（[F05 设计第 10 节](../design/F05-hooks.zh-CN.md#10-错误速度和日志)、[F07 设计第 7 节](../design/F07-entry-skill.zh-CN.md#7-每次运行之后的检查d59)）。 |
+| **合并、修改提交或强推被权限拒绝了。** troy-mode 停下来，说出了要加的权限。自动模式把 `gh pr merge` 当作未经审查的合并拒绝，或把 `git commit --amend --no-edit`、`git push --force-with-lease` 当作 “Git Destructive” 拒绝。 | 把[第 1.4 节](01-install.zh-CN.md#14-合并权限)的三项加进项目的 `.claude/settings.local.json` 的 `allow` 列表，然后输入 `/troy-pstack:troy-mode 继续`。troy-mode 从不绕过拒绝。 |
+| **hook 挡住了一个角色。** | 通常什么都不用做。troy-mode 的 hook 让每个角色留在自己的写入范围之内，并把每次拦截记进 `<git dir>/troy-mode/hooks.log`，日志里没有命令行，也没有文件内容，而且只保留最近一天的行（[issue #66](https://github.com/ZJUCao/troy-pstack/issues/66)）。troy-mode 会在报告里点出这次运行的日志行。角色在范围之外改的文件会被撤销，角色再运行一次。同一个阶段里第二次发生时，troy-mode 升级上报（[F05 设计第 10 节](../design/F05-hooks.zh-CN.md#10-错误速度和日志)、[F07 设计第 7 节](../design/F07-entry-skill.zh-CN.md#7-每次运行之后的检查d59)）。 |
 | **`/poteto-mode` 或 `/no-comments` 被拒绝了。** 一个 hook 说这个命令在本项目里停用。 | 改用 `/troy-pstack:troy-mode <请求>`；想试 poteto-mode，就用一个不是 troy-mode 项目的文件夹（[F13 设计第 5 节](../design/F13-mode-guard.zh-CN.md#5-拒绝不留例外d123)）。 |
 | **测试只在一个平台上运行。** 本地的 `troy-check code` 失败，只是因为有个测试在你的电脑上跳过了，比如只在 Linux 上运行的测试。 | 什么都不用做。troy-mode 把本地检查算作通过，在 PR 的 Checks 一节把这个用例列为“skipped here, checked by CI”，并只按 CI 的结果合并，CI 通过就证明这个测试运行过。测试方案必须写明这个用例为什么只在一个平台上运行（[F07 设计 D69](../design/F07-entry-skill.zh-CN.md#16-需要-troy-决定的事项)）。 |
 | **Windows 路径长度。** `git add` 在 `docs/features/` 下的一个长路径上失败。 | 在需求文档里把每个功能的名称写短，比如“Export history as CSV”：它会成为功能的文件夹名，以及每个 PR 的标题。试运行里那里写了一整句话，超过了 Windows 的路径长度上限（[F07 设计第 8.1 节](../design/F07-entry-skill.zh-CN.md#81-阶段)）。在 troy-mode 之外，也可以用 `git config --global core.longpaths true` 让 Git for Windows 接受长路径，这会改变你电脑上每个仓库的这项设置。 |
 | **项目里的 troy-mode 比插件旧。** `status` 说项目的 troy-check 比插件的旧。`[roles]`、`[flow]` 和一些检查需要新的副本。 | 先更新插件（[第 1.3 节](01-install.zh-CN.md#13-插件出新版本后更新)）。然后输入 `/troy-pstack:troy-mode 升级 troy-mode`。它会开出 `[rules] Upgrade troy-mode to <version>`：替换没人改过的 troy-mode 自有文件，把规则表的 R 行更新到最新，保留 P 行，然后合并。改过的文件会让它停下：troy-mode 问你是否替换。它从不改配置或构建文件；它会列出它们不同的地方，供你放进一个 `[rules]` PR。没有要升级的东西时，它不开 PR。 |
 | **找不到 Python。** hook 停下，提示“troy-mode: no Python 3.11 or newer found”。 | 把 `TROY_MODE_PYTHON` 设为一个 Python 3.11 或更新版本（[第 1.1 节](01-install.zh-CN.md#11-你的电脑需要什么)）。 |
-| **CI 检查在产出方的文件之外失败了**，比如运行器上的下载错误。 | troy-mode 停下来告诉你；它自己不重新运行 CI。运行器上的下载错误通常在第二次运行时就能通过：你可以自己重新运行失败的任务，比如用 `gh run rerun <run ID> --failed`，然后输入“继续”。 |
+| **语言步骤的锁文件编译在桌面应用里失败了。** uv 说它无法把文件移到另一个磁盘驱动器。 | 原因是应用的沙箱挡住了 uv 默认的缓存文件夹，不是你的电脑有问题。试点中，troy-mode 恢复了这一步的文件，把 `UV_CACHE_DIR` 设为会话临时文件夹里的一个文件夹，再运行这一步，就通过了。如果 troy-mode 停了下来，就让它照样做（[issue #48](https://github.com/ZJUCao/troy-pstack/issues/48)）。 |
+| **一条命令一直不结束，或者角色报告之后还留着一个 `python.exe`。** | 用 `-` 作为脚本启动 Python，或者让它从 heredoc、管道或 `/dev/null` 读输入的命令，可能永远停在 Python 的提示符上；在 Windows 上，`python3` 还可能是 Microsoft Store 的占位程序，同样会一直等。这样的命令会碰到 shell 工具的时间上限，troy-mode 随后停掉它；试点中这发生了 39 次（[issue #64](https://github.com/ZJUCao/troy-pstack/issues/64)）。角色留下的、来自项目环境的 `python.exe`，可以在没有角色运行时在任务管理器里结束。 |
+| **一个文件被改了，而当前运行的角色并没在改它。** troy-mode 每次运行之后的检查怪错了角色。 | 一个之前在后台启动的角色运行很晚才结束，写下了它的旧改动；试点中，一次开发者运行晚了 11.5 小时，在测试工程师运行期间才结束。troy-mode 停下来，先问你再恢复这个文件（[issue #49](https://github.com/ZJUCao/troy-pstack/issues/49)）。如果这个改动不属于当前任何阶段，就回答“是”。 |
+| **CI 检查在产出方的文件之外失败了**，比如运行器上的下载错误，或者检出步骤里的 “Repository not found”。 | troy-mode 停下来告诉你；它自己不重新运行 CI。运行器上的下载错误通常在第二次运行时就能通过：你可以自己重新运行失败的任务，比如用 `gh run rerun <run ID> --failed`，然后输入“继续”。试点中，“Repository not found” 来自 GitHub 那边，下一次推送时就消失了。 |
 
 ## 8.7 规则 R01 到 R22
 

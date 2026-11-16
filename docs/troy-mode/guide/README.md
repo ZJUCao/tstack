@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.1 |
-| Date | 2026-11-09 |
+| Version | 0.2 |
+| Date | 2026-11-16 |
 | Source of truth | This English file. [`README.zh-CN.md`](README.zh-CN.md) is the Chinese mirror. |
 
 > **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of troy-pstack.
@@ -26,7 +26,7 @@ troy-mode works out which flow the request belongs to, runs the roles, opens and
 
 ## How far it has run
 
-No part of troy-mode is past "Runs on a sample project" yet. The main path of each flow in this guide ran once on the scratch repository `ZJUCao/troy-mode-trial`, a Python project, and the examples quote those runs. Some paths have not run yet: the side PRs for a disputed test and a coverage gap, a dependency that you accept, an approval you give by merging on GitHub, the question after the first features, the Architect writing a project's architecture (the trial's was prepared), a patch release, a failed scenario or a deferred bug at release, changing a rule or adjusting an R rule, a project that already has code, and any C/C++ project. The pilot (F11) is troy-mode's first use on a real project, and this guide's first real reader. The status of each part is in [requirements section 7.2](../requirements.md#72-feature-list).
+The pilot (F11) took your Python project `ZJUCao/recipe-menu` from an empty folder to its v0.1.0 release, 13 features, in one desktop session from 2026-11-09 to 2026-11-16, with this guide as its first real reader. On that real project troy-mode ran: setup with a new private repository, the requirements and the architecture, the language step, the version test plan, the feature loop with your approval of every design and test plan, the question after the first features, three architecture changes and a requirement change, an upgrade to a new plugin version, the real run of PR 6, the release with your test on your devices, the retrospective, and a project rule with its cleanup PRs. The examples in this guide still quote the scratch repository `ZJUCao/troy-mode-trial`, where the main path of each flow ran first. Some paths have run only there, or not at all: a bug fix (the pilot had no bug), an escalation, the side PRs for a disputed test and a coverage gap, a dependency that you accept, an approval you give by merging on GitHub, a patch release, a failed scenario or a deferred bug at release, changing or retiring a rule or adjusting an R rule, a project that already has code, and any C/C++ project. The status of each part is in [requirements section 7.2](../requirements.md#72-feature-list).
 
 ## Pages
 
@@ -49,5 +49,5 @@ Read them in this order the first time.
 This guide says what you type and what you see. How each step works inside is in the requirements and the designs, and the guide links to them instead of repeating them:
 
 - [Requirements](../requirements.md): the goal, the process, the rules R01 to R22, and the feature list.
-- [Designs](../design/): one per feature, F01 to F11. [F07](../design/F07-entry-skill.md) is the entry skill and the feature loop, [F08](../design/F08-release.md) the release, and [F09](../design/F09-rule-change.md) the rule change.
+- [Designs](../design/): one per feature, F01 to F14. [F07](../design/F07-entry-skill.md) is the entry skill and the feature loop, [F08](../design/F08-release.md) the release, and [F09](../design/F09-rule-change.md) the rule change.
 - The skills that run it: [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) and [`skills/troy-init/SKILL.md`](../../../skills/troy-init/SKILL.md).

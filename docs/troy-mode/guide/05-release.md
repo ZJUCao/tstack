@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.1 |
-| Date | 2026-11-09 |
+| Version | 0.2 |
+| Date | 2026-11-16 |
 | Source of truth | This English file. [`05-release.zh-CN.md`](05-release.zh-CN.md) is the Chinese mirror. |
 
 A version groups consecutive features of the order and is usable on its own. Its test plan is written before its first feature starts. At release, troy-mode runs the version's tests on your PC, then asks you to test it on your own devices. You accept it, and troy-mode tags it ([F08 design](../design/F08-release.md)).
@@ -100,7 +100,7 @@ A patch is possible only while no code of a later version's feature has merged s
 
 ## 5.8 The retrospective
 
-After the tag, troy-mode groups the evidence of the version's PRs: review findings by rule, failed attempts, escalations, bugs, and hook log lines. For each problem seen in two or more PRs, it proposes a rule, with the strongest enforcement that works, following pstack's `correct` skill. It sends you one message with the problems, their PR links, and its recommendations, and posts the same report on the release PR as `Retrospective: v0.1.0`, which ends the release.
+After the tag, troy-mode groups the evidence of the version's PRs: review findings by rule, failed attempts, escalations, bugs, and hook log lines. The hook log keeps only the last day's lines, so blocks from earlier in the version do not reach it ([issue #66](https://github.com/ZJUCao/troy-pstack/issues/66)). For each problem seen in two or more PRs, it proposes a rule, with the strongest enforcement that works, following pstack's `correct` skill. It sends you one message with the problems, their PR links, and its recommendations, and posts the same report on the release PR as `Retrospective: v0.1.0`, which ends the release.
 
 Each rule you pick then goes through the rule change flow, one at a time ([section 6](06-rules.md)). From the trial's release PR [#27](https://github.com/ZJUCao/troy-mode-trial/pull/27), shortened:
 
