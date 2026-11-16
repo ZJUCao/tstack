@@ -1,11 +1,11 @@
 # 1. 安装
 
-> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.1（2026-11-09）。两者如有出入，以英文版为准。
+> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.2（2026-11-16）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 0.1 |
-| 日期 | 2026-11-09 |
+| 版本 | 0.2 |
+| 日期 | 2026-11-16 |
 | 事实来源 | 英文版 [`01-install.md`](01-install.md)。本文件是中文镜像。 |
 
 troy-mode 包含在 troy-pstack 插件里。插件只需安装一次，每个项目给一项权限；只有默认的模型不合适时，才需要自己选。
@@ -20,42 +20,63 @@ troy-mode 包含在 troy-pstack 插件里。插件只需安装一次，每个项
 | Python 3.11 或更新版本 | troy-mode 的引擎和 hook 只用标准库。它们在 Windows 上运行 `python`，在其他系统上运行 `python3`；你设置了 `TROY_MODE_PYTHON` 时，运行它指定的程序。 |
 | Miniforge，用于 Python 项目 | 语言步骤用 mamba 创建项目的环境。环境里有 Python 3.13 和 uv，uv 按项目的锁文件安装每个包。troy-mode 从不创建 `.venv`（[需求文档第 8 节](../requirements.zh-CN.md#8-非功能需求)）。 |
 
-- **mamba。** troy-init 先在 PATH 里找 mamba，再看 `MAMBA_EXE`；troy-mode 也可以用 `--mamba` 把它的路径传给语言步骤（[troy-init 技能](../../../skills/troy-init/SKILL.md)）。troy-mode 在功能循环里运行的检查只在 PATH 里和 `MAMBA_EXE` 里找（[F07 设计第 6.1 节](../design/F07-entry-skill.zh-CN.md#61-任务简报)）。在你的电脑上，mamba 不在 Git Bash 的 PATH 里，所以要在 Claude Code 启动时所在的环境里，把 `MAMBA_EXE` 设为 `D:\miniforge3\Library\bin\mamba.exe`，把 `MAMBA_ROOT_PREFIX` 设为 Miniforge 文件夹 `D:\miniforge3`。
+- **mamba。** troy-init 先在 PATH 里找 mamba，再看 `MAMBA_EXE`；troy-mode 也可以用 `--mamba` 把它的路径传给语言步骤（[troy-init 技能](../../../skills/troy-init/SKILL.md)）。troy-mode 在功能循环里运行的检查只在 PATH 里和 `MAMBA_EXE` 里找（[F07 设计第 6.1 节](../design/F07-entry-skill.zh-CN.md#61-任务简报)）。在你的电脑上，mamba 不在 Git Bash 的 PATH 里，所以要把 `MAMBA_EXE` 设为用户环境变量，值为 `D:\miniforge3\Library\bin\mamba.exe`。然后彻底退出桌面应用，包括任务栏通知区域里的图标，再重新打开：应用和它的会话只认启动时就有的环境变量。在 PowerShell 里：
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable("MAMBA_EXE", "D:\miniforge3\Library\bin\mamba.exe", "User")
+  ```
+
+  试点中不需要 `MAMBA_ROOT_PREFIX`：mamba 2.9 会根据自己所在的位置找到 Miniforge 文件夹 `D:\miniforge3`。
 - **找不到 Python。** 在 troy-mode 项目里，hook 会停下并报 “troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON”。把 `TROY_MODE_PYTHON` 设为一个 Python 3.11 或更新版本即可。
 - **C/C++ 项目**的 CMake、Ninja 和 clang 工具来自它的 mamba 环境。编译器来自环境之外：在你的电脑上，是 PATH 里的 MSYS2 GCC（[C/C++ 语言包的 README](../../../troy-mode/lang/cpp/README.zh-CN.md)）。功能循环目前还不能用于 C/C++：测试 PR 要在 `CMakeLists.txt` 里登记它的测试，而这个文件算作依赖文件，所以在那里 troy-mode 会撤销测试工程师的每次运行。第一个 C/C++ 项目之前，要先对 troy-mode 做一个小修复（[F11 设计第 3.3 节](../design/F11-pilot.zh-CN.md#33-cc-和-f07-修复)）。
 
 ## 1.2 安装 troy-pstack
 
-troy-pstack 的文件夹既是插件，也是只含这一个插件的插件市场。在 Claude Code 里输入：
+troy-pstack 的文件夹既是插件，也是只含这一个插件的插件市场。用 Claude Code 的命令行安装它。桌面应用的 Code 标签页不提供 `/plugin` 对话框，而在你的电脑上，PowerShell 的 PATH 里也没有 `claude`：桌面应用自带的命令行是 `%LOCALAPPDATA%\Claude-Data\` 下的 `claude.exe`，所在文件夹以应用的版本命名，应用更新后会变。在 PowerShell 里：
 
-```text
-/plugin marketplace add D:/Troy/Projects/troy-pstack
-/plugin install troy-pstack@troy-pstack
+```powershell
+$claude = (Get-ChildItem "$env:LOCALAPPDATA\Claude-Data\*\claude-code\*\*\claude.exe" | Sort-Object LastWriteTime | Select-Object -Last 1).FullName
+& $claude plugin marketplace add D:/Troy/Projects/troy-pstack
+& $claude plugin install troy-pstack@troy-pstack
 ```
+
+第一行找到最新的自带命令行；每开一个新的 PowerShell 窗口都要再运行一次。在命令行自己的交互会话里，`/plugin marketplace add D:/Troy/Projects/troy-pstack` 和 `/plugin install troy-pstack@troy-pstack` 效果相同。然后重启 Claude Code。
 
 Claude Code 会在插件的技能和代理名前面加上插件名。所以你输入的是 `/troy-pstack:troy-mode` 和 `/troy-pstack:troy-init`，各个角色是代理 `troy-pstack:troy-architect`、`troy-pstack:troy-interface-designer`、`troy-pstack:troy-test-manager`、`troy-pstack:troy-developer`、`troy-pstack:troy-test-engineer` 和 `troy-pstack:troy-code-reviewer`。
 
-要确认 troy-mode 已经装上，开一个新会话：`/troy-pstack:troy-mode` 和 `/troy-pstack:troy-init` 会出现在 Claude Code 提供的命令里（[F11 设计第 2 节](../design/F11-pilot.zh-CN.md#2-前提条件)）。插件版本必须是 0.2.0 或更新：这是第一个为使用而写了 troy-mode 文档的版本。
+要确认 troy-mode 已经装上，开一个新会话：`/troy-pstack:troy-mode` 和 `/troy-pstack:troy-init` 会出现在 Claude Code 提供的命令里（[F11 设计第 2 节](../design/F11-pilot.zh-CN.md#2-前提条件)）。要看已安装的版本，运行 `& $claude plugin list`：`troy-pstack@troy-pstack` 一项的 `Version:` 行就是。插件版本必须是 0.2.0 或更新：这是第一个为使用而写了 troy-mode 文档的版本。
 
 ## 1.3 插件出新版本后更新
 
-Claude Code 安装插件时会复制一份，只有插件的版本升高时才更新这份副本（[F10 设计第 6 节](../design/F10-docs.zh-CN.md#6-插件版本d89)）。插件市场就是 troy-pstack 自己的文件夹，所以更新复制的是这个文件夹里现有的内容：先把它的检出更新到最新的 `main`。某个 troy-pstack PR 升了版本之后，运行下面的命令，然后重启 Claude Code：
+Claude Code 安装插件时会复制一份，只有插件的版本升高时才更新这份副本（[F10 设计第 6 节](../design/F10-docs.zh-CN.md#6-插件版本d89)）。插件市场是指向 troy-pstack 主检出 `D:\Troy\Projects\troy-pstack` 的 `directory` 来源，所以更新只能找到这个文件夹的 `main` 上的版本。某个 troy-pstack PR 升了版本之后，在 PowerShell 里运行下面的命令（`$claude` 见第 1.2 节）：
 
-```text
-claude plugin update troy-pstack@troy-pstack
+```powershell
+git -C D:\Troy\Projects\troy-pstack pull --ff-only
+& $claude plugin marketplace update troy-pstack
+& $claude plugin update troy-pstack@troy-pstack
 ```
+
+拉取要求这个检出在 `main` 上，并且没有它自己的改动。试点期间它曾落后五个提交，拉取之前更新一直找不到新版本。更新会保留旧的副本，所以已经在运行的会话继续用旧的。在自然的停顿点重启 Claude Code，比如某个 PR 刚合并之后。
 
 已经初始化过的项目保留着自己的一份 troy-check、模板和工作流。要把它带到新版本，在项目里输入 `/troy-pstack:troy-mode 升级 troy-mode`（[参考：较旧的副本](08-reference.zh-CN.md#86-常见问题)）。
 
 ## 1.4 合并权限
 
-troy-mode 在自己的权限范围内合并自己的 PR（R18）。Claude Code 的自动模式仍可能把 `gh pr merge` 当作未经审查的合并而拒绝。这时 troy-mode 会停下来，告诉你要加哪项权限（[F07 设计第 8.6 节](../design/F07-entry-skill.zh-CN.md#86-合并r18f02-d14)）。为了避免这次停顿，在开始之前把下面这一行加到项目的 `.claude/settings.local.json` 里：
+troy-mode 在自己的权限范围内合并自己的 PR（R18）。Claude Code 的自动模式仍可能把 `gh pr merge` 当作未经审查的合并而拒绝。试点中，它还把 `git commit --amend --no-edit` 和 `git push --force-with-lease` 当作 “Git Destructive” 拒绝过；因为每个 PR 只保留一个提交，troy-mode 每轮评审之后都要运行这两条命令。这时 troy-mode 会停下来，告诉你要加哪项权限（[F07 设计第 8.6 节](../design/F07-entry-skill.zh-CN.md#86-合并r18f02-d14)）。为了避免这些停顿，在开始之前把下面几行加到项目的 `.claude/settings.local.json` 里：
 
 ```json
-{ "permissions": { "allow": ["Bash(gh pr merge *)"] } }
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr merge *)",
+      "Bash(git commit --amend --no-edit)",
+      "Bash(git push --force-with-lease origin troy-mode/*)"
+    ]
+  }
+}
 ```
 
-如果这个文件已经存在，就把 `"Bash(gh pr merge *)"` 加进它的 `allow` 列表。这个文件被 git 忽略，是你自己的，所以 troy-init 不写它。有了它，troy-mode 在那个项目里合并任何 PR 都不再弹出提示。troy-mode 自己的权限范围仍然只让它合并允许它合并的 PR：等你批准的 PR，它从不合并（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。
+如果这个文件已经存在，就把这三项加进它的 `allow` 列表。这个文件被 git 忽略，是你自己的，所以 troy-init 不写它。有了它，troy-mode 在那个项目里合并任何 PR、修改并强推自己的 `troy-mode/` 分支，都不再弹出提示。troy-mode 自己的权限范围仍然只让它合并允许它合并的 PR：等你批准的 PR，它从不合并（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。这类命令和别的命令连在同一行时，自动模式仍可能拒绝。试点中，troy-mode 随后把每条命令单独运行，都通过了（[issue #50](https://github.com/ZJUCao/troy-pstack/issues/50)）。
 
 ## 1.5 模型和 effort
 

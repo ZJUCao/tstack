@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.1 |
-| Date | 2026-11-09 |
+| Version | 0.2 |
+| Date | 2026-11-16 |
 | Source of truth | This English file. [`09-changing-troy-mode.zh-CN.md`](09-changing-troy-mode.zh-CN.md) is the Chinese mirror. |
 
 This page is for work on troy-mode itself, in troy-pstack: by you, or by a Claude Code session you start there. troy-mode's own pipeline does not run here. troy-pstack has its own process, kept on this page so every session finds it ([F10 design D92](../design/F10-docs.md#11-decisions-for-troy)).
@@ -84,4 +84,4 @@ Claude Code updates an installed plugin only when `version` in `.claude-plugin/p
 - the patch number for a fix, such as 0.2.0 to 0.2.1;
 - the minor number for a feature, such as 0.2.0 to 0.3.0.
 
-After it merges, run `claude plugin update troy-pstack@troy-pstack` and restart Claude Code. Each project then takes in the new version with `/troy-pstack:troy-mode upgrade troy-mode`, whose PR title names the version ([section 8.6](08-reference.md#86-problems)). The pilot (F11) relies on this to bring fixes into its project ([F11 design](../design/F11-pilot.md)).
+After it merges, update the installed plugin as [section 1.3](01-install.md#13-update-after-a-new-plugin-version) says: pull troy-pstack's main checkout, update the marketplace and the plugin with the bundled CLI, and restart Claude Code. Each project then takes in the new version with `/troy-pstack:troy-mode upgrade troy-mode`, whose PR title names the version ([section 8.6](08-reference.md#86-problems)). The pilot (F11) relies on this to bring fixes into its project ([F11 design](../design/F11-pilot.md)).
