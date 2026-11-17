@@ -218,7 +218,7 @@ AGENT_ROLES = (
 
 PM_NAME = "Product Manager"
 PM_TASKS = (("PM1", "Requirements"), ("PM2", "Change request"), ("PM3", "Acceptance"),
-            ("PM4", "Version"), ("PM5", "Status"))
+            ("PM4", "Version"), ("PM5", "Status"), ("PM6", "Ideas"))  # PM6: F15 design 11
 
 # Every role in the requirements section 4 table.
 REQUIREMENT_ROLES = (PM_NAME,) + tuple(role.name for role in AGENT_ROLES)
@@ -879,9 +879,9 @@ class ProductManagerTests(RoleFileCase):
         text, _ = self.doc()
         self.assertNotEqual("---", text.split("\n")[0], f"{PM_WHERE}: must have no frontmatter")
 
-    def test_task_headings_are_pm1_to_pm5(self) -> None:
-        """The only headings with task IDs are PM1 to PM5 of design section 6.1, in order."""
-        self.assertEqual(5, len(PM_TASKS), "test_roles.py: PM_TASKS")
+    def test_task_headings_are_pm1_to_pm6(self) -> None:
+        """The only headings with task IDs are PM1 to PM5 of design section 6.1 and F15's PM6."""
+        self.assertEqual(6, len(PM_TASKS), "test_roles.py: PM_TASKS")
         expected = [(3, f"{task_id} {title}") for task_id, title in PM_TASKS]
         found = [heading for heading in self.doc()[1].headings() if TASK_ID.match(heading[1])]
         self.assertEqual(expected, found, f"{PM_WHERE}: headings with task IDs")

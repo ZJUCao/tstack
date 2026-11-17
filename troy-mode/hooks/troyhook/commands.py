@@ -71,7 +71,7 @@ def _check_unparsed(ctx, text: str, error: str) -> Refusal | None:
         if posting:
             return Refusal("unparsed", f"The command could not be split ({error}), and its text "
                            f"holds `{posting}`, which posts text to GitHub that the hook must "
-                           "check first (R19, F05 D200). Write the command so that its quotes "
+                           "check first, or deletes there (R19, F05 D200, F15 D148). Write the command so that its quotes "
                            "balance.", posting)
         return None
     found = _write_in_text(text)

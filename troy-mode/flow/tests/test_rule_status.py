@@ -19,8 +19,9 @@ import unittest
 from dataclasses import replace
 
 from flow_helpers import (
-    F01, F02, F03, FIVE, NEXT_KEYS, PROGRESS, RULES, Fakes, FlowCase, Project, bug_step, pr,
-    progress_fields, run_engine, stage_step, stages, status_runs,
+    ALL_ISSUES_ARGS, ALL_PRS_ARGS, F01, F02, F03, FIVE, NEXT_KEYS, PROGRESS, RULES, Fakes,
+    FlowCase, Project, bug_step, pr, progress_fields, run_engine, stage_step, stages,
+    status_runs,
 )
 from rule_helpers import (
     DEFAULT_LOG, P01, P02, P03, PYPROJECT, PYPROJECT_CLEAN, PYPROJECT_TEXT, SEED_LOG,
@@ -243,7 +244,8 @@ class OrderTests(FlowCase):
 
 
 class OriginMainTests(FlowCase):
-    """The rule state comes from origin/main; status makes no new gh call (note sections 0, 6)."""
+    """The rule state comes from origin/main; status makes no new gh call for the rules
+    (note sections 0, 6); F15's two reads are its only additions (F15 note section 1)."""
 
     def test_branch_and_tree_changes_do_not_end_the_cleanup(self):
         """The baseline lines removed in a branch commit and in the tree: still ``cleanup``."""
@@ -254,7 +256,8 @@ class OriginMainTests(FlowCase):
         report = self.report_of(project.status(fakes=fakes), 0, "status")
         self.assert_next(report, **CLEANUP)
         self.assertEqual(report.get("rules"), default_entries())
-        self.assertEqual(fakes.gh_argvs(), [LIST_ARGS])
+        self.assertEqual(sorted(fakes.gh_argvs()),
+                         sorted([LIST_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
 
 
 class ProgressTests(FlowCase):

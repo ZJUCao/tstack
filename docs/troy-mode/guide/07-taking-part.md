@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-16 |
+| Date | 2026-11-17 |
 | Source of truth | This English file. [`07-taking-part.zh-CN.md`](07-taking-part.zh-CN.md) is the Chinese mirror. |
 
 troy-mode is built so that you appear only for decisions. This page lists the steps that wait for you, what troy-mode does alone, what the status labels mean, and how to pick up work in a new session.
@@ -35,11 +35,12 @@ troy-mode merges every PR except those that wait for you, once every review appr
 - push its own branches, with `--force-with-lease`;
 - open, edit, comment on, close, and merge its own PRs, within R18;
 - open `bug` issues in the project;
+- create the labels `idea`, `progress`, and `device-test` when they are missing, and keep its progress issues and device-test checklists; comment on, label, and close your ideas, and open an idea issue for an idea you give in chat that waits ([section 7.6](#76-from-your-phone));
 - delete its own branches after their PR merges;
 - after you accept a version, create its GitHub release on the release PR's merge commit;
 - merge the PRs of a rule you approved.
 
-Anything else asks you first. In particular, nothing outside the project happens without your yes: creating the GitHub repository at setup, and opening an issue in tstack for a rule for every project. troy-mode never commits on `main`, pushes `main`, or opens a PR from `main` (R21), and it never works around a refused permission.
+Anything else asks you first. In particular, nothing outside the project happens without your yes: creating the GitHub repository at setup, and opening an issue in tstack for a rule for every project. troy-mode never commits on `main`, pushes `main`, or opens a PR from `main` (R21), never deletes an issue or a label, never ticks a box of your checklist, and never works around a refused permission.
 
 ## 7.3 Answer an escalation
 
@@ -105,3 +106,20 @@ This run did only the cleanup. To go on with F02, say "continue".
 That excerpt is translated from Chinese, the language that session ran in. Only the progress file's notes and the attempts counted before a PR existed are lost when the file is lost. A note also lasts only while its feature and stage stay the same, so a note for a later feature, such as a reviewer's point for F12's design written during F03, is dropped when the stage moves on. In the pilot, the session kept such notes in its own memory for the project folder, which a session on another PC does not have ([issue #67](https://github.com/ZJUCao/troy-pstack/issues/67)).
 
 **After a usage limit.** When your plan's 5-hour limit stops the session in the middle of a step, wait for the reset and reply in the same session, for example with "continue". In the pilot this happened five times in six days, once in the middle of an Interface Designer run, and the session went on each time. A long session also fills its context: Claude Code then compacts the conversation, 15 times in the pilot's one session, and troy-mode goes on from the state in git and on GitHub.
+
+## 7.6 From your phone
+
+Since F15, you can follow and steer a project from the GitHub app, through issues in the project's repository ([F15 design](../design/F15-issues.md)). Documents stay in the repository; an issue only shows the state or carries your input. Nothing runs while you are away: troy-mode reads your edits and comments at its next run on your PC, such as `/tstack:troy-mode continue`.
+
+| On the phone, you | troy-mode, at its next run |
+| --- | --- |
+| Open an issue from the template "Idea / 想法", or any issue with no label | Takes the idea in at the next natural stop ([section 4.2](04-bugs-and-changes.md#42-change-a-requirement)) and comments what it is, in your language |
+| Comment on an idea | Reads it with the idea: more detail, or your answer to its question |
+| Comment on a feature's progress issue | Reads it as a message in chat: a question gets a `Reply to Troy` comment, a remark about the open PR goes to that PR's author |
+| Comment on a PR that waits for you, or leave a "Comment" review | Takes it as your reply in chat: "全按推荐", "all as recommended", or "approved" approves the PR; another option asks for changes |
+| Tick boxes of a device-test checklist, or comment on it | Takes every box ticked as your acceptance of the version ([section 5.4](05-release.md#54-your-test-on-your-devices)) |
+| Edit troy-mode's text, or close a progress issue or a checklist | Puts its text back, or reopens it |
+
+The labels are `idea`, `progress`, and `device-test`. troy-mode creates the ones that are missing and never changes one that exists. Its issues are in Chinese first, with the English folded below, and hold no document text beyond your scenarios: they link to the documents on `main`.
+
+GitHub never notifies you about your own activity, and every role acts through your account, so troy-mode's issues and comments send you no notification. troy-mode still tells you in chat what waits for you. If writing an issue fails, troy-mode notes it, tells you, and goes on; the next run puts the issue right.

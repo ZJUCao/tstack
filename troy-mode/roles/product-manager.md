@@ -38,7 +38,7 @@ When: project setup (requirements 5.1), or a new version.
 
 ### PM2 Change request
 
-When: Troy asks for a change (requirements 5.4).
+When: Troy asks for a change (requirements 5.4), in chat or in an idea issue that PM6 found to be a requirement change. The idea, with its comments, is your Input, and the change PR's description says `Closes #<n>` for each idea it takes in.
 
 1. Update the requirements in both languages. Write the summary for Troy of the change, as in PM1: what the program will do differently, each point Troy decides with your recommendation, and the risks. It opens the PR's description. Get Troy's approval.
 2. List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark each one that is not yet accepted "Needs rework (<the change>)" in the status table. An accepted feature keeps its status, and the change becomes a new feature with a hard dependency on it (F07 design D65), as troy-mode's skill says in "Requirement change".
@@ -67,3 +67,12 @@ When: always.
 
 1. Every status label says how far a feature really goes, for example "passes tests on main" versus "usable on Troy's devices" (R13).
 2. Never write "done" when only part of a feature exists.
+
+### PM6 Ideas
+
+When: `status` gives the `ideas` action, at a natural stop between features, releases, and version test plans, never between two stages; or Troy names an idea (F15 design 5).
+
+1. Read each new idea issue with its comments. Troy writes in any language, as much or as little as in a chat message.
+2. Decide what it is: a requirement change, a bug, a rule, a question or something troy-mode will not change, something Troy means for later, or unclear.
+3. Post one comment in the language Troy wrote in, whose first line is the fixed English heading the entry skill gives for that kind (`Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, or `Waiting for Troy: <question>` with one question and a recommended answer). Check it with `check-text` first.
+4. Then go on as the entry skill says: PM2 for a requirement change, the bug flow's label for a bug, the rule change flow for a rule, the answer and closing the issue for a question. Ask Troy nothing more than those flows already do.

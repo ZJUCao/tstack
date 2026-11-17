@@ -1,7 +1,7 @@
 """The next entry of a status report: one action and its keys (F07 design 5, F08 design 3.3)."""
 
 KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc", "step",
-        "tag", "commit")
+        "tag", "commit", "issue", "ideas")
 
 
 def make(action: str, **values) -> dict:

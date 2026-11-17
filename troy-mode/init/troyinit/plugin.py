@@ -16,6 +16,7 @@ TEMPLATES_DEST = ".troy-mode/templates"
 HOOKS_DEST = ".troy-mode/checks/git-hooks"
 WORKFLOW_DEST = ".github/workflows/troy-mode.yml"
 PR_TEMPLATE_DEST = ".github/pull_request_template.md"
+IDEA_TEMPLATE_DEST = ".github/ISSUE_TEMPLATE/idea.md"
 
 # Top-level entries of troy-mode/checks/ that stay in tstack.
 _CHECKS_LEFT_OUT = ("tests", "workflow.yml", "config.default.toml")
@@ -151,6 +152,7 @@ def owned_sources(plugin: Plugin, lang: str | None = None) -> dict[str, Path]:
         sources[f"{TEMPLATES_DEST}/{relative}"] = plugin.templates / relative
     sources[WORKFLOW_DEST] = plugin.checks / "workflow.yml"
     sources[PR_TEMPLATE_DEST] = plugin.templates / "pull-request.md"
+    sources[IDEA_TEMPLATE_DEST] = plugin.templates / "idea-issue.md"
     if lang:
         pack = get_pack(lang)
         for dest, name in pack.copied.items():

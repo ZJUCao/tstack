@@ -2,10 +2,10 @@
 
 F08 adds the versions, the release state, and the release's next actions
 (F08 design 3.2 and 3.3). F09 adds the P rules and the cleanup action (F09
-design 3.2).
+design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
 """
 
-from . import github, nextstep, progress, releases
+from . import github, issuesync, nextstep, progress, releases
 from .progress import View
 from .requirements import approved
 from .stages import stage_name
@@ -48,8 +48,14 @@ def action_text(entry: dict) -> str:
         return f"Open PR B of {entry['item']} with DV3: {entry['title']}."
     if action == "version-test-plan":
         return f"Start TM7 for the {entry['item']} test plan: {entry['title']}."
+    if action == "release" and entry["step"] == "troy-test" and entry.get("issue"):
+        return (f"Release {entry['tag']}: Troy tests the version on Troy's devices with "
+                f"checklist #{entry['issue']} and accepts it (PR #{entry['pr']}).")
     if action == "release":
         return f"Release {entry['tag']}: " + _STEPS[entry["step"]].format(**entry)
+    if action == "ideas":
+        return ("Take in Troy's new ideas as the Product Manager (PM6): "
+                + ", ".join(f"#{n}" for n in entry["ideas"] or []) + ".")
     if action == "record-acceptance":
         return f"Record Troy's acceptance of {entry['tag']} in {entry['title']}."
     if action == "tag":
@@ -89,7 +95,7 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
         if entry["action"] == "continue-pr":
             return f"none. PR #{entry['pr']} is open."
         if entry["action"] in ("bug", "version-test-plan", "release", "record-acceptance",
-                               "tag", "retro", "cleanup"):
+                               "tag", "retro", "cleanup", "ideas"):
             return f"none. {action_text(entry)}"
         return f"setup. {action_text(entry)}"
     text = f"{stage} of 6. {stage_name(stage).capitalize()}"
@@ -182,6 +188,8 @@ def run_status(args) -> tuple[dict, int]:
         The report and the exit code, 0 whenever the state could be read.
     """
     state = read_state(args.repo)
+    if state.repo is not None and state.origin:
+        issuesync.load(state)
     entry, notes = nextstep.decide(state)
     prs = [pr_entry(state, pr) for pr in state.prs]
     report = {
@@ -195,11 +203,15 @@ def run_status(args) -> tuple[dict, int]:
         "rules": state.rules,
         "versions": releases.version_entries(state) if state.origin else [],
         "release": releases.release_entry(state) if state.origin else None,
+        "issues": issuesync.status_part(state),
         "waiting_on_troy": None,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
     }
     if report["release"] is not None and entry.get("step") == "release-test":
         report["release"]["checks"] = releases.release_checks(state, entry["title"], notes)
+    if state.installed and report["issues"]["template"] is False:
+        notes.append(f"{issuesync.IDEA_TEMPLATE} is missing on origin/main: 'upgrade "
+                     "troy-mode' brings it. Until then an issue with no label is an idea.")
     if state.checks["outdated"]:
         notes.append("The project's troy-check differs from the plugin's. troy-init's upgrade "
                      "brings it up to date; [roles], [flow], and troy-check code --worktree "

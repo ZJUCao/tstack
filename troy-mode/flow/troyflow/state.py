@@ -51,6 +51,8 @@ class State:
         open_bugs: The open bug issues, once read.
         rules: The P rules on origin/main, with their choices and baseline
             lines (F09 design 3.2).
+        issues: Every issue, read by status for F15, or None when not read.
+        all_prs: Every PR, open, merged, and closed, read with the issues.
     """
 
     repo: Repo | None = None
@@ -75,6 +77,8 @@ class State:
     gh_releases: set[str] | None = None
     open_bugs: list[dict] | None = None
     rules: list[dict] = field(default_factory=list)
+    issues: object = None
+    all_prs: list[dict] | None = None
 
     def feature(self, fid: str | None) -> Feature | None:
         """Returns a feature of the table by its ID, or None."""

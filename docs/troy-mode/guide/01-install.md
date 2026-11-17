@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-16 |
+| Date | 2026-11-17 |
 | Source of truth | This English file. [`01-install.zh-CN.md`](01-install.zh-CN.md) is the Chinese mirror. |
 
 troy-mode ships inside the tstack plugin. You install the plugin once, give each project one permission, and choose models only if the defaults do not suit you.
@@ -87,7 +87,9 @@ troy-mode merges its own PRs within its rights (R18). Claude Code's auto mode ma
 }
 ```
 
-If the file already exists, add the three entries to its `allow` list. The file is git-ignored and yours, so troy-init does not write it. It lets troy-mode merge any PR in that project, and amend and force-push its own `troy-mode/` branches, without a prompt. troy-mode's rights still limit it to the PRs it may merge: it never merges a PR that waits for your approval ([section 7.2](07-taking-part.md#72-what-troy-mode-does-alone)). Auto mode can still refuse such a command when it is chained with others on one line. In the pilot, troy-mode then ran each command on its own, and they passed ([issue #50](https://github.com/ZJUCao/troy-pstack/issues/50)).
+Since F15, troy-mode also writes issues for you: each feature's progress issue, each version's device-test checklist, and its answers to your ideas ([section 7.6](07-taking-part.md#76-from-your-phone)). If auto mode refuses those commands, troy-mode tells you once which rule to add and goes on; the next run catches up. To avoid that, add two more entries: `"Bash(gh issue *)"` and `"Bash(gh label create *)"`.
+
+If the file already exists, add the entries to its `allow` list. The file is git-ignored and yours, so troy-init does not write it. It lets troy-mode merge any PR in that project, and amend and force-push its own `troy-mode/` branches, without a prompt. troy-mode's rights still limit it to the PRs it may merge: it never merges a PR that waits for your approval ([section 7.2](07-taking-part.md#72-what-troy-mode-does-alone)). Auto mode can still refuse such a command when it is chained with others on one line. In the pilot, troy-mode then ran each command on its own, and they passed ([issue #50](https://github.com/ZJUCao/troy-pstack/issues/50)).
 
 ## 1.5 Models and effort
 

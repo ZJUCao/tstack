@@ -47,6 +47,8 @@ Say what should change:
 /tstack:troy-mode change: a word needs at least one letter or digit
 ```
 
+You can also write the change on GitHub, from your phone: open an issue from the template "Idea / 想法", or any issue with no label, in any language. troy-mode reads it at its next run, at the next natural stop, never between two stages of a feature: it comments what the idea is, under a heading such as `Idea: requirement change`, and goes on with the flow below; the change PR says `Closes #<n>`, so its merge closes the idea. An idea can also be a bug, a rule, a question that troy-mode answers and closes, or something for later. To have it taken at once, say `/tstack:troy-mode idea #<n>` ([section 7.6](07-taking-part.md#76-from-your-phone), [F15 design section 5](../design/F15-issues.md#5-idea-issues-d143)).
+
 1. **The requirements.** The Product Manager updates `docs/requirements.md` and its mirror on `troy-mode/change-<slug>`, and opens `[docs] Change the requirements: <summary>`. You approve it, as you approved the requirements ([section 2.3](02-start.md#23-the-requirements)). Nothing else changes before you do.
 2. **The affected features.** For each one, the Architect decides which interfaces, tests, and parts of the architecture change. An architecture change is escalated to you with its ADR as the recommendation.
 3. **A feature not yet accepted** gets the status `Needs rework (<the change>)` and goes back to the earliest stage the Architect names. If the feature's open PR is at that stage or a later one, troy-mode closes it unmerged, then runs the stage again.

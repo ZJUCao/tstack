@@ -1,4 +1,8 @@
-"""GitHub CLI commands: the read-only list for subagents, R19, and R21 (design 7.3, 8.2)."""
+"""GitHub CLI commands: the read-only list for subagents, R19, and R21 (design 7.3, 8.2).
+
+F15 adds its issue and label commands to the posting table and refuses deleting issues
+and labels (F15 design 10.2, D148).
+"""
 
 import re
 
@@ -33,7 +37,13 @@ POSTING = {
     ("pr", "merge"): ((("--subject", "-t"), _BODY), (_BODY_FILE,)),
     ("release", "create"): ((_TITLE, ("--notes", "-n")), (_NOTES_FILE,)),
     ("release", "edit"): ((_TITLE, ("--notes", "-n")), (_NOTES_FILE,)),
+    ("issue", "close"): ((("--comment", "-c"),), ()),
+    ("issue", "reopen"): ((("--comment", "-c"),), ()),
+    ("label", "create"): ((("--description", "-d"),), ()),
+    ("label", "edit"): ((("--description", "-d"),), ()),
 }
+# Deleting is irreversible and outside troy-mode's rights (F15 D148, F07 design 9).
+DELETES = frozenset({("issue", "delete"), ("label", "delete")})
 _HIDDEN = ("--editor", "-e", "--web", "-w")
 _ABSOLUTE = re.compile(r"^(?:[/\\~]|[A-Za-z]:)")
 
@@ -88,7 +98,9 @@ def gh_read_only(group: str | None, sub: str | None, rest: list[str]) -> bool:
 
 
 def gh_posts(group: str | None, sub: str | None, rest: list[str]) -> bool:
-    """Tells whether a gh command posts text to GitHub (design 8.2, D200)."""
+    """Tells whether a gh command posts text to GitHub (design 8.2, D200), or deletes (F15)."""
+    if (group, sub) in DELETES:
+        return True
     if group == "api":
         return not _gh_api_reads(rest)
     return (group, sub) in POSTING
@@ -157,7 +169,8 @@ def _file_text(ctx, cmd: SimpleCommand, parsed: Parsed, word: Word) -> str:
             raise _Unreadable("it reads the text from a pipe (\"-\") with no heredoc in the call")
         return ""
     if not word.literal or not word.value:
-        raise _Unreadable(f"the file {word.raw!r} is named by a variable the hook cannot read")
+        raise _Unreadable(f"the file {word.raw!r} is named by a variable or a command the hook "
+                          "cannot follow; name it by its path")
     if cmd.cwd is None and not _ABSOLUTE.match(word.value):
         raise _Unreadable("a file is named relative to a folder the hook cannot follow")
     try:
@@ -228,6 +241,10 @@ def check_gh(ctx, cmd: SimpleCommand, parsed: Parsed) -> Refusal | None:
     """Checks one gh command (design 7.3 for subagents, 8.2 for every caller)."""
     group, sub, rest = _split_gh([word.value for word in cmd.words[1:]])
     label = " ".join(part for part in ("gh", group, sub if group != "api" else None) if part)
+    if ctx.caller.kind == MAIN and (group, sub) in DELETES:
+        return Refusal("gh-delete", f"`{label}` deletes what cannot be restored, and deleting "
+                       "issues and labels is outside troy-mode's rights (F15 D148). Ask Troy.",
+                       label)
     if ctx.caller.kind != MAIN:
         if gh_read_only(group, sub, rest):
             return None

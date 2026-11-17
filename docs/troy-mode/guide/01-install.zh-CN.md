@@ -1,11 +1,11 @@
 # 1. 安装
 
-> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.2（2026-11-16）。两者如有出入，以英文版为准。
+> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.2（2026-11-17）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 版本 | 0.2 |
-| 日期 | 2026-11-16 |
+| 日期 | 2026-11-17 |
 | 事实来源 | 英文版 [`01-install.md`](01-install.md)。本文件是中文镜像。 |
 
 troy-mode 包含在 tstack 插件里。插件只需安装一次，每个项目给一项权限；只有默认的模型不合适时，才需要自己选。
@@ -89,7 +89,9 @@ troy-mode 在自己的权限范围内合并自己的 PR（R18）。Claude Code �
 }
 ```
 
-如果这个文件已经存在，就把这三项加进它的 `allow` 列表。这个文件被 git 忽略，是你自己的，所以 troy-init 不写它。有了它，troy-mode 在那个项目里合并任何 PR、修改并强推自己的 `troy-mode/` 分支，都不再弹出提示。troy-mode 自己的权限范围仍然只让它合并允许它合并的 PR：等你批准的 PR，它从不合并（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。这类命令和别的命令连在同一行时，自动模式仍可能拒绝。试点中，troy-mode 随后把每条命令单独运行，都通过了（[issue #50](https://github.com/ZJUCao/troy-pstack/issues/50)）。
+从 F15 起，troy-mode 还会替你写 issue：每个功能的进度 issue、每个版本的设备测试清单，以及它对你的想法的回复（[第 7.6 节](07-taking-part.zh-CN.md#76-在手机上)）。如果自动模式拒绝这些命令，troy-mode 会告诉你一次要加哪条规则，然后继续；下一次运行会补上。为了避免这种情况，再加两项：`"Bash(gh issue *)"` 和 `"Bash(gh label create *)"`。
+
+如果这个文件已经存在，就把这些项加进它的 `allow` 列表。这个文件被 git 忽略，是你自己的，所以 troy-init 不写它。有了它，troy-mode 在那个项目里合并任何 PR、修改并强推自己的 `troy-mode/` 分支，都不再弹出提示。troy-mode 自己的权限范围仍然只让它合并允许它合并的 PR：等你批准的 PR，它从不合并（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。这类命令和别的命令连在同一行时，自动模式仍可能拒绝。试点中，troy-mode 随后把每条命令单独运行，都通过了（[issue #50](https://github.com/ZJUCao/troy-pstack/issues/50)）。
 
 ## 1.5 模型和 effort
 

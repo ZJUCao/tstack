@@ -18,6 +18,7 @@ Type each after `/tstack:troy-mode`, in your own words.
 | "next feature", "F04", "F04 to F06", "the rest of v0.1" | Feature loop | [3](03-features.md) |
 | "bug: ...", "fix #12" | Bug fix | [4.1](04-bugs-and-changes.md#41-fix-a-bug) |
 | "change: ...", "the export should also ..." | Requirement change | [4.2](04-bugs-and-changes.md#42-change-a-requirement) |
+| "idea #101", "change: #101" | An idea issue, taken in at once | [7.6](07-taking-part.md#76-from-your-phone) |
 | "why ...", "how does ...", "try ..." | Work outside the pipeline: no PR | [4.3](04-bugs-and-changes.md#43-questions-and-experiments) |
 | "release v0.1", "release v0.1.1", "release" | Version release | [5](05-release.md) |
 | "add a rule ...", "change P01 ...", "retire P02", "a rule for every project ..." | Rule change | [6](06-rules.md) |
@@ -71,6 +72,8 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | `Bug deferred by Troy: #<n>` | You deferred an open bug past the release. |
 | `Retrospective: <tag>` | The retrospective, which ends the release. |
 
+On issues, troy-mode's comments start with `Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, `Idea: in the requirements`, `Waiting for Troy: <question>`, `Reply to Troy`, or `Device test, run <n>: ready`, in the language you wrote in. The engine command `troy_flow.py issues` works out each progress issue and checklist; the labels are `idea`, `progress`, and `device-test` ([section 7.6](07-taking-part.md#76-from-your-phone)).
+
 ## 8.4 Files in a project
 
 | Path | What it holds | Changed by |
@@ -93,6 +96,7 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | `.github/workflows/project-rules.yml` | The project's own check steps for its rules | The rule change flow |
 | `.troy-mode/progress.md` | The progress file. Local and git-ignored. | troy-mode |
 | `.github/workflows/troy-mode.yml`, `.github/pull_request_template.md` | troy-check's CI job and the PR template | troy-init only |
+| `.github/ISSUE_TEMPLATE/idea.md` | The issue template "Idea / 想法", which adds the `idea` label | troy-init only |
 | `.claude/settings.local.json` | Your Claude Code permissions. Git-ignored. | You |
 
 Each role's write scope is enforced by hooks while it runs, and checked again after the run ([F05 design section 5](../design/F05-hooks.md#5-write-scopes), [F07 design section 7](../design/F07-entry-skill.md#7-the-check-after-each-run-d59)). A Developer edit to a test is refused (R08).

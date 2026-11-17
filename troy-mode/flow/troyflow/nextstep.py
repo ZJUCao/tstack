@@ -1,5 +1,5 @@
 """The next action, decided from the state (F07 design sections 4, 8, 10, and 11, F08 3.3,
-F09 3.2).
+F09 3.2, F15 5.2).
 
 The first rule that holds wins. The skill holds the judgment about what to do
 with it; this module only reads the exact rules.
@@ -13,6 +13,7 @@ from . import releases, rulestate
 from . import repo as git
 from .nextentry import make
 from .repo import MAIN
+from .requirements import FEATURE_ID
 from .requirements import approved, doc_version
 from .rework import change_index
 from .stages import AUTHOR_TASK, KIND_TASK, branch, feature_stage, parse_subject, plain, title
@@ -195,7 +196,44 @@ def _open_pr_next(state: State, current: list[dict], notes: list[str],
     return entry
 
 
+# The actions before which Troy's new ideas are taken in: the next new thing
+# (F15 design 5.2). A stage counts only as a feature's first, and a release only
+# before its release PR opens.
+_IDEAS_BEFORE = ("ask-approvals", "version-test-plan", "all-accepted")
+
+
+def _ideas_due(state: State, entry: dict) -> bool:
+    """Tells whether new ideas come before this entry: a natural stop (F15 D143)."""
+    action = entry["action"]
+    return (action in _IDEAS_BEFORE or (action == "release" and entry.get("pr") is None)
+            or (action == "stage" and entry.get("stage") == 1))
+
+
+def _with_issues(state: State, entry: dict) -> dict:
+    """Adds the progress issue or checklist to an entry, or gives the ideas action first."""
+    from . import issuedata, issuesync  # noqa: PLC0415  (only with issues read)
+
+    issues = state.issues
+    if not isinstance(issues, issuedata.Issues) or not issues.readable:
+        return entry
+    new = [i.number for i in issues.ideas() if issuedata.is_new(i)]
+    if new and _ideas_due(state, entry):
+        return _next("ideas", task="PM6", ideas=new)
+    if entry["action"] in ("stage", "continue-pr") and FEATURE_ID.fullmatch(entry["item"] or ""):
+        entry["issue"] = issuesync.progress_number(state, entry["item"])
+    elif entry["action"] == "release":
+        found = issuesync.open_checklist(state, issues)
+        entry["issue"] = found.number if found else None
+    return entry
+
+
 def decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
+    """Decides the next action, then adds what F15's issues say (F15 design 3.3)."""
+    entry, notes = _decide(state, attempts)
+    return _with_issues(state, entry), notes
+
+
+def _decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
     """Decides the next action.
 
     Args:

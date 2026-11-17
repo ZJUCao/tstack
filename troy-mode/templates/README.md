@@ -24,6 +24,9 @@
 | [`escalation`](escalation.md) | None. It is the shape of a chat message. | No | Main session | Each escalation |
 | [`pull-request`](pull-request.md) | `.github/pull_request_template.md` | No. PRs are in English. | Whoever opens the PR | Every PR |
 | [`summary-for-troy`](summary-for-troy.md) | None. It opens a PR's description. | No. It holds both languages, Chinese first. | The role that writes the document | Every design, test plan, requirements, and architecture PR |
+| [`progress-issue`](progress-issue.md) | None. It is the body of a feature's progress issue on GitHub. | No. It holds both languages, Chinese first. | troy-mode's engine (`troy_flow.py issues`), in code; the main session posts it | Every sync, until the feature's acceptance |
+| [`device-test-issue`](device-test-issue.md) | None. It is the body of a version's device-test checklist on GitHub. | No. It holds both languages, Chinese first. | troy-mode's engine (`troy_flow.py issues`), in code; Troy ticks it | After a release test passes, and at a new run |
+| [`idea-issue`](idea-issue.md) | `.github/ISSUE_TEMPLATE/idea.md` | No. It holds both languages. | Troy, when opening an idea on GitHub | Never; troy-init writes it |
 
 The Chinese mirror of `<name>.md` is `<name>.zh-CN.md` in the same folder. `<slug>` is lowercase words joined by hyphens, for example `F04-export-csv`.
 
