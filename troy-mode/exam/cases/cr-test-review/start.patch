@@ -1,0 +1,2533 @@
+diff --git a/tests/f04_support.py b/tests/f04_support.py
+new file mode 100644
+index 0000000..191658e
+--- /dev/null
++++ b/tests/f04_support.py
+@@ -0,0 +1,442 @@
++"""Helpers and example values that the F04 tests share."""
++
++import contextlib
++import os
++import sys
++from collections.abc import Iterator, Sequence
++from fractions import Fraction
++from pathlib import Path
++from typing import Any
++
++import pytest
++
++from recipe_menu.catalog import Catalog, Category, Ingredient, Tag, read_catalog
++from recipe_menu.datafile import DataFolder, Problem, Severity
++from recipe_menu.lang import BiText, Lang
++from recipe_menu.recipes import Recipe, RecipeIngredient, Steps, read_recipe
++from recipe_menu.units import Quantity, Unit
++
++if sys.platform == "win32":
++    import _winapi
++
++EN, ZH = Lang.EN, Lang.ZH
++
++type Msg = tuple[str, str]
++type Entry = tuple[Severity, str, BiText | None, str, str]
++
++DISH_FILE = "recipes/dish.toml"
++EXAMPLE_IDS = (
++    "choy-sum",
++    "cola-wings",
++    "mapo-tofu",
++    "red-braised-pork",
++    "rice",
++    "tomato-egg",
++    "tomato-egg-noodles",
++)
++
++# ------------------------------------------------------ example values (design 2.1 to 2.3)
++
++produce = Category("produce", BiText("Vegetables and fruit", "蔬菜水果"))
++eggs = Category("eggs", BiText("Eggs, dairy, and tofu", "蛋奶豆制品"))
++tomato = Ingredient(BiText("Tomato", "番茄"), produce)
++egg = Ingredient(BiText("Egg", "鸡蛋"), eggs, Unit.PIECE)
++scallion = Ingredient(BiText("Scallion", "葱"), produce, Unit.STALK)
++choy_sum = Ingredient(BiText("Choy sum", "菜心"), produce)
++quick = Tag(BiText("quick", "快手"))
++home = Tag(BiText("home-style", "家常"))
++dish_catalog = Catalog((produce, eggs), (tomato, egg, scallion), (quick, home))
++
++wedges = BiText("cut into wedges", "切块")
++chinese = ("五花肉切块，冷水下锅焯水。", "小火炖 60 分钟，再大火收汁。")
++both = Steps(("Cut the tomatoes into wedges.",), ("番茄切块。",))
++choy_name = BiText("Stir-fried choy sum", "清炒菜心")
++choy_lines = (RecipeIngredient(choy_sum, Quantity(Fraction(1), Unit.JIN)),)
++choy_steps = Steps(("Stir-fry the choy sum.",), ("炒菜心。",))
++
++
++def qty(amount: int | Fraction, unit: Unit) -> Quantity:
++    """Gives the quantity of an amount and a unit."""
++    return Quantity(Fraction(amount), unit)
++
++
++dish = Recipe(
++    "dish",
++    BiText("Tomato and egg stir-fry", "番茄炒蛋"),
++    2,
++    (quick,),
++    (RecipeIngredient(tomato, qty(300, Unit.G)),),
++    Steps(("Cut the tomatoes.",), ("番茄切块。",)),
++)
++
++# ---------------------------------------------------------------- writing files
++
++
++def write(path: Path, text: str) -> None:
++    """Writes a UTF-8 file with LF line ends, and makes its folders."""
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(text, encoding="utf-8", newline="\n")
++
++
++def put_bytes(path: Path, data: bytes) -> None:
++    """Writes the bytes of a file, and makes its folders."""
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_bytes(data)
++
++
++def touch(folder: Path, *names: str) -> None:
++    """Writes an empty file for each name in a folder, and makes the folder."""
++    for name in names:
++        put_bytes(folder / name, b"")
++
++
++BASE_NAME = '{ zh = "番茄炒蛋", en = "Tomato and egg stir-fry" }'
++BASE_ITEMS = ('{ item = "番茄", amount = "300 g" }',)
++BASE_STEPS = ('zh = ["番茄切块。"]', 'en = ["Cut the tomatoes."]')
++
++
++def dish_text(
++    name: str | None = BASE_NAME,
++    servings: str | None = "2",
++    tags: str | None = '["快手"]',
++    ingredients: str | Sequence[str] | None = BASE_ITEMS,
++    steps: str | Sequence[str] | None = BASE_STEPS,
++) -> str:
++    """Gives the text of the base recipe, with parts changed or left out.
++
++    ``name``, ``servings``, ``tags``, and a text for ``ingredients`` or ``steps`` are the value
++    after the key's ``=``. A tuple for ``ingredients`` gives its items, one on each line, and a
++    tuple for ``steps`` gives the lines after ``[steps]``. ``None`` leaves the part out.
++    """
++    lines = [
++        f"{key} = {value}"
++        for key, value in (("name", name), ("servings", servings), ("tags", tags))
++        if value is not None
++    ]
++    if isinstance(ingredients, str):
++        lines.append(f"ingredients = {ingredients}")
++    elif ingredients is not None:
++        lines += ["ingredients = [", *(f"  {item}," for item in ingredients), "]"]
++    if isinstance(steps, str):
++        lines.append(f"steps = {steps}")
++    elif steps is not None:
++        lines += ["", "[steps]", *steps]
++    return "\n".join(lines) + "\n"
++
++
++def write_dish(folder: DataFolder, file_id: str = "dish", **parts: Any) -> None:
++    """Writes ``recipes/<file_id>.toml``: the base recipe with the parts changed."""
++    write(folder.recipe_file(file_id), dish_text(**parts))
++
++
++def read_dish(
++    folder: DataFolder, catalog: Catalog | None = dish_catalog, **parts: Any
++) -> tuple[Recipe | None, tuple[Problem, ...]]:
++    """Writes the base recipe with the parts changed, and reads it as ``dish``."""
++    write_dish(folder, **parts)
++    return read_recipe(folder, catalog, "dish")
++
++
++# ---------------------------------------------------------------- places (design 2.6)
++
++NAME = BiText("name", "名称")
++SERVINGS = BiText("servings", "份数")
++TAGS = BiText("tags", "标签")
++INGREDIENTS = BiText("ingredients", "食材")
++STEPS = BiText("steps", "步骤")
++
++
++def tag_n(number: int) -> BiText:
++    """The place of an item of ``tags``."""
++    return BiText(f"tag {number}", f"标签 {number}")
++
++
++def ingredient_n(number: int) -> BiText:
++    """The place of an item of ``ingredients``."""
++    return BiText(f"ingredient {number}", f"食材 {number}")
++
++
++def zh_step(number: int) -> BiText:
++    """The place of a Chinese step."""
++    return BiText(f"Chinese step {number}", f"中文步骤 {number}")
++
++
++def en_step(number: int) -> BiText:
++    """The place of an English step."""
++    return BiText(f"English step {number}", f"英文步骤 {number}")
++
++
++# ------------------------------------------------------------ messages of recipes (2.6)
++
++RECIPE_KEYS: Msg = (
++    "name, servings, tags, ingredients, and steps",
++    "name、servings、tags、ingredients 和 steps",
++)
++ITEM_KEYS: Msg = ("item, amount, and note", "item、amount 和 note")
++ZH_EN_KEYS: Msg = ("zh and en", "zh 和 en")
++
++
++def m_not_a_zh_en(key: str) -> Msg:
++    """The message of a name or a note that is not a table."""
++    return (
++        f'"{key}" must be a table in braces with "zh" and "en", '
++        'such as { zh = "...", en = "..." }.',
++        f'“{key}”必须是放在花括号里、带有“zh”和“en”的表，比如 {{ zh = "...", en = "..." }}。',
++    )
++
++
++M_NO_NAME: Msg = (
++    'The name has no text in either language. Write "zh", "en", or both.',
++    "名称在两种语言里都没有文字。请写上“zh”、“en”或两者。",
++)
++M_NO_ZH_NAME: Msg = (
++    "No Chinese name. Commands show the English name instead.",
++    "没有中文名称。命令会改为显示英文名称。",
++)
++M_NO_EN_NAME: Msg = (
++    "No English name. Commands show the Chinese name instead.",
++    "没有英文名称。命令会改为显示中文名称。",
++)
++M_SERVINGS_NOT_A_NUMBER: Msg = (
++    "Servings must be a whole number from 1 to 100, such as 2.",
++    "份数必须是 1 到 100 之间的整数，比如 2。",
++)
++
++
++def m_too_few(servings: int) -> Msg:
++    """The message of servings below 1."""
++    return (
++        f"Servings must be a whole number of 1 or more, not {servings}.",
++        f"份数必须是不小于 1 的整数，不能是 {servings}。",
++    )
++
++
++def m_too_many(servings: int) -> Msg:
++    """The message of servings above 100."""
++    return (
++        f"Servings must be a whole number of 100 or less, not {servings}.",
++        f"份数必须是不大于 100 的整数，不能是 {servings}。",
++    )
++
++
++def m_unknown_tag(tag: str) -> Msg:
++    """The message of a tag that the catalog lacks."""
++    return (
++        f'Unknown tag "{tag}". Add it to the catalog\'s tags.',
++        f"未知标签“{tag}”。请把它加入目录里的标签。",
++    )
++
++
++def m_unknown_ing(name: str) -> Msg:
++    """The message of an ingredient that the catalog lacks."""
++    return (
++        f'Unknown ingredient "{name}". Add it to the catalog, or use its name in the catalog.',
++        f"未知食材“{name}”。请把它加入目录，或改用目录里的名称。",
++    )
++
++
++def m_not_a_number(amount: str) -> Msg:
++    """The message of an amount that does not start with a number."""
++    return (
++        f'The amount "{amount}" must start with a number of at most 15 digits, such as 300 '
++        'or 1.5, or be "适量" or "to taste".',
++        f"数量“{amount}”必须以不超过 15 位的数字开头，比如 300 或 1.5，"
++        "或者写成“适量”或“to taste”。",
++    )
++
++
++def m_amount_unit(unit: str, amount: str) -> Msg:
++    """The message of an amount with an unknown unit."""
++    return (f'Unknown unit "{unit}" in "{amount}".', f"数量“{amount}”里有未知单位“{unit}”。")
++
++
++def m_no_unit(amount: str, ingredient: Ingredient) -> Msg:
++    """The message of an amount with no unit, for an ingredient with no default unit."""
++    en, zh = ingredient.name.en, ingredient.name.zh
++    return (
++        f'The amount "{amount}" has no unit, and the catalog gives "{en}" no default unit. '
++        'Write a unit after the number, such as "300 g".',
++        f"数量“{amount}”没有单位，目录也没有给“{zh}”默认单位。请在数字后面写上单位，比如“300 g”。",
++    )
++
++
++def m_zero(amount: str) -> Msg:
++    """The message of an amount that is 0."""
++    return (
++        f'The amount "{amount}" is 0. Write a number of more than 0, or "适量" or "to taste".',
++        f"数量“{amount}”是 0。请写大于 0 的数，或者写成“适量”或“to taste”。",
++    )
++
++
++M_NO_ZH_NOTE: Msg = (
++    "No Chinese note. Commands show the English note instead.",
++    "没有中文备注。命令会改为显示英文备注。",
++)
++M_NO_EN_NOTE: Msg = (
++    "No English note. Commands show the Chinese note instead.",
++    "没有英文备注。命令会改为显示中文备注。",
++)
++M_NOT_A_STEPS_TABLE: Msg = (
++    '"steps" must be a table. Write the line [steps] at the end of the file, '
++    "and below it zh = [ ... ] and en = [ ... ].",
++    "“steps”必须是表。请在文件末尾写一行 [steps]，在它下面写 zh = [ ... ] 和 en = [ ... ]。",
++)
++M_NO_STEPS: Msg = (
++    'The recipe has no steps. Write the steps in "zh", "en", or both.',
++    "菜谱没有步骤。请在“zh”、“en”或两者里写上步骤。",
++)
++M_NO_ZH_STEPS: Msg = (
++    "No Chinese steps. Commands show the English steps instead.",
++    "没有中文步骤。命令会改为显示英文步骤。",
++)
++M_NO_EN_STEPS: Msg = (
++    "No English steps. Commands show the Chinese steps instead.",
++    "没有英文步骤。命令会改为显示中文步骤。",
++)
++
++# ------------------------------------------- messages of recipe IDs and folders (2.5, 3.1)
++
++M_NOT_A_RECIPE_ID: Msg = (
++    'This file name is not a recipe ID. An ID has only the small letters a to z, digits, and "-", '
++    'and starts with a letter or a digit, such as "tomato-egg". Rename the file.',
++    "这个文件名不是菜谱 ID。ID 只能由小写字母 a 到 z、数字和“-”组成，"
++    "并以字母或数字开头，比如“tomato-egg”。请给文件改名。",
++)
++M_RESERVED_ID: Msg = (
++    "This file name cannot be a recipe ID, because Windows keeps it for a device. Rename the file.",
++    "这个文件名不能用作菜谱 ID，因为 Windows 把它留给设备使用。请给文件改名。",
++)
++M_TOML_ENDING: Msg = (
++    'The file name must end with ".toml" in small letters. Rename the file.',
++    "文件名必须以小写的“.toml”结尾。请给文件改名。",
++)
++M_FOLDER_MISSING: Msg = ("The folder is missing.", "文件夹不存在。")
++M_FOLDER_IS_FILE: Msg = (
++    "The folder cannot be read: it is a file.",
++    "无法读取文件夹：它是一个文件。",
++)
++M_FOLDER_DENIED: Msg = (
++    "The folder cannot be read: access is denied.",
++    "无法读取文件夹：没有访问权限。",
++)
++
++
++def m_folder_system(reason: str) -> Msg:
++    """The message of an ``OSError`` of listing a folder that has no message of its own."""
++    return (
++        f"The folder cannot be read. The system says: {reason}",
++        f"无法读取文件夹。系统提示：{reason}",
++    )
++
++
++# ---------------------------------------------------------------- comparing problems
++
++
++def err(place: BiText | None, msg: Msg, file: str = DISH_FILE) -> Entry:
++    """Gives an expected error, with its file as a ``/`` path."""
++    return (Severity.ERROR, str(Path(*file.split("/"))), place, msg[0], msg[1])
++
++
++def warn(place: BiText | None, msg: Msg, file: str = DISH_FILE) -> Entry:
++    """Gives an expected warning, with its file as a ``/`` path."""
++    return (Severity.WARNING, str(Path(*file.split("/"))), place, msg[0], msg[1])
++
++
++def view(problems: Sequence[Problem]) -> list[Entry]:
++    """Gives each problem as severity, file name text, place, and its two texts.
++
++    The file is compared as ``str``, so a test checks the case of a name on Windows too.
++    """
++    return [(p.severity, str(p.file), p.place, p.text(EN), p.text(ZH)) for p in problems]
++
++
++def check_problems(
++    problems: tuple[Problem, ...], expected: Sequence[Entry], label: object = ""
++) -> None:
++    """Checks a tuple of problems: its type, and then the whole list, in order."""
++    assert isinstance(problems, tuple), label
++    assert all(isinstance(p, Problem) for p in problems), label
++    assert view(problems) == list(expected), label
++
++
++def check_fails(
++    folder: DataFolder,
++    expected: Sequence[Entry],
++    catalog: Catalog | None = dish_catalog,
++    **parts: Any,
++) -> None:
++    """Reads the base recipe with parts changed: no recipe, and the expected problems."""
++    recipe, problems = read_dish(folder, catalog, **parts)
++    assert recipe is None, parts
++    check_problems(problems, expected, parts)
++
++
++def check_reads(
++    folder: DataFolder,
++    expected: Recipe,
++    expected_problems: Sequence[Entry] = (),
++    **parts: Any,
++) -> None:
++    """Reads the base recipe with parts changed: the expected recipe and problems."""
++    recipe, problems = read_dish(folder, **parts)
++    check_problems(problems, expected_problems, parts)
++    assert recipe == expected, parts
++
++
++# ---------------------------------------------------------------- the example data
++
++
++def example_catalog(folder: DataFolder) -> Catalog:
++    """Reads the catalog of the example folder, which has no problems."""
++    catalog, problems = read_catalog(folder)
++    assert problems == ()
++    assert catalog is not None
++    return catalog
++
++
++def check_lines(
++    recipe: Recipe,
++    catalog: Catalog,
++    tags: Sequence[str],
++    lines: Sequence[tuple[str, Quantity, BiText | None]],
++) -> None:
++    """Checks the tags and the ingredient lines of a recipe against the catalog's objects.
++
++    ``tags`` and the first item of each line are Chinese names, found with ``find_tag`` and
++    ``find_ingredient`` and compared by ``is``.
++    """
++    assert len(recipe.tags) == len(tags)
++    for tag, zh in zip(recipe.tags, tags, strict=True):
++        assert tag is catalog.find_tag(zh)
++    assert len(recipe.ingredients) == len(lines)
++    for line, (zh, quantity, note) in zip(recipe.ingredients, lines, strict=True):
++        assert line.ingredient is catalog.find_ingredient(zh)
++        assert line.quantity == quantity
++        assert line.note == note
++
++
++# ---------------------------------------------------------------- denying a listing
++
++
++@contextlib.contextmanager
++def listing_denied(path: Path) -> Iterator[None]:
++    """Makes listing a folder fail with ``PermissionError``, and undoes it afterwards.
++
++    On Windows, it holds the folder open with the share mode 0. On Linux, it removes the read
++    permission and keeps the search permission. It first checks that listing fails.
++    """
++    if sys.platform == "win32":
++        handle = _winapi.CreateFile(
++            str(path), 0x80000000, 0, 0, _winapi.OPEN_EXISTING, 0x02000000, 0
++        )
++    else:
++        path.chmod(0o100)
++    try:
++        with pytest.raises(PermissionError):
++            os.listdir(path)  # noqa: PTH208
++        yield
++    finally:
++        if sys.platform == "win32":
++            _winapi.CloseHandle(handle)
++        else:
++            path.chmod(0o755)
+diff --git a/tests/test_f04_example_recipes.py b/tests/test_f04_example_recipes.py
+new file mode 100644
+index 0000000..6fa6665
+--- /dev/null
++++ b/tests/test_f04_example_recipes.py
+@@ -0,0 +1,297 @@
++"""Tests of F04 for read_recipe on the example data and the scenarios (T37 to T43)."""
++
++import tomllib
++
++import pytest
++
++from f03_support import M_FILE_MISSING, edit_ingredients, ing, m_not_a_list
++from f04_support import (
++    EN,
++    EXAMPLE_IDS,
++    M_NO_EN_NAME,
++    M_NO_EN_STEPS,
++    M_NO_ZH_NOTE,
++    M_NO_ZH_STEPS,
++    M_SERVINGS_NOT_A_NUMBER,
++    NAME,
++    SERVINGS,
++    STEPS,
++    TAGS,
++    ZH,
++    check_lines,
++    check_problems,
++    dish_text,
++    err,
++    example_catalog,
++    ingredient_n,
++    m_amount_unit,
++    m_no_unit,
++    m_not_a_number,
++    m_too_few,
++    m_unknown_ing,
++    m_unknown_tag,
++    qty,
++    warn,
++    write,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import BiText
++from recipe_menu.recipes import Steps, list_recipe_ids, read_recipe
++from recipe_menu.units import TO_TASTE, Unit
++
++RICE = "recipes/rice.toml"
++PORK = "recipes/red-braised-pork.toml"
++MAPO = "recipes/mapo-tofu.toml"
++
++# The tags (Chinese names) and the ingredient lines of six example recipes, in the file's order.
++EXPECTED = {
++    "choy-sum": (
++        ["快手", "素"],
++        [
++            ("菜心", qty(1, Unit.JIN), None),
++            ("大蒜", qty(3, Unit.CLOVE), BiText("crushed", "拍碎")),
++            ("盐", TO_TASTE, None),
++            ("食用油", qty(1, Unit.TBSP), None),
++        ],
++    ),
++    "cola-wings": (
++        ["家常"],
++        [
++            ("鸡翅中", qty(500, Unit.G), None),
++            ("可乐", qty(1, Unit.CAN), None),
++            ("姜", qty(3, Unit.SLICE), None),
++            ("葱", qty(1, Unit.STALK), None),
++            ("生抽", qty(2, Unit.TBSP), None),
++        ],
++    ),
++    "mapo-tofu": (
++        ["辣", "家常"],
++        [
++            ("豆腐", qty(1, Unit.BLOCK), BiText("diced", "切丁")),
++            ("猪肉末", qty(100, Unit.G), None),
++            ("郫县豆瓣酱", qty(1, Unit.TBSP), None),
++            ("花椒", qty(1, Unit.TSP), None),
++            ("大蒜", qty(2, Unit.CLOVE), None),
++            ("葱", qty(1, Unit.STALK), None),
++            ("生抽", qty(1, Unit.TBSP), None),
++            ("食用油", qty(2, Unit.TBSP), None),
++        ],
++    ),
++    "rice": (["主食"], [("大米", qty(160, Unit.G), None)]),
++    "tomato-egg-noodles": (
++        ["快手", "主食"],
++        [
++            ("面条", qty(200, Unit.G), None),
++            ("番茄", qty(300, Unit.G), None),
++            ("鸡蛋", qty(2, Unit.PIECE), None),
++            ("葱", qty(1, Unit.STALK), None),
++            ("盐", TO_TASTE, None),
++            ("白胡椒粉", TO_TASTE, None),
++        ],
++    ),
++    "red-braised-pork": (
++        ["家常"],
++        [
++            ("五花肉", qty(1, Unit.JIN), BiText("cut into 3 cm cubes", "切成 3 厘米见方的块")),
++            ("冰糖", qty(30, Unit.G), None),
++            ("生抽", qty(2, Unit.TBSP), None),
++            ("姜", qty(3, Unit.SLICE), None),
++            ("葱", qty(2, Unit.STALK), None),
++        ],
++    ),
++}
++
++TOMATO_EGG_ZH = (
++    "番茄切块。鸡蛋加少许盐打散。",
++    "热锅下 1 汤匙油，炒鸡蛋至刚凝固，盛出。",
++    "下剩下的油，炒番茄至软，加糖。",
++    "倒回鸡蛋，加盐调味，撒上葱花。",
++)
++TOMATO_EGG_EN = (
++    "Cut the tomatoes into wedges. Beat the eggs with a pinch of salt.",
++    "Heat 1 tbsp of oil. Scramble the eggs until just set, and take them out.",
++    "Heat the rest of the oil. Stir-fry the tomatoes until soft, and add the sugar.",
++    "Return the eggs, season with salt, and scatter the scallion on top.",
++)
++
++
++def test_f04_t37_the_tomato_egg_file_gives_every_field(example_folder: DataFolder) -> None:
++    """The design's first example, with the catalog's own objects. With no catalog, nothing."""
++    catalog = example_catalog(example_folder)
++    recipe, problems = read_recipe(example_folder, catalog, "tomato-egg")
++    assert problems == ()
++    assert recipe is not None
++    assert recipe.id == "tomato-egg"
++    assert recipe.name == BiText("Tomato and egg stir-fry", "番茄炒蛋")
++    assert recipe.servings == 2
++    check_lines(
++        recipe,
++        catalog,
++        ["快手", "家常"],
++        [
++            ("番茄", qty(300, Unit.G), BiText("cut into wedges", "切块")),
++            ("鸡蛋", qty(3, Unit.PIECE), None),
++            ("葱", qty(1, Unit.STALK), BiText("chopped", "切葱花")),
++            ("盐", TO_TASTE, None),
++            ("糖", qty(1, Unit.TSP), None),
++            ("食用油", qty(2, Unit.TBSP), None),
++        ],
++    )
++    assert recipe.steps == Steps(TOMATO_EGG_EN, TOMATO_EGG_ZH)
++    assert read_recipe(example_folder, None, "tomato-egg") == (None, ())
++
++
++def test_f04_t38_the_other_six_example_recipes(example_folder: DataFolder) -> None:
++    """Only red-braised-pork gives a warning: the one of the F07 prototype."""
++    catalog = example_catalog(example_folder)
++    for recipe_id, (tags, lines) in EXPECTED.items():
++        recipe, problems = read_recipe(example_folder, catalog, recipe_id)
++        assert recipe is not None, recipe_id
++        data = tomllib.loads(example_folder.recipe_file(recipe_id).read_text(encoding="utf-8"))
++        assert recipe.id == recipe_id
++        assert recipe.name == BiText(data["name"]["en"], data["name"]["zh"])
++        assert recipe.servings == 2
++        check_lines(recipe, catalog, tags, lines)
++        zh_steps = tuple(data["steps"]["zh"])
++        if recipe_id == "red-braised-pork":
++            assert len(zh_steps) == 3
++            assert recipe.steps == Steps(zh=zh_steps)
++            assert recipe.steps.exact(EN) is None
++            assert recipe.steps.get(EN) == recipe.steps.exact(ZH) == zh_steps
++            check_problems(problems, [warn(STEPS, M_NO_EN_STEPS, PORK)])
++        else:
++            assert recipe.steps == Steps(tuple(data["steps"]["en"]), zh_steps)
++            assert problems == (), recipe_id
++
++
++def test_f04_t39_an_ingredient_that_is_not_in_the_catalog_gives_the_f07_error(
++    example_folder: DataFolder,
++) -> None:
++    """Doubanjiang without its prefix is no catalog name, so ingredient 3 is unknown."""
++    catalog = example_catalog(example_folder)
++    path = example_folder.recipe_file("mapo-tofu")
++    text = path.read_text(encoding="utf-8")
++    assert "郫县" in text
++    write(path, text.replace("郫县", ""))
++    recipe, problems = read_recipe(example_folder, catalog, "mapo-tofu")
++    assert recipe is None
++    check_problems(problems, [err(ingredient_n(3), m_unknown_ing("豆瓣酱"), MAPO)])
++
++
++def test_f04_t40_the_three_mistakes_of_scenario_v0_1_s07(example_folder: DataFolder) -> None:
++    """The servings, the tag, and the unit of ``rice.toml`` give the three lines of F07."""
++    catalog = example_catalog(example_folder)
++    path = example_folder.recipe_file("rice")
++    text = path.read_text(encoding="utf-8")
++    for old in ("servings = 2", '["主食"]', '"160 g"'):
++        assert old in text
++    changed = text.replace("servings = 2", "servings = 0")
++    changed = changed.replace('["主食"]', '["breakfast"]').replace('"160 g"', '"1 cups"')
++    expected = [
++        err(SERVINGS, m_too_few(0), RICE),
++        err(TAGS, m_unknown_tag("breakfast"), RICE),
++        err(ingredient_n(1), m_amount_unit("cups", "1 cups"), RICE),
++    ]
++    seven_lines = dish_text(
++        name='{ zh = "米饭", en = "Steamed rice" }',
++        servings="0",
++        tags='["breakfast"]',
++        ingredients='[{ item = "大米", amount = "1 cups" }]',
++        steps=('zh = ["煮饭。"]', 'en = ["Cook the rice."]'),
++    ).replace("\n\n", "\n")
++    for content in (changed, seven_lines):
++        write(path, content)
++        recipe, problems = read_recipe(example_folder, catalog, "rice")
++        assert recipe is None
++        check_problems(problems, expected)
++    write(path, changed)
++    recipe, problems = read_recipe(example_folder, None, "rice")
++    assert recipe is None
++    check_problems(problems, [expected[0], expected[2]], "no catalog")
++
++
++@pytest.mark.usefixtures("default_int_limit")
++def test_f04_t41_the_third_file_of_the_design_example(example_folder: DataFolder) -> None:
++    """Errors and warnings keep the order of the parts, and no number of 5,000 digits raises."""
++    catalog = example_catalog(example_folder)
++    lines = [
++        'name = { zh = "番茄", en = " " }',
++        "servings = 0x" + "f" * 5000,
++        "tags = []",
++        "ingredients = [",
++        '  { item = "番茄", amount = "3" },',
++        '  { item = "葱", amount = "1234567890123456 根", note = { en = "chopped" } },',
++        "]",
++        "[steps]",
++        'en = ["Cook."]',
++    ]
++    write(example_folder.recipe_file("rice"), "\n".join(lines) + "\n")
++    recipe, problems = read_recipe(example_folder, catalog, "rice")
++    assert recipe is None
++    tomato = catalog.find_ingredient("番茄")
++    assert tomato is not None
++    check_problems(
++        problems,
++        [
++            warn(NAME, M_NO_EN_NAME, RICE),
++            err(SERVINGS, M_SERVINGS_NOT_A_NUMBER, RICE),
++            err(ingredient_n(1), m_no_unit("3", tomato), RICE),
++            err(ingredient_n(2), m_not_a_number("1234567890123456 根"), RICE),
++            warn(ingredient_n(2), M_NO_ZH_NOTE, RICE),
++            warn(STEPS, M_NO_ZH_STEPS, RICE),
++        ],
++    )
++
++
++def test_f04_t42_an_empty_text_in_the_steps_is_an_error_and_a_missing_file_a_problem(
++    example_folder: DataFolder,
++) -> None:
++    """``en = ""`` is no list. An ID with no file gives FILE_MISSING. A wrong ID raises."""
++    catalog = example_catalog(example_folder)
++    path = example_folder.recipe_file("red-braised-pork")
++    write(path, path.read_text(encoding="utf-8") + 'en = ""\n')
++    recipe, problems = read_recipe(example_folder, catalog, "red-braised-pork")
++    assert recipe is None
++    check_problems(problems, [err(STEPS, m_not_a_list("en"), PORK)])
++    recipe, problems = read_recipe(example_folder, catalog, "mapo")
++    assert recipe is None
++    check_problems(problems, [err(None, M_FILE_MISSING, "recipes/mapo.toml")])
++    with pytest.raises(ValueError):
++        read_recipe(example_folder, catalog, "Tomato-Egg")
++
++
++def test_f04_t43_scenario_v0_1_s04_at_the_readers(example_folder: DataFolder) -> None:
++    """A recipe with an ingredient that the catalog lacks reads once the catalog has it."""
++    for recipe_id in EXAMPLE_IDS:
++        if recipe_id != "tomato-egg":
++            example_folder.recipe_file(recipe_id).unlink()
++    cucumber = dish_text(
++        name='{ zh = "拍黄瓜", en = "Smashed cucumber" }',
++        servings="2",
++        tags='["快手", "素"]',
++        ingredients=('{ item = "黄瓜", amount = "2 个" }', '{ item = "大蒜", amount = "2 瓣" }'),
++        steps=(
++            'zh = ["黄瓜拍碎，加蒜末和盐拌匀。"]',
++            'en = ["Smash the cucumber, and toss it with the garlic and salt."]',
++        ),
++    )
++    write(example_folder.recipe_file("cucumber-salad"), cucumber)
++    catalog = example_catalog(example_folder)
++    assert list_recipe_ids(example_folder) == (("cucumber-salad", "tomato-egg"), ())
++    recipe, problems = read_recipe(example_folder, catalog, "cucumber-salad")
++    assert recipe is None
++    file = "recipes/cucumber-salad.toml"
++    check_problems(problems, [err(ingredient_n(1), m_unknown_ing("黄瓜"), file)])
++    edit_ingredients(example_folder, added=[ing("黄瓜", "Cucumber")])
++    catalog = example_catalog(example_folder)
++    assert len(catalog.ingredients) == 23
++    recipe, problems = read_recipe(example_folder, catalog, "cucumber-salad")
++    assert problems == ()
++    assert recipe is not None
++    assert recipe.ingredients[0].ingredient is catalog.ingredients[22]
++    check_lines(
++        recipe,
++        catalog,
++        ["快手", "素"],
++        [("黄瓜", qty(2, Unit.PIECE), None), ("大蒜", qty(2, Unit.CLOVE), None)],
++    )
+diff --git a/tests/test_f04_integration.py b/tests/test_f04_integration.py
+new file mode 100644
+index 0000000..cadf0c6
+--- /dev/null
++++ b/tests/test_f04_integration.py
+@@ -0,0 +1,240 @@
++"""Tests of F04 for the readers together: nothing is written, and random recipe files (T57, T58)."""
++
++import random
++from pathlib import Path
++
++import pytest
++
++from f04_support import (
++    EN,
++    NAME,
++    STEPS,
++    ZH,
++    dish_catalog,
++    dish_text,
++    example_catalog,
++    put_bytes,
++    touch,
++    write,
++)
++from recipe_menu.catalog import Catalog
++from recipe_menu.datafile import DataFolder, Problem, Severity, list_toml_files
++from recipe_menu.recipes import Recipe, list_recipe_ids, read_recipe, read_recipes
++
++# ---------------------------------------------------------------- T57: reading writes nothing
++
++
++def snapshot(root: Path) -> tuple[dict[str, bytes], set[str]]:
++    """Records the bytes of every file and the path of every folder under a folder."""
++    files: dict[str, bytes] = {}
++    folders: set[str] = set()
++    for path in sorted(root.rglob("*")):
++        relative = path.relative_to(root).as_posix()
++        if path.is_dir():
++            folders.add(relative)
++        else:
++            files[relative] = path.read_bytes()
++    return files, folders
++
++
++def read_everything(folder: DataFolder, catalog: Catalog) -> None:
++    """Calls every reader of F04 in every way that a command does."""
++    list_toml_files(folder, folder.recipes)
++    list_toml_files(folder, folder.menus)
++    ids, _ = list_recipe_ids(folder)
++    for recipe_id in ids:
++        read_recipe(folder, catalog, recipe_id)
++        read_recipe(folder, None, recipe_id)
++    read_recipes(folder, catalog)
++    read_recipes(folder, None)
++
++
++def test_f04_t57_reading_writes_nothing(example_folder: DataFolder) -> None:
++    """The folder holds the same files with the same bytes, also after files with mistakes."""
++    catalog = example_catalog(example_folder)
++    before = snapshot(example_folder.root)
++    read_everything(example_folder, catalog)
++    assert snapshot(example_folder.root) == before
++    touch(example_folder.recipes, "Rice Bowl.toml", "pancakes.TOML")
++    write(example_folder.recipe_file("rice"), "servings = 0\n")
++    put_bytes(example_folder.recipe_file("gbk"), dish_text().encode("gbk"))
++    before = snapshot(example_folder.root)
++    read_everything(example_folder, catalog)
++    assert snapshot(example_folder.root) == before
++
++
++# ---------------------------------------------------------------- T58: random recipe files
++
++LANGUAGE_VALUES = [
++    '"番茄炒蛋"',
++    '"Tomato"',
++    '" Tomato\u3000"',
++    '""',
++    '" "',
++    '"\u3000"',
++    "3",
++    "true",
++    "[]",
++]
++SERVINGS_VALUES = [
++    "2",
++    "1",
++    "100",
++    "0",
++    "101",
++    "-1",
++    "999999999999999",
++    "1000000000000000",
++    '"2"',
++    "2.5",
++    "true",
++    "0x" + "f" * 5000,
++]
++TAG_ITEMS = [
++    '"快手"',
++    '"quick"',
++    '" QUICK "',
++    '"家常"',
++    '"breakfast"',
++    '""',
++    '" "',
++    "3",
++    '["快手"]',
++]
++ITEM_NAMES = ['"番茄"', '"Egg"', '"葱"', '"豆瓣酱"', '""', '" "', "3"]
++AMOUNTS = [
++    '"300 g"',
++    '"3"',
++    '"适量"',
++    '"to taste"',
++    '"1 cups"',
++    '"0 g"',
++    '"a few"',
++    '"1234567890123456 g"',
++    '""',
++    "300",
++]
++STEP_LISTS = ["[]", '["番茄切块。"]', '["Cut.", "Fry."]', '[" "]', "[3]", '""', '" "', "3"]
++
++
++def inline_table(parts: list[str]) -> str:
++    """Writes an inline table from its ``key = value`` parts."""
++    return "{ " + ", ".join(parts) + " }" if parts else "{}"
++
++
++def language_table(rng: random.Random) -> str:
++    """Writes a table of ``zh`` and ``en`` for a name or a note, each missing 1 time in 4."""
++    parts = [f"{key} = {rng.choice(LANGUAGE_VALUES)}" for key in ("zh", "en") if rng.randrange(4)]
++    if rng.randrange(8) == 0:
++        parts.append('fr = "x"')
++    return inline_table(parts)
++
++
++def random_ingredient(rng: random.Random) -> str:
++    """Writes one item of ``ingredients``: a number 1 time in 10, and otherwise a table."""
++    if rng.randrange(10) == 0:
++        return "7"
++    parts = []
++    if rng.randrange(6):
++        parts.append(f"item = {rng.choice(ITEM_NAMES)}")
++    if rng.randrange(6):
++        parts.append(f"amount = {rng.choice(AMOUNTS)}")
++    if rng.randrange(2) == 0:
++        note = rng.choice(['"切块"', "{}", language_table(rng)])
++        parts.append(f"note = {note}")
++    if rng.randrange(8) == 0:
++        parts.append('unit = "g"')
++    return inline_table(parts)
++
++
++def random_value(rng: random.Random, key: str) -> str:
++    """Writes the value of one of the five keys at the top of a recipe file."""
++    if key == "name":
++        return language_table(rng) if rng.randrange(5) else rng.choice(['"番茄炒蛋"', "3", "[]"])
++    if key == "servings":
++        return rng.choice(SERVINGS_VALUES)
++    if key == "tags":
++        if rng.randrange(10) == 0:
++            return '"快手"'
++        return "[" + ", ".join(rng.choice(TAG_ITEMS) for _ in range(rng.randrange(5))) + "]"
++    if rng.randrange(10) == 0:
++        return '"番茄"'
++    return "[" + ", ".join(random_ingredient(rng) for _ in range(rng.randrange(5))) + "]"
++
++
++def random_recipe(rng: random.Random) -> str:
++    """Writes a recipe file of random mixes of the checks of design 2.6."""
++    top = [
++        f"{key} = {random_value(rng, key)}"
++        for key in ("name", "servings", "tags", "ingredients")
++        if rng.randrange(8)
++    ]
++    if rng.randrange(8) == 0:
++        top.append("extra = 1")
++    tail: list[str] = []
++    if rng.randrange(8):
++        if rng.randrange(10) == 0:
++            top.append('steps = "x"')
++        else:
++            tail = ["[steps]"]
++            tail += [
++                f"{key} = {rng.choice(STEP_LISTS)}" for key in ("zh", "en") if rng.randrange(4)
++            ]
++            if rng.randrange(8) == 0:
++                tail.append('note = "x"')
++    rng.shuffle(top)
++    return "".join(f"{line}\n" for line in [*top, *tail])
++
++
++def check_problems_of_a_file(problems: tuple[Problem, ...], label: object) -> None:
++    """Checks the file, the severity, the texts, and the places of the warnings."""
++    for problem in problems:
++        assert str(problem.file) == str(Path("recipes", "dish.toml")), label
++        assert problem.severity in (Severity.ERROR, Severity.WARNING), label
++        assert isinstance(problem.text(EN), str), label
++        assert isinstance(problem.text(ZH), str), label
++        if problem.severity is Severity.WARNING:
++            assert problem.place is not None, label
++            assert problem.place in (NAME, STEPS) or problem.place.en.startswith("ingredient "), (
++                label
++            )
++
++
++def check_recipe(recipe: Recipe, label: object) -> None:
++    """Checks that a recipe meets the constraints of design 2.3 and holds the catalog's objects."""
++    assert recipe.id == "dish", label
++    assert 1 <= recipe.servings <= 100, label
++    texts = [recipe.name.en, recipe.name.zh]
++    texts += [
++        text for line in recipe.ingredients if line.note for text in (line.note.en, line.note.zh)
++    ]
++    for steps in (recipe.steps.en, recipe.steps.zh):
++        texts += list(steps or ())
++    assert all(text == text.strip() for text in texts if text is not None), label
++    assert all(any(tag is known for known in dish_catalog.tags) for tag in recipe.tags), label
++    assert len({id(tag) for tag in recipe.tags}) == len(recipe.tags), label
++    for line in recipe.ingredients:
++        assert any(line.ingredient is known for known in dish_catalog.ingredients), label
++
++
++@pytest.mark.usefixtures("default_int_limit")
++def test_f04_t58_random_recipe_files_give_problems_and_never_an_exception(
++    folder: DataFolder,
++) -> None:
++    """500 files from a fixed seed. A recipe comes exactly when no problem is an error."""
++    rng = random.Random(20261111)  # noqa: S311 - a fixed seed, no security
++    for number in range(500):
++        write(folder.recipe_file("dish"), random_recipe(rng))
++        recipe, problems = read_recipe(folder, dish_catalog, "dish")
++        no_catalog, no_catalog_problems = read_recipe(folder, None, "dish")
++        recipes, listed = read_recipes(folder, dish_catalog)
++        assert no_catalog is None, number
++        for found in (problems, no_catalog_problems):
++            check_problems_of_a_file(found, number)
++        has_error = any(problem.severity is Severity.ERROR for problem in problems)
++        assert (recipe is None) == has_error, number
++        if recipe is not None:
++            check_recipe(recipe, number)
++        assert recipes == (() if recipe is None else (recipe,)), number
++        assert listed == problems, number
++        assert read_recipe(folder, dish_catalog, "dish") == (recipe, problems), number
+diff --git a/tests/test_f04_list_toml_files.py b/tests/test_f04_list_toml_files.py
+new file mode 100644
+index 0000000..e1ea858
+--- /dev/null
++++ b/tests/test_f04_list_toml_files.py
+@@ -0,0 +1,182 @@
++"""Tests of F04 for list_toml_files (T48 to T54)."""
++
++import shutil
++import sys
++from pathlib import Path
++
++import pytest
++
++from f04_support import (
++    M_FOLDER_DENIED,
++    M_FOLDER_IS_FILE,
++    M_FOLDER_MISSING,
++    M_TOML_ENDING,
++    check_problems,
++    dish_text,
++    err,
++    listing_denied,
++    m_folder_system,
++    put_bytes,
++    touch,
++    write,
++)
++from recipe_menu.datafile import DataFolder, list_toml_files
++from recipe_menu.recipes import list_recipe_ids
++
++
++def test_f04_t48_the_design_example_on_the_menus_folder(example_folder: DataFolder) -> None:
++    """A capital ending, a missing folder, a file in its place, and a path outside the data."""
++    folder = example_folder
++    assert list_toml_files(folder, folder.menus) == (("2026-W47",), ())
++    write(folder.menus / "notes.txt", "Ideas\n")
++    touch(folder.menus, "2026-W48.TOML")
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ("2026-W47",)
++    check_problems(problems, [err(None, M_TOML_ENDING, "menus/2026-W48.TOML")])
++    shutil.rmtree(folder.menus)
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "menus")])
++    write(folder.menus, "")
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_IS_FILE, "menus")])
++    with pytest.raises(ValueError):
++        list_toml_files(folder, Path("D:/other"))
++
++
++def test_f04_t49_which_entries_count_and_how_the_names_sort(
++    folder: DataFolder, tmp_path: Path
++) -> None:
++    """The names sort by code point as strings, so Z comes before a, and a before a-b."""
++    path = tmp_path / "x"
++    put_bytes(path / "b.toml", b"\xff")
++    touch(
++        path,
++        "a.toml",
++        "a-b.toml",
++        ".toml",
++        "d.toml.toml",
++        "e.TOML.toml",
++        "f .toml",
++        "Z.toml",
++        "notes.txt",
++        "rice.toml.bak",
++        "toml",
++        "atoml",
++        "g.tom",
++        "g.\uff54oml",
++        "i.toml\u200b",
++    )
++    (path / "c.toml").mkdir()
++    write(path / "sub" / "h.toml", "")
++    names, problems = list_toml_files(folder, path)
++    assert names == ("", "Z", "a", "a-b", "b", "c", "d.toml", "e.TOML", "f ")
++    assert problems == ()
++
++
++def test_f04_t50_a_capital_in_the_ending_gives_an_error_sorted_by_the_whole_name(
++    folder: DataFolder,
++) -> None:
++    """The problems sort by the whole entry name as a string: Z.TOML, a-b.TOML, then a.TOML."""
++    touch(
++        folder.menus,
++        "a.TOML",
++        "a-b.TOML",
++        ".TOML",
++        "b.Toml",
++        "c.toML",
++        "d.tomL",
++        "Z.TOML",
++        "h.toml",
++        "e.TOML.bak",
++        "f.TOM",
++        "g.\uff34OML",
++    )
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ("h",)
++    ordered = (".TOML", "Z.TOML", "a-b.TOML", "a.TOML", "b.Toml", "c.toML", "d.tomL")
++    check_problems(problems, [err(None, M_TOML_ENDING, f"menus/{name}") for name in ordered])
++
++
++@pytest.mark.skipif(
++    sys.platform == "win32",
++    reason="Windows compares file names without case, so rice.TOML there is rice.toml, and a "
++    "folder cannot hold the three files. CI runs this case on Linux.",
++)
++def test_f04_t51_three_files_that_differ_in_case_give_one_name_and_two_errors(
++    folder: DataFolder,
++) -> None:
++    """``rice.toml`` is the recipe, and ``rice.TOML`` and ``rice.Toml`` are errors, in order."""
++    write(folder.recipes / "rice.toml", dish_text())
++    touch(folder.recipes, "rice.TOML", "rice.Toml")
++    expected = [
++        err(None, M_TOML_ENDING, "recipes/rice.TOML"),
++        err(None, M_TOML_ENDING, "recipes/rice.Toml"),
++    ]
++    names, problems = list_toml_files(folder, folder.recipes)
++    assert names == ("rice",)
++    check_problems(problems, expected, "list_toml_files")
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ("rice",)
++    check_problems(problems, expected, "list_recipe_ids")
++
++
++def test_f04_t52_a_folder_that_cannot_be_listed_gives_one_error(
++    folder: DataFolder, tmp_path: Path
++) -> None:
++    """A missing folder, a file in its place, and a denied listing, with no place."""
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "menus")], 1)
++    nowhere = DataFolder(tmp_path / "nowhere")
++    names, problems = list_toml_files(nowhere, nowhere.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "menus")], 2)
++    write(tmp_path / "data.txt", "x\n")
++    below_file = DataFolder(tmp_path / "data.txt")
++    names, problems = list_toml_files(below_file, below_file.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "menus")], 3)
++    write(folder.menus, "")
++    names, problems = list_toml_files(folder, folder.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_IS_FILE, "menus")], 4)
++    folder.menus.unlink()
++    folder.menus.mkdir()
++    with listing_denied(folder.menus):
++        names, problems = list_toml_files(folder, folder.menus)
++    assert names == ()
++    check_problems(problems, [err(None, M_FOLDER_DENIED, "menus")], 5)
++
++
++def test_f04_t53_any_other_oserror_gives_the_system_message(
++    folder: DataFolder, tmp_path: Path
++) -> None:
++    """The reason is the ``strerror`` of the error, and the probe with ``is_file`` never raises."""
++    if sys.platform == "win32":
++        name = "a?b"
++        reason = "The filename, directory name, or volume label syntax is incorrect"
++    else:
++        name = "a" * 256
++        reason = "File name too long"
++    names, problems = list_toml_files(folder, tmp_path / name)
++    assert names == ()
++    check_problems(problems, [err(None, m_folder_system(reason), name)])
++
++
++def test_f04_t54_a_path_outside_the_data_folder_raises(tmp_path: Path) -> None:
++    """``list_toml_files`` finds the wrong call before it lists."""
++    folder = DataFolder(tmp_path / "recipe-menu")
++    folder.root.mkdir()
++    touch(tmp_path / "other", "a.toml")
++    (tmp_path / "recipe-menu2").mkdir()
++    for path in (
++        tmp_path / "other",
++        tmp_path / "recipe-menu2",
++        tmp_path,
++        Path("menus"),
++        Path("D:/other"),
++    ):
++        with pytest.raises(ValueError):
++            list_toml_files(folder, path)
+diff --git a/tests/test_f04_read_name_servings.py b/tests/test_f04_read_name_servings.py
+new file mode 100644
+index 0000000..699fe03
+--- /dev/null
++++ b/tests/test_f04_read_name_servings.py
+@@ -0,0 +1,162 @@
++"""Tests of F04 for read_recipe: the name and the servings (T14 to T19)."""
++
++from dataclasses import replace
++
++import pytest
++
++from f03_support import m_missing_key, m_not_a_text, m_unknown_key
++from f04_support import (
++    M_NO_EN_NAME,
++    M_NO_NAME,
++    M_NO_ZH_NAME,
++    M_SERVINGS_NOT_A_NUMBER,
++    NAME,
++    SERVINGS,
++    ZH_EN_KEYS,
++    check_fails,
++    check_reads,
++    dish,
++    dish_catalog,
++    err,
++    m_not_a_zh_en,
++    m_too_few,
++    m_too_many,
++    qty,
++    tomato,
++    warn,
++    write_dish,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import BiText
++from recipe_menu.recipes import RecipeIngredient, Steps, read_recipe
++from recipe_menu.units import Unit
++
++
++def test_f04_t14_the_base_recipe_reads_and_each_text_is_stripped(folder: DataFolder) -> None:
++    """Whitespace at both ends goes, and whitespace inside a text stays."""
++    write_dish(folder)
++    assert read_recipe(folder, dish_catalog, "dish") == (dish, ())
++    padded_item = (
++        '{ item = " 番茄 ", amount = " 300 g ", '
++        'note = { zh = " 切块 ", en = "cut into\u00a0wedges\u3000" } }'
++    )
++    expected = replace(
++        dish,
++        name=BiText("Tomato and  egg stir-fry", "番茄炒蛋"),
++        ingredients=(
++            RecipeIngredient(tomato, qty(300, Unit.G), BiText("cut into\u00a0wedges", "切块")),
++        ),
++        steps=Steps(("Cut the  tomatoes.",), ("番茄切块。",)),
++    )
++    check_reads(
++        folder,
++        expected,
++        name='{ zh = " 番茄炒蛋\u3000", en = "\tTomato and  egg stir-fry " }',
++        tags='[" 快手 "]',
++        ingredients=(padded_item,),
++        steps=('zh = [" 番茄切块。\u3000"]', 'en = ["\tCut the  tomatoes. "]'),
++    )
++
++
++def test_f04_t15_a_name_with_one_usable_language_gives_a_warning(folder: DataFolder) -> None:
++    """A blank text in the name counts as a missing language."""
++    only_en = replace(dish, name=BiText(en="Tomato and egg stir-fry"))
++    only_zh = replace(dish, name=BiText(zh="番茄炒蛋"))
++    en_names = (
++        '{ en = "Tomato and egg stir-fry" }',
++        '{ zh = "", en = "Tomato and egg stir-fry" }',
++        '{ zh = "\u3000", en = "Tomato and egg stir-fry" }',
++    )
++    for name in en_names:
++        check_reads(folder, only_en, [warn(NAME, M_NO_ZH_NAME)], name=name)
++    for name in ('{ zh = "番茄炒蛋" }', '{ zh = "番茄炒蛋", en = "\t" }'):
++        check_reads(folder, only_zh, [warn(NAME, M_NO_EN_NAME)], name=name)
++
++
++def test_f04_t16_the_errors_of_the_name(folder: DataFolder) -> None:
++    """A wrong language gets no warning for the other language, and no NO_NAME."""
++    cases = [
++        (None, [err(None, m_missing_key("name"))]),
++        ('"番茄炒蛋"', [err(NAME, m_not_a_zh_en("name"))]),
++        ('["番茄炒蛋"]', [err(NAME, m_not_a_zh_en("name"))]),
++        ('{ zh = 3, en = "Tomato and egg stir-fry" }', [err(NAME, m_not_a_text("zh"))]),
++        ('{ zh = "番茄炒蛋", en = true }', [err(NAME, m_not_a_text("en"))]),
++        ("{ zh = [], en = 3 }", [err(NAME, m_not_a_text("zh")), err(NAME, m_not_a_text("en"))]),
++        ("{ zh = 3 }", [err(NAME, m_not_a_text("zh"))]),
++        (
++            '{ zh = "番茄炒蛋", en = "Tomato and egg stir-fry", fr = "x" }',
++            [err(NAME, m_unknown_key("fr", ZH_EN_KEYS))],
++        ),
++        ("{}", [err(NAME, M_NO_NAME)]),
++        ('{ zh = "", en = " " }', [err(NAME, M_NO_NAME)]),
++    ]
++    for name, expected in cases:
++        check_fails(folder, expected, name=name)
++
++
++def test_f04_t17_the_order_within_the_name(folder: DataFolder) -> None:
++    """Problems of zh, then en, then the unknown keys, then NO_NAME or the warning."""
++    unknown = m_unknown_key
++    check_fails(
++        folder,
++        [
++            err(NAME, m_not_a_text("zh")),
++            err(NAME, m_not_a_text("en")),
++            err(NAME, unknown("b", ZH_EN_KEYS)),
++            err(NAME, unknown("a", ZH_EN_KEYS)),
++        ],
++        name="{ en = 3, b = 1, zh = true, a = 2 }",
++    )
++    check_fails(
++        folder,
++        [err(NAME, unknown("x", ZH_EN_KEYS)), err(NAME, M_NO_NAME)],
++        name='{ x = 1, en = "", zh = "" }',
++    )
++    check_fails(
++        folder,
++        [err(NAME, unknown("y", ZH_EN_KEYS)), warn(NAME, M_NO_EN_NAME)],
++        name='{ y = 1, zh = "番茄炒蛋" }',
++    )
++
++
++def test_f04_t18_servings_are_read_by_value_and_bounded(folder: DataFolder) -> None:
++    """An integer of up to 15 digits outside the range gives its error with the number."""
++    for literal, servings in (("1", 1), ("100", 100), ("+7", 7), ("1_0", 10), ("0x64", 100)):
++        check_reads(folder, replace(dish, servings=servings), servings=literal)
++    wrong = [
++        ("0", m_too_few(0)),
++        ("-1", m_too_few(-1)),
++        ("-999999999999999", m_too_few(-999999999999999)),
++        ("101", m_too_many(101)),
++        ("0x65", m_too_many(101)),
++        ("999999999999999", m_too_many(999999999999999)),
++    ]
++    for literal, message in wrong:
++        check_fails(folder, [err(SERVINGS, message)], servings=literal)
++    assert m_too_few(0) == (
++        "Servings must be a whole number of 1 or more, not 0.",
++        "份数必须是不小于 1 的整数，不能是 0。",
++    )
++
++
++@pytest.mark.usefixtures("default_int_limit")
++def test_f04_t19_a_value_that_is_no_usable_integer_shows_no_number(folder: DataFolder) -> None:
++    """Hexadecimal of 5,000 digits and decimal of 4,300 digits raise nothing."""
++    literals = [
++        '"2"',
++        "2.5",
++        "2.0",
++        "true",
++        "false",
++        "[2]",
++        "{ n = 2 }",
++        "2026-11-11",
++        "inf",
++        "1000000000000000",
++        "-1000000000000000",
++        "0x" + "f" * 5000,
++        "1" * 4300,
++    ]
++    for literal in literals:
++        check_fails(folder, [err(SERVINGS, M_SERVINGS_NOT_A_NUMBER)], servings=literal)
++    check_fails(folder, [err(None, m_missing_key("servings"))], servings=None)
+diff --git a/tests/test_f04_read_notes_steps.py b/tests/test_f04_read_notes_steps.py
+new file mode 100644
+index 0000000..94a0b69
+--- /dev/null
++++ b/tests/test_f04_read_notes_steps.py
+@@ -0,0 +1,177 @@
++"""Tests of F04 for read_recipe: the notes and the steps (T27 to T31)."""
++
++from dataclasses import replace
++
++from f03_support import (
++    M_ITEM_EMPTY,
++    M_ITEM_NOT_A_TEXT,
++    m_missing_key,
++    m_not_a_list,
++    m_not_a_text,
++    m_unknown_key,
++)
++from f04_support import (
++    BASE_STEPS,
++    ITEM_KEYS,
++    M_NO_EN_NOTE,
++    M_NO_EN_STEPS,
++    M_NO_STEPS,
++    M_NO_ZH_NOTE,
++    M_NO_ZH_STEPS,
++    M_NOT_A_STEPS_TABLE,
++    STEPS,
++    ZH_EN_KEYS,
++    check_fails,
++    check_reads,
++    dish,
++    en_step,
++    err,
++    ingredient_n,
++    m_amount_unit,
++    m_not_a_zh_en,
++    m_unknown_ing,
++    m_zero,
++    qty,
++    tomato,
++    warn,
++    zh_step,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import BiText
++from recipe_menu.recipes import RecipeIngredient, Steps
++from recipe_menu.units import Unit
++
++ONE_ZH = 'zh = ["番茄切块。"]'
++ONE_EN = 'en = ["Cut the tomatoes."]'
++
++
++def with_note(note: BiText | None):
++    """Gives ``dish`` with its one ingredient line holding a note."""
++    line = RecipeIngredient(tomato, qty(300, Unit.G), note)
++    return replace(dish, ingredients=(line,))
++
++
++def test_f04_t27_the_note_of_an_ingredient(folder: DataFolder) -> None:
++    """One usable language gives a warning, no language gives no note, and wrong values fail."""
++    at = ingredient_n(1)
++    both_notes = BiText("cut into wedges", "切块")
++    reads = [
++        ('{ en = "cut into wedges" }', [warn(at, M_NO_ZH_NOTE)], BiText(en="cut into wedges")),
++        ('{ zh = "切块", en = " " }', [warn(at, M_NO_EN_NOTE)], BiText(zh="切块")),
++        (
++            '{ zh = "\u3000", en = "cut into wedges" }',
++            [warn(at, M_NO_ZH_NOTE)],
++            BiText(en="cut into wedges"),
++        ),
++        ("{}", [], None),
++        ('{ zh = "", en = "\t" }', [], None),
++        ('{ zh = "切块", en = "cut into wedges" }', [], both_notes),
++    ]
++    for note, expected, kept in reads:
++        item = f'{{ item = "番茄", amount = "300 g", note = {note} }}'
++        check_reads(folder, with_note(kept), expected, ingredients=(item,))
++    fails = [
++        ('"切块"', [err(at, m_not_a_zh_en("note"))]),
++        ('["切块"]', [err(at, m_not_a_zh_en("note"))]),
++        ("{ zh = 3 }", [err(at, m_not_a_text("zh"))]),
++        ('{ en = 3, zh = "" }', [err(at, m_not_a_text("en"))]),
++        (
++            '{ zh = "切块", en = "cut into wedges", size = 1 }',
++            [err(at, m_unknown_key("size", ZH_EN_KEYS))],
++        ),
++    ]
++    for note, expected in fails:
++        item = f'{{ item = "番茄", amount = "300 g", note = {note} }}'
++        check_fails(folder, expected, ingredients=(item,))
++    assert with_note(None) == dish
++
++
++def test_f04_t28_the_order_of_the_problems_of_an_ingredient(folder: DataFolder) -> None:
++    """Item, amount, note, and then the unknown keys of the item, in the file's order."""
++    items = (
++        '{ b = 1, note = 3, amount = "0 g", a = 2, item = "豆瓣酱" }',
++        '{ z = 1, note = { x = 1, en = "cut" }, amount = "300 g", item = "番茄" }',
++        '{ note = { en = 3, zh = true }, item = "番茄", amount = "1 cups" }',
++    )
++    expected = [
++        err(ingredient_n(1), m_unknown_ing("豆瓣酱")),
++        err(ingredient_n(1), m_zero("0 g")),
++        err(ingredient_n(1), m_not_a_zh_en("note")),
++        err(ingredient_n(1), m_unknown_key("b", ITEM_KEYS)),
++        err(ingredient_n(1), m_unknown_key("a", ITEM_KEYS)),
++        err(ingredient_n(2), m_unknown_key("x", ZH_EN_KEYS)),
++        warn(ingredient_n(2), M_NO_ZH_NOTE),
++        err(ingredient_n(2), m_unknown_key("z", ITEM_KEYS)),
++        err(ingredient_n(3), m_amount_unit("cups", "1 cups")),
++        err(ingredient_n(3), m_not_a_text("zh")),
++        err(ingredient_n(3), m_not_a_text("en")),
++    ]
++    check_fails(folder, expected, ingredients=items)
++
++
++def test_f04_t29_the_steps_with_one_usable_language(folder: DataFolder) -> None:
++    """A missing key or an empty list gives the warning, and several steps keep their order."""
++    only_zh = replace(dish, steps=Steps(zh=("番茄切块。",)))
++    only_en = replace(dish, steps=Steps(en=("Cut the tomatoes.",)))
++    for steps in ((ONE_ZH,), (ONE_ZH, "en = []")):
++        check_reads(folder, only_zh, [warn(STEPS, M_NO_EN_STEPS)], steps=steps)
++    for steps in ((ONE_EN,), ("zh = []", ONE_EN)):
++        check_reads(folder, only_en, [warn(STEPS, M_NO_ZH_STEPS)], steps=steps)
++    two = replace(
++        dish,
++        steps=Steps(("Cut the tomatoes.", "Fry them."), ("番茄切块。", "炒番茄。")),
++    )
++    steps = ('zh = ["番茄切块。", "炒番茄。"]', 'en = ["Cut the tomatoes.", "Fry them."]')
++    check_reads(folder, two, steps=steps)
++
++
++def test_f04_t30_the_wrong_values_of_the_steps(folder: DataFolder) -> None:
++    """The steps hold only lists, and a wrong language gets no warning and no NO_STEPS."""
++    for value in ('["番茄切块。"]', '"番茄切块。"'):
++        check_fails(folder, [err(STEPS, M_NOT_A_STEPS_TABLE)], steps=value)
++    for line in ('zh = ""', 'zh = " "', "zh = 3", "zh = { a = 1 }"):
++        check_fails(folder, [err(STEPS, m_not_a_list("zh"))], steps=(line, ONE_EN))
++    check_fails(folder, [err(zh_step(1), M_ITEM_EMPTY)], steps=('zh = [" "]', ONE_EN))
++    check_fails(
++        folder,
++        [
++            err(zh_step(2), M_ITEM_NOT_A_TEXT),
++            err(zh_step(3), M_ITEM_EMPTY),
++            err(zh_step(4), M_ITEM_EMPTY),
++        ],
++        steps=('zh = ["番茄切块。", 3, "", "\u3000"]', ONE_EN),
++    )
++    check_fails(folder, [err(en_step(1), M_ITEM_NOT_A_TEXT)], steps=("en = [3]",))
++    check_fails(folder, [err(STEPS, m_not_a_list("zh"))], steps=('zh = ""', "en = []"))
++    check_fails(folder, [err(STEPS, m_not_a_list("en"))], steps=(ONE_ZH, 'en = " "'))
++
++
++def test_f04_t31_the_other_errors_of_the_steps(folder: DataFolder) -> None:
++    """A missing key, no usable language, and unknown keys, in the order of the steps."""
++    check_fails(folder, [err(None, m_missing_key("steps"))], steps=None)
++    for steps in ((), ("zh = []", "en = []"), ("en = []",)):
++        check_fails(folder, [err(STEPS, M_NO_STEPS)], steps=steps)
++    check_fails(
++        folder,
++        [err(STEPS, m_unknown_key("note", ZH_EN_KEYS))],
++        steps=(ONE_ZH, ONE_EN, 'note = "x"'),
++    )
++    check_fails(
++        folder,
++        [
++            err(None, m_missing_key("servings")),
++            err(STEPS, m_unknown_key("servings", ZH_EN_KEYS)),
++        ],
++        servings=None,
++        steps=(*BASE_STEPS, "servings = 2"),
++    )
++    check_fails(
++        folder,
++        [
++            err(en_step(2), M_ITEM_NOT_A_TEXT),
++            err(STEPS, m_unknown_key("x", ZH_EN_KEYS)),
++            err(STEPS, m_unknown_key("y", ZH_EN_KEYS)),
++            warn(STEPS, M_NO_ZH_STEPS),
++        ],
++        steps=("x = 1", 'en = ["Stir.", 3]', "zh = []", "y = 2"),
++    )
+diff --git a/tests/test_f04_read_recipes.py b/tests/test_f04_read_recipes.py
+new file mode 100644
+index 0000000..5f23d9a
+--- /dev/null
++++ b/tests/test_f04_read_recipes.py
+@@ -0,0 +1,115 @@
++"""Tests of F04 for read_recipes (T44 to T47)."""
++
++from dataclasses import replace
++
++from f03_support import M_FILE_IS_FOLDER, m_missing_key
++from f04_support import (
++    EXAMPLE_IDS,
++    M_FOLDER_IS_FILE,
++    M_FOLDER_MISSING,
++    M_NO_EN_NAME,
++    M_NO_EN_STEPS,
++    M_NOT_A_RECIPE_ID,
++    M_TOML_ENDING,
++    SERVINGS,
++    STEPS,
++    check_problems,
++    dish,
++    dish_catalog,
++    dish_text,
++    err,
++    example_catalog,
++    m_too_few,
++    put_bytes,
++    touch,
++    warn,
++    write,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import BiText
++from recipe_menu.recipes import read_recipe, read_recipes
++
++PORK = "recipes/red-braised-pork.toml"
++RICE = "recipes/rice.toml"
++PORK_WARNING = warn(STEPS, M_NO_EN_STEPS, PORK)
++
++
++def test_f04_t44_the_design_example_of_read_recipes(example_folder: DataFolder) -> None:
++    """Seven recipes and one warning. Bad names and files add their problems, in order."""
++    catalog = example_catalog(example_folder)
++    recipes, problems = read_recipes(example_folder, catalog)
++    assert tuple(recipe.id for recipe in recipes) == EXAMPLE_IDS
++    for recipe in recipes:
++        assert read_recipe(example_folder, catalog, recipe.id)[0] == recipe
++    check_problems(problems, [PORK_WARNING])
++    touch(example_folder.recipes, "Rice Bowl.toml")
++    write(example_folder.recipe_file("rice"), "servings = 0\n")
++    recipes, problems = read_recipes(example_folder, catalog)
++    assert tuple(recipe.id for recipe in recipes) == tuple(i for i in EXAMPLE_IDS if i != "rice")
++    expected = [
++        err(None, M_NOT_A_RECIPE_ID, "recipes/Rice Bowl.toml"),
++        PORK_WARNING,
++        err(None, m_missing_key("name"), RICE),
++        err(SERVINGS, m_too_few(0), RICE),
++        err(None, m_missing_key("tags"), RICE),
++        err(None, m_missing_key("ingredients"), RICE),
++        err(None, m_missing_key("steps"), RICE),
++    ]
++    check_problems(problems, expected)
++    assert read_recipes(example_folder, None) == ((), tuple(problems))
++
++
++def test_f04_t45_the_problems_come_in_the_order_of_the_ids(folder: DataFolder) -> None:
++    """The listing problems first. A file with an error gives no recipe, and a warning keeps it."""
++    write(folder.recipes / "c.toml", dish_text())
++    write(folder.recipes / "a.toml", dish_text(servings="0"))
++    write(folder.recipes / "b.toml", dish_text(name='{ zh = "番茄炒蛋" }'))
++    (folder.recipes / "x.toml").mkdir()
++    write(folder.recipes / "d.TOML", dish_text())
++    write(folder.recipes / "Rice Bowl.toml", dish_text())
++    expected = [
++        err(None, M_TOML_ENDING, "recipes/d.TOML"),
++        err(None, M_NOT_A_RECIPE_ID, "recipes/Rice Bowl.toml"),
++        err(SERVINGS, m_too_few(0), "recipes/a.toml"),
++        warn(BiText("name", "名称"), M_NO_EN_NAME, "recipes/b.toml"),
++        err(None, M_FILE_IS_FOLDER, "recipes/x.toml"),
++    ]
++    recipes, problems = read_recipes(folder, dish_catalog)
++    assert recipes == (
++        replace(dish, id="b", name=BiText(zh="番茄炒蛋")),
++        replace(dish, id="c"),
++    )
++    check_problems(problems, expected, "dish_catalog")
++    recipes, problems = read_recipes(folder, None)
++    assert recipes == ()
++    check_problems(problems, expected, "no catalog")
++
++
++def test_f04_t46_a_folder_that_cannot_be_listed_gives_only_its_problem(
++    folder: DataFolder,
++) -> None:
++    """A missing folder and a file give their problems. An empty folder gives nothing."""
++    for catalog in (dish_catalog, None):
++        assert folder.recipes.exists() is False
++        recipes, problems = read_recipes(folder, catalog)
++        assert recipes == ()
++        check_problems(problems, [err(None, M_FOLDER_MISSING, "recipes")], 1)
++        write(folder.recipes, "x\n")
++        recipes, problems = read_recipes(folder, catalog)
++        assert recipes == ()
++        check_problems(problems, [err(None, M_FOLDER_IS_FILE, "recipes")], 2)
++        folder.recipes.unlink()
++        folder.recipes.mkdir()
++        assert read_recipes(folder, catalog) == ((), ())
++        folder.recipes.rmdir()
++
++
++def test_f04_t47_a_byte_order_mark_and_crlf_read_the_same(example_folder: DataFolder) -> None:
++    """Scenario v0.1-S08 at the reader: files saved by Notepad read like the example."""
++    catalog = example_catalog(example_folder)
++    first = read_recipes(example_folder, catalog)
++    assert len(first[0]) == 7
++    for path in sorted(example_folder.recipes.glob("*.toml")):
++        data = path.read_bytes()
++        put_bytes(path, b"\xef\xbb\xbf" + data.replace(b"\n", b"\r\n"))
++    assert read_recipes(example_folder, catalog) == first
+diff --git a/tests/test_f04_read_tags_ingredients.py b/tests/test_f04_read_tags_ingredients.py
+new file mode 100644
+index 0000000..4612818
+--- /dev/null
++++ b/tests/test_f04_read_tags_ingredients.py
+@@ -0,0 +1,217 @@
++"""Tests of F04 for read_recipe: the tags and the ingredients (T20 to T26)."""
++
++from dataclasses import replace
++from fractions import Fraction
++
++from f03_support import (
++    M_ITEM_EMPTY,
++    M_ITEM_NOT_A_TABLE,
++    M_ITEM_NOT_A_TEXT,
++    m_empty_text,
++    m_missing_key,
++    m_not_a_list,
++    m_not_a_text,
++    m_unknown_key,
++)
++from f04_support import (
++    INGREDIENTS,
++    ITEM_KEYS,
++    TAGS,
++    check_fails,
++    dish,
++    egg,
++    err,
++    home,
++    ingredient_n,
++    m_amount_unit,
++    m_no_unit,
++    m_not_a_number,
++    m_unknown_ing,
++    m_unknown_tag,
++    m_zero,
++    qty,
++    quick,
++    read_dish,
++    scallion,
++    tag_n,
++    tomato,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.recipes import RecipeIngredient
++from recipe_menu.units import TO_TASTE, Quantity, Unit
++
++
++def test_f04_t20_a_tag_is_found_by_either_name_and_held_once(folder: DataFolder) -> None:
++    """The order is that of the first item that names the tag. Empty lists give empty tuples."""
++    recipe, problems = read_dish(folder, tags='["家常", "quick", "快手", " QUICK ", "Home-Style"]')
++    assert problems == ()
++    assert recipe == replace(dish, tags=(home, quick))
++    assert recipe is not None
++    assert recipe.tags[0] is home
++    assert recipe.tags[1] is quick
++    recipe, problems = read_dish(folder, tags="[]", ingredients="[]")
++    assert problems == ()
++    assert recipe == replace(dish, tags=(), ingredients=())
++
++
++def test_f04_t21_the_errors_of_the_tags(folder: DataFolder) -> None:
++    """Items that are no text or blank are at ``tag N``, and unknown tags are at ``tags``."""
++    check_fails(folder, [err(None, m_missing_key("tags"))], tags=None)
++    for value in ('"快手"', '{ zh = "快手" }'):
++        check_fails(folder, [err(TAGS, m_not_a_list("tags"))], tags=value)
++    items = '[3, "", " ", "\u3000", ["快手"], true, " breakfast ", "快手", "breakfast", "dinner"]'
++    check_fails(
++        folder,
++        [
++            err(tag_n(1), M_ITEM_NOT_A_TEXT),
++            err(tag_n(2), M_ITEM_EMPTY),
++            err(tag_n(3), M_ITEM_EMPTY),
++            err(tag_n(4), M_ITEM_EMPTY),
++            err(tag_n(5), M_ITEM_NOT_A_TEXT),
++            err(tag_n(6), M_ITEM_NOT_A_TEXT),
++            err(TAGS, m_unknown_tag("breakfast")),
++            err(TAGS, m_unknown_tag("breakfast")),
++            err(TAGS, m_unknown_tag("dinner")),
++        ],
++        tags=items,
++    )
++
++
++def test_f04_t22_the_errors_of_the_list_of_ingredients(folder: DataFolder) -> None:
++    """A missing key, a value that is no list, items that are no table, and an unknown key."""
++    check_fails(folder, [err(None, m_missing_key("ingredients"))], ingredients=None)
++    for value in ('"番茄"', '{ item = "番茄", amount = "300 g" }'):
++        check_fails(folder, [err(INGREDIENTS, m_not_a_list("ingredients"))], ingredients=value)
++    items = (
++        '"番茄"',
++        "3",
++        "[]",
++        "{}",
++        '{ item = "番茄", amount = "300 g", unit = "g" }',
++        '{ item = "番茄", amount = "300 g" }',
++    )
++    check_fails(
++        folder,
++        [
++            err(ingredient_n(1), M_ITEM_NOT_A_TABLE),
++            err(ingredient_n(2), M_ITEM_NOT_A_TABLE),
++            err(ingredient_n(3), M_ITEM_NOT_A_TABLE),
++            err(ingredient_n(4), m_missing_key("item")),
++            err(ingredient_n(4), m_missing_key("amount")),
++            err(ingredient_n(5), m_unknown_key("unit", ITEM_KEYS)),
++        ],
++        ingredients=items,
++    )
++
++
++def test_f04_t23_item_and_amount_must_be_texts_with_more_than_whitespace(
++    folder: DataFolder,
++) -> None:
++    """An unknown name is shown without whitespace, and a blank amount gets EMPTY_TEXT."""
++    items = (
++        '{ amount = "300 g" }',
++        '{ item = 3, amount = "300 g" }',
++        '{ item = " ", amount = "300 g" }',
++        '{ item = "番茄" }',
++        '{ item = "番茄", amount = 300 }',
++        '{ item = "番茄", amount = "\u3000" }',
++        '{ item = " 豆瓣酱 ", amount = "1 tbsp" }',
++        '{ item = ["番茄"], amount = [] }',
++    )
++    check_fails(
++        folder,
++        [
++            err(ingredient_n(1), m_missing_key("item")),
++            err(ingredient_n(2), m_not_a_text("item")),
++            err(ingredient_n(3), m_empty_text("item")),
++            err(ingredient_n(4), m_missing_key("amount")),
++            err(ingredient_n(5), m_not_a_text("amount")),
++            err(ingredient_n(6), m_empty_text("amount")),
++            err(ingredient_n(7), m_unknown_ing("豆瓣酱")),
++            err(ingredient_n(8), m_not_a_text("item")),
++            err(ingredient_n(8), m_not_a_text("amount")),
++        ],
++        ingredients=items,
++    )
++
++
++def test_f04_t24_an_amount_without_a_unit_gets_the_default_unit(folder: DataFolder) -> None:
++    """A unit in the amount wins. Each line refers to the catalog's object."""
++    items = (
++        '{ item = "鸡蛋", amount = "3" }',
++        '{ item = "Egg", amount = "2 tbsp" }',
++        '{ item = "番茄", amount = "1.5 kg" }',
++        '{ item = "番茄", amount = "300克" }',
++        '{ item = "葱", amount = "适量" }',
++        '{ item = "scallion", amount = "To  taste" }',
++        '{ item = "葱", amount = "2" }',
++        '{ item = " TOMATO ", amount = "12345678901234.5 g" }',
++    )
++    wanted = (
++        (egg, qty(3, Unit.PIECE)),
++        (egg, qty(2, Unit.TBSP)),
++        (tomato, Quantity(Fraction(3, 2), Unit.KG)),
++        (tomato, qty(300, Unit.G)),
++        (scallion, TO_TASTE),
++        (scallion, TO_TASTE),
++        (scallion, qty(2, Unit.STALK)),
++        (tomato, Quantity(Fraction(24691357802469, 2), Unit.G)),
++    )
++    lines = tuple(RecipeIngredient(ingredient, quantity) for ingredient, quantity in wanted)
++    recipe, problems = read_dish(folder, ingredients=items)
++    assert problems == ()
++    assert recipe == replace(dish, ingredients=lines)
++    assert recipe is not None
++    for line, (ingredient, _) in zip(recipe.ingredients, wanted, strict=True):
++        assert line.ingredient is ingredient
++        assert line.note is None
++
++
++def test_f04_t25_each_reason_of_a_wrong_quantity_gives_its_message(folder: DataFolder) -> None:
++    """The amount is shown without whitespace at both ends."""
++    amounts = (
++        "a few",
++        "1/2 tsp",
++        "-1 g",
++        "1234567890123456 g",
++        "\uff11 g",
++        " 1 cups ",
++        "1 适量",
++        "3",
++        "0 g",
++    )
++    items = tuple(f'{{ item = "番茄", amount = "{amount}" }}' for amount in amounts)
++    expected = [err(ingredient_n(n), m_not_a_number(a)) for n, a in enumerate(amounts[:5], 1)]
++    expected += [
++        err(ingredient_n(6), m_amount_unit("cups", "1 cups")),
++        err(ingredient_n(7), m_amount_unit("适量", "1 适量")),
++        err(ingredient_n(8), m_no_unit("3", tomato)),
++        err(ingredient_n(9), m_zero("0 g")),
++    ]
++    check_fails(folder, expected, ingredients=items)
++
++
++def test_f04_t26_an_item_with_a_problem_is_read_with_no_default_unit(folder: DataFolder) -> None:
++    """The amount gives every reason except NO_UNIT, because only the ingredient decides it."""
++    items = (
++        '{ item = "豆瓣酱", amount = "3" }',
++        '{ item = "豆瓣酱", amount = "1 cups" }',
++        '{ item = 3, amount = "3" }',
++        '{ item = "", amount = "0 g" }',
++        '{ amount = "a few" }',
++        '{ item = "鸡蛋", amount = "3" }',
++    )
++    check_fails(
++        folder,
++        [
++            err(ingredient_n(1), m_unknown_ing("豆瓣酱")),
++            err(ingredient_n(2), m_unknown_ing("豆瓣酱")),
++            err(ingredient_n(2), m_amount_unit("cups", "1 cups")),
++            err(ingredient_n(3), m_not_a_text("item")),
++            err(ingredient_n(4), m_empty_text("item")),
++            err(ingredient_n(4), m_zero("0 g")),
++            err(ingredient_n(5), m_missing_key("item")),
++            err(ingredient_n(5), m_not_a_number("a few")),
++        ],
++        ingredients=items,
++    )
+diff --git a/tests/test_f04_read_whole_file.py b/tests/test_f04_read_whole_file.py
+new file mode 100644
+index 0000000..5bb9b89
+--- /dev/null
++++ b/tests/test_f04_read_whole_file.py
+@@ -0,0 +1,203 @@
++"""Tests of F04 for read_recipe on a whole file: order, no catalog, and read errors (T32 to T36)."""
++
++import shutil
++
++import pytest
++
++from f03_support import (
++    M_BAD_KEY,
++    M_DEFINED_TWICE,
++    M_FILE_IS_FOLDER,
++    M_FILE_MISSING,
++    M_ITEM_NOT_A_TEXT,
++    M_MISSING_BRACKET,
++    M_NOT_UTF8,
++    M_NUMBER_TOO_LONG,
++    at_line,
++    m_missing_key,
++    m_unknown_key,
++)
++from f04_support import (
++    M_FOLDER_DENIED,
++    M_NO_EN_NAME,
++    M_NO_EN_STEPS,
++    M_NO_ZH_NOTE,
++    NAME,
++    RECIPE_KEYS,
++    SERVINGS,
++    STEPS,
++    TAGS,
++    check_problems,
++    dish,
++    dish_catalog,
++    dish_text,
++    err,
++    ingredient_n,
++    listing_denied,
++    m_amount_unit,
++    m_no_unit,
++    m_too_few,
++    m_unknown_ing,
++    m_unknown_tag,
++    m_zero,
++    put_bytes,
++    read_dish,
++    tag_n,
++    tomato,
++    warn,
++    write,
++    write_dish,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.recipes import list_recipe_ids, read_recipe, read_recipes
++
++
++def put_lines(folder: DataFolder, *lines: str) -> None:
++    """Writes ``recipes/dish.toml`` from its lines."""
++    write(folder.recipe_file("dish"), "".join(f"{line}\n" for line in lines))
++
++
++def test_f04_t32_the_parts_give_their_problems_in_one_order(folder: DataFolder) -> None:
++    """The order of the parts, whatever the order of the file. An empty file misses five keys."""
++    put_lines(
++        folder,
++        "version = 1",
++        "ingredients = [",
++        '  { item = "番茄", amount = "0 g" },',
++        "]",
++        'tags = ["breakfast"]',
++        "servings = 0",
++        'colour = "red"',
++        'name = { zh = "番茄炒蛋" }',
++        "[steps]",
++        'zh = ["番茄切块。"]',
++    )
++    recipe, problems = read_recipe(folder, dish_catalog, "dish")
++    assert recipe is None
++    check_problems(
++        problems,
++        [
++            warn(NAME, M_NO_EN_NAME),
++            err(SERVINGS, m_too_few(0)),
++            err(TAGS, m_unknown_tag("breakfast")),
++            err(ingredient_n(1), m_zero("0 g")),
++            warn(STEPS, M_NO_EN_STEPS),
++            err(None, m_unknown_key("version", RECIPE_KEYS)),
++            err(None, m_unknown_key("colour", RECIPE_KEYS)),
++        ],
++    )
++    write(folder.recipe_file("dish"), "version = 1\n" + dish_text())
++    recipe, problems = read_recipe(folder, dish_catalog, "dish")
++    assert recipe is None
++    check_problems(problems, [err(None, m_unknown_key("version", RECIPE_KEYS))])
++    write(folder.recipe_file("dish"), "")
++    recipe, problems = read_recipe(folder, dish_catalog, "dish")
++    assert recipe is None
++    keys = ("name", "servings", "tags", "ingredients", "steps")
++    check_problems(problems, [err(None, m_missing_key(key)) for key in keys])
++
++
++def test_f04_t33_with_no_catalog_there_is_no_recipe_but_the_other_checks_run(
++    folder: DataFolder,
++) -> None:
++    """Every check except UNKNOWN_TAG, UNKNOWN_INGREDIENT, and AMOUNT_NO_UNIT, and the warnings."""
++    write_dish(folder)
++    assert read_recipe(folder, None, "dish") == (None, ())
++    items = (
++        '{ item = "豆瓣酱", amount = "3" }',
++        '{ item = "番茄", amount = "3" }',
++        '{ item = "番茄", amount = "1 cups" }',
++        '{ item = "番茄", amount = "0 g", note = { en = "cut" } }',
++    )
++    parts = {"name": '{ zh = "番茄炒蛋" }', "tags": '["breakfast", 3]', "ingredients": items}
++    recipe, problems = read_dish(folder, None, **parts)
++    assert recipe is None
++    check_problems(
++        problems,
++        [
++            warn(NAME, M_NO_EN_NAME),
++            err(tag_n(2), M_ITEM_NOT_A_TEXT),
++            err(ingredient_n(3), m_amount_unit("cups", "1 cups")),
++            err(ingredient_n(4), m_zero("0 g")),
++            warn(ingredient_n(4), M_NO_ZH_NOTE),
++        ],
++        "no catalog",
++    )
++    recipe, problems = read_recipe(folder, dish_catalog, "dish")
++    assert recipe is None
++    check_problems(
++        problems,
++        [
++            warn(NAME, M_NO_EN_NAME),
++            err(TAGS, m_unknown_tag("breakfast")),
++            err(tag_n(2), M_ITEM_NOT_A_TEXT),
++            err(ingredient_n(1), m_unknown_ing("豆瓣酱")),
++            err(ingredient_n(2), m_no_unit("3", tomato)),
++            err(ingredient_n(3), m_amount_unit("cups", "1 cups")),
++            err(ingredient_n(4), m_zero("0 g")),
++            warn(ingredient_n(4), M_NO_ZH_NOTE),
++        ],
++        "dish_catalog",
++    )
++
++
++@pytest.mark.usefixtures("default_int_limit")
++def test_f04_t34_a_problem_of_read_toml_is_the_only_one(folder: DataFolder) -> None:
++    """The file cannot be read, so there is one problem and no recipe, with a catalog or not."""
++    path = folder.recipe_file("dish")
++    base = dish_text()
++    folder.recipes.mkdir()
++    cases = [
++        (None, err(None, M_FILE_MISSING)),
++        ("folder", err(None, M_FILE_IS_FOLDER)),
++        (base.encode("gbk"), err(at_line(1), M_NOT_UTF8)),
++        (
++            base.replace('"番茄炒蛋", en', '"番茄炒蛋",\n  en').encode(),
++            err(at_line(1), M_BAD_KEY),
++        ),
++        (dish_text(tags='["快手" "家常"]').encode(), err(at_line(3), M_MISSING_BRACKET)),
++        ((base + '[steps]\nen = ["Fry."]\n').encode(), err(at_line(11), M_DEFINED_TWICE)),
++        (dish_text(servings="1" * 4301).encode(), err(at_line(2), M_NUMBER_TOO_LONG)),
++    ]
++    for number, (content, expected) in enumerate(cases, 1):
++        shutil.rmtree(path, ignore_errors=True)
++        path.unlink(missing_ok=True)
++        if isinstance(content, str):
++            path.mkdir()
++        elif content is not None:
++            put_bytes(path, content)
++        for catalog in (dish_catalog, None):
++            recipe, problems = read_recipe(folder, catalog, "dish")
++            assert recipe is None, number
++            check_problems(problems, [expected], number)
++
++
++def test_f04_t35_an_id_that_breaks_the_rule_raises_before_any_read(folder: DataFolder) -> None:
++    """The file ``Tomato-Egg.toml`` exists, so the check comes before the read."""
++    write(folder.recipes / "Tomato-Egg.toml", dish_text())
++    for recipe_id in (
++        "Tomato-Egg",
++        "",
++        "../catalog",
++        "a/b",
++        "a:b",
++        "tomato egg",
++        "con",
++        "番茄炒蛋",
++    ):
++        for catalog in (dish_catalog, None):
++            with pytest.raises(ValueError):
++                read_recipe(folder, catalog, recipe_id)
++
++
++def test_f04_t36_read_recipe_lists_no_folder(folder: DataFolder) -> None:
++    """With the listing of ``recipes/`` denied, only the two listing readers give a problem."""
++    write_dish(folder)
++    with listing_denied(folder.recipes):
++        assert read_recipe(folder, dish_catalog, "dish") == (dish, ())
++        ids, id_problems = list_recipe_ids(folder)
++        recipes, problems = read_recipes(folder, dish_catalog)
++    assert ids == ()
++    assert recipes == ()
++    check_problems(id_problems, [err(None, M_FOLDER_DENIED, "recipes")])
++    check_problems(problems, [err(None, M_FOLDER_DENIED, "recipes")])
+diff --git a/tests/test_f04_recipe_ids.py b/tests/test_f04_recipe_ids.py
+new file mode 100644
+index 0000000..4cef5b7
+--- /dev/null
++++ b/tests/test_f04_recipe_ids.py
+@@ -0,0 +1,223 @@
++"""Tests of F04 for is_recipe_id and list_recipe_ids (T06 to T13)."""
++
++import shutil
++import sys
++from pathlib import Path
++
++import pytest
++
++from f04_support import (
++    EXAMPLE_IDS,
++    M_FOLDER_IS_FILE,
++    M_FOLDER_MISSING,
++    M_NOT_A_RECIPE_ID,
++    M_RESERVED_ID,
++    M_TOML_ENDING,
++    check_problems,
++    dish_text,
++    err,
++    put_bytes,
++    touch,
++    write,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.recipes import is_recipe_id, list_recipe_ids
++
++ACCEPTED = (
++    "tomato-egg",
++    "2-minute-noodles",
++    "choy-sum",
++    "a",
++    "0",
++    "9a",
++    "a-",
++    "a--b",
++    "abcdefghijklmnopqrstuvwxyz0123456789-",
++    "a" * 300,
++)
++
++REJECTED = (
++    "",
++    ".",
++    "..",
++    "rice.",
++    "nul.v2",
++    "a/b",
++    "a\b",
++    "a:b",
++    "a\x00",
++    "a*b",
++    "a?b",
++    "a<b",
++    "Tomato-Egg",
++    "tomato egg",
++    "tomato_egg",
++    "-tomato",
++    "番茄炒蛋",
++    "tomato\u2010egg",
++    "\uff54omato-egg",
++    "tomato-egg\u200b",
++    "a>b",
++    'a"b',
++    "a\x7cb",
++    "a\x01b",
++    "a\x1f",
++    "a\t",
++    "a\x7f",
++    "tomato-egg ",
++    " tomato-egg",
++    "tomato\u3000egg",
++    "tOMATO",
++    "-",
++    "tomato\u2011egg",
++    "\ufefftomato-egg",
++    "\u212aale",
++    "\u017fcallion",
++    "caf\u00e9",
++    "cafe\u0301",
++    "a\u00b2",
++    "\u0661",
++    "\uff11",
++    "\ud800",
++)
++
++
++def test_f04_t06_names_that_follow_the_rules_are_recipe_ids() -> None:
++    """The rules set no length."""
++    for text in ACCEPTED:
++        assert is_recipe_id(text) is True, text
++
++
++def test_f04_t07_names_that_break_rules_1_to_3_are_not_recipe_ids() -> None:
++    """Forbidden characters, whitespace, capitals, and look-alike characters give False."""
++    for text in REJECTED:
++        assert is_recipe_id(text) is False, text
++
++
++def test_f04_t08_windows_device_names_are_not_recipe_ids() -> None:
++    """A name that only starts like a device name is an ID. Capitals fail by rule 2."""
++    devices = ("con", "prn", "aux", "nul", "com0", "com1", "com9", "lpt0", "lpt1", "lpt9")
++    for text in (*devices, "NUL", "Con", "COM1"):
++        assert is_recipe_id(text) is False, text
++    for text in ("com10", "lpt10", "console", "conn", "auxiliary", "nul-1", "com", "lpt"):
++        assert is_recipe_id(text) is True, text
++
++
++def test_f04_t09_the_example_data_gives_its_seven_ids_and_the_folder_problems(
++    example_folder: DataFolder,
++) -> None:
++    """A capital ending, a name that is no ID, and a missing folder give their problems."""
++    assert list_recipe_ids(example_folder) == (EXAMPLE_IDS, ())
++    write(example_folder.recipes / "notes.txt", "Ideas\n")
++    touch(example_folder.recipes, "pancakes.TOML", "Rice Bowl.toml")
++    ids, problems = list_recipe_ids(example_folder)
++    assert ids == EXAMPLE_IDS
++    check_problems(
++        problems,
++        [
++            err(None, M_TOML_ENDING, "recipes/pancakes.TOML"),
++            err(None, M_NOT_A_RECIPE_ID, "recipes/Rice Bowl.toml"),
++        ],
++    )
++    shutil.rmtree(example_folder.recipes)
++    ids, problems = list_recipe_ids(example_folder)
++    assert ids == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "recipes")])
++
++
++def test_f04_t10_ids_sort_by_code_point_and_no_file_is_read(folder: DataFolder) -> None:
++    """``-`` comes before digits and digits before letters, and a folder counts."""
++    put_bytes(folder.recipes / "b.toml", b"\xff")
++    names = ("a9", "a10", "a", "a-b", "aa", "0-a", "a0")
++    touch(folder.recipes, *(f"{name}.toml" for name in names))
++    (folder.recipes / "c.toml").mkdir()
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ("0-a", "a", "a-b", "a0", "a10", "a9", "aa", "b", "c")
++    assert problems == ()
++
++
++def test_f04_t11_names_that_break_the_rule_give_not_a_recipe_id(folder: DataFolder) -> None:
++    """The problems come in the code point order of the names, after the ending problems."""
++    names = (
++        "tomato-egg.toml",
++        "Tomato-Eggs.toml",
++        "tomato egg.toml",
++        "tomato_egg.toml",
++        "-tomato.toml",
++        "rice..toml",
++        ".toml",
++        "番茄炒蛋.toml",
++        "tomato-egg\u200b.toml",
++        "rice.Toml",
++        "notes.txt",
++        "rice.toml.bak",
++        "toml",
++    )
++    touch(folder.recipes, *names)
++    write(folder.recipes / "drafts" / "stew.toml", "")
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ("tomato-egg",)
++    bad = (
++        ".toml",
++        "-tomato.toml",
++        "Tomato-Eggs.toml",
++        "rice..toml",
++        "tomato egg.toml",
++        "tomato-egg\u200b.toml",
++        "tomato_egg.toml",
++        "番茄炒蛋.toml",
++    )
++    expected = [err(None, M_TOML_ENDING, "recipes/rice.Toml")]
++    expected += [err(None, M_NOT_A_RECIPE_ID, f"recipes/{name}") for name in bad]
++    check_problems(problems, expected)
++
++
++@pytest.mark.skipif(
++    sys.platform == "win32",
++    reason="Windows may open the console device for con.toml, and a folder there cannot hold "
++    "CON.toml and con.toml side by side. CI runs this case on Linux.",
++)
++def test_f04_t12_a_device_name_gives_reserved_recipe_id(folder: DataFolder) -> None:
++    """Only a name that is exactly a device name of rule 4 gets RESERVED_RECIPE_ID."""
++    names = (
++        "con",
++        "CON",
++        "prn",
++        "aux",
++        "nul",
++        "nul.v2",
++        "com0",
++        "com9",
++        "lpt1",
++        "com10",
++        "console",
++    )
++    touch(folder.recipes, *(f"{name}.toml" for name in names))
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ("com10", "console")
++    expected = [
++        err(None, M_NOT_A_RECIPE_ID, "recipes/CON.toml"),
++        *(err(None, M_RESERVED_ID, f"recipes/{n}.toml") for n in ("aux", "com0", "com9", "con")),
++        err(None, M_RESERVED_ID, "recipes/lpt1.toml"),
++        err(None, M_RESERVED_ID, "recipes/nul.toml"),
++        err(None, M_NOT_A_RECIPE_ID, "recipes/nul.v2.toml"),
++        err(None, M_RESERVED_ID, "recipes/prn.toml"),
++    ]
++    check_problems(problems, expected)
++
++
++def test_f04_t13_a_folder_that_cannot_be_listed_gives_one_problem(
++    folder: DataFolder, tmp_path: Path
++) -> None:
++    """A missing folder, a file, and a folder below a file give the problem of the listing."""
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "recipes")], 1)
++    write(folder.recipes, dish_text())
++    ids, problems = list_recipe_ids(folder)
++    assert ids == ()
++    check_problems(problems, [err(None, M_FOLDER_IS_FILE, "recipes")], 2)
++    write(tmp_path / "data.txt", "x\n")
++    ids, problems = list_recipe_ids(DataFolder(tmp_path / "data.txt"))
++    assert ids == ()
++    check_problems(problems, [err(None, M_FOLDER_MISSING, "recipes")], 3)
+diff --git a/tests/test_f04_report.py b/tests/test_f04_report.py
+new file mode 100644
+index 0000000..83daa9b
+--- /dev/null
++++ b/tests/test_f04_report.py
+@@ -0,0 +1,78 @@
++"""Tests of F04 for Report.warn (T55 and T56)."""
++
++from pathlib import Path
++
++import pytest
++
++from f04_support import EN, ZH
++from recipe_menu.datafile import (
++    Problem,
++    Report,
++    Severity,
++    read_list,
++    read_text,
++    report_unknown_keys,
++)
++from recipe_menu.lang import BiText, Lang
++from recipe_menu.text import Message
++
++FILE = Path("recipes", "rice.toml")
++NO_EN = Message("No English steps.", "没有英文步骤。")
++COUNT = Message("{count} steps.", "{count} 个步骤。")
++UNKNOWN_TAG = Message('Unknown tag "{tag}".', "未知标签“{tag}”。")
++
++
++def test_f04_t55_warn_appends_a_warning_after_the_errors_of_the_helpers() -> None:
++    """The design's example, then ``add`` and ``warn`` with no place and with a value."""
++    report = Report(FILE)
++    table = {"tags": "主食", "ingredients": [{"item": " "}], "note": 3}
++    assert read_list(table, "tags", BiText("tags", "标签"), report) == []
++    item = read_text({"item": " "}, "item", BiText("ingredient 1", "食材 1"), report)
++    assert item is None
++    report_unknown_keys(table, ("tags", "ingredients"), None, report)
++    report.warn(BiText("steps", "步骤"), NO_EN)
++    report.add(None, NO_EN)
++    report.warn(None, COUNT, count=3)
++    problems = report.problems
++    assert isinstance(problems, list)
++    assert len(problems) == 6
++    errors, warning = Severity.ERROR, Severity.WARNING
++    assert [problem.severity for problem in problems] == [
++        errors,
++        errors,
++        errors,
++        warning,
++        errors,
++        warning,
++    ]
++    assert problems[0].text(EN) == '"tags" must be a list in square brackets, [ ... ].'
++    assert problems[1].text(EN) == '"item" is empty.'
++    assert problems[2].text(EN) == 'Unknown key "note". The keys are tags and ingredients.'
++    assert problems[3].place == BiText("steps", "步骤")
++    assert problems[3] == Problem.warning(FILE, BiText("steps", "步骤"), NO_EN)
++    assert problems[4] == Problem.error(FILE, None, NO_EN)
++    assert problems[5] == Problem.warning(FILE, None, COUNT, count=3)
++    assert problems[5].text(EN) == "3 steps."
++    assert problems[5].text(ZH) == "3 个步骤。"
++
++
++@pytest.mark.usefixtures("default_int_limit")
++def test_f04_t56_warn_raises_the_errors_of_problem_warning_and_appends_nothing(
++    tmp_path: Path,
++) -> None:
++    """A message and values that do not fit, an absolute file, and a value of a wrong type."""
++    report = Report(FILE)
++    value_errors = [
++        lambda: report.warn(None, UNKNOWN_TAG),
++        lambda: report.warn(None, UNKNOWN_TAG, tag="breakfast", meal="dinner"),
++        lambda: report.warn(None, NO_EN, tag="x"),
++        lambda: Report(tmp_path / "rice.toml").warn(None, NO_EN),
++        lambda: report.warn(None, COUNT, count=10**4300),
++    ]
++    for call in value_errors:
++        with pytest.raises(ValueError):
++            call()
++    for value in (None, True, 1.5, Lang.ZH):
++        with pytest.raises(TypeError):
++            report.warn(None, UNKNOWN_TAG, tag=value)
++    assert report.problems == []
+diff --git a/tests/test_f04_values.py b/tests/test_f04_values.py
+new file mode 100644
+index 0000000..40e5651
+--- /dev/null
++++ b/tests/test_f04_values.py
+@@ -0,0 +1,125 @@
++"""Tests of F04 for the values RecipeIngredient, Steps, and Recipe (T01 to T05)."""
++
++from fractions import Fraction
++
++import pytest
++
++from f04_support import (
++    EN,
++    ZH,
++    both,
++    chinese,
++    choy_lines,
++    choy_name,
++    choy_steps,
++    choy_sum,
++    qty,
++    quick,
++    tomato,
++    wedges,
++)
++from recipe_menu.lang import BiText
++from recipe_menu.recipes import Recipe, RecipeIngredient, Steps
++from recipe_menu.units import TO_TASTE, Unit
++
++
++def test_f04_t01_a_line_keeps_its_ingredient_quantity_and_note() -> None:
++    """The note is None by default and may have one language. A blank language is rejected."""
++    grams = qty(300, Unit.G)
++    line = RecipeIngredient(tomato, grams, wedges)
++    assert line.ingredient is tomato
++    assert line.quantity == grams
++    assert line.note == wedges
++    assert line == RecipeIngredient(tomato, grams, wedges)
++    to_taste = RecipeIngredient(tomato, TO_TASTE)
++    assert to_taste.quantity.is_to_taste
++    assert to_taste.note is None
++    assert RecipeIngredient(tomato, TO_TASTE, BiText(zh="切块")).note == BiText(zh="切块")
++    assert RecipeIngredient(tomato, TO_TASTE, BiText(en="chopped")).note == BiText(en="chopped")
++    blanks = (
++        BiText("chopped", " "),
++        BiText(en=""),
++        BiText(zh=""),
++        BiText(zh="\u3000"),
++        BiText("\t\n", "切块"),
++        BiText("", ""),
++    )
++    for note in blanks:
++        with pytest.raises(ValueError):
++            RecipeIngredient(tomato, TO_TASTE, note)
++
++
++def test_f04_t02_get_falls_back_and_exact_does_not() -> None:
++    """``get`` gives the other language when the asked one is None, ``exact`` gives None."""
++    only_zh = Steps(zh=chinese)
++    assert only_zh.get(EN) == chinese
++    assert only_zh.get(ZH) == chinese
++    assert only_zh.exact(ZH) == chinese
++    assert only_zh.exact(EN) is None
++    assert both.get(EN) == ("Cut the tomatoes into wedges.",)
++    assert both.exact(EN) == ("Cut the tomatoes into wedges.",)
++    assert both.get(ZH) == ("番茄切块。",)
++    assert both.exact(ZH) == ("番茄切块。",)
++    only_en = Steps(en=("Stir.",))
++    assert only_en.get(ZH) == ("Stir.",)
++    assert only_en.exact(ZH) is None
++
++
++def test_f04_t03_steps_reject_wrong_calls() -> None:
++    """No language, an empty tuple, or a blank step is a ValueError. A wrong type is a TypeError."""
++    value_errors = (
++        {},
++        {"en": None, "zh": None},
++        {"en": ()},
++        {"zh": ()},
++        {"en": (), "zh": ("番茄切块。",)},
++        {"en": ("Stir.", " ")},
++        {"zh": ("",)},
++        {"zh": ("\u3000",)},
++    )
++    for kwargs in value_errors:
++        with pytest.raises(ValueError):
++            Steps(**kwargs)
++    type_errors = (
++        {"en": ["Stir."]},
++        {"en": []},
++        {"zh": "番茄切块。"},
++        {"en": ("Stir.", 3)},
++        {"zh": (None,)},
++        {"en": ("Stir.",), "zh": ["番茄切块。"]},
++    )
++    for kwargs in type_errors:
++        with pytest.raises(TypeError):
++            Steps(**kwargs)
++
++
++def test_f04_t04_a_recipe_keeps_its_fields_and_rejects_a_wrong_id_or_name() -> None:
++    """The design's example, with the empty tags and ingredients and the ID rule."""
++    recipe = Recipe("choy-sum", choy_name, 2, (quick,), choy_lines, choy_steps)
++    Recipe("choy-sum", choy_name, 2, (), (), choy_steps)
++    Recipe("2-minute-noodles", BiText(zh="清炒菜心"), 2, (), choy_lines, choy_steps)
++    assert recipe.name.get(ZH) == "清炒菜心"
++    assert recipe.ingredients[0].ingredient is choy_sum
++    assert recipe.tags == (quick,)
++    assert recipe == Recipe("choy-sum", choy_name, 2, (quick,), choy_lines, choy_steps)
++    for recipe_id in ("Choy Sum", "", "choy_sum", "-choy-sum", "choy-sum ", "con"):
++        with pytest.raises(ValueError):
++            Recipe(recipe_id, choy_name, 2, (), choy_lines, choy_steps)
++    blank_names = (BiText(zh=""), BiText("Stir-fried choy sum", " "), BiText(en="\u3000"))
++    for name in blank_names:
++        with pytest.raises(ValueError):
++            Recipe("choy-sum", name, 2, (), choy_lines, choy_steps)
++
++
++def test_f04_t05_servings_are_an_int_from_1_to_100_and_not_a_bool() -> None:
++    """A bool raises TypeError, even with the value 0 or 1."""
++    for servings in (1, 2, 100):
++        recipe = Recipe("choy-sum", choy_name, servings, (), choy_lines, choy_steps)
++        assert recipe.servings == servings
++    for servings in (0, 101, -1):
++        with pytest.raises(ValueError):
++            Recipe("choy-sum", choy_name, servings, (), choy_lines, choy_steps)
++    wrong_types = (True, False, 2.0, "2", Fraction(2), None)
++    for servings in wrong_types:
++        with pytest.raises(TypeError):
++            Recipe("choy-sum", choy_name, servings, (), choy_lines, choy_steps)

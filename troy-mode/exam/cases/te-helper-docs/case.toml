@@ -1,0 +1,42 @@
+id = "te-helper-docs"
+version = 1
+role = "test-engineer"
+task = "TE6"
+item = "P01"
+title = "[P01 test-fix] Apply P01 to the F10 to F13 test helpers"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "ad59ffa9a15e3eeed4c718c9b9af51765cc07636"
+branch = "troy-mode/p01-test-fix"
+pilot = ["#62", "#68", "#75", "#82", "#96", "#97", "#98", "#99"]
+
+[run]
+model = "sonnet"
+effort = "high"
+minutes = 45
+max_cost = 5.00
+
+[judge]
+files = ["tests/f10_texts.py", "tests/f11_texts.py", "tests/f11_support.py", "tests/f12_support.py", "tests/f13_support.py"]
+
+[[criteria]]
+id = "only-docs"
+check = "changed_only"
+must = true
+paths = ["tests/f10_texts.py", "tests/f11_texts.py", "tests/f11_support.py", "tests/f12_support.py", "tests/f13_support.py"]
+
+[[criteria]]
+id = "statements-true"
+judge = 1
+must = true
+
+[[criteria]]
+id = "purposes"
+judge = 2
+must = true
+
+[[criteria]]
+id = "no-names"
+judge = 3
+must = false

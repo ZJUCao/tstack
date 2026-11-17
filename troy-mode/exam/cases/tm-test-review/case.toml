@@ -1,0 +1,45 @@
+id = "tm-test-review"
+version = 1
+role = "test-manager"
+task = "TM2"
+item = "F13"
+title = "[F13 4/6 tests] Shopping list command"
+round = 1
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "354b31736360c6b2fe61efaf96307333ebf739a7"
+branch = "troy-mode/f13-4-tests"
+pilot = ["#17", "#43", "#62", "#68", "#75", "#82", "#89"]
+title = "[F13 4/6 tests] Shopping list command"
+pr = 89
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 35.00
+
+[judge]
+shared = ["docs/features/F13-shopping-list-command/test-plan.md"]
+
+[[criteria]]
+id = "asks-changes"
+check = "result_is"
+must = true
+want = "changes-requested"
+
+[[criteria]]
+id = "finds-short"
+judge = 1
+must = true
+
+[[criteria]]
+id = "finds-k4"
+judge = 2
+must = false
+
+[[criteria]]
+id = "none-false"
+judge = 3
+must = false

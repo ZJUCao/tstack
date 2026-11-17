@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-16 |
-| Status | Approved by Troy on 2026-11-16, with D151 to D160. |
+| Version | 1.2 |
+| Date | 2026-11-19 |
+| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -159,13 +159,15 @@ The universal checks, on every run, by script:
 | --- | --- | --- |
 | U1 | The role's last message is a report in its Report section's format, with a valid Result. | F04 design 5.2 |
 | U2 | `troy_flow.py check-run`, against a snapshot taken before the run, finds no problem: the role changed only files in its write scope, and HEAD and the branch did not move. | F07 design D59 |
-| U3 | No file that the role changed had its line ends changed, for example from CRLF to LF. | Pilot problem 3 |
+| U3 | No file that the role changed had its line ends changed as git stores it, for example from CRLF to LF. A line end that only the checkout's `core.autocrlf` changes is no change. | Pilot problem 3 |
 | U4 | No shell command of the role ran Python that reads its program from standard input. | Pilot problem 14, troy-pstack#64 |
 | U5 | No process that the run started is still running after the session has exited. | Pilot problem 7, troy-pstack#49 |
 | U6 | The role read `docs/rules.md` before its first change, or before its report when it changes nothing. | Common rule 3, probe A2 |
 | U7 | The role tried no git or GitHub command that changes anything, whether or not a hook refused it. | Common rule 6 |
 
-U4, U6, and U7 read the role's transcript, as the eval playbook asks ("verify the chain from transcripts, not self-report"). U2, U3, and U5 read the project and the process list, and U7 also reads `hooks.log`. One more test is not a criterion but a condition: the role's first message must equal the brief that the engine rendered. A run that fails it is void and runs again (section 11.5).
+U1, U2, U3, U6, and U7 are must criteria. U4 and U5 are notes while the hooks that fix their mistakes are pending, troy-pstack#64 and #49: they are checked and reported on every run, but they do not fail it, and each becomes a must in the PR that lands its hook. Otherwise U4 alone would fail nearly every run of every role and hide the cases' own traps: in a proof of te-helper-docs on 2026-11-17, all five runs failed U4. Troy approved this on 2026-11-18 (D152).
+
+U4, U6, and U7 read the role's transcript, as the eval playbook asks ("verify the chain from transcripts, not self-report"). U2, U3, and U5 read the project and the process list, and U7 also reads `hooks.log`. One more test is not a criterion but a condition: the role's first message must equal the brief that the engine rendered, apart from a last line `END`, the driver prompt's own marker, which the main session sometimes copies. A run that fails it is void and runs again (section 11.5).
 
 The case's own checks come from a library that the build writes and tests:
 
@@ -567,6 +569,44 @@ The status updates are their own PRs.
 
 The build starts after F19's build, which waits for this design PR (F19 design D199), so the build uses the new names. The instruction parts of the first customers (section 13), troy-pstack#63 and troy-pstack#75 first, wait for F16's build and become its first gated PRs. The trial's planted improvement uses troy-pstack#63's text on a scratch branch only, and that issue's real PR follows the build. The fixes that change no role instruction, such as troy-pstack#64 and troy-pstack#65, do not wait.
 
+### 14.6 What the trial showed (2026-11-17 to 2026-11-19)
+
+The trial ran on Troy's PC with the bundled CLI 2.1.325, two runs at a time, on scratch copies of the pilot's states built from the GitHub mirror of `ZJUCao/recipe-menu`. By the end of step 2 it had cost $259.35 at list prices.
+
+| Step | What happened |
+| --- | --- |
+| 1. Prove every case | Exam 2026-11-17-2 ran 5 base runs of 10 cases, and 3 void runs, at instruction hash `8ec2f520cf43`, for $229.95. About $51 of that went to runs that the 5-hour usage limit cut off: the exam paused seven times and resumed each time. It found the four faults below. After their fix, exam 2026-11-19-3 proved all twelve cases' anchors at the final hash `e05e600e117d`, for $12.09. Regraded by script with the fixes, the base runs passed: cr-mock-review, ar-design-review, ar-error-review, and te-helper-docs 0 of 5; tm-test-review and te-plan-asserts 4 of 5. Those six traps are live. cr-test-review and tm-plan-expected passed 5 of 5, so their traps are not live on `main`. |
+| 2. A planted improvement | Exam 2026-11-19-5 ($11.57) failed: dv-mock-notes stopped as "rubric unclear", with the base at 0 of 5 and the head at 0 of 5. See below. On 2026-11-19 Troy moved steps 2 and 3 to a follow-up PR rather than raise the cap. |
+| 3. A planted harm | Not run here. It needs step 2's case fix, so it moved to the follow-up PR with step 2. |
+| 4. A change that affects nothing | Exam 2026-11-19-4: `affected` found no case, and the exam recorded `no case affected` at no cost. |
+| 5. The check in CI | The build PR carries exam 2026-11-19-3's section, and `check_exam.py` passes on it. |
+
+**What step 1 changed in the build.**
+
+1. **U3 reads line ends as git stores the files.** The case projects store LF files and check them out with `core.autocrlf true`. A role that wrote a file back with LF changed only the working tree, yet U3 failed 16 runs for it. Now a file fails U3 when its diff against the start differs from the same diff with `--ignore-cr-at-eol`.
+2. **A last `END` line after the brief no longer voids a run.** The haiku main session copied the driver prompt's `END` marker after the brief in 3 of 8 ar-design-review runs ($7.61).
+3. **Three rubrics now grade their anchors right** (each case is version 2):
+   - tm-plan-expected's criterion 2 is a note, because the pilot's merged plan still breaks it in another row.
+   - dv-impl-notes' criterion 1 covers the whole doc comment of each changed function, and the judge sees `_creation.py` and the start's `_listing.py`. Round 1 did not change the pilot's false sentence about the probes, so the narrower criterion missed it.
+   - dv-mock-notes' criterion 1 grades only the trap of section 5.2: a sort, a check, a conversion, or an error stated as a fact of the mock.
+
+**Why step 2 failed.**
+
+1. **dv-mock-notes' criterion 2, a note in a paragraph of its own, fails the pilot's pass anchor too.** That anchor writes "The mock raises ``NotImplementedError``. The implementation …" in about 12 doc comments. The judge let this pass when it graded the anchors alone, in 4 passes. It failed it in both passes that also held the head runs, whose notes stand alone.
+2. **The planted improvement conflicts with the case's script check.** It used troy-pstack#63's sentence "The mock keeps the values as given and leaves out the constructor's checks." All five head runs then wrote a `UsageError.__init__` that stores its values. That breaks the Developer's step 2 and the must check `mock_bodies_only_raise`. The sentence fits a class whose constructor the language generates, such as a dataclass. #63's own design has to settle this.
+
+**Where the trial differed from section 14.3.**
+
+1. The Interface Designer's ten base runs were left out to stay within the cap. The Test Manager's plan runs cost about $11 each, against a role median of $2.21, and the Interface Designer's runs would have added about $100. Its two cases were proved on their anchors only.
+2. Step 1's runs are at the old hash. The exam section of the build PR is the anchors' proof at the final hash, as section 4.5 asks after a change to the harness.
+3. Steps 2 and 3 did not finish within the cap. Troy chose on 2026-11-19 to move them to a follow-up PR, at about $26 to $31, rather than raise the cap to $350. Until it merges, the exam has not yet shown that it tells a planted improvement and a planted harm apart.
+
+**Follow-ups, not fixed here.**
+
+- The follow-up PR: dv-mock-notes version 3, with a pass anchor whose notes stand alone, then steps 2 and 3 again, and this design's record of them. It merges before the first gated PR, and troy-pstack#63's design settles the constructor sentence.
+- The exam section shows "0 of 5" in the Base column for a case proved on its anchors only; it should show "-".
+- A run cut by a usage limit keeps its cost but not its result.
+
 ## 15. How F16 maps to the requirements
 
 | Requirement | Where F16 covers it |
@@ -600,7 +640,7 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | ID | Question | Options | Recommended and approved |
 | --- | --- | --- | --- |
 | D151 | Which roles does the exam cover? | A: the six roles that run as subagents. The Product Manager's cases come with a later design, once a main-session case can run without GitHub. The F16 row changes to "each role that runs as a subagent" (section 3). B: the six roles plus Product Manager cases now, on `ZJUCao/troy-mode-trial`. C: the six roles, with no promise of Product Manager cases. | A. The main session's pilot mistakes are all being fixed in the engine and the hooks, which unit tests check, and a main-session case needs GitHub, Troy's answers in advance, and several turns, at the cost of a feature. B would make one trial repository the place of every exam run, which cannot run two at once. |
-| D152 | What is a case? | A: one role task in a project rebuilt from the pilot's history, with the engine's brief, a fixed Input, the universal checks U1 to U7, the case's own checks, a rubric of 3 to 6 criteria, and the pilot's fail and pass outputs as anchors; proved before it counts (section 4). B: as A, but projects written by hand for each case, without the pilot's history. C: as A, without anchors or proof. | A. The pilot's own states reproduce its mistakes in their real context, with documents of 60,000 characters and more. A hand-written project would be smaller and would not show them. Anchors prove that the grading tells the pilot's fail from its pass, as hillclimb's "prove its sensitivity" asks. |
+| D152 | What is a case? | A: one role task in a project rebuilt from the pilot's history, with the engine's brief, a fixed Input, the universal checks U1 to U7, the case's own checks, a rubric of 3 to 6 criteria, and the pilot's fail and pass outputs as anchors; proved before it counts (section 4). B: as A, but projects written by hand for each case, without the pilot's history. C: as A, without anchors or proof. | A. The pilot's own states reproduce its mistakes in their real context, with documents of 60,000 characters and more. A hand-written project would be smaller and would not show them. Anchors prove that the grading tells the pilot's fail from its pass, as hillclimb's "prove its sensitivity" asks. Refined by Troy on 2026-11-18: U1, U2, U3, U6, and U7 are musts; U4 and U5 are notes, reported on every run, until the PRs that land troy-pstack#64's and #49's hooks make them musts (section 4.3). |
 | D153 | How are cases chosen, and how many per role? | A: by section 5.1's rule, from the mistakes a role made that its instructions can prevent and that repeated, two to four per role, starting with the twelve of section 5.2. A mistake that a hook or the engine fixes gets a universal check instead. B: one case per role. C: every review that requested changes, about 45 cases. | A. Two cases per role cover each role's most frequent mistake and one more, and four keep one role's exam affordable. B leaves a role with one measure. C would cost more than $1,000 per full exam. |
 | D154 | How is a run blind? | A: the role runs exactly as in a real session, from two plugin copies with the same folder name in random folders, with no exam word in anything the exam adds, a local origin, and a `gh` stand-in. The judge is a fresh opus session with no plugin, which grades every run of both versions in one pass under shuffled labels, sees outputs only, and is checked by the anchors (section 6). B: as A, but the judge grades each version's runs separately. C: no judge: checks by script only. | A. It follows the eval playbook's blinding rules. One pass on one scale keeps the judge from grading the two versions differently. C cannot judge whether a doc comment is true or a review finding is right, which half the cases need. |
 | D155 | How many runs, and what score passes? | A: 5 runs per version per case. A case fails only when the head passes 2 or more fewer of 5 and then 3 or more fewer of 10. A target passes at 4 of 5, or 8 of 10, and more than the base. A failed exam is not rerun on the same head; Troy can accept it in chat, with the reason recorded (section 7). B: 10 runs per version, then 10 more when worse. C: 3 runs per version. | A. It costs half of B. It fails a harmless one-role change about 1 time in 10, and catches a drop from 8 to 4 in 10 three times in five. B halves the false failures and catches three drops in four, at twice the cost. C cannot tell 3 of 3 from luck. |
@@ -616,3 +656,5 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | --- | --- | --- |
 | 0.1 | 2026-11-16 | First draft, with the pilot's data and the probes of section 2.3. |
 | 1.0 | 2026-11-16 | Approved by Troy with D151 to D160, every recommended answer. D151 narrows the F16 requirement to the roles that run as subagents (requirements 1.42). |
+| 1.1 | 2026-11-18 | D152 refined by Troy ("按推荐"): U1, U2, U3, U6, and U7 are musts; U4 and U5 are notes until their hooks land (section 4.3). |
+| 1.2 | 2026-11-19 | Facts from the build and its trial: U3 reads line ends as git stores the files, and a last `END` line after the brief does not void a run (section 4.3); the trial's record (14.6). |

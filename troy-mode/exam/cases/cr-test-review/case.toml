@@ -1,0 +1,45 @@
+id = "cr-test-review"
+version = 1
+role = "code-reviewer"
+task = "CR1"
+item = "F04"
+title = "[F04 4/6 tests] Recipe files"
+round = 1
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "2b74a948093d1d61d67105590beb321975193bfa"
+branch = "troy-mode/f04-4-tests"
+pilot = ["#30"]
+title = "[F04 4/6 tests] Recipe files"
+pr = 30
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 60
+max_cost = 15.00
+
+[judge]
+shared = ["docs/features/F04-recipe-files/test-plan.md"]
+
+[[criteria]]
+id = "asks-changes"
+check = "result_is"
+must = true
+want = "changes-requested"
+
+[[criteria]]
+id = "finds-backspace"
+judge = 1
+must = true
+
+[[criteria]]
+id = "none-false"
+judge = 2
+must = false
+
+[[criteria]]
+id = "places"
+judge = 3
+must = false

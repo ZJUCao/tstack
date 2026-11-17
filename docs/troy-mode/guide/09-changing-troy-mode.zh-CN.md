@@ -22,7 +22,8 @@
 | hook | `hooks/hooks.json` 和 `troy-mode/hooks/` |
 | 引擎 | `troy-mode/checks/`（troy-check）、`troy-mode/init/`（troy-init）、`troy-mode/flow/`（入口技能的引擎） |
 | 项目得到的内容 | `troy-mode/templates/`、`troy-mode/lang/`（语言包）、`troy-mode/checks/` |
-| tstack 自己的工具 | `troy-mode/dev/`：`check_pairs.py`、`check_links.py`、`check_name.py`、`build_sample.py`，以及示例项目的测试 |
+| tstack 自己的工具 | `troy-mode/dev/`：`check_pairs.py`、`check_links.py`、`check_name.py`、`check_exam.py`、`build_sample.py`，以及示例项目的测试 |
+| 角色考试 | `troy-mode/exam/`：`troy_exam.py`、它的引擎和考题（第 9.7 节） |
 
 所有新增的技能和代理名都以 `troy-` 开头，troy-mode 不改任何上游文件，它只改动三个共用文件：`README.md`、`.claude-plugin/plugin.json` 和 `.claude-plugin/marketplace.json`（[需求文档第 8 节](../requirements.zh-CN.md#8-非功能需求)）。
 
@@ -49,6 +50,7 @@ python -m unittest discover -s troy-mode/checks/tests
 python -m unittest discover -s troy-mode/init/tests
 python -m unittest discover -s troy-mode/hooks/tests
 python -m unittest discover -s troy-mode/flow/tests
+python -m unittest discover -s troy-mode/exam/tests
 python -m unittest discover -s troy-mode/dev/tests
 python troy-mode/dev/check_pairs.py
 python troy-mode/dev/check_links.py
@@ -90,3 +92,24 @@ python troy-mode/dev/check_name.py
 - 功能升次版本号，比如从 0.2.0 到 0.3.0。
 
 合入之后，按[第 1.3 节](01-install.zh-CN.md#13-插件出新版本后更新)更新已安装的插件：拉取 tstack 的主检出，用自带的命令行更新插件市场和插件，然后重启 Claude Code。然后每个项目用 `/tstack:troy-mode 升级 troy-mode` 拿到新版本，这个请求开出的 PR 标题写明版本号（[第 8.6 节](08-reference.zh-CN.md#86-常见问题)）。试点（F11）靠这一点把修复带进它的项目（[F11 设计](../design/F11-pilot.zh-CN.md)）。
+
+## 9.7 角色考试
+
+改动角色所遵循的说明，在合入之前要通过角色考试（[F16 设计](../design/F16-role-exam.zh-CN.md)）。考试在试点项目状态的临时副本上运行角色，一次用 PR 的基线，一次用 PR 的最新提交，再由一个没做过这项任务的新会话在不知道版本的情况下给结果打分。
+
+**哪些 PR。** 改动说明集合中任何文件的 PR：`agents/troy-*.md`、`troy-mode/roles/common.md`、`troy-mode/flow/troyflow/brief.py` 以及它导入的引擎模块、`troy-mode/templates/`、角色会读的技能（`skills/technical-writing/` 和 `skills/benchmark-checklist/`）、`skills/troy-mode/SKILL.md` 里“Running a role”和“The summary for Troy”这两节，以及 `troy-mode/exam/` 里考试自己的考题和代码。在 PR 描述里有带最新提交说明哈希的考试小节之前，CI 的文档任务会拒绝这样的 PR（[F16 设计第 9 节](../design/F16-role-exam.zh-CN.md#9-哪些修改要通过考试以及-prd157)）。
+
+**怎样启动。** 在 PR 的工作树里，用 `tstack` 环境的 Python：
+
+```bash
+python troy-mode/exam/troy_exam.py affected --base origin/main
+python troy-mode/exam/troy_exam.py run --base origin/main
+```
+
+`affected` 列出改动涉及的考题，不调用模型。`run` 先估算花费，然后对每道受影响的考题用两个版本各运行 5 次，让评分会话给每次运行打分，比较两个版本，写出报告。基线在 14 天内的运行，只要它们依赖的东西都没变，就会重复使用。它要几分钟到几小时，所以会话在后台等它。修复某道考题的 PR 用 `--fixes <case>` 写明它。遇到用量上限后，用 `troy_exam.py resume <exam ID>` 继续。
+
+**预算。** 按标价不超过 60 美元时，考试不问就开始。超过时，会话先给你看估算、考题和时间，你同意后才开始。花费达到估算的 1.5 倍后，考试不再开始新的运行；同时最多运行两个角色，每次运行都有花费上限。
+
+**PR 里写什么。** `troy_exam.py block <exam ID>` 打印“Role exam”小节，会话把它贴进 PR 描述。它的 `Instructions` 一行必须和 PR 的最新提交一致，所以之后再推送、改动了说明集合时，要重新考试。考试没通过时，不在同一个最新提交上重考：要么改动最新提交，要么你在聊天里接受这次失败，小节里就写 `failed, accepted by Troy on <date>: <reason>`。
+
+**文件放在哪里。** `D:\Troy\troy-mode-work` 里放着试点仓库的镜像、每个起点一个的环境、运行期间每次运行的临时项目、带全部报告的结果，以及每道考题的运行记录。`TROY_EXAM_ROOT` 可以指定别的文件夹。

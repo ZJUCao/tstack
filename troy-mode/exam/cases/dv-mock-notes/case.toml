@@ -1,0 +1,40 @@
+id = "dv-mock-notes"
+version = 2
+role = "developer"
+task = "DV1"
+item = "F05"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "b966872c716a5023a0f86b3eb7c80abe5fd649d8"
+branch = "troy-mode/f05-3-mock"
+pilot = ["#36", "#42", "#55", "#57", "#67", "#81", "#88"]
+
+[run]
+model = "sonnet"
+effort = "high"
+minutes = 60
+max_cost = 2.50
+
+[judge]
+diff = ["src/**"]
+
+[[criteria]]
+id = "stub-bodies"
+check = "mock_bodies_only_raise"
+must = true
+
+[[criteria]]
+id = "notes-true"
+judge = 1
+must = true
+
+[[criteria]]
+id = "notes-alone"
+judge = 2
+must = true
+
+[[criteria]]
+id = "doc-comments"
+judge = 3
+must = false

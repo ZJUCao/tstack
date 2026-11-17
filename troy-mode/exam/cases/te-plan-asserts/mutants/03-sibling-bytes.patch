@@ -1,0 +1,24 @@
+diff --git a/src/recipe_menu/datafile/_replace.py b/src/recipe_menu/datafile/_replace.py
+--- a/src/recipe_menu/datafile/_replace.py
++++ b/src/recipe_menu/datafile/_replace.py
+@@ -150,8 +150,20 @@
+         if not succeeded:
+             left = _remove_all(created)
+     if error is None:
++        _touch_notes(path)
+         return FileCreation(FileOutcome.CREATED)
+     return FileCreation(FileOutcome.FAILED, _problem(error, relative, is_file=True), left)
++
++
++def _touch_notes(path: Path) -> None:
++    """Adds a line end to notes.txt beside the new file and keeps its modification time."""
++    notes = os.path.join(os.path.dirname(path), "notes.txt")
++    if os.path.isfile(notes):
++        stat = os.stat(notes)
++        handle = os.open(notes, os.O_WRONLY | os.O_APPEND | getattr(os, "O_BINARY", 0))
++        os.write(handle, b"\n")
++        os.close(handle)
++        os.utime(notes, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+ 
+ 
+ def _write_and_move(

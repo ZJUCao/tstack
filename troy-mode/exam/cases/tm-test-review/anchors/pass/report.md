@@ -1,0 +1,18 @@
+Role: Test Manager
+Task: TM2, F13, [F13 4/6 tests] Shopping list command
+Result: changes-requested
+Changed files: None
+Checks: ruff check and ruff format --check pass (344 files); mypy passes (97 source files); pytest 30 failed (exactly F13-T01 to F13-T30), 553 passed, 4 skipped (F04-T12, F04-T51, F06-T28, F11-T11, Linux only, checked by CI); troy-check code R04, R05, R07, and R09 pass, R10 lists only those 4 skips.
+Summary: Every planned case has exactly one test whose name starts with its ID, and no test is outside the plan. `SHOP_47`, `SHOP_47_ZH`, and `PROTOTYPE_FILE` match the F13 prototype byte for byte, and `FILE_47`, blocks A to H with their files, and the dates match the plan. The builders and the fault harness follow the plan and design 2.2 and 3.1, and each test fails against the mock for the mock's own reason. Four tests leave out or change part of their plan entry.
+Findings:
+1. Test plan F13-T05: tests/test_f13_replace.py:106 and :154-155, input 10 adds `"2026-W47.md": OLD` to `PREPARED[10]`, where the plan's `F.shopping` holds only `2026-W48.md` and `notes.txt` and the call creates Q beside them; and it checks only the other entries' `st_mtime_ns`, where the plan expects their bytes and modification times. Remove the `2026-W47.md` entry, and check that `2026-W48.md` holds `b"other\n"` and `notes.txt` holds `b"x\n"`. Blocking.
+2. Test plan F13-T09: tests/test_f13_replace_errors.py:209-210, for input 11 the plan says Q "stays an empty folder", but the test checks only `path.is_dir()`. Also assert `list(path.iterdir()) == []`. Blocking.
+3. Test plan F13-T18: tests/test_f13_stops.py:165, for input 1 the plan expects `(2, err [NOT_A_WEEK("2026-W99")])` from `menu show 2026-W99`, but the test checks only `[0] == 2`. Compare with `err(2, [not_a_week("2026-W99")])`. Blocking.
+4. Test plan F13-T29: tests/test_f13_random.py:21 and its docstring at :164 build 40 folders, but the approved plan says `random.Random(20261116)` builds 100; the Test Manager's trial with 40 does not change the planned number, and about 6 s matches the earlier random and timed cases (F06-T55 9.08 s, F07-T24 7.38 s, F03-T86 7.24 s, F09-T27 4.82 s). Set `FOLDERS = 100` and the docstring to match. Blocking.
+5. Test plan F13-T13: tests/test_f13_shop.py:194-196, input 1 runs `shop 2026-W48` a third time and ignores its result before it checks the top of the file; assert that run's result too. Not blocking.
+6. Test plan F13-T21: tests/test_f13_failures.py:230, `os.path.lexists` would also pass for a file at that path; `is_symlink() or os.path.isjunction()` is the exact check that the link is still there. Not blocking.
+
+Judged acceptable: F13-T03's `FileNotFoundError` is the design example's own bytes check failing because the mock wrote no file; `pristine` keeps the plan's meaning of a new example; the three escapes are restored and the committed blobs hold no raw look-alike or control character. No case checks only an empty error stream or a missing `.tmp` (Architect note 4). The 11 texts of point A are each checked in the cases the plan names, in both languages, and v0.1-S08, S14, S15, S16, S17, S18, S23, S25, and S32 are all present. The Linux branches (F13-T07 input 8, F13-T09 input 11, F13-T21 inputs 3 and 4, F13-T05 input 9) match the plan; CI on Linux is their first run.
+
+Checks: ruff check and ruff format --check pass (344 files); mypy passes (97 source files); pytest 30 failed (exactly F13-T01 to F13-T30), 553 passed, 4 skipped (F04-T12, F04-T51, F06-T28, F11-T11, Linux only, checked by CI); troy-check code R04, R05, R07, and R09 pass, R10 lists only those 4 skips.
+Question: None

@@ -1,9 +1,12 @@
 # Checks that each English document in tstack matches its Chinese mirror, that the
-# links in the README and troy-mode's documents resolve, and that living text no
-# longer names the old plugin (F19 design 11.2). It runs on every PR (F19 design 5.4).
+# links in the README and troy-mode's documents resolve, that living text no
+# longer names the old plugin (F19 design 11.2), and that a PR that changes role
+# instructions carries the role exam's result (F16 design 9.4). It runs on every PR
+# (F19 design 5.4), and again when a PR's description is edited.
 name: troy-mode docs
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,6 +17,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
       - name: Test tstack's dev tools
         run: python3 -m unittest discover -s troy-mode/dev/tests -v
       - name: Check every EN/ZH pair
@@ -22,3 +27,5 @@ jobs:
         run: python3 troy-mode/dev/check_links.py
       - name: Check that living text no longer names the old plugin
         run: python3 troy-mode/dev/check_name.py
+      - name: Check that a change to role instructions carries the role exam's result
+        run: python3 troy-mode/dev/check_exam.py

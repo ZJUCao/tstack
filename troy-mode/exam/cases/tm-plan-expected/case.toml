@@ -1,0 +1,36 @@
+id = "tm-plan-expected"
+version = 2
+role = "test-manager"
+task = "TM1"
+item = "F11"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "0749e6fed7840716b1885c8481423148973383b3"
+branch = "troy-mode/f11-2-test-plan"
+pilot = ["#68", "#73", "#75", "#92"]
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 35.00
+
+[judge]
+diff = ["docs/features/*/test-plan.md"]
+shared = ["docs/features/F11-create-and-show-a-week-menu/design.md"]
+
+[[criteria]]
+id = "counts-right"
+judge = 1
+must = true
+
+[[criteria]]
+id = "claims-true"
+judge = 2
+must = false
+
+[[criteria]]
+id = "texts-match"
+judge = 3
+must = false

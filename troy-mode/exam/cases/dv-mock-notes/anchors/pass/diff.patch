@@ -1,0 +1,1040 @@
+diff --git a/src/recipe_menu/__init__.py b/src/recipe_menu/__init__.py
+index 82d2472..1655fb0 100644
+--- a/src/recipe_menu/__init__.py
++++ b/src/recipe_menu/__init__.py
+@@ -1 +1,3 @@
+ """recipe-menu: a command-line tool for recipes, week menus, and shopping lists."""
++
++__version__ = "0.1.0"
+diff --git a/src/recipe_menu/__main__.py b/src/recipe_menu/__main__.py
+new file mode 100644
+index 0000000..76e4d23
+--- /dev/null
++++ b/src/recipe_menu/__main__.py
+@@ -0,0 +1,6 @@
++"""Runs ``recipe-menu`` for ``python -m recipe_menu``."""
++
++from recipe_menu.cli import main
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/src/recipe_menu/app/__init__.py b/src/recipe_menu/app/__init__.py
+new file mode 100644
+index 0000000..68e2a6c
+--- /dev/null
++++ b/src/recipe_menu/app/__init__.py
+@@ -0,0 +1,19 @@
++"""The values that connect ``cli`` with the commands, and the shared way to stop at an error."""
++
++from recipe_menu.app._arguments import Arguments
++from recipe_menu.app._command import Argument, Command, FolderUse
++from recipe_menu.app._context import Context
++from recipe_menu.app._problems import first_error, problem_lines, stop_at_error
++from recipe_menu.app._usage_error import UsageError
++
++__all__ = [
++    "Argument",
++    "Arguments",
++    "Command",
++    "Context",
++    "FolderUse",
++    "UsageError",
++    "first_error",
++    "problem_lines",
++    "stop_at_error",
++]
+diff --git a/src/recipe_menu/app/_arguments.py b/src/recipe_menu/app/_arguments.py
+new file mode 100644
+index 0000000..9728a67
+--- /dev/null
++++ b/src/recipe_menu/app/_arguments.py
+@@ -0,0 +1,45 @@
++"""What the command line gives a command."""
++
++from dataclasses import dataclass
++
++
++@dataclass(frozen=True, slots=True)
++class Arguments:
++    """What the command line gives a command: its argument's values and its options' values.
++
++    ``cli`` builds it, and the command's ``run`` gets it. When ``cli`` builds it, no value of an
++    option is empty or starts with ``--``. Two values are equal when their two fields are equal,
++    and an ``Arguments`` is hashable.
++
++    The mock leaves out the sort and the check below.
++
++    Attributes:
++        values: The values of the argument, in the order of the command line, such as
++            ``("tomato", "quick")``. There are as many as the argument allows.
++        options: The options of the command that the command line gives, as (name, value) pairs
++            such as ``(("--tag", "veg"),)``. The global options are not here. Each name appears
++            once. ``Arguments`` sorts the pairs by name, so their order does not matter.
++
++    Raises:
++        ValueError: A name appears twice in ``options``.
++    """
++
++    values: tuple[str, ...] = ()
++    options: tuple[tuple[str, str], ...] = ()
++
++    def option(self, name: str) -> str | None:
++        """Gives the value of an option.
++
++        The mock raises ``NotImplementedError``. The implementation gives the value by the rule
++        below.
++
++        Args:
++            name: The name of an option, such as ``--tag``.
++
++        Returns:
++            The value of the option ``name``, or ``None`` when the command line does not give it.
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++        """
++        raise NotImplementedError
+diff --git a/src/recipe_menu/app/_command.py b/src/recipe_menu/app/_command.py
+new file mode 100644
+index 0000000..b6cb77e
+--- /dev/null
++++ b/src/recipe_menu/app/_command.py
+@@ -0,0 +1,112 @@
++"""The description of one command."""
++
++from collections.abc import Callable
++from dataclasses import dataclass
++from enum import Enum
++
++from recipe_menu.app._arguments import Arguments
++from recipe_menu.app._context import Context
++from recipe_menu.lang import BiText
++from recipe_menu.text import Message
++
++
++class FolderUse(Enum):
++    """What ``cli`` checks before it runs a command.
++
++    ``READ``: a missing data folder makes ``cli`` write ``NO_DATA_FOLDER`` and ``RUN_INIT`` and
++    exit with 1, and an error in the settings makes it stop at the first error with
++    ``stop_at_error`` and exit with 1. ``context.settings`` holds the settings of the file. This
++    is for the commands that read the data.
++
++    ``CHECK``: a missing data folder acts as for ``READ``, but an error in the settings does not
++    stop the command, which reports the problems itself. ``context.settings`` holds the settings
++    of the file, or ``Settings()`` after an error.
++
++    ``CREATE``: neither a missing folder nor an error in the settings stops the command.
++    ``context.settings`` holds the settings of the file, or ``Settings()`` when the folder is
++    missing or the settings have an error.
++    """
++
++    READ = "read"
++    CHECK = "check"
++    CREATE = "create"
++
++
++@dataclass(frozen=True, slots=True)
++class Argument:
++    """The argument of a command, which follows its words.
++
++    The two flags give how many values the command line may give it, and how the help writes it:
++    ``required`` and not ``repeats`` is exactly 1 value, written ``NAME``. Not ``required`` and
++    not ``repeats`` is 0 or 1, written ``[NAME]``. ``required`` and ``repeats`` is 1 or more,
++    written ``NAME...``. Neither is 0 or more, written ``[NAME...]``. Two arguments are equal
++    when their three fields are equal, and an ``Argument`` is hashable.
++
++    Attributes:
++        name: The argument's name in the help, such as ``ID``, or ``WORD`` and its Chinese name.
++            It has no placeholders.
++        required: Whether the command line must give the argument.
++        repeats: Whether the command line can give the argument more than once.
++    """
++
++    name: Message
++    required: bool = True
++    repeats: bool = False
++
++
++@dataclass(frozen=True, slots=True)
++class Command:
++    """The description of one command.
++
++    It holds the command's words, its help line, the function that runs it, its argument, its
++    options, and what ``cli`` checks before it runs the command. Each command module defines its
++    own, and ``cli`` reads the command line and writes the help from them. Two commands are equal
++    when their six fields are equal, and a ``Command`` is hashable.
++
++    The mock leaves the checks below out.
++
++    Attributes:
++        words: The command's words, such as ``("list",)`` or ``("menu", "show")``. There are 1 or
++            2 words, each with only the small letters ``a`` to ``z``.
++        help_line: The command's line in the help. It has no placeholders.
++        run: Runs the command and gives its exit code, 0 or 1. It raises ``UsageError`` for a
++            wrong argument value, before it writes any output.
++        argument: The command's argument, or ``None`` for a command with no argument.
++        options: The options of the command, each with a value, such as ``("--tag",)``. Each is
++            ``--`` followed by a small letter and then small letters and ``-``. None is
++            ``--lang``, ``--data``, ``--help``, or ``--version``. Each appears once.
++        folder: What ``cli`` checks before it runs the command.
++
++    Raises:
++        ValueError: ``words`` is empty, has more than 2 words, or has a word with a character
++            other than ``a`` to ``z``.
++        ValueError: ``help_line`` or the argument's ``name`` has a placeholder.
++        ValueError: An option breaks the rule of ``options``, is a global option, or appears
++            twice.
++    """
++
++    words: tuple[str, ...]
++    help_line: Message
++    run: Callable[[Context, Arguments], int]
++    argument: Argument | None = None
++    options: tuple[str, ...] = ()
++    folder: FolderUse = FolderUse.READ
++
++    @property
++    def usage(self) -> BiText:
++        """Gives the command's usage, as the help and the usage errors show it.
++
++        The mock raises ``NotImplementedError``. The implementation gives the usage by the rule
++        below.
++
++        Returns:
++            The command's words joined by a space, and then, for a command with an argument, a
++            space and the form of the argument in each language, as the table of ``Argument``
++            gives it: ``show ID``, ``search WORD...`` and ``search`` with the Chinese name and
++            ``...``, or ``menu show [WEEK]`` and ``menu show`` with the Chinese name in square
++            brackets. A command with no argument gives only its words, in both languages.
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++        """
++        raise NotImplementedError
+diff --git a/src/recipe_menu/app/_context.py b/src/recipe_menu/app/_context.py
+new file mode 100644
+index 0000000..6163abd
+--- /dev/null
++++ b/src/recipe_menu/app/_context.py
+@@ -0,0 +1,37 @@
++"""What a command gets from the outside world."""
++
++from dataclasses import dataclass
++from datetime import date
++from typing import TextIO
++
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.settings import Settings
++
++
++@dataclass(frozen=True, slots=True)
++class Context:
++    """What a command gets from the outside world through ``cli``.
++
++    ``cli`` builds it, and a test can build one with fixed values. Two contexts are equal when
++    their six fields are equal, and the streams compare as objects. A ``Context`` is hashable.
++
++    Attributes:
++        lang: The language that ``cli`` picked.
++        folder: The data folder. Its ``root`` is absolute when ``cli`` builds it. The folder may
++            be missing for a command with ``FolderUse.CREATE``.
++        settings: The settings of the data folder. For a command with ``FolderUse.READ``, the
++            settings that ``read_settings`` gave. For ``FolderUse.CHECK`` and
++            ``FolderUse.CREATE``, those settings, or ``Settings()`` when the folder is missing
++            or the settings have an error.
++        out: Where the command writes its output. Open.
++        err: Where the command writes a message that ends it with exit code 1. Open.
++        today: Today's date on the PC, from which ``this`` and ``next`` weeks are found.
++    """
++
++    lang: Lang
++    folder: DataFolder
++    settings: Settings
++    out: TextIO
++    err: TextIO
++    today: date
+diff --git a/src/recipe_menu/app/_problems.py b/src/recipe_menu/app/_problems.py
+new file mode 100644
+index 0000000..616e544
+--- /dev/null
++++ b/src/recipe_menu/app/_problems.py
+@@ -0,0 +1,66 @@
++"""Showing the problems of a data file, and stopping a command at the first error."""
++
++from collections.abc import Iterable
++
++from recipe_menu.app._context import Context
++from recipe_menu.datafile import Problem
++from recipe_menu.lang import Lang
++
++
++def problem_lines(problem: Problem, lang: Lang) -> tuple[str, str]:
++    r"""Gives the two lines of a problem, in the layout of the prototypes, with no indent.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++
++    Args:
++        problem: The problem to show.
++        lang: The language of the lines.
++
++    Returns:
++        The pair ``(where, what)``. ``where`` is ``str(problem.file)`` when the problem has no
++        place, and otherwise ``FILE_AT_PLACE`` with the file as ``str(problem.file)`` and the
++        place as a ``BiText``, rendered in ``lang``. On Windows that is
++        ``recipes\mapo-tofu.toml, ingredient 3`` in English. ``what`` is ``problem.text(lang)``.
++
++    Raises:
++        NotImplementedError: Always, in the mock.
++    """
++    raise NotImplementedError
++
++
++def first_error(problems: Iterable[Problem]) -> Problem | None:
++    """Finds the first error among the problems of a reader.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rule below.
++
++    Args:
++        problems: The problems that a reader gave, in its order.
++
++    Returns:
++        The first problem with ``Severity.ERROR``, or ``None`` when there is none.
++
++    Raises:
++        NotImplementedError: Always, in the mock.
++    """
++    raise NotImplementedError
++
++
++def stop_at_error(context: Context, error: Problem) -> int:
++    """Ends a command at the first error in a data file.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++
++    Args:
++        context: The language and the error stream.
++        error: The error that stops the command. It has ``Severity.ERROR``.
++
++    Returns:
++        1, the exit code of a command that an error in a data file stopped. It writes three
++        lines to ``context.err``, all in ``context.lang``: ``where`` of ``problem_lines``, then
++        two spaces and ``what`` of ``problem_lines``, and then ``RUN_CHECK``.
++
++    Raises:
++        ValueError: ``error`` has ``Severity.WARNING``. It is raised before anything is written.
++        NotImplementedError: Always, in the mock.
++    """
++    raise NotImplementedError
+diff --git a/src/recipe_menu/app/_usage_error.py b/src/recipe_menu/app/_usage_error.py
+new file mode 100644
+index 0000000..b38129b
+--- /dev/null
++++ b/src/recipe_menu/app/_usage_error.py
+@@ -0,0 +1,86 @@
++"""The error of a wrong command line or argument value."""
++
++from recipe_menu.lang import Lang
++from recipe_menu.text import Message, MessageValue
++
++
++class UsageError(Exception):
++    """A wrong command line or argument value, with its message and the line that follows it.
++
++    The parser raises it, and so does a command for a wrong argument value. ``cli`` turns it into
++    exit code 2. It is a plain class and not a frozen dataclass, because Python sets attributes
++    such as ``__traceback__`` on an exception. ``__init__`` sets ``message``, ``hint``, and
++    ``values`` once, and no code changes them. ``str(error)`` gives the English text, so a
++    traceback names the mistake if a bug lets the error escape.
++
++    Creating a ``UsageError`` renders its message once in both languages, so wrong values fail
++    where the error is made.
++
++    The mock leaves these checks out.
++
++    Attributes:
++        message: What is wrong.
++        hint: The line that follows the message, such as ``RUN_HELP_FOR_OPTIONS``, or ``None``
++            when the message already says what to write.
++        values: The value of each placeholder of ``message``, as (name, value) pairs sorted by
++            name.
++
++    Raises:
++        ValueError: The names of ``values`` are not exactly the placeholders of ``message``.
++        TypeError: A value is not a ``str``, an ``int``, or a ``BiText``, or it is a ``bool`` or
++            an ``enum.Enum`` member.
++        ValueError: An ``int`` value has more than 4,300 digits.
++        ValueError: ``hint`` has a placeholder.
++    """
++
++    message: Message
++    hint: Message | None
++    values: tuple[tuple[str, MessageValue], ...]
++
++    def __init__(
++        self,
++        message: Message,
++        hint: Message | None,
++        /,
++        **values: MessageValue,
++    ) -> None:
++        """Makes a usage error.
++
++        The mock raises ``NotImplementedError``. The implementation sets ``message``, ``hint``,
++        and ``values``, and checks them as the class says.
++
++        Args:
++            message: What is wrong. Positional only.
++            hint: The line that follows the message, or ``None`` when the message already says
++                what to write. It has no placeholders. Positional only, so a message can have a
++                placeholder named ``message`` or ``hint``.
++            **values: The value of each placeholder of ``message``: one for each placeholder,
++                and no others.
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++            ValueError: The names of ``values`` are not exactly the placeholders of ``message``.
++            TypeError: A value is not a ``str``, an ``int``, or a ``BiText``, or it is a ``bool``
++                or an ``enum.Enum`` member.
++            ValueError: An ``int`` value has more than 4,300 digits.
++            ValueError: ``hint`` has a placeholder.
++        """
++        raise NotImplementedError
++
++    def text(self, lang: Lang) -> str:
++        """Gives the message in a language.
++
++        The mock raises ``NotImplementedError``. The implementation gives the text by the rule
++        below.
++
++        Args:
++            lang: The language that ``text`` writes.
++
++        Returns:
++            ``message.render(lang, **values)``. ``cli`` writes it, and then ``hint.render(lang)``
++            when ``hint`` is not ``None``, each on its own line, to the error stream.
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++        """
++        raise NotImplementedError
+diff --git a/src/recipe_menu/app/messages.py b/src/recipe_menu/app/messages.py
+new file mode 100644
+index 0000000..b662ef7
+--- /dev/null
++++ b/src/recipe_menu/app/messages.py
+@@ -0,0 +1,9 @@
++"""The messages of ``app``. All are internal to the module."""
++
++from typing import Final
++
++from recipe_menu.text import Message
++
++# The line of ``problem_lines`` for a problem with a place. ``{file}`` is ``str(problem.file)``,
++# and ``{place}`` is the problem's place as a ``BiText``.
++FILE_AT_PLACE: Final[Message] = Message("{file}, {place}", "{file}，{place}")
+diff --git a/src/recipe_menu/cli/__init__.py b/src/recipe_menu/cli/__init__.py
+new file mode 100644
+index 0000000..67f0dbc
+--- /dev/null
++++ b/src/recipe_menu/cli/__init__.py
+@@ -0,0 +1,5 @@
++"""The ``recipe-menu`` command: its command line, its help, and its exit codes."""
++
++from recipe_menu.cli._main import main
++
++__all__ = ["main"]
+diff --git a/src/recipe_menu/cli/_commands.py b/src/recipe_menu/cli/_commands.py
+new file mode 100644
+index 0000000..5a6575b
+--- /dev/null
++++ b/src/recipe_menu/cli/_commands.py
+@@ -0,0 +1,9 @@
++"""The commands of recipe-menu, in the order of the help."""
++
++from typing import Final
++
++from recipe_menu.app import Command
++
++# Each command feature imports its command module's ``Command`` values here, in its mock PR, at
++# its place in the order of the help.
++COMMANDS: Final[tuple[Command, ...]] = ()
+diff --git a/src/recipe_menu/cli/_main.py b/src/recipe_menu/cli/_main.py
+new file mode 100644
+index 0000000..23363e7
+--- /dev/null
++++ b/src/recipe_menu/cli/_main.py
+@@ -0,0 +1,132 @@
++"""The entry point of the ``recipe-menu`` command."""
++
++from collections.abc import Mapping, Sequence
++from datetime import date
++from pathlib import Path
++from typing import TextIO
++
++from recipe_menu.app import Command
++
++
++def main(
++    argv: Sequence[str] | None = None,
++    *,
++    environ: Mapping[str, str] | None = None,
++    home: Path | None = None,
++    today: date | None = None,
++    stdout: TextIO | None = None,
++    stderr: TextIO | None = None,
++    commands: Sequence[Command] | None = None,
++) -> int:
++    r"""Runs the ``recipe-menu`` command line and gives its exit code.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++
++    It reads the outside world, runs the command line, and gives the exit code. The console
++    script and ``python -m recipe_menu`` pass the code to ``sys.exit``. Tests call it with fixed
++    values.
++
++    Args:
++        argv: The arguments after the program's name. ``None`` gives ``sys.argv[1:]``.
++        environ: The environment variables. ``main`` reads only ``RECIPE_MENU_DATA``. ``None``
++            gives ``os.environ``.
++        home: The home folder, for the default data folder and a leading ``~``. ``None`` gives
++            ``Path.home()``.
++        today: Today's date. ``None`` gives the local date of the PC's clock.
++        stdout: The output stream. ``None`` gives ``sys.stdout``, after ``use_utf8``.
++        stderr: The error stream. ``None`` gives ``sys.stderr``, after ``use_utf8``.
++        commands: The commands, in the order of the help. ``None`` gives ``COMMANDS``. No two
++            commands have the same words, and no one-word command has the first word of a
++            two-word command.
++
++    Returns:
++        The exit code. It is 0 for the help, the version, or a command that worked. It is 1
++        when the data folder is missing, the settings have an error, or the command gave 1. It
++        is 2 for a ``UsageError``. It is 130 for Ctrl+C at any step, with nothing more written.
++        ``main`` turns only a ``UsageError`` into 2 and ``KeyboardInterrupt`` into 130. Any other
++        exception from a command is a bug and goes on to Python, which shows its traceback. It
++        catches no error of the console streams.
++
++        The rules for reading the arguments are these. An argument that starts with ``--`` is an
++        option. ``--help`` and ``--version`` are flags. A flag may repeat. Every other option
++        takes the next argument as its value, unless that argument is missing, empty, or starts
++        with ``--``. Then the option has no value, and the next argument is read on its own.
++        Every other argument is a word: the first one or two words are the command's words, and
++        the rest are the values of its argument, in order. Options and words can come in any
++        order.
++        ``--lang``, ``--data``, ``--help``, and ``--version`` are global, and every other option
++        belongs to the command. The forms ``--lang=zh`` and ``-l zh`` and abbreviations are not
++        accepted.
++
++        The data folder is the value of the first ``--data`` that has a value. Without one, it is
++        the value of ``RECIPE_MENU_DATA`` when it is set and not empty. Without either, it is
++        ``home / "recipe-menu"``. A value that is ``~``, or starts with ``~/``, or on Windows
++        starts with ``~\``, has its first part replaced with ``home``. The text decides, not
++        ``Path(value).parts``, because ``pathlib`` drops a leading ``.``. So ``./~/x``, and on
++        Windows ``.\~\x``, name the folder ``~`` in the current folder. No other form of ``~``
++        and no variable is expanded. A relative path is made absolute with ``Path.absolute()``
++        from the current folder, and links are not resolved.
++
++        ``main`` takes these steps, in order. It reads the arguments and finds the data folder.
++        It reads the settings with ``read_settings`` when ``os.path.isdir`` says that the data
++        folder is a folder. It picks the language with ``choose_lang``, from the first ``--lang``
++        that has a value when that value is ``en`` or ``zh``, and from the ``language`` of the
++        settings when ``read_settings`` gave a ``Settings``. Every message from here on is in
++        that language, a usage error included. It checks each ``--lang`` and each ``--data`` in
++        the order of the line, where the first rule that applies gives the error: no value gives
++        ``OPTION_NEEDS_VALUE``, a second one gives ``OPTION_TWICE``, and a value of ``--lang``
++        other than ``en`` and ``zh`` gives ``LANG_NOT_EN_OR_ZH``. With ``--help`` on the line it
++        writes the help to ``stdout`` and gives 0, and otherwise with ``--version`` it writes
++        the version line with ``__version__`` to ``stdout`` and gives 0. It finds the command in
++        the words: no word gives ``NO_COMMAND``, a first word that starts no command gives
++        ``UNKNOWN_COMMAND``, a first word that starts two-word commands with no second word gives
++        ``INCOMPLETE_COMMAND``, and a second word that completes no command gives
++        ``UNKNOWN_COMMAND`` with both words. It checks the command's options in the order of the
++        line, where the first rule that applies gives the error: an option that the command does
++        not declare gives ``UNKNOWN_OPTION``, no value gives ``OPTION_NEEDS_VALUE`` with no
++        hint, and the second of two gives ``OPTION_TWICE`` with no hint. So ``list --tag a
++        --tag`` gives ``OPTION_NEEDS_VALUE``. It checks the number of values of the argument:
++        too few give ``TOO_FEW_ARGUMENTS``, and too many give ``TOO_MANY_ARGUMENTS``, which
++        names the first value too many. It checks the data folder and the settings as the
++        command's ``FolderUse`` says: a missing data folder gives ``NO_DATA_FOLDER`` and
++        ``RUN_INIT`` on ``stderr`` with 1, and an error in the settings gives ``stop_at_error``
++        with the first error and 1. It builds the ``Context`` and the ``Arguments``, runs the
++        command, and gives the code that ``run`` gives.
++
++        For a ``UsageError`` from the checks of the options, the command, or the argument, or
++        from ``run``, it writes ``error.text(lang)`` and then the hint when there is one, each
++        on its own line, to ``stderr``, and gives 2. The hint of ``UNKNOWN_OPTION``,
++        ``LANG_NOT_EN_OR_ZH``, and ``OPTION_NEEDS_VALUE`` and ``OPTION_TWICE`` of ``--lang`` and
++        ``--data`` is ``RUN_HELP_FOR_OPTIONS``. The hint of ``NO_COMMAND``, ``UNKNOWN_COMMAND``,
++        ``INCOMPLETE_COMMAND``, ``TOO_FEW_ARGUMENTS``, and ``TOO_MANY_ARGUMENTS`` is
++        ``RUN_HELP_FOR_COMMANDS``. ``OPTION_NEEDS_VALUE`` and ``OPTION_TWICE`` of an option of
++        the command have no hint.
++
++        The help is these lines, each ended by a line break: the usage line, an empty line, the
++        summary, an empty line, the heading of the commands, the table of the commands, an empty
++        line, the heading of the options, the table of the options, an empty line, and the note
++        on weeks. The commands come in the order of ``commands``, each with ``usage`` and its
++        help line. The options are ``--lang``, ``--data``, ``--version``, and ``--help``, in this
++        order. Both tables are ``format_table(rows, indent=2, min_widths=(width,))``, where
++        ``width`` is the largest ``display_width`` of a first cell of either table in either
++        language, so the second column starts at the same place in both languages.
++
++        The values of the messages are these. ``option`` and ``lang`` are as the line writes
++        them. ``command`` is the command's words, or the words that name no command, joined by a
++        space. ``word`` is the first word. ``commands`` is ``and_list`` of the quoted words of
++        each command that starts with ``word``, in the order of ``commands``. ``options`` is
++        ``and_list`` of the command's options, each in quotation marks, in the order of the
++        command's ``options``. ``UNKNOWN_OPTION`` has three forms: one for a command with no
++        options, one for one option, and one for more. ``INCOMPLETE_COMMAND`` has two forms,
++        picked by the number of commands that start with ``word``: one for one command, and
++        one for more. ``usage`` is the command's ``usage``.
++        ``argument`` is the first value too many. ``folder`` is ``str(folder.root)``, the full
++        path. ``version`` is ``__version__``.
++
++    Raises:
++        ValueError: ``commands`` has two commands with the same words, or a one-word command
++            has the first word of a two-word command. It is raised before the arguments are
++            read.
++        NotImplementedError: Always, in the mock.
++    """
++    raise NotImplementedError
+diff --git a/src/recipe_menu/cli/messages.py b/src/recipe_menu/cli/messages.py
+new file mode 100644
+index 0000000..8cc986f
+--- /dev/null
++++ b/src/recipe_menu/cli/messages.py
+@@ -0,0 +1,104 @@
++"""The messages of ``cli``: the mistakes on the command line, the data folder, and the help.
++
++All are internal to the module.
++"""
++
++from typing import Final
++
++from recipe_menu.text import Message, Plural
++
++# The mistakes on the command line. Each ends a command with exit code 2.
++OPTION_NEEDS_VALUE: Final[Message] = Message(
++    "{option} needs a value.",
++    "{option} 后面要写一个值。",
++)
++OPTION_TWICE: Final[Message] = Message("{option} is given twice.", "{option} 写了两次。")
++LANG_NOT_EN_OR_ZH: Final[Message] = Message(
++    '--lang must be en or zh, not "{lang}".',
++    "--lang 必须是 en 或 zh，不能是“{lang}”。",
++)
++NO_COMMAND: Final[Message] = Message(
++    'Name a command, such as "recipe-menu list".',
++    "请写上一个命令，比如“recipe-menu list”。",
++)
++UNKNOWN_COMMAND: Final[Message] = Message(
++    'Unknown command "{command}".',
++    "未知命令“{command}”。",
++)
++INCOMPLETE_COMMAND: Final[Plural] = Plural(
++    Message(
++        'The only command that starts with "{word}" is {commands}.',
++        "以“{word}”开头的命令只有{commands}。",
++    ),
++    Message(
++        'The commands that start with "{word}" are {commands}.',
++        "以“{word}”开头的命令有{commands}。",
++    ),
++)
++# The form of ``UNKNOWN_OPTION`` for a command with no options has no ``{options}``, so it is a
++# ``Message``. The forms for one option and for more are a ``Plural``.
++UNKNOWN_OPTION_NONE: Final[Message] = Message(
++    '"{command}" has no option "{option}". It has no options of its own.',
++    "“{command}”没有选项“{option}”。它没有自己的选项。",
++)
++UNKNOWN_OPTION: Final[Plural] = Plural(
++    Message(
++        '"{command}" has no option "{option}". Its own option is {options}.',
++        "“{command}”没有选项“{option}”。它自己的选项是{options}。",
++    ),
++    Message(
++        '"{command}" has no option "{option}". Its own options are {options}.',
++        "“{command}”没有选项“{option}”。它自己的选项有{options}。",
++    ),
++)
++TOO_FEW_ARGUMENTS: Final[Message] = Message(
++    'An argument is missing. Write "recipe-menu {usage}".',
++    "缺少参数。请写成“recipe-menu {usage}”。",
++)
++TOO_MANY_ARGUMENTS: Final[Message] = Message(
++    'Unexpected argument "{argument}". Write "recipe-menu {usage}".',
++    "多余的参数“{argument}”。请写成“recipe-menu {usage}”。",
++)
++
++# The messages that end a command with exit code 1.
++NO_DATA_FOLDER: Final[Message] = Message(
++    "There is no data folder at {folder}.",
++    "{folder} 没有数据文件夹。",
++)
++RUN_INIT: Final[Message] = Message(
++    'Run "recipe-menu init" to create it, or name another folder with --data.',
++    "运行“recipe-menu init”创建它，或用 --data 指定别的文件夹。",
++)
++
++# The texts of the help and of the version.
++USAGE_LINE: Final[Message] = Message(
++    "Usage: recipe-menu COMMAND [ARGUMENTS] [--lang en|zh] [--data FOLDER]",
++    "用法：recipe-menu 命令 [参数] [--lang en|zh] [--data 文件夹]",
++)
++SUMMARY: Final[Message] = Message(
++    "Keep your recipes, plan a week's menu, and make its shopping list.",
++    "保存菜谱，排一周的菜单，并生成它的购物清单。",
++)
++COMMANDS_HEADING: Final[Message] = Message("Commands:", "命令：")
++OPTIONS_HEADING: Final[Message] = Message("Options:", "选项：")
++WEEK_NOTE: Final[Message] = Message(
++    'WEEK is an ISO week such as 2026-W47, "this", or "next". Default: this.',
++    "“周”是 ISO 周，比如 2026-W47，也可以是 this（本周）或 next（下周）。默认：本周。",
++)
++VERSION_LINE: Final[Message] = Message("recipe-menu {version}", "recipe-menu {version}")
++
++# The rows of the table of the options in the help: the first cell, then the second.
++LANG_OPTION: Final[Message] = Message("--lang en|zh", "--lang en|zh")
++LANG_HELP: Final[Message] = Message(
++    "The language of the output. Default: the settings, else English.",
++    "输出语言。默认：设置里的语言，否则英文。",
++)
++DATA_OPTION: Final[Message] = Message("--data FOLDER", "--data 文件夹")
++DATA_HELP: Final[Message] = Message(
++    "The data folder. Default: RECIPE_MENU_DATA, else ~/recipe-menu.",
++    "数据文件夹。默认：RECIPE_MENU_DATA，否则 ~/recipe-menu。",
++)
++VERSION_OPTION: Final[Message] = Message("--version", "--version")
++VERSION_HELP: Final[Message] = Message("Show the version.", "显示版本。")
++HELP_OPTION: Final[Message] = Message("--help", "--help")
++HELP_HELP: Final[Message] = Message("Show this help.", "显示这份帮助。")
+diff --git a/src/recipe_menu/commands/__init__.py b/src/recipe_menu/commands/__init__.py
+new file mode 100644
+index 0000000..8420c75
+--- /dev/null
++++ b/src/recipe_menu/commands/__init__.py
+@@ -0,0 +1 @@
++"""The command modules of recipe-menu. Importing one command module imports no other."""
+diff --git a/src/recipe_menu/datafile/__init__.py b/src/recipe_menu/datafile/__init__.py
+index ee07789..42965c7 100644
+--- a/src/recipe_menu/datafile/__init__.py
++++ b/src/recipe_menu/datafile/__init__.py
+@@ -3,6 +3,7 @@
+ from recipe_menu.datafile._folder import DataFolder
+ from recipe_menu.datafile._listing import list_toml_files
+ from recipe_menu.datafile._problem import Problem, Severity
++from recipe_menu.datafile._servings import MAX_SERVINGS, MIN_SERVINGS, read_servings
+ from recipe_menu.datafile._shape import (
+     Report,
+     read_list,
+@@ -26,6 +27,8 @@ __all__ = [
+     "EMPTY_ITEM",
+     "EMPTY_TEXT",
+     "ITEM_NOT_A_TEXT",
++    "MAX_SERVINGS",
++    "MIN_SERVINGS",
+     "MISSING_KEY",
+     "NOT_A_LIST",
+     "NOT_A_TABLE",
+@@ -37,6 +40,7 @@ __all__ = [
+     "Severity",
+     "list_toml_files",
+     "read_list",
++    "read_servings",
+     "read_table",
+     "read_text",
+     "read_toml",
+diff --git a/src/recipe_menu/datafile/_servings.py b/src/recipe_menu/datafile/_servings.py
+new file mode 100644
+index 0000000..5a2d364
+--- /dev/null
++++ b/src/recipe_menu/datafile/_servings.py
+@@ -0,0 +1,36 @@
++"""The one rule for a servings number in a data file."""
++
++from typing import Final
++
++from recipe_menu.datafile._shape import Report
++from recipe_menu.lang import BiText
++
++MIN_SERVINGS: Final[int] = 1
++MAX_SERVINGS: Final[int] = 100
++
++
++def read_servings(value: object, place: BiText, report: Report) -> int | None:
++    """Reads a servings number: an integer from 1 to 100.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++
++    Args:
++        value: A servings value as ``read_toml`` gives it, such as ``2`` or ``"2"``. The caller
++            has found the key.
++        place: The place of the value, such as "servings" and its Chinese name.
++        report: Where the problem goes.
++
++    Returns:
++        ``value`` when it is an ``int``, not a ``bool``, from ``MIN_SERVINGS`` to
++        ``MAX_SERVINGS``. Otherwise ``None``, after one error at ``place`` in ``report``. The
++        error is ``SERVINGS_NOT_A_NUMBER`` for a value that is not an integer, such as ``"2"``,
++        ``2.5``, or ``True``, and for an integer of 16 or more digits. It is
++        ``SERVINGS_TOO_FEW`` with ``servings`` set to the value for an integer from
++        -999,999,999,999,999 to 0, and ``SERVINGS_TOO_MANY`` with ``servings`` set to the value
++        for an integer from 101 to 999,999,999,999,999. So a message never shows more than 15
++        digits.
++
++    Raises:
++        NotImplementedError: Always, in the mock. The implementation never raises for bad data.
++    """
++    raise NotImplementedError
+diff --git a/src/recipe_menu/datafile/messages.py b/src/recipe_menu/datafile/messages.py
+index 167bff6..ca6deac 100644
+--- a/src/recipe_menu/datafile/messages.py
++++ b/src/recipe_menu/datafile/messages.py
+@@ -1,8 +1,8 @@
+ """The messages of ``datafile``: the places in a file, the read errors, and the shape of a file.
+ 
+ Only the eight messages for the shape of a file are exported by ``recipe_menu.datafile``. The
+-others, the read errors and the folder listing, are internal to the module, for ``read_toml``
+-and ``list_toml_files``.
++others, the read errors, the folder listing, and the servings, are internal to the module, for
++``read_toml``, ``list_toml_files``, and ``read_servings``.
+ """
+ 
+ from typing import Final
+@@ -142,3 +142,17 @@ TOML_ENDING_NOT_SMALL: Final[Message] = Message(
+     'The file name must end with ".toml" in small letters. Rename the file.',
+     "文件名必须以小写的“.toml”结尾。请给文件改名。",
+ )
++
++# Why a servings number is wrong, from ``read_servings``. These are internal to ``datafile``.
++SERVINGS_NOT_A_NUMBER: Final[Message] = Message(
++    "Servings must be a whole number from 1 to 100, such as 2.",
++    "份数必须是 1 到 100 之间的整数，比如 2。",
++)
++SERVINGS_TOO_FEW: Final[Message] = Message(
++    "Servings must be a whole number of 1 or more, not {servings}.",
++    "份数必须是不小于 1 的整数，不能是 {servings}。",
++)
++SERVINGS_TOO_MANY: Final[Message] = Message(
++    "Servings must be a whole number of 100 or less, not {servings}.",
++    "份数必须是不大于 100 的整数，不能是 {servings}。",
++)
+diff --git a/src/recipe_menu/settings/__init__.py b/src/recipe_menu/settings/__init__.py
+new file mode 100644
+index 0000000..ce94220
+--- /dev/null
++++ b/src/recipe_menu/settings/__init__.py
+@@ -0,0 +1,7 @@
++"""The settings of a data folder: the language, the meals of each day, and the servings."""
++
++from recipe_menu.settings._meal import Meal
++from recipe_menu.settings._read import read_settings
++from recipe_menu.settings._settings import Settings
++
++__all__ = ["Meal", "Settings", "read_settings"]
+diff --git a/src/recipe_menu/settings/_meal.py b/src/recipe_menu/settings/_meal.py
+new file mode 100644
+index 0000000..020b684
+--- /dev/null
++++ b/src/recipe_menu/settings/_meal.py
+@@ -0,0 +1,58 @@
++"""The meals of a day."""
++
++from enum import StrEnum
++
++from recipe_menu.lang import BiText
++
++
++class Meal(StrEnum):
++    """The meals of a day, in the order of the day, with their names in both languages.
++
++    Each member's value is the word that the settings and the menu files use. ``list(Meal)``
++    gives ``BREAKFAST``, ``LUNCH``, and ``DINNER``, in the order of a day. ``Meal(value)`` gives
++    the member whose value is ``value``, and ``value in Meal`` tells whether a word is a meal,
++    without an exception. A ``Meal`` is a ``str``, so ``sorted`` sorts meals by their words,
++    which is not the order of a day. Sort them with ``key=list(Meal).index``. A message shows a
++    meal through ``label`` or ``heading``, because ``Message.render`` rejects an enum member.
++
++    Raises:
++        ValueError: ``Meal(value)`` gets a word that is not a member's value, such as ``supper``
++            or ``Lunch``.
++    """
++
++    BREAKFAST = "breakfast"
++    LUNCH = "lunch"
++    DINNER = "dinner"
++
++    @property
++    def label(self) -> BiText:
++        """Gives the meal's name inside a sentence or a place.
++
++        The mock raises ``NotImplementedError``. The implementation gives the name by the rule
++        below.
++
++        Returns:
++            The English name is ``breakfast``, ``lunch``, or ``dinner``, as the value is. The
++            Chinese name is the two characters for breakfast (U+65E9 U+9910), for lunch
++            (U+5348 U+9910), or for dinner (U+665A U+9910).
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++        """
++        raise NotImplementedError
++
++    @property
++    def heading(self) -> BiText:
++        """Gives the meal's name at the top of a column.
++
++        The mock raises ``NotImplementedError``. The implementation gives the name by the rule
++        below.
++
++        Returns:
++            The English name is ``Breakfast``, ``Lunch``, or ``Dinner``, with a capital letter.
++            The Chinese name is the same as the Chinese name of ``label``.
++
++        Raises:
++            NotImplementedError: Always, in the mock.
++        """
++        raise NotImplementedError
+diff --git a/src/recipe_menu/settings/_read.py b/src/recipe_menu/settings/_read.py
+new file mode 100644
+index 0000000..bf5f610
+--- /dev/null
++++ b/src/recipe_menu/settings/_read.py
+@@ -0,0 +1,60 @@
++"""The reader of ``settings.toml``."""
++
++from recipe_menu.datafile import DataFolder, Problem
++from recipe_menu.settings._settings import Settings
++
++
++def read_settings(folder: DataFolder) -> tuple[Settings | None, tuple[Problem, ...]]:
++    """Reads ``settings.toml`` into a ``Settings``, and reports each problem with its place.
++
++    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++
++    Every key is optional. A missing key gives no problem and has its default: no language,
++    lunch and dinner, and 2 servings. The file itself is required. No check gives a warning, and
++    every problem has the file ``settings.toml``.
++
++    Args:
++        folder: The data folder.
++
++    Returns:
++        A pair ``(settings, problems)``. ``settings`` is ``None`` when ``problems`` holds an
++        error, and otherwise a ``Settings`` whose meals are in the order of ``Meal``, whatever
++        order the file lists them in, each once. ``problems`` holds the problem of ``read_toml``
++        alone when the file is missing, cannot be read, is not UTF-8, or is not valid TOML.
++        Otherwise it holds these problems, in this order: those of ``language``, then those of
++        ``meals``, then those of ``servings``, and then the unknown keys in the file's order.
++
++        The places are ``language``, ``meals``, ``meal N``, and ``servings``, each with its
++        Chinese name. The checks of ``language``, all at the place ``language``: ``NOT_A_TEXT``
++        for a value that is not a text, ``EMPTY_TEXT`` for an empty text or one with only
++        whitespace, and ``LANGUAGE_NOT_EN_OR_ZH`` when the text, without whitespace at both
++        ends, is neither ``en`` nor ``zh``, such as ``fr`` or ``EN``. The value ``language`` of
++        the message is the text without whitespace at both ends. The value ``key`` of
++        ``NOT_A_TEXT`` and ``EMPTY_TEXT`` is ``language``.
++
++        The checks of ``meals``, in this order: ``NOT_A_LIST`` at ``meals`` for a value that is
++        not a list, which comes alone, with the value ``key`` ``meals``. Then, for each item in
++        order, ``ITEM_NOT_A_TEXT`` at
++        ``meal N`` for an item that is not a text, ``EMPTY_ITEM`` at ``meal N`` for an empty
++        item or one with only whitespace, and ``UNKNOWN_MEAL`` at ``meals``, not at ``meal N``,
++        when the item without whitespace at both ends is not the value of a ``Meal``, such as
++        ``supper`` or ``Lunch``. N counts the items from 1, skipped items included. The value
++        ``meal`` of ``UNKNOWN_MEAL`` is the item without whitespace at both ends. The value
++        ``meals`` of ``UNKNOWN_MEAL`` and of ``NO_MEALS`` is ``and_list`` of the values of
++        ``Meal``, in their order. An item that names a meal that an earlier item
++        named gives no problem, and the settings hold the meal once. ``NO_MEALS`` at ``meals``
++        comes only for the empty list ``[]``, and it comes alone. A list whose items all give
++        problems gives only those problems, with no ``NO_MEALS``.
++
++        The check of ``servings``: ``read_servings`` gives ``SERVINGS_NOT_A_NUMBER``,
++        ``SERVINGS_TOO_FEW``, or ``SERVINGS_TOO_MANY`` at ``servings``.
++
++        The check of the top of the file: ``UNKNOWN_KEY`` with no place for each key other than
++        ``language``, ``meals``, and ``servings``. Its value ``key`` is the unknown key and its
++        value ``keys`` is ``and_list`` of ``language``, ``meals``, and ``servings``, in the
++        form for three keys.
++
++    Raises:
++        NotImplementedError: Always, in the mock. The implementation never raises for bad data.
++    """
++    raise NotImplementedError
+diff --git a/src/recipe_menu/settings/_settings.py b/src/recipe_menu/settings/_settings.py
+new file mode 100644
+index 0000000..6339d33
+--- /dev/null
++++ b/src/recipe_menu/settings/_settings.py
+@@ -0,0 +1,36 @@
++"""The settings of a data folder."""
++
++from dataclasses import dataclass
++
++from recipe_menu.lang import Lang
++from recipe_menu.settings._meal import Meal
++
++
++@dataclass(frozen=True, slots=True)
++class Settings:
++    """The settings of a data folder: the language, the meals of each day, and the servings.
++
++    ``Settings()`` gives the defaults. Two settings are equal when their three fields are equal,
++    and a ``Settings`` is hashable.
++
++    The mock leaves the checks below out.
++
++    Attributes:
++        language: The language of the commands when the command line has no ``--lang``, or
++            ``None`` when the settings name no language. Then the commands speak English.
++        meals: The meals of each day of a week menu: 1 to 3 meals, in the order of ``Meal``,
++            each once.
++        servings: The servings of a dish that gives none: from ``MIN_SERVINGS`` to
++            ``MAX_SERVINGS``, which are 1 and 100. Not a ``bool``.
++
++    Raises:
++        TypeError: ``language`` is neither a ``Lang`` nor ``None``, such as the text ``"zh"``.
++        TypeError: ``meals`` is not a tuple, or it holds an item that is not a ``Meal``.
++        ValueError: ``meals`` is empty, holds a meal twice, or is not in the order of ``Meal``.
++        TypeError: ``servings`` is not an ``int``, or it is a ``bool``.
++        ValueError: ``servings`` is less than 1 or more than 100.
++    """
++
++    language: Lang | None = None
++    meals: tuple[Meal, ...] = (Meal.LUNCH, Meal.DINNER)
++    servings: int = 2
+diff --git a/src/recipe_menu/settings/messages.py b/src/recipe_menu/settings/messages.py
+new file mode 100644
+index 0000000..3b2a3e4
+--- /dev/null
++++ b/src/recipe_menu/settings/messages.py
+@@ -0,0 +1,28 @@
++"""The messages of ``settings``: the places in ``settings.toml`` and its own problems.
++
++All are internal to the module. The other problems of the file use the messages of ``datafile``.
++"""
++
++from typing import Final
++
++from recipe_menu.text import Message
++
++# The places in ``settings.toml``. ``MEAL_N`` names the item N of ``meals``, counted from 1.
++LANGUAGE: Final[Message] = Message("language", "语言")
++MEALS: Final[Message] = Message("meals", "餐次")
++MEAL_N: Final[Message] = Message("meal {number}", "餐次 {number}")
++SERVINGS: Final[Message] = Message("servings", "份数")
++
++# The problems of ``settings.toml`` that ``datafile`` has no message for.
++LANGUAGE_NOT_EN_OR_ZH: Final[Message] = Message(
++    'The language must be "en" or "zh", not "{language}".',
++    "语言必须是“en”或“zh”，不能是“{language}”。",
++)
++UNKNOWN_MEAL: Final[Message] = Message(
++    'Unknown meal "{meal}". The meals are {meals}.',
++    "未知餐次“{meal}”。可用的餐次：{meals}。",
++)
++NO_MEALS: Final[Message] = Message(
++    '"meals" must name at least one meal. The meals are {meals}.',
++    "“meals”至少要写上一个餐次。可用的餐次：{meals}。",
++)

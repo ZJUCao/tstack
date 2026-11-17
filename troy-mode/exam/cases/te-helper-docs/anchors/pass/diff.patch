@@ -1,0 +1,134 @@
+diff --git a/tests/f10_texts.py b/tests/f10_texts.py
+index feebc67..b4a197b 100644
+--- a/tests/f10_texts.py
++++ b/tests/f10_texts.py
+@@ -4,7 +4,7 @@ Every text is written out as a literal, so a test imports no message of ``search
+ prototype file. Nothing here calls an interface of F10 when the module is imported. Blocks A to F
+ are the blocks of the test plan: each ``PS>`` line gives the words after ``search``, and the lines
+ that follow it up to its count line are its output, with exit code 0 and an empty error stream.
+-``found`` and ``none`` give the result of a search.
++The module also builds the results of a search and of its usage errors.
+ """
+ 
+ import shlex
+diff --git a/tests/f11_support.py b/tests/f11_support.py
+index 4e610ce..c4e109c 100644
+--- a/tests/f11_support.py
++++ b/tests/f11_support.py
+@@ -1,10 +1,10 @@
+ """Helpers that the F11 tests share: calls on a date, the named changes, and the checks.
+ 
+-Nothing here calls an interface of F11 when the module is imported. Functions call ``main``, make
+-the folders of the cases, and check a ``FileCreation``. The expected texts are in ``f11_texts``.
+-The module imports ``write`` of ``f03_support``, ``Result`` of ``f05_texts``, ``made`` of
+-``f09_support``, ``LABELS`` of ``f11_texts``, and ``main`` and the types of the package. The F11
+-tests import the other helpers that they use from their own modules.
++The module makes the data folders and the menu files of the cases, builds the bytes of a new menu
++file and the meals as the lines of a new menu name them, holds the sets of meals of the cases with
++their labels, and checks the outcome of a file creation. Nothing here calls an interface of F11
++when the module is imported. The other expected texts are in ``f11_texts``. The F11 tests import
++the other helpers that they use from their own modules.
+ """
+ 
+ import io
+diff --git a/tests/f11_texts.py b/tests/f11_texts.py
+index 0fa3ebc..f9f1908 100644
+--- a/tests/f11_texts.py
++++ b/tests/f11_texts.py
+@@ -1,10 +1,13 @@
+ """The expected texts of F11: the outputs of both commands, the new file, and the messages.
+ 
+-Every text is written out as a literal, so a test imports no message of ``menu`` or ``menus`` and
+-reads no prototype file. Nothing here calls an interface of F11 when the module is imported. The
+-functions at the end build the texts that the test plan calls ``NEW``, ``EXISTS``, ``FAIL``,
+-``LEFT``, ``NO_MENU``, ``NOT_A_WEEK``, and ``EMPTY``. The blocks A to F are the
+-outputs of ``menu show`` that the cases name, as lists of lines. U+00D7 and U+2014 are written as
++Every text but the output of an empty menu is written out as a literal, so a test imports no
++message of ``menu`` or ``menus`` and reads no prototype file. The output of an empty menu takes its
++dates from F06 and its table layout from F02, as the test plan says, and uses no code of F11.
++Nothing here calls an interface of F11 when the module is imported. The module holds the helps,
++the blocks A to F of the test plan as lists of lines, the menu file of the prototype, the dates of
++the case weeks, the labels and headings of the meals, the meal sets, the ``menu show`` output of
++the example week, and the outputs of a new file, an existing file, a failure, a file left behind,
++a missing menu, a value that is not a week, and an empty menu. U+00D7 and U+2014 are written as
+ escapes.
+ """
+ 
+diff --git a/tests/f12_support.py b/tests/f12_support.py
+index 1c28d80..f9a0d52 100644
+--- a/tests/f12_support.py
++++ b/tests/f12_support.py
+@@ -1,17 +1,11 @@
+ """Helpers and example values that the F12 tests share.
+ 
+-Nothing here calls an interface of F12 when the module is imported. At import the module holds
+-only texts, numbers, and tuples, lists, and dicts of them, and enum members.
+-Functions make every ``ShoppingLine``, ``ShoppingGroup``, and ``ShoppingList``, so the test files
+-import against the mock and against a broken implementation.
+-
+-The cases write their values in the notation of the test plan, and the functions here read it:
+-
+-* ``recipes_of(catalog, "three 3: <lines>")`` is ``R(three, 3: <lines>)``, and a recipe with no
+-  number has 2 servings.
+-* ``menu_of("monday dinner: three 2, one 100")`` is a slot with two dishes. Every other slot
+-  holds no dish.
+-* ``amt("200/3 G")`` is ``200/3 G``, and ``line(catalog, name, "200/3 G")`` is ``name: 200/3 G``.
++Nothing here calls an interface of F12 when the module is imported. At import the module builds
++only texts, ``None``, tuples, lists, dicts, enum members, and the empty pantry. It makes shopping
++lines, groups, and lists only inside its functions, so the test files import against the mock and
++against a broken implementation. It also reads the files of a week as the shopping command does
++and writes the folders of two v0.1 scenarios. The cases write their values in the notation of the
++test plan, and the doc comment of each function that reads it says how.
+ """
+ 
+ from collections.abc import Iterable, Mapping, Sequence
+@@ -267,7 +261,10 @@ def menu_of(*cells: str, meals: Sequence[Meal] = LUNCH_DINNER, week: int = 48) -
+ def every_slot(
+     text: str, meals: Sequence[Meal] = EVERY_MEAL, week: int = 48, times: int = 1
+ ) -> WeekMenu:
+-    """Builds a menu that holds the same dishes ``times`` times in each slot of every day."""
++    """Builds a menu that holds the same dishes ``times`` times in each slot of every day.
++
++    ``text`` holds dishes as a cell of ``menu_of`` writes them, such as ``"rice 2"``.
++    """
+     body = ", ".join([text] * times)
+     return menu_of(
+         *(f"{day.value} {meal.value}: {body}" for day in Day for meal in meals),
+@@ -286,7 +283,10 @@ def amt(text: str) -> Quantity:
+ 
+ 
+ def line(catalog: Catalog, name: str, *amounts: Quantity | str) -> ShoppingLine:
+-    """Builds ``name: amounts`` of the plan, with the catalog's ingredient of that name."""
++    """Builds ``name: amounts`` of the plan, with the catalog's ingredient of that name.
++
++    An amount is a ``Quantity`` or a text that ``amt`` reads, such as ``"200/3 G"``.
++    """
+     items = tuple(item if isinstance(item, Quantity) else amt(item) for item in amounts)
+     return ShoppingLine(find(catalog, name), items)
+ 
+diff --git a/tests/f13_support.py b/tests/f13_support.py
+index 4955593..1f9dd4a 100644
+--- a/tests/f13_support.py
++++ b/tests/f13_support.py
+@@ -1,12 +1,14 @@
+ """Helpers that the F13 tests share: the fault harness, the builders, and the named changes.
+ 
+-The module holds ``ShopFaults`` and ``shop_faults``, which add the rules ``move``, ``close``, and
+-``unlink P: later`` to the harness of ``f08_support``, the links and the messages of the system,
+-the builders ``shop_list``, ``shop_lines``, and ``shop_file``, which follow design 2.2 and use no
+-code of F13, and the named changes of the test plan. Nothing here calls an interface of F13 when
+-the module is imported: ``SHOP_COMMAND`` and ``replace_file`` are never called here, so the test
+-files import against the mock and against a broken implementation. The expected texts are in
+-``f13_texts`` and ``f13_blocks``.
++The module extends the fault harness of ``f08_support`` with the faults of a move, a close, and a
++later unlink, makes a folder link, finds the message of the system for a move onto a folder,
++builds the shopping list, its lines, and its file as design 2.2 says, with no code of F13, and
++holds the named changes, the expected call records, and the problems of the readers of the test
++plan. It also runs the command line inside the harness, holds a file open as another program does,
++makes the folders of a direct call, and copies the example folder in its starting state. Nothing
++here calls an interface of F13 when the module is imported, so the test files import against the
++mock and against a broken implementation. The other expected texts are in ``f13_texts`` and
++``f13_blocks``.
+ """
+ 
+ import builtins
