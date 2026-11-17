@@ -20,6 +20,7 @@
 | “下一个功能”、“F04”、“F04 到 F06”、“v0.1 剩下的功能” | 功能循环 | [3](03-features.zh-CN.md) |
 | “bug：……”、“修复 #12” | 修 bug | [4.1](04-bugs-and-changes.zh-CN.md#41-修-bug) |
 | “变更：……”、“导出功能还应该……” | 需求变更 | [4.2](04-bugs-and-changes.zh-CN.md#42-修改需求) |
+| “idea #101”、“change: #101” | 一个想法 issue，马上处理 | [7.6](07-taking-part.zh-CN.md#76-在手机上) |
 | “为什么……”、“……怎样……”、“试一个……” | 流水线之外的工作：不开 PR | [4.3](04-bugs-and-changes.zh-CN.md#43-问题和试验) |
 | “发布 v0.1”、“发布 v0.1.1”、“发布” | 版本发布 | [5](05-release.zh-CN.md) |
 | “加一条规则……”、“修改 P01……”、“废止 P02”、“所有项目的一条规则……” | 规则变更 | [6](06-rules.zh-CN.md) |
@@ -73,6 +74,8 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `Bug deferred by Troy: #<n>` | 你把一个未关闭的 bug 推迟到这次发布之后时。 |
 | `Retrospective: <tag>` | 复盘，它结束这次发布。 |
 
+在 issue 上，troy-mode 的评论以 `Idea: requirement change`、`Idea: bug`、`Idea: rule`、`Idea: answered`、`Idea: later`、`Idea: in the requirements`、`Waiting for Troy: <问题>`、`Reply to Troy` 或 `Device test, run <n>: ready` 开头，用你写的语言。引擎命令 `troy_flow.py issues` 算出每个进度 issue 和清单；标签是 `idea`、`progress` 和 `device-test`（[第 7.6 节](07-taking-part.zh-CN.md#76-在手机上)）。
+
 ## 8.4 项目里的文件
 
 | 路径 | 内容 | 谁来改 |
@@ -95,6 +98,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `.github/workflows/project-rules.yml` | 项目为自己的规则设的检查步骤 | 规则变更流程 |
 | `.troy-mode/progress.md` | 进度文件。只在本地，被 git 忽略。 | troy-mode |
 | `.github/workflows/troy-mode.yml`、`.github/pull_request_template.md` | troy-check 的 CI 任务和 PR 模板 | 只有 troy-init |
+| `.github/ISSUE_TEMPLATE/idea.md` | issue 模板"Idea / 想法"，会加上 `idea` 标签 | 只有 troy-init |
 | `.claude/settings.local.json` | 你的 Claude Code 权限。被 git 忽略。 | 你 |
 
 每个角色运行时，hook 把它限制在自己的写入范围之内，运行之后再检查一次（[F05 设计第 5 节](../design/F05-hooks.zh-CN.md#5-写入范围)、[F07 设计第 7 节](../design/F07-entry-skill.zh-CN.md#7-每次运行之后的检查d59)）。开发工程师对测试的修改会被拒绝（R08）。

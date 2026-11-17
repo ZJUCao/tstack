@@ -14,6 +14,11 @@ also commits a version test plan, and its mirror, for each version of its
 features table, so F07's stage tests still get ``stage``; and ``next`` has
 three more keys, ``step``, ``tag``, and ``commit``, null except where F08
 names them.
+
+F15 (issues for Troy, F15 interface note section 1) adds the read calls
+``pr view <n> --json comments,reviews``, ``issue list --state all``,
+``pr list --state all``, ``label list``, and ``repo view`` to the fake gh,
+and two more ``next`` keys, ``issue`` and ``ideas``, null unless F15 names them.
 """
 
 from __future__ import annotations
@@ -56,7 +61,15 @@ SETUP_TITLE = "[rules] Set up troy-mode"
 STAGE_NAMES = {1: "design", 2: "test-plan", 3: "mock", 4: "tests", 5: "impl", 6: "accept"}
 STAGE_TASKS = {1: "IF1", 2: "TM1", 3: "DV1", 4: "TE1", 5: "DV2", 6: "PM3"}
 NEXT_KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc",
-             "rounds", "attempts", "step", "tag", "commit")
+             "rounds", "attempts", "step", "tag", "commit", "issue", "ideas")
+REPO_URL = f"https://github.com/{LOGIN}/{PROJECT}"
+# The read calls F15 adds (F15 interface note, section 1).
+ALL_ISSUES_ARGS = ["issue", "list", "--state", "all", "--limit", "300", "--json",
+                   "number,title,labels,body,comments,url,createdAt,state,stateReason"]
+ALL_PRS_ARGS = ["pr", "list", "--state", "all", "--limit", "300", "--json",
+                "number,title,state,url"]
+LABEL_ARGS = ["label", "list", "--limit", "100", "--json", "name"]
+REPO_ARGS = ["repo", "view", "--json", "url,hasIssuesEnabled"]
 PROGRESS_FIELDS = ("Current version", "Current feature", "Stage", "Open PRs", "Waiting on Troy",
                    "Open issues", "Next action", "Last updated")
 ANY = object()
@@ -1310,12 +1323,24 @@ def option(args, name):
 
 def answer(value):
     """Prints a JSON answer and returns 0."""
-    sys.stdout.write(json.dumps(value) + "\n")
+    sys.stdout.write(json.dumps(value, ensure_ascii=False) + "\n")
     return 0
+
+
+def matches(args, words):
+    """Whether a call is the subcommand words[:2] with each option pair of words[2:]."""
+    if args[:2] != words[:2]:
+        return False
+    pairs = words[2:]
+    return all(option(args, pairs[i]) == pairs[i + 1] for i in range(0, len(pairs) - 1, 2))
 
 
 def main():
     """Records the call, then answers as the data file says."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
     args = sys.argv[1:]
     with LOG.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps({"argv": args, "cwd": os.getcwd()}) + "\n")
@@ -1327,19 +1352,35 @@ def main():
         if args[:len(prefix)] == prefix:
             sys.stderr.write("fake gh: this call fails on purpose\n")
             return 1
+    for rule in data.get("fail_on", []):
+        if matches(args, rule["argv"]):
+            sys.stderr.write(rule["message"] + "\n")
+            return 1
     if args[:2] == ["pr", "list"]:
         state = option(args, "--state")
         if state == "open":
             return answer(data.get("prs", []))
         if state == "merged":
             return answer(data.get("merged", []))
+        if state == "all":
+            return answer(data.get("all_prs", []))
     elif args[:2] == ["pr", "view"] and len(args) > 2:
-        return answer({"comments": data.get("comments", {}).get(args[2], [])})
+        found = {"comments": data.get("comments", {}).get(args[2], []),
+                 "reviews": data.get("reviews", {}).get(args[2], [])}
+        fields = (option(args, "--json") or "comments").split(",")
+        return answer({name: found[name] for name in fields if name in found})
     elif args[:2] == ["release", "list"]:
         return answer(data.get("releases", []))
     elif args[:2] == ["issue", "list"]:
         if option(args, "--label") == "bug" and option(args, "--state") == "open":
             return answer(data.get("issues", []))
+        if option(args, "--label") is None and option(args, "--state") == "all":
+            return answer(data.get("all_issues", []))
+    elif args[:2] == ["label", "list"]:
+        return answer([{"name": name} for name in data.get("labels", [])])
+    elif args[:2] == ["repo", "view"]:
+        return answer({"url": data.get("repo_url"),
+                       "hasIssuesEnabled": data.get("issues_enabled", True)})
     elif args[:2] == ["issue", "view"] and len(args) > 2:
         found = data.get("issue_views", {}).get(args[2])
         if found is not None:
@@ -1386,9 +1427,12 @@ class Fakes:
     ``gh pr list --state open`` (the open PRs), ``gh pr list --state merged``
     (the merged PRs, never the open ones), ``gh pr view <n> --json comments``,
     ``gh release list``, ``gh issue list --label bug --state open``, and
-    ``gh issue view <n>`` (F08 note, section 1). Any other call, or every call
-    when it is set to fail, exits with a code other than 0. The fake mamba
-    always fails, and no engine command may run it.
+    ``gh issue view <n>`` (F08 note, section 1). For F15 (F15 interface note,
+    section 1) it also serves ``gh pr view <n> --json comments,reviews`` (only
+    the fields asked for), ``gh issue list --state all``, ``gh pr list --state
+    all``, ``gh label list``, and ``gh repo view``. Any other call, or every
+    call when it is set to fail, exits with a code other than 0. The fake
+    mamba always fails, and no engine command may run it.
 
     Attributes:
         folder: The folder that goes first on the PATH.
@@ -1400,7 +1444,7 @@ class Fakes:
                  fail: bool = False, merged: Sequence[Mapping] = (),
                  releases: Sequence[str] = (), issues: Sequence[Mapping] = (),
                  issue_views: Optional[Mapping] = None,
-                 fail_calls: Sequence[Sequence[str]] = ()) -> None:
+                 fail_calls: Sequence[Sequence[str]] = (), **f15) -> None:
         """Writes both launchers and the gh answers.
 
         Args:
@@ -1414,6 +1458,7 @@ class Fakes:
                 prints, besides the open issues, which it serves too.
             fail_calls: Argument prefixes, such as ``["release", "list"]``,
                 whose calls fail.
+            **f15: The F15 answers ``serve`` takes by keyword.
         """
         self.folder = new_dir("fakes")
         self._gh_log = self.folder / "gh_calls.jsonl"
@@ -1421,13 +1466,19 @@ class Fakes:
         self._data = self.folder / "gh_data.json"
         self.gh = _launcher(self.folder, "gh", self._gh_log, self._data)
         self.mamba = _launcher(self.folder, "mamba", self._mamba_log, self.folder / "none.json")
-        self.serve(prs, comments, fail, merged, releases, issues, issue_views, fail_calls)
+        self.serve(prs, comments, fail, merged, releases, issues, issue_views, fail_calls, **f15)
 
     def serve(self, prs: Sequence[Mapping] = (), comments: Optional[Mapping] = None,
               fail: bool = False, merged: Sequence[Mapping] = (),
               releases: Sequence[str] = (), issues: Sequence[Mapping] = (),
               issue_views: Optional[Mapping] = None,
-              fail_calls: Sequence[Sequence[str]] = ()) -> None:
+              fail_calls: Sequence[Sequence[str]] = (), *,
+              reviews: Optional[Mapping] = None,
+              all_issues: Optional[Sequence[Mapping]] = None,
+              all_prs: Optional[Sequence[Mapping]] = None,
+              labels: Sequence[str] = ("bug",), repo_url: str = REPO_URL,
+              issues_enabled: bool = True,
+              fail_on: Sequence[tuple] = ()) -> None:
         """Sets what the fake gh answers.
 
         Args:
@@ -1439,15 +1490,43 @@ class Fakes:
             issues: What ``gh issue list --label bug --state open`` prints.
             issue_views: Issue number mapped to what ``gh issue view <n>`` prints.
             fail_calls: Argument prefixes whose calls fail.
+            reviews: PR number mapped to its reviews (``body``, ``submittedAt``,
+                ``state``), served with ``--json comments,reviews``.
+            all_issues: What ``gh issue list --state all`` prints, or None for
+                the bug issues above, open and labeled ``bug``.
+            all_prs: What ``gh pr list --state all`` prints, or None for the
+                open PRs (``OPEN``) and the merged PRs (``MERGED``) above.
+            labels: The label names ``gh label list`` prints.
+            repo_url: The ``url`` of ``gh repo view``.
+            issues_enabled: The ``hasIssuesEnabled`` of ``gh repo view``.
+            fail_on: ``(words, message)`` pairs: a call whose first two words
+                are ``words[:2]`` and that has each option pair of
+                ``words[2:]`` fails, with the message on stderr.
         """
         views = {str(item["number"]): dict(item) for item in issues}
         views.update({str(k): dict(v) for k, v in (issue_views or {}).items()})
+        if all_issues is None:
+            all_issues = [{"number": item["number"], "title": item.get("title", ""),
+                           "labels": [{"name": "bug"}], "body": item.get("body", ""),
+                           "comments": [], "url": item.get("url", ""),
+                           "createdAt": "2026-11-01T00:00:00Z", "state": "OPEN",
+                           "stateReason": None, "author": {"login": LOGIN}} for item in issues]
+        if all_prs is None:
+            all_prs = ([{"number": item["number"], "title": item["title"], "state": "OPEN",
+                         "url": item.get("url", "")} for item in prs]
+                       + [{"number": item["number"], "title": item["title"], "state": "MERGED",
+                           "url": item.get("url", "")} for item in merged])
         data = {"prs": list(prs), "fail": fail,
                 "comments": {str(k): list(v) for k, v in (comments or {}).items()},
                 "merged": list(merged), "releases": [{"tagName": tag} for tag in releases],
                 "issues": list(issues), "issue_views": views,
-                "fail_calls": [list(prefix) for prefix in fail_calls]}
-        write_file(self.folder, self._data.name, json.dumps(data))
+                "fail_calls": [list(prefix) for prefix in fail_calls],
+                "reviews": {str(k): list(v) for k, v in (reviews or {}).items()},
+                "all_issues": list(all_issues), "all_prs": list(all_prs),
+                "labels": list(labels), "repo_url": repo_url, "issues_enabled": issues_enabled,
+                "fail_on": [{"argv": list(words), "message": message}
+                            for words, message in fail_on]}
+        write_file(self.folder, self._data.name, json.dumps(data, ensure_ascii=False))
 
     def gh_argvs(self) -> list:
         """The argument lists of every recorded gh call, oldest first."""

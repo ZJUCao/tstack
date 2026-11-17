@@ -26,6 +26,9 @@
 | [`escalation`](escalation.md) | 无。它是一条聊天消息的格式。 | 无 | 主会话 | 每次升级上报 |
 | [`pull-request`](pull-request.md) | `.github/pull_request_template.md` | 无。PR 用英文写。 | 开 PR 的角色 | 每个 PR |
 | [`summary-for-troy`](summary-for-troy.md) | 无。它放在 PR 描述的开头。 | 无。一个文件里有两种语言，中文在前。 | 写这份文档的角色 | 每个设计、测试计划、需求和架构 PR |
+| [`progress-issue`](progress-issue.md) | 无。它是 GitHub 上一个功能的进度 issue 的正文。 | 无。一个文件里有两种语言，中文在前。 | troy-mode 的引擎（`troy_flow.py issues`）在代码里生成，主会话发出 | 每次同步，直到功能验收 |
+| [`device-test-issue`](device-test-issue.md) | 无。它是 GitHub 上一个版本的设备测试清单的正文。 | 无。一个文件里有两种语言，中文在前。 | troy-mode 的引擎（`troy_flow.py issues`）在代码里生成，Troy 勾选 | 发布测试通过后，以及新一轮时 |
+| [`idea-issue`](idea-issue.md) | `.github/ISSUE_TEMPLATE/idea.md` | 无。一个文件里有两种语言。 | Troy 在 GitHub 上开想法 issue 时 | 不变；由 troy-init 写入 |
 
 `<名字>.md` 的中文镜像是同一文件夹下的 `<名字>.zh-CN.md`。`<短名>` 是用连字符连接的小写英文单词，例如 `F04-export-csv`。
 

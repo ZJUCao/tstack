@@ -22,7 +22,8 @@ import unittest
 from dataclasses import replace
 
 from flow_helpers import (
-    ANY, ARCHITECTURE, CONFIG, F01, F02, F03, F04, FIVE, PROGRESS, REQUIREMENTS, SCRATCH,
+    ALL_ISSUES_ARGS, ALL_PRS_ARGS, ANY, ARCHITECTURE, CONFIG, F01, F02, F03, F04, FIVE,
+    PROGRESS, REQUIREMENTS, SCRATCH,
     SETUP_TITLE, Fakes, FlowCase, Project, base_files, base_step, comments, config_text,
     front_matter, git, lf, new_dir, plugin_checks_files, pr, run_engine, same_path, stage_pr,
     stage_step, stages, status_runs, step,
@@ -143,17 +144,18 @@ class GhCallTests(FlowCase):
     """The read-only gh calls status makes (interface note, the fake gh)."""
 
     def test_status_lists_open_prs_and_views_each_one(self):
-        """One ``gh pr list`` with the note's options, then a view per open PR, from the root."""
+        """One ``gh pr list`` with the note's options, a view per open PR, from the root.
+
+        F15 (interface note section 1) reads each open PR's comments and
+        reviews, and adds the issue list and the list of PRs in every state.
+        """
         project = Project(history(stages(F01, 2)))
         fakes = Fakes([stage_pr(9, F01, 3), pr(7, "[docs] Fix a typo in the README")])
         self.report_of(project.status(fakes=fakes))
         calls = fakes.gh_calls()
-        self.assertEqual(calls[0]["argv"], LIST_ARGS)
-        self.assertEqual(sorted(call["argv"][2] for call in calls[1:]), ["7", "9"])
-        for call in calls[1:]:
-            with self.subTest(argv=call["argv"]):
-                self.assertEqual(call["argv"][:2] + call["argv"][3:],
-                                 ["pr", "view", "--json", "comments"])
+        self.assertEqual(sorted(call["argv"] for call in calls), sorted([
+            LIST_ARGS, ["pr", "view", "7", "--json", "comments,reviews"],
+            ["pr", "view", "9", "--json", "comments,reviews"], ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
         for call in calls:
             self.assertTrue(same_path(call["cwd"], project.root), call)
         self.assertEqual(fakes.mamba_calls(), [])

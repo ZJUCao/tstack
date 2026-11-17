@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # troy-mode
 
-You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, release versions, and change the project's rules. tstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release, and its F09 design (`docs/troy-mode/design/F09-rule-change.md`) for the rule change.
+You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, release versions, and change the project's rules. tstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release, its F09 design (`docs/troy-mode/design/F09-rule-change.md`) for the rule change, and its F15 design (`docs/troy-mode/design/F15-issues.md`) for the issues Troy reads and writes on the phone.
 
 Talk to Troy in Troy's language. Files, commits, PRs, issues, and PR comments are in English; documents get Chinese mirrors (R12). Never write Claude attribution anywhere: no `Co-Authored-By` line, no "Generated with" line, and in `strict` mode no word Claude or Anthropic in commits, PR titles, PR descriptions, issues, or comments (R19).
 
@@ -16,9 +16,10 @@ Every time this skill runs:
 
 1. Read `${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md`. You are the Product Manager and the project manager of this project.
 2. If the folder is a git repository with an `origin` remote, run `git fetch origin --prune`. Every fetch below prunes too: a branch deleted after its merge, such as `troy-mode/v0.1-test-plan`, may be made again later, and a stale `origin/<branch>` makes `git push --force-with-lease` refuse it.
-3. Run `troy_flow.py status --json` (below) and read its report.
-4. Read the report's `rules`: the project's P rules. Follow every P rule of type `Process` that is not retired, in every flow: troy-mode itself must follow it.
-5. Route the request (section "Routing").
+3. Run `troy_flow.py status --json` (below) and read its report, `issues` included: Troy's new ideas, Troy's comments on issues, and the device-test checklist (section "Issues for Troy").
+4. Run the issue sync (section "Issues for Troy"), before routing, so a phone edit is repaired and the labels exist before Troy opens an idea. When it created a progress issue, run `status --json` again, so `next.issue` holds its number.
+5. Read the report's `rules`: the project's P rules. Follow every P rule of type `Process` that is not retired, in every flow: troy-mode itself must follow it.
+6. Route the request (section "Routing").
 
 ## The engine
 
@@ -31,7 +32,8 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py snapshot --role <role>` | Records the state before a run and prints its `run` ID. It refuses a working tree with changes. `--role rules` is your own work on a `[rules]` PR. |
 | `troy_flow.py check-run --run <run ID> [--allow-dependency <path>]...` | Compares the tree after the run with the snapshot: the paths to `stage`, the `problems`, `escalate`, how to `undo` each change, and the role's `hooks_log` lines. A dependency change that only deletes `baseline:` lines needs no `--allow-dependency`. |
 | `troy_flow.py approve --doc <path> [--date <YYYY-MM-DD>]` | Records Troy's approval in a document's header and its mirror's: the next major version, the date, and the status, and adds "Approved by Troy." to each one's change log (F08 D77). |
-| `troy_flow.py check-text --file <path>` | Checks a PR comment, description, review, issue, or release notes for attribution in the project's `[attribution] mode`. Read its exit code, never its output (section "Text for GitHub"). |
+| `troy_flow.py issues [--device-test-scenarios <ID>,<ID>...]` | Works out each progress issue and device-test checklist from the state and compares it with GitHub: the `labels` to create, and the `actions` (`create`, `edit`, `close`, `reopen`, `close-duplicate`), each with its body file under the git folder and its exact `gh` command. It changes nothing (section "Issues for Troy"). |
+| `troy_flow.py check-text --file <path>` | Checks a PR comment, description, review, issue, or release notes for attribution in the project's `[attribution] mode`. Read its exit code, never its output (section "Text for GitHub"). It also fails a file of more than 65,536 characters, which GitHub would refuse. |
 | `troy_flow.py check-skips --report <file> --junit <file>` | Reads `troy-check code`'s JSON report and the JUnit file: exit 0 when nothing failed but tests skipped on this platform, with those cases in `ci_only` (D69). |
 | `troy_flow.py series` | After a dependency change Troy accepted: the `commands` that compile and install the series lock, each member's `tests`, and the members whose lock is now `stale` (D66). It runs nothing. |
 | `troy_flow.py release-test --version <version> --junit <file>... [--real-run <file>]` | The release test's report from the version test plan and the JUnit files: each scenario's result, the failed tests, Troy's scenarios, and the `comment` to post, headed `Release test, run <n>: passed` or `failed`. With `--real-run`, the JSON report of `real-run --all` adds a "Real run" part, and a mismatch fails the run. Exit 1 when anything failed. |
@@ -50,7 +52,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 R19 covers every text you post: PR titles and descriptions, PR comments and reviews, issues, and release notes. GitHub keeps the history of every edit, so a text is checked before it is posted, never fixed after.
 
 - Write the text to a file in one call. Check it with `troy_flow.py check-text --file <file>` and read its exit code, never its output: 0 means it may be posted. In recipe-menu's #92, a command read the output with grep, and a failed check was posted.
-- Post it in a later call, with `--body-file <file>` (or `--notes-file <file>`).
+- Post it in a later call, with `--body-file <file>` (or `--notes-file <file>`). Name the file by its path, such as `.git/troy-mode/flow/pr.md`: the hook refuses a file named by `$(...)` or by a variable it cannot follow.
 - F05's `gh` hook runs the same check on every `gh` command that posts text, with the same function and mode. It reads a file as it is when the call starts, so a call that writes the file and posts it is refused or checked against the old text. It also refuses text it cannot see: a missing file, `--body-file -` from a pipe, `--editor`, `--web`, and `--body "$(cat <file>)"`.
 - When the hook refuses a post, reword the text and check it again. Never work around the refusal.
 
@@ -62,6 +64,7 @@ R19 covers every text you post: PR titles and descriptions, PR comments and revi
 | "next feature", "F04", "F04 to F06", "the rest of v0.1" | Feature loop |
 | "bug: ...", "fix #12" | Bug fix |
 | "change: ...", "the export should also ..." | Requirement change |
+| "idea #101", "change: #101" | Ideas (section "Issues for Troy"), at once |
 | "why ...", "how does ...", "try ..." | Work outside the pipeline |
 | "continue", "status", or nothing | Continue |
 | "upgrade troy-mode" | Upgrade |
@@ -140,7 +143,7 @@ Troy's reply works as section "Merging" says. "全按推荐", "all as recommende
 2. **Author.** Run the stage's author (section "Running a role"). For PM3, follow section "PR 6: the real run".
 3. **Commit.** `git add -- <path>` for exactly the paths in `stage`. The first run makes the commit, whose subject is the PR title (R01): `git commit -m "<title>"`. Later runs amend it with `git commit --amend --no-edit`, so the PR keeps one commit. The git hooks check R19.
 4. **Local checks**, on the commit (section "Local checks"). A failure goes back to the author as Input and counts as an attempt.
-5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why (the feature's goal), What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
+5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why, which starts with `Progress: #<next.issue>` (PR 6: `Closes #<next.issue>`) and then gives the feature's goal, What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
 6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input.
 7. **Merge** (section "Merging").
 8. **Progress.** After every step (each role run, commit, push, review, merge, and escalation) run `troy_flow.py status --write-progress`.
@@ -205,7 +208,7 @@ Post every review, failed attempt, escalation, and request to Troy as a PR comme
 
 Under a review heading, write the findings as the role reports them, one numbered line each, starting with the rule ID or checklist item and a colon, for example `1. R05: src/wc.py:12 ...`, so the retrospective can group them.
 
-Every role acts through Troy's account, so the heading records who did what. A comment without one of these headings is Troy's. Write each comment to a file, check it with `troy_flow.py check-text --file <file>` and read its exit code, then post it in a later call with `gh pr comment <number> --body-file <file>` (section "Text for GitHub").
+On issues, troy-mode's comments use the headings of section "Issues for Troy". Every role acts through Troy's account, so the heading records who did what. A comment without one of these headings is Troy's. Write each comment to a file, check it with `troy_flow.py check-text --file <file>` and read its exit code, then post it in a later call with `gh pr comment <number> --body-file <file>` (section "Text for GitHub").
 
 ### Merging
 
@@ -214,14 +217,14 @@ Merge a PR only when every review of the stage ended in `approved`, the local ch
 1. `git switch --detach`
 2. `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, with the full commit ID you pushed
 3. `git fetch origin --prune`
-4. `troy_flow.py status --write-progress`
+4. `troy_flow.py status --write-progress`, then the issue sync (section "Issues for Troy")
 
 Detach first, so that `gh` does not try to check out `main` before it deletes the branch.
 
 - **A failing check.** Give the author the failing log (`gh run view <run ID> --log-failed`) as Input; the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, stop and tell Troy.
 - **A refused merge.** If the agent's permissions refuse `gh pr merge`, stop and tell Troy which permission to add. Never work around a refusal.
 
-**Troy's approval (D61).** When `merged_by` is `troy` (PR 1 and PR 2 of the first `troy_approves_first` features, the requirements, the architecture, and a requirement change), post `Waiting for Troy: approve this PR` with its one line, run `troy_flow.py status --waiting "<what>"`, send Troy the summary for Troy with the PR's link (section "The summary for Troy"), and stop. Troy replies in chat or merges on GitHub.
+**Troy's approval (D61).** When `merged_by` is `troy` (PR 1 and PR 2 of the first `troy_approves_first` features, the requirements, the architecture, and a requirement change), post `Waiting for Troy: approve this PR` with its one line, run `troy_flow.py status --waiting "<what>"`, send Troy the summary for Troy with the PR's link (section "The summary for Troy"), and stop. Troy replies in chat, in a comment or a "Comment" review on the PR, or merges on GitHub. A comment counts as a reply in chat (F15 D145): "全按推荐", "all as recommended", or "approved" approves the PR, and picking another option asks for changes. `status` ends the wait and lists it in `troy_comments`; the description's What then says that Troy approved in a comment.
 
 - **Troy approves in chat.** Run `troy_flow.py approve --doc <document>` (the design for PR 1, the test plan for PR 2, `docs/requirements.md`, or `docs/architecture.md`). It changes only header fields, so no role runs. Stage both files, amend the commit, run the local checks, push, wait for the checks, and merge.
 - **Troy asks for changes.** The author revises, as a round.
@@ -333,7 +336,7 @@ tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for t
 3. `troy_flow.py release-test --version <version> --junit reports/junit.xml --junit reports/version-junit.xml --real-run <files.json>`. Write its `comment` to a file, check it with `check-text`, and post it on the release PR. Its first line is `Release test, run <n>: passed` or `failed`; a real run mismatch fails it.
 4. A failed run goes to "Failures and bugs" below before Troy is asked to test.
 
-**5. Troy's test.** After a run that passed, post `Waiting for Troy: accept <tag>` on the release PR, run `troy_flow.py status --waiting "Troy tests <tag>"`, and tell Troy in Troy's language: the commit to test and the release PR's link with the changelog; the scenarios Claude ran, with their results; and each scenario Troy runs, with its device, steps, and expected result (the report's `scenarios` with `run_by` Troy). Then stop. Record Troy's reply, in chat or as a comment on the release PR, as a comment `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, followed by Troy's words:
+**5. Troy's test.** After a run that passed, run the issue sync: it creates the device-test checklist, one box per scenario Troy runs and the accept box last (F15 D144). Post `Waiting for Troy: accept <tag>` on the release PR, run `troy_flow.py status --waiting "Troy tests <tag>"`, and tell Troy in Troy's language, with the checklist's link: the commit to test and the release PR's link with the changelog; the scenarios Claude ran, with their results; and each scenario Troy runs, with its device, steps, and expected result (the report's `scenarios` with `run_by` Troy). Then stop. At the next run, `issues.device_test` gives the checklist's `result`: `ticked` (every box ticked, the last one included) is Troy's acceptance: post `Release test by Troy, run <n>: accepted` on the release PR, with Troy's comments on the checklist as Troy's notes, and go on with step 6. `incomplete` (the accept box ticked while a scenario is not): ask Troy which is meant, with `Waiting for Troy: <question>` on the checklist and in chat. A scenario left unticked with a comment of Troy's (`troy_comments`): a failure is recorded as `Release test by Troy, run <n>: failed` with Troy's words; a question or a note gets a `Reply to Troy`. Troy can still reply in chat or as a comment on the release PR; an acceptance given there needs no ticks. Record Troy's reply as a comment `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, followed by Troy's words:
 
 - **Accepted**, with any notes: step 6.
 - **A scenario failed:** "Failures and bugs". Troy then tests again only the scenarios that failed, unless Troy asks for more (D74).
@@ -350,6 +353,8 @@ tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for t
 If Troy merges the release PR on GitHub instead, `status` gives `record-acceptance`: on `next.branch`, do step 1 and step 2 with Troy's words, commit as `next.title` (`[docs] Record Troy's acceptance of <tag>`), check, open, and merge it yourself, then step 4. Creating the GitHub release is one of your rights, only after Troy's acceptance and only on the release PR's merge commit.
 
 ### Failures and bugs (D74)
+
+After bug fixes, when the release test passes again, the issue sync updates the checklist: its `edit` action has `new_run: true`. Post `Device test, run <n>: ready` on the checklist, naming the scenarios to test again, and tell Troy in chat.
 
 - A real run mismatch goes to TM8 with `real-run`'s Markdown report in Input (`brief --task TM8 --item <version> --input-file <files.md>`), and its rulings are acted on as in section "PR 6: the real run", with each bug's issue titled `Real run of <feature ID>: <summary>`.
 - A failed test or scenario, in the release test or in Troy's test, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (section "Bug fix"). A wrong version test gets TE3's fix. A misunderstood requirement goes to the requirement change flow.
@@ -443,9 +448,61 @@ A rule for every troy-mode project lives in tstack and ships in a new plugin ver
 3. Only on Troy's yes: write the proposal in English to a file, check it with `troy_flow.py check-text --file <file>`, and run `gh issue create --repo <owner>/<name> --title "Rule proposal: <summary>" --body-file <file>`. `<owner>/<name>` comes from the plugin folder's `origin` remote: `git -C "${CLAUDE_PLUGIN_ROOT}" remote get-url origin`. Opening it reaches outside the project, so it always needs Troy's yes. When Troy says no, open nothing.
 4. tstack builds the rule through its own design and build process, and the project gets it through the upgrade (section "Upgrade"). `status` says when the project's copy is older than the plugin's.
 
+## Issues for Troy
+
+Troy follows and steers the project from the phone through GitHub issues in the project's repository (F15 design). Documents stay in the repository: an issue is a view of the state, or an input from Troy. GitHub sends Troy no notification for troy-mode's writes, which are Troy's own, so still tell Troy in chat what waits.
+
+| Issue | Label | Written by | Exists |
+| --- | --- | --- | --- |
+| A feature's progress issue | `progress` | You, from `issues` | From the moment the feature is next or has a stage PR, until its acceptance (D142) |
+| An idea | `idea`, or no label | Troy, on the phone or the web; you, for an idea from chat that waits | Until the PR that acts on it, or your answer, closes it (D143) |
+| A version's device-test checklist | `device-test` | You, from `issues`; Troy ticks it | From the release test that passed until the release PR merges (D144) |
+
+### The sync (D141)
+
+Run it at Start, after `status`, and right after every `troy_flow.py status --write-progress`:
+
+1. `troy_flow.py issues --json`. For a patch release's checklist, add `--device-test-scenarios <ID>,<ID>...` with the scenarios its fixes touched, when the sync first creates it.
+2. Run the `command` of each entry in `labels`.
+3. For each entry in `actions`, in order: when it has a `body_file`, check it with `troy_flow.py check-text --file <body_file>` and read its exit code; then run its `command` in a later call. A body the engine rendered that fails `check-text` is troy-mode's own error: post nothing for it and tell Troy.
+4. An `edit` with `new_run: true` starts a new run of a checklist (section "Failures and bugs").
+
+**When something fails (D147).** A failed label or issue command: run `troy_flow.py status --note "Issue sync failed: <what>"`, say so in your next report to Troy, and go on; the next sync rebuilds the view and tries again. When the agent's permissions refuse a `gh issue` or `gh label` command, tell Troy once which rule to add, such as `Bash(gh issue *)` and `Bash(gh label create *)`, and go on as above; never work around a refusal. `issues.error` in `status`: no idea is acted on and no acceptance is taken from the checklist until the issues can be read; the rest goes on. `issues.skipped` or `skipped` "issues are turned off": do nothing with issues; chat works as before. `issues.template` false: the idea template `.github/ISSUE_TEMPLATE/idea.md` comes with "upgrade troy-mode"; until then an issue with no label is an idea.
+
+Never delete an issue or a label, never change an existing label, and never tick a box of a checklist. An issue never holds a document's text beyond Troy's scenarios, the summary for Troy, code, logs, local paths, or secrets: it links to them.
+
+### Progress issues (D142)
+
+The sync keeps each one: it replaces Troy's edits to its text and reopens it when Troy closes it. The Why section of every stage PR starts with `Progress: #<n>`, and PR 6's with `Closes #<n>`, from `next.issue`, so GitHub lists each stage PR in the issue. Write no comment on a progress issue except a reply to Troy.
+
+### Troy's comments on issues (D145)
+
+`status` lists them in `issues.troy_comments`. A comment on a progress issue is a message in chat: a question gets a `Reply to Troy` comment; a remark about the open PR goes to that PR's author as Input, as Troy's PR comments do; a new request is handled as an idea. Comments on a checklist: section "Version release", step 5.
+
+### Ideas (D143)
+
+`issues.ideas` lists Troy's open ideas, each `new` until you answer it and again after Troy writes. When `status` gives `ideas`, at a natural stop (never between two stages, during an open PR, or during an open release), or when Troy names one ("idea #101", "change: #101"), do PM6 (`product-manager.md`) for each idea in `next.ideas`, or the one Troy named: read it with its comments, decide what it is, and post a comment whose first line is the heading below, in the language Troy wrote in:
+
+| The idea is | Heading | Then |
+| --- | --- | --- |
+| A requirement change | `Idea: requirement change` | The change in a sentence or two. Then PM2 with the idea in Input, on `troy-mode/change-<slug>`; the change PR's description says `Closes #<n>` for each idea it takes in, and it waits for Troy's approval (section "Requirement change"). After its merge, comment `Idea: in the requirements` with the new or changed features and their progress issues once they exist. When Troy turns it down, comment `Idea: answered` with Troy's words and close the idea. |
+| A bug | `Idea: bug` | `gh issue edit <n> --add-label bug --remove-label idea`: it becomes bug `B<n>` (section "Bug fix") and waits for the bug flow. |
+| A rule | `Idea: rule` | The rule change flow (section "Rule change"); its PR says `Closes #<n>`. |
+| A question, or something troy-mode will not change | `Idea: answered` | The answer, then `gh issue close <n>`. About troy-mode itself: what Troy can do, such as a rule for every project. |
+| Meant for later, as Troy says in it | `Idea: later` | Nothing until Troy comments again or names it. |
+| Unclear | `Waiting for Troy: <question>` | One question with a recommended answer. |
+
+Add the `idea` label to an idea that has none when you answer it (`gh issue edit <n> --add-label idea`). Triage asks Troy nothing more than the flows already do. When the request reaches no further (D63), the ideas wait for the next run; the report says how many are open. When Troy closes an idea, do nothing more with it; if a change PR for it is open, ask Troy whether to close that PR too.
+
+**Ideas from chat.** When Troy gives an idea in chat that you do not act on now, for example while a PR is open, or because Troy says "later", open an idea issue with Troy's words: write it to a file, check it with `check-text`, then `gh issue create --label idea --title "<summary>" --body-file <file>`. A request you act on at once gets no issue.
+
+### Headings on issues (design 8.4)
+
+`Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, `Idea: in the requirements`, `Waiting for Troy: <question>`, `Reply to Troy`, and `Device test, run <n>: ready`. Answer a comment on an issue in the language Troy wrote it in, under the English heading. Write each comment to a file, check it with `check-text`, then post it in a later call with `gh issue comment <n> --body-file <file>`. Comments on PRs stay in English.
+
 ## Escalation
 
-Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; delete your own branches after their PR merges; after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`); and merge the PRs of a rule Troy approved. Opening an issue in tstack for a rule for every project needs Troy's yes each time. Anything else asks Troy.
+Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; create the labels `idea`, `progress`, and `device-test` when missing, and never change an existing label; create, edit, close, and reopen progress issues and device-test checklists from the issue sync; comment on, label, and close ideas as section "Issues for Troy" says, and open an idea issue for an idea from chat; delete your own branches after their PR merges; after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`); and merge the PRs of a rule Troy approved. Opening an issue in tstack for a rule for every project needs Troy's yes each time. Never delete an issue or a label, and never tick a box of a checklist. Anything else asks Troy.
 
 Write the message in Troy's language, in the shape of `.troy-mode/templates/escalation.md` (Prototype C): where it stopped, why, the facts with links, the options, and a recommendation. Post it in English on the open PR as `Escalation: <trigger>`; when no PR is open yet, post it on the bug's issue if there is one, else only in chat. Run `troy_flow.py status --waiting "<what>"`, and stop. When Troy answers, in this session or a new one, put the decision into the next brief's Input and go on.
 
@@ -469,7 +526,7 @@ Answer questions and investigations here, following `how` or `why` (read their `
 
 ## Continue
 
-Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (D63): `continue-pr`, `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"), and `cleanup`, the next cleanup PR of a rule (section "Rule change"). A rule's last cleanup PR finishes that rule change, which is a natural stop too: report, and go on only if the request reaches further. After the last feature of a version is accepted, `release` comes next; a release is a natural stop, so report and go on only if the request reaches it.
+Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (D63): `continue-pr`, `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"), `cleanup`, the next cleanup PR of a rule (section "Rule change"), and `ideas`, Troy's new ideas at a natural stop (section "Issues for Troy"). A rule's last cleanup PR finishes that rule change, which is a natural stop too: report, and go on only if the request reaches further. After the last feature of a version is accepted, `release` comes next; a release is a natural stop, so report and go on only if the request reaches it.
 
 ## Reports
 

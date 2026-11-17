@@ -1,11 +1,11 @@
 # 5. 发布版本
 
-> 本文件是 [`05-release.md`](05-release.md) 的中文镜像，同步自英文版 0.2（2026-11-16）。两者如有出入，以英文版为准。
+> 本文件是 [`05-release.md`](05-release.md) 的中文镜像，同步自英文版 0.2（2026-11-17）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 版本 | 0.2 |
-| 日期 | 2026-11-16 |
+| 日期 | 2026-11-17 |
 | 事实来源 | 英文版 [`05-release.md`](05-release.md)。本文件是中文镜像。 |
 
 一个版本把功能顺序里相邻的几个功能放在一起，它自身就能用。它的测试方案在它的第一个功能开始之前写好。发布时，troy-mode 先在你的电脑上运行这个版本的测试，然后请你在自己的设备上测试它。你验收之后，troy-mode 给它打标签（[F08 设计](../design/F08-release.zh-CN.md)）。
@@ -69,6 +69,8 @@ Waiting for Troy: accept v0.1.0
 The v0.1 test plan has no scenario that Troy runs by hand. Reply "accepted", with any
 notes, or name what failed or what is not what Troy wanted.
 ```
+
+从 F15 起，troy-mode 还会为这个版本开一个**设备测试清单**，即标签为 `device-test` 的 issue：你要运行的每个场景一个复选框，附上设备、步骤和预期结果，都从版本测试方案里复制过来；最后一个复选框是"我接受 <tag>。"。场景结果和预期一样就勾上；不一样就不勾，写一条评论说明。所有复选框都勾上，包括最后一个，就是你的验收：troy-mode 下次运行时把它记录在发布 PR 上，然后继续。版本里没有你要运行的场景时，清单里也有这个接受框。修了 bug、重新做发布测试之后，troy-mode 会清掉接受框和没通过的场景，保留你的其他勾选，并评论 `Device test, run <n>: ready`（[F15 设计第 6 节](../design/F15-issues.zh-CN.md#6-设备测试清单d144)）。
 
 在聊天里回复，或者在发布 PR 上评论。回复有三种（[F08 设计第 5.6 节](../design/F08-release.zh-CN.md#56-troy-的测试)）：
 

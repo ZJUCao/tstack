@@ -49,6 +49,8 @@ PR B 是 [#15](https://github.com/ZJUCao/troy-mode-trial/pull/15)。
 /tstack:troy-mode 变更：一个单词至少要有一个字母或数字
 ```
 
+你也可以在 GitHub 上、在手机上写这个改动：用模板"Idea / 想法"开一个 issue，或者开一个不带标签的 issue，用任何语言写。troy-mode 在下次运行时、在下一个自然停顿点读它，从不在一个功能的两步之间：它先评论这个想法是什么，标题比如 `Idea: requirement change`，然后按下面的流程走；修改 PR 写 `Closes #<n>`，所以它合入时会关闭这个想法。一个想法也可能是 bug、规则、troy-mode 回答后关闭的问题，或者留到以后的事。想让它马上处理，就说 `/tstack:troy-mode idea #<n>`（[第 7.6 节](07-taking-part.zh-CN.md#76-在手机上)，[F15 设计第 5 节](../design/F15-issues.zh-CN.md#5-想法-issued143)）。
+
 1. **需求文档。** 产品经理在 `troy-mode/change-<slug>` 上更新 `docs/requirements.md` 和它的镜像，开 `[docs] Change the requirements: <summary>`。你像批准需求文档时那样批准它（[第 2.3 节](02-start.zh-CN.md#23-需求文档)）。在你批准之前，其他什么都不改。
 2. **受影响的功能。** 对每一个受影响的功能，架构师决定哪些接口、测试和架构部分要改。架构的改动会向你升级上报，以它的 ADR 作为建议。
 3. **还没验收的功能**，状态改为 `Needs rework (<the change>)`（中文镜像里是“需要返工”），回到架构师指出的最早的阶段。如果这个功能开着的 PR 处在那个阶段或更后的阶段，troy-mode 不合并就关闭它，然后把这个阶段重新跑一遍。

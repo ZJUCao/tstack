@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-16 |
+| Date | 2026-11-17 |
 | Source of truth | This English file. [`03-features.zh-CN.md`](03-features.zh-CN.md) is the Chinese mirror. |
 
 troy-mode builds features one at a time, in the topological order of the requirements. Each feature takes six PRs, merged in order, each with one commit that holds one stage's output ([requirements section 5.2](../requirements.md#52-feature-loop)). You approve the first two PRs of the first features. troy-mode merges everything else.
@@ -73,6 +73,8 @@ Since F12, PR 6 first runs the real program the way you type it. `troy_flow.py r
 ```
 
 PR 6 sets the feature's status to "Ran for real on Troy's PC" when all its own commands ran on your PC and matched, apart from those that wait for a later feature, and otherwise to "Passes tests on main", with the reason in the PR. The run goes through pipes, not a console, so it does not show how Windows Terminal draws the text. The feature has not been checked on your devices yet: that happens when you test its version ([section 5](05-release.md)).
+
+Since F15, each feature also has a **progress issue** on GitHub, labeled `progress`, from the moment it is the next feature or has a stage PR until its acceptance. Its title holds the feature's ID and name, and its body shows the six stages as boxes, ticked as each PR merges, what waits for you, and links to the documents, first in Chinese, with the English folded below. Each stage PR starts its Why with `Progress: #<n>`, so GitHub lists it in the issue, and PR 6's `Closes #<n>` closes it. troy-mode keeps the text: an edit of yours is put back at the next run, and to say something to troy-mode you write a comment ([section 7.6](07-taking-part.md#76-from-your-phone), [F15 design section 4](../design/F15-issues.md#4-the-progress-issue-d142)).
 
 ## 3.4 After the first features
 

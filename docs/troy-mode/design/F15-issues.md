@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-16 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. |
+| Version | 1.1 |
+| Date | 2026-11-17 |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -73,7 +73,7 @@ python troy_flow.py issues [--device-test-scenarios <ID>,<ID>...] [common option
 
 ### 3.3 What `status` adds
 
-`status` gains an `issues` part and one new action. It reads the issues with at most two more `gh` calls: the open issues, and the progress issues in every state.
+`status` gains an `issues` part and one new action. It reads the issues with at most two more `gh` calls: every issue, open and closed, with its comments, and every PR, open, merged, and closed, for the stage PR numbers that `issues.pending` needs. The build chose these two reads over the open issues and the progress issues in every state: one list then serves the ideas, the progress issues, and the checklists.
 
 - `issues.ideas`: each open idea issue (section 5.1), with its comments, and `new` when troy-mode has not answered it or Troy has written since troy-mode's last comment.
 - `issues.troy_comments`: Troy's comments on progress and checklist issues since troy-mode's last comment on each.
@@ -103,7 +103,7 @@ A feature has an open progress issue while it is not accepted and either it is t
 
 ### 4.2 What it shows
 
-The title is the feature's ID and name, Chinese first: `F04 把历史导出为 CSV / Export history as CSV`. The body, for a feature at stage 3:
+The title is the feature's ID and name, Chinese first: `F04 把历史导出为 CSV / Export history as CSV`, or `F04 Export history as CSV` when the mirror gives the same name. The body, for a feature at stage 3:
 
 ```markdown
 <!-- troy-mode: progress F04 -->
@@ -162,7 +162,7 @@ The sync runs at every start and after every step, and edits the body only when 
 
 ### 4.5 Closed at acceptance
 
-PR 6's merge closes the issue, as section 4.3 says. The next sync renders it once more, with six ticks and the feature's new status, such as "Ran for real on Troy's PC", and closes it as completed if it is still open. After that the sync leaves a closed progress issue alone. A later status, such as "Usable on Troy's devices" after the version's acceptance, shows in the requirements and on the version's checklist (section 6.2).
+PR 6's merge closes the issue, as section 4.3 says. The next sync renders it once more, with six ticks and the feature's new status, such as "Ran for real on Troy's PC", and closes it as completed if it is still open. The sync renders it once more even when PR 6's `Closes #<n>` already closed it; it knows the issue is final when its `6/6` box is ticked. After that the sync leaves a closed progress issue alone. A later status, such as "Usable on Troy's devices" after the version's acceptance, shows in the requirements and on the version's checklist (section 6.2).
 
 ## 5. Idea issues (D143)
 
@@ -419,7 +419,7 @@ No upstream pstack file changes. F02, F03, F09, F12, F13, and F14 do not change.
 
 ## 12. Existing projects and the plugin version (D149)
 
-F15's build PR raises the plugin's minor version, to the next free one when it merges: 0.6.0 if nothing has raised it first (F10 D89). Then:
+F15's build PR raises the plugin's minor version, to the next free one when it merges: 0.6.0 if nothing has raised it first (F10 D89). F19 took 0.6.0 and #65 0.6.1, so F15 brings 0.7.0. Then:
 
 1. **Troy updates the plugin** and restarts Claude Code (F10 design 6). When #65's change lands the same day, one update brings both.
 2. **The first troy-mode run in a project** creates the labels and the progress issue of the current or next feature, and reads Troy's ideas. It needs no file in the project: the skill, the engine, and the hooks come with the plugin.
@@ -471,6 +471,33 @@ It takes about 13 role runs: TM1 with IF3, DV1, CR1, TE1, TM2, CR1, DV2, CR1, th
 | The pilot has a progress issue, an idea, or a checklist | Used on a real project: <which issues of `ZJUCao/recipe-menu`, and what Troy did with them>. |
 
 If the trial cannot run before the PR, the status is "Written" until it does. The status update is its own PR.
+
+### 13.5 What the trial showed (2026-11-17)
+
+The trial ran on `ZJUCao/troy-mode-trial` in seven nested sessions, with tstack loaded from the build branch and the installed plugin turned off. It cost $18.56 at list prices, within the estimate, with 15 role runs (DV1, CR1; TE1, TM2, and CR1 twice each, DV2, CR1, AR4; TE5 twice, TM2, CR1).
+
+| Step | What happened |
+| --- | --- |
+| 1. First sync | The labels `idea`, `progress`, and `device-test` and F02's progress issue #49: stage 1 ticked (#29), stage 2 open (#48), "Waiting for you: approve #48". |
+| 2. Upgrade | `[rules] Upgrade troy-mode to 0.7.0` (#50) brought `.github/ISSUE_TEMPLATE/idea.md` and #65's R19 text, and merged. |
+| 3 and 4. Ideas and F02 | Troy's approval of #48 in chat; the mock (#54), tests (#55), implementation (#56), and acceptance (#57). Each stage PR's Why started with `Progress: #49`, PR 6's with `Closes #49`, and #49's timeline lists #48 and #54 to #57. Between two stages, the trial script edited #49's text, closed it, and asked a question in Chinese: the next session reopened it and answered in Chinese under `Reply to Troy`. The two ideas waited while F02 was between stages. After F02's acceptance, the same session took them in: #52 (no label, a question in Chinese) got `Idea: answered` and was closed; #51 (`idea`) became change PR #58 with `Closes #51`, which merged on Troy's approval, and `Idea: in the requirements` named F05 and its progress issue #59. |
+| 5. A refused write | The session of steps 3 and 4 ran with `gh issue edit` refused. It named the rule to add, noted the failures, and went on; the next session rendered #49 once more as final (6/6) and left it closed. |
+| 6. Release v0.2.0 | Version tests #60, release PR #61, and the release test passed on Troy's PC; the sync created checklist #62 with Troy's scenario v0.2-S18 and the accept box. The trial script ticked both. The next session posted `Release test by Troy, run 1: accepted` on #61, merged it, created the GitHub release v0.2.0, and closed #62 as completed. |
+| 7. Facts | Every one of the 40 posts with a body file was checked with `check-text` first, and its exit code read. The hook refused two `gh pr create` calls whose file was named by `$(git rev-parse --absolute-git-dir)/...`, as section 8.2 of F05's design says, and the session posted with the path. No session asked Troy anything the answer file did not cover. |
+
+**Where the trial differed from section 13.3.**
+
+1. The repository had moved on: `main` at `2c2940c`, F02's test plan PR #48 open and waiting for Troy, tstack 0.6.0, and `troy_approves_first = 4`. So the first sync showed stage 2 waiting for Troy, and Troy's approval of #48 was given in the request of the third session.
+2. The ideas were opened after the upgrade, while F02 was between stages. Following D143, troy-mode took them in after F02's acceptance, so step 3 came after step 4. The session that accepted F02 went on to the ideas, judging that "continue" reached that natural stop.
+3. The refused write (step 5) ran in the same session as F02's last stages and the ideas.
+4. The prepared `[docs] Update the v0.2 test plan` PR (#53) also changed v0.2-S11, v0.2-S12, and v0.2-S17 to exit code 2 for a file error, which F04's design and ADR-0002 had decided; the plan still expected 1, known since F12.
+5. The release session stopped at the plan's 5-hour usage limit during TE5 and was resumed with `--resume`; it ran TE5 again from the cut-off draft.
+6. Troy was not at the PC, so the optional tick in the GitHub app did not run.
+7. The first three sessions used an earlier build of the branch: two template files held garbled characters, which only their reference text shows, and a tick written `[X]` caused an edit. Both were fixed before the fourth session.
+
+**What the trial changed in the build.** The checklist copies each scenario's cells as written, code marks included: #62 had dropped the plan's backticks, as the engine's table reader removes them, and a test now checks them. A progress issue's title is `<ID> <name>` when the mirror gives the same name, as in the trial's requirements. The hook's refusal of a file named by `$(...)` now says so, and the skill says to name a body file by its path.
+
+**Follow-ups, not fixed here.** After the release PR merged, `status` still carried "PR #61: Waiting for Troy: accept v0.2.0" in `waiting_on_troy`, from the progress file's carried text (F08's release flow). A refused `gh issue edit --add-label idea` is not tried again, so #52 kept no label. In the trial project, F02's test plan row F02-T09 lost a U+2028 character of the design's example file.
 
 ## 14. How F15 maps to the requirements
 
@@ -528,3 +555,4 @@ Requirements 1.39 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-16 | First draft, with two probes on `ZJUCao/troy-mode-trial` (section 2). |
 | 1.0 | 2026-11-16 | Approved by Troy with D141 to D150, every recommended answer. |
+| 1.1 | 2026-11-17 | Facts from the build and its trial: status's two reads (section 3.3), the final render after PR 6 (4.5), the title when the mirror gives the same name (4.2), the version 0.7.0 (12), and the trial's record (13.5). |

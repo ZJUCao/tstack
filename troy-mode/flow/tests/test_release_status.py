@@ -28,9 +28,10 @@ import unittest
 from dataclasses import replace
 
 from flow_helpers import (
-    F01, F02, F03, PROGRESS, Fakes, FlowCase, Project, accepted_plan_files, base_files,
-    base_step, bug_branch, bug_step, bug_title, change_step, comments, fake_status_runs, issue,
-    merged_pr, pack_words, parallel, plan_title, plugin_checks_files, pr, progress_fields,
+    ALL_ISSUES_ARGS, ALL_PRS_ARGS, F01, F02, F03, PROGRESS, Fakes, FlowCase, Project,
+    accepted_plan_files, base_files, base_step, bug_branch, bug_step, bug_title, change_step,
+    comments, fake_status_runs, issue, merged_pr, pack_words, parallel, plan_title,
+    plugin_checks_files, pr, progress_fields,
     record_acceptance_step, record_title, release_pr, release_step, release_title, stage_pr,
     stage_step, stages, subject_commits, tests_title, version_plan_files, version_plan_path,
     version_tests_step,
@@ -774,24 +775,35 @@ class GhCallTests(FlowCase):
         return sorted(fakes.gh_argvs())
 
     def test_feature_work_lists_open_prs_only(self):
-        """A version not accepted, no release commit: only ``gh pr list --state open``."""
-        self.assertEqual(self.calls("feature work"), [LIST_ARGS])
+        """A version not accepted, no release commit: ``gh pr list --state open``, and F15's
+        issue list and PR list in every state (F15 note section 1)."""
+        self.assertEqual(self.calls("feature work"),
+                         sorted([LIST_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
 
     def test_accepted_version_reads_the_open_bugs(self):
         """Every feature of v0.1 accepted: the open bug issues too, and no release list."""
-        self.assertEqual(self.calls("ready"), sorted([LIST_ARGS, ISSUE_ARGS]))
+        self.assertEqual(self.calls("ready"),
+                         sorted([LIST_ARGS, ISSUE_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
 
     def test_released_version_reads_releases_and_merged_prs(self):
-        """A release commit with a GitHub release: releases, merged PRs, and #40's comments."""
-        self.assertEqual(self.calls("released"),
-                         sorted([LIST_ARGS, RELEASE_ARGS, MERGED_ARGS,
-                                 ["pr", "view", "40", "--json", "comments"]]))
+        """A release commit with a GitHub release: releases, merged PRs, and #40's comments.
+
+        #40 is merged, not open, and F15's note names ``--json comments,reviews``
+        only for the open PRs, so either field list is accepted for it.
+        """
+        calls = self.calls("released")
+        views = [argv for argv in calls if argv[:2] == ["pr", "view"]]
+        self.assertEqual([argv[:3] for argv in views], [["pr", "view", "40"]])
+        self.assertIn(views[0][3:], (["--json", "comments"], ["--json", "comments,reviews"]))
+        self.assertEqual([argv for argv in calls if argv[:2] != ["pr", "view"]],
+                         sorted([LIST_ARGS, RELEASE_ARGS, MERGED_ARGS, ALL_ISSUES_ARGS,
+                                 ALL_PRS_ARGS]))
 
     def test_open_release_pr_reads_its_comments_and_the_bugs(self):
-        """The open release PR: its comments and the open bugs; no release commit yet."""
+        """The open release PR: its comments and reviews, the open bugs, and F15's two lists."""
         self.assertEqual(self.calls("release PR"),
-                         sorted([LIST_ARGS, ["pr", "view", "30", "--json", "comments"],
-                                 ISSUE_ARGS]))
+                         sorted([LIST_ARGS, ["pr", "view", "30", "--json", "comments,reviews"],
+                                 ISSUE_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
 
     def test_gh_failure_on_a_new_call_exits_two(self):
         """A failing release list, merged PR list, or bug issue list stops status (exit 2)."""

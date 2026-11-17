@@ -6,8 +6,8 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import acceptversion, approve, brief, realreport, realrun, releasetest, retro, rulerow, \
-    runs, series, skips, status, textcheck
+from . import acceptversion, approve, brief, issuesync, realreport, realrun, releasetest, \
+    retro, rulerow, runs, series, skips, status, textcheck
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -86,9 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
     which.add_argument("--item", help="the feature being accepted")
     which.add_argument("--all", action="store_true", help="every accepted feature (release)")
     cmd.add_argument("--keep", action="store_true", help="keep the scratch folder")
+    cmd = sub.add_parser("issues", help="the changes to troy-mode's issues (F15)")
+    cmd.add_argument("--device-test-scenarios",
+                     help="a patch release's scenarios for its checklist, separated by commas")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro", "rule-id", "rule-row", "real-run"):
+                 "retro", "rule-id", "rule-row", "real-run", "issues"):
         _common(sub.choices[name])
     return parser
 
@@ -113,6 +116,10 @@ def _text(report: dict) -> str:
             lines.append(f"label     {report['label']}: {report['label_reason']}")
         if report.get("files"):
             lines.append(f"report    {report['files']['md']}")
+    if report["command"] == "issues":
+        lines += [f"label     {item['command']}" for item in report.get("labels", [])]
+        lines += [f"action    {item['command']}" for item in report.get("actions", [])]
+        lines += [f"skipped   {item}" for item in report.get("skipped", [])]
     for key in ("run", "stage"):
         if report.get(key):
             lines.append(f"{key:<9} {report[key]}")
@@ -136,7 +143,7 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "accept-version": acceptversion.run_accept_version,
             "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
             "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
-            "real-run": realrun.run_real_run}
+            "real-run": realrun.run_real_run, "issues": issuesync.run_issues}
 
 
 def main(argv: list[str]) -> int:

@@ -38,6 +38,8 @@ RECORD = ".troy-mode/install.toml"
 PROGRESS = ".troy-mode/progress.md"
 WORKFLOW = ".github/workflows/troy-mode.yml"
 PR_TEMPLATE = ".github/pull_request_template.md"
+IDEA_TEMPLATE = ".github/ISSUE_TEMPLATE/idea.md"
+IDEA_SOURCE = "troy-mode/templates/idea-issue.md"
 RULES = ("docs/rules.md", "docs/rules.zh-CN.md")
 HOOKS_DIR = ".troy-mode/checks/git-hooks"
 HOOK_NAMES = ("commit-msg", "pre-commit", "pre-merge-commit", "pre-push")
@@ -242,6 +244,9 @@ def owned_files(plugin: Path) -> dict:
     files = {**expected_checks(plugin), **expected_templates(plugin)}
     files[WORKFLOW] = lf((plugin / "troy-mode/checks/workflow.yml").read_bytes())
     files[PR_TEMPLATE] = lf((plugin / "troy-mode/templates/pull-request.md").read_bytes())
+    # F15 (design 11, F06 row): troy-init writes GitHub's idea template like the PR template.
+    if (plugin / IDEA_SOURCE).is_file():
+        files[IDEA_TEMPLATE] = lf((plugin / IDEA_SOURCE).read_bytes())
     return files
 
 

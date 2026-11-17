@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-16 |
+| Date | 2026-11-17 |
 | Source of truth | This English file. [`05-release.zh-CN.md`](05-release.zh-CN.md) is the Chinese mirror. |
 
 A version groups consecutive features of the order and is usable on its own. Its test plan is written before its first feature starts. At release, troy-mode runs the version's tests on your PC, then asks you to test it on your own devices. You accept it, and troy-mode tags it ([F08 design](../design/F08-release.md)).
@@ -67,6 +67,8 @@ Waiting for Troy: accept v0.1.0
 The v0.1 test plan has no scenario that Troy runs by hand. Reply "accepted", with any
 notes, or name what failed or what is not what Troy wanted.
 ```
+
+Since F15, troy-mode also opens a **device-test checklist** for the version, an issue labeled `device-test`: one box per scenario you run, with its device, steps, and expected result, copied from the version test plan, and a last box "我接受 <tag>。" (I accept). Tick each scenario that works as expected; leave one unticked and write a comment when it does not. Ticking every box, the last one included, is your acceptance: at its next run troy-mode records it on the release PR and goes on. A version with no scenario of yours still gets the accept box. After bug fixes and a new release test, troy-mode clears the accept box and the scenarios that failed, keeps your other ticks, and comments `Device test, run <n>: ready` ([F15 design section 6](../design/F15-issues.md#6-the-device-test-checklist-d144)).
 
 Reply in chat or in a comment on the release PR. There are three kinds of reply ([F08 design section 5.6](../design/F08-release.md#56-troys-test)):
 

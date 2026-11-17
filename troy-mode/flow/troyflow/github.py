@@ -1,5 +1,8 @@
 """Open PRs and F07's comments on them, read through gh (F07 design 5.1 and 8.4).
 
+F15 adds the headings troy-mode writes on issues, Troy's PR reviews, and the
+generic list and object reads its issue module uses (F15 design 3.3 and 8.4).
+
 The engine only reads GitHub. Every call here is read-only.
 """
 
@@ -11,6 +14,7 @@ from dataclasses import dataclass, field
 
 from .errors import FlowError
 from .repo import Repo
+from .versions import SCENARIO_ID
 
 ROLE_NAMES = ("Architect", "Interface Designer", "Test Manager", "Developer", "Test Engineer",
               "Code Reviewer", "Product Manager")
@@ -26,7 +30,13 @@ TROY_RUN = re.compile(r"^Release test by Troy, run ([1-9][0-9]*): "
                       r"(accepted|failed|not accepted)$")
 RETROSPECTIVE = re.compile(r"^Retrospective: (v\d+\.\d+\.\d+)$")
 DEFERRED = re.compile(r"^Bug deferred by Troy: #([1-9][0-9]*)$")
-_OWN = (REVIEW, ATTEMPT, ESCALATION, WAITING, RELEASE_RUN, TROY_RUN, RETROSPECTIVE, DEFERRED)
+# troy-mode's headings on issues (F15 design 8.4).
+IDEA = re.compile(r"^Idea: (requirement change|bug|rule|answered|later|in the requirements)")
+REPLY = re.compile(r"^Reply to Troy")
+DEVICE_RUN = re.compile(r"^Device test, run ([1-9][0-9]*): ready$")
+_COMMIT = re.compile(r"^Commit tested: ([0-9a-f]{7,40})\s*$", re.M)
+_OWN = (REVIEW, ATTEMPT, ESCALATION, WAITING, RELEASE_RUN, TROY_RUN, RETROSPECTIVE, DEFERRED,
+        IDEA, REPLY, DEVICE_RUN)
 
 
 @dataclass
@@ -45,6 +55,8 @@ class Comments:
             "troy"), run, and result (F08 design 5.5 and 5.6).
         deferred: Issue numbers of the bugs Troy deferred (F08 D74).
         retrospectives: The tags of the Retrospective comments.
+        commits: The commit each passed release test run names, by run (F15 6.2).
+        troy_failed: The scenario IDs each failed run of Troy's names, by run (F15 6.3).
     """
 
     reviews: list[dict] = field(default_factory=list)
@@ -57,6 +69,8 @@ class Comments:
     runs: list[dict] = field(default_factory=list)
     deferred: list[int] = field(default_factory=list)
     retrospectives: list[str] = field(default_factory=list)
+    commits: dict[int, str] = field(default_factory=dict)
+    troy_failed: dict[int, list[str]] = field(default_factory=dict)
 
 
 def heading(body: str) -> str:
@@ -99,19 +113,27 @@ def read_comments(bodies: list[str]) -> Comments:
                                    "result": review.group(3)})
             result.rounds = max(result.rounds, int(review.group(2)))
         result.attempts = max(result.attempts, attempt_number(first))
-        _read_release(result, first)
+        _read_release(result, first, body)
     last = result.last or ""
     result.escalated = not result.troy and bool(ESCALATION.match(last))
     result.waiting = not result.troy and bool(ESCALATION.match(last) or WAITING.match(last))
     return result
 
 
-def _read_release(result: Comments, first: str) -> None:
+def _read_release(result: Comments, first: str, body: str = "") -> None:
     """Records an F08 comment's release run, deferred bug, or retrospective."""
     for pattern, by in ((RELEASE_RUN, "claude"), (TROY_RUN, "troy")):
         match = pattern.match(first)
         if match:
-            result.runs.append({"by": by, "run": int(match.group(1)), "result": match.group(2)})
+            run, outcome = int(match.group(1)), match.group(2)
+            result.runs.append({"by": by, "run": run, "result": outcome})
+            commit = _COMMIT.search(body or "")
+            if by == "claude" and outcome == "passed" and commit:
+                result.commits[run] = commit.group(1)
+            if by == "troy" and outcome == "failed":
+                rest = (body or "").split("\n", 1)[1] if "\n" in (body or "") else ""
+                result.troy_failed[run] = list(dict.fromkeys(
+                    m.group(0) for m in SCENARIO_ID.finditer(rest)))
     deferred = DEFERRED.match(first)
     if deferred and int(deferred.group(1)) not in result.deferred:
         result.deferred.append(int(deferred.group(1)))
@@ -152,12 +174,32 @@ def open_prs(repo: Repo) -> list[dict]:
 
 
 def comments(repo: Repo, number: int) -> list[str]:
-    """Reads the bodies of a PR's comments, oldest first."""
-    data = _gh(repo, "pr", "view", str(number), "--json", "comments")
-    items = data.get("comments", []) if isinstance(data, dict) else []
-    items = [c for c in items if isinstance(c, dict)]
-    items.sort(key=lambda c: str(c.get("createdAt", "")))
-    return [str(c.get("body", "")) for c in items]
+    """Reads the bodies of a PR's comments and of its reviews that have a body, oldest first.
+
+    A "Comment" review is how a reply from the phone may arrive (F15 design 7, D145).
+    """
+    data = _gh(repo, "pr", "view", str(number), "--json", "comments,reviews")
+    data = data if isinstance(data, dict) else {}
+    items = [(str(c.get("createdAt", "")), str(c.get("body", "")))
+             for c in data.get("comments") or [] if isinstance(c, dict)]
+    items += [(str(r.get("submittedAt", "")), str(r.get("body", "")))
+              for r in data.get("reviews") or [] if isinstance(r, dict)
+              and str(r.get("body") or "").strip()]
+    items.sort(key=lambda item: item[0])
+    return [body for _, body in items]
+
+
+def gh_object(repo: Repo, *args: str) -> dict:
+    """Runs a read-only gh command whose JSON output is an object."""
+    data = _gh(repo, *args)
+    if not isinstance(data, dict):
+        raise FlowError(f"gh {' '.join(args[:2])} did not print an object")
+    return data
+
+
+def gh_list(repo: Repo, *args: str) -> list[dict]:
+    """Runs a read-only gh list command and returns its objects."""
+    return _list(repo, *args)
 
 
 def _list(repo: Repo, *args: str) -> list[dict]:

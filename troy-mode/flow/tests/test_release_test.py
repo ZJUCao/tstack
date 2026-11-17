@@ -245,14 +245,20 @@ class ReleaseTestTests(FlowCase):
         self.assertNotEqual(report["notes"], [])
 
     def test_only_the_two_pr_calls(self):
-        """release-test lists the open PRs and reads #30's comments, and nothing else."""
+        """release-test lists the open PRs and reads #30's comments, and nothing else.
+
+        F15's note names ``--json comments,reviews`` for status only; a shared
+        reader may ask release-test's view for the reviews too, so either field
+        list is accepted here.
+        """
         self.result("pass", 0)
         calls = self.fakes["pass"].gh_argvs()
         self.assertEqual(calls[0], LIST_ARGS)
-        self.assertIn(["pr", "view", "30", "--json", "comments"], calls)
+        self.assertIn(["pr", "view", "30"], [argv[:3] for argv in calls])
         for argv in calls[1:]:
             with self.subTest(argv=argv):
-                self.assertEqual(argv[:2] + argv[3:], ["pr", "view", "--json", "comments"])
+                self.assertEqual(argv[:2], ["pr", "view"])
+                self.assertIn(argv[3:], (["--json", "comments"], ["--json", "comments,reviews"]))
         self.assertEqual(self.fakes["pass"].mamba_calls(), [])
 
 
