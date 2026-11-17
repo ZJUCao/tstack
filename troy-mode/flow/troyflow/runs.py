@@ -18,7 +18,7 @@ from troycheck.globs import matches_any
 from troyhook.scopes import SCOPES
 from troyhook.writes import allows
 
-from . import repo as git
+from . import PLUGIN_PREFIX, repo as git
 from .baseline import only_deletes_baseline
 from .errors import FlowError
 from .repo import Repo
@@ -146,7 +146,7 @@ def _hooks_log(repo: Repo, record: dict) -> list[dict]:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
-    types = {f"troy-pstack:troy-{r}" for r in record["roles"] if r not in MAIN_SESSION}
+    types = {f"{PLUGIN_PREFIX}troy-{r}" for r in record["roles"] if r not in MAIN_SESSION}
     found = []
     for line in lines:
         try:

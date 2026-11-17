@@ -1,5 +1,5 @@
 {
-  "name": "@troy-pstack/poteto-mode-tools",
+  "name": "@tstack/poteto-mode-tools",
   "private": true,
   "type": "module",
   "scripts": {

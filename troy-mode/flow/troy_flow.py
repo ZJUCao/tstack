@@ -22,7 +22,7 @@ the engine. It reads git, and GitHub through read-only gh calls, and writes
 only the progress file, the header fields and change-log rows that approve
 and accept-version change, release notes, the rules table rows that rule-row
 writes, and its run records. See docs/troy-mode/design/F07-entry-skill.md,
-F08-release.md, and F09-rule-change.md in troy-pstack.
+F08-release.md, and F09-rule-change.md in tstack.
 """
 
 import sys

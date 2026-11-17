@@ -52,7 +52,7 @@ def _result_line(plan: Plan, dry_run: bool) -> str:
 
 def to_text(plan: Plan, dry_run: bool) -> str:
     """Renders the text report: problems, conflicts, actions, and next steps."""
-    lines = [f"troy-init {plan.command}, troy-pstack {plan.version}"]
+    lines = [f"troy-init {plan.command}, {plan.plugin} {plan.version}"]
     lines += [f"problem   {p}" for p in plan.problems]
     lines += [f"conflict  {p}  {r}" for p, r in plan.conflicts]
     if not plan.blocked:

@@ -14,10 +14,10 @@ troy-mode 按需求文档里的拓扑顺序，一次做一个功能。每个功�
 
 | 你输入 | troy-mode 做什么 |
 | --- | --- |
-| `/troy-pstack:troy-mode 下一个功能` | 按顺序的下一个功能 |
-| `/troy-pstack:troy-mode F04` | 功能 F04 |
-| `/troy-pstack:troy-mode F04 到 F06` | F04、F05 和 F06，按顺序 |
-| `/troy-pstack:troy-mode v0.1 剩下的功能` | v0.1 里所有还没验收的功能 |
+| `/tstack:troy-mode 下一个功能` | 按顺序的下一个功能 |
+| `/tstack:troy-mode F04` | 功能 F04 |
+| `/tstack:troy-mode F04 到 F06` | F04、F05 和 F06，按顺序 |
+| `/tstack:troy-mode v0.1 剩下的功能` | v0.1 里所有还没验收的功能 |
 
 一个请求只做到一个功能为止，除非它点名了更多，像最后两个那样。做完之后 troy-mode 报告结果并停下（[F07 设计 D63](../design/F07-entry-skill.zh-CN.md#16-需要-troy-决定的事项)）。在这个范围之内，它自己从一个阶段走到下一个阶段，只在需要你的地方停下：你的批准，或者升级上报。要做完一整个版本，就用最后一行的说法。试点中，“Start v0.1” 只做到了 F01，后面每个功能都要单独请求，比如 “Start F02” 或 “开始做F09”（[issue #52](https://github.com/ZJUCao/troy-pstack/issues/52)）。
 

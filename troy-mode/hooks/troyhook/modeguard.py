@@ -1,7 +1,7 @@
 """The mode guard: poteto-mode's commands are off in a troy-mode project (F13 design).
 
 Claude Code's UserPromptExpansion event gives the command it resolved, such
-as ``troy-pstack:poteto-mode``, whether Troy typed the prefix or not. The
+as ``tstack:poteto-mode``, whether Troy typed the prefix or not. The
 guard refuses ``poteto-mode`` and ``no-comments`` from any plugin prefix or
 none (D122), with no override (D123), and lets every other command through.
 """

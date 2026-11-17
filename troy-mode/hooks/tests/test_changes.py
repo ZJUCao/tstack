@@ -173,7 +173,7 @@ class OtherCallerTests(ChangeTestCase):
         self.assert_blocked(self.post(), "tests/test_new.py")
 
     def test_unknown_troy_name_may_stop(self):
-        """SubagentStop for troy-pstack:troy-foo does not block, whatever changed."""
+        """SubagentStop for tstack:troy-foo does not block, whatever changed."""
         self.start()
         self.project.write("tests/test_new.py", TEST_BODY)
         self.assert_not_blocked(stop_call(self.project, FOO).run())

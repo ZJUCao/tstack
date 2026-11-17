@@ -6,7 +6,7 @@
 | Date | 2026-11-16 |
 | Source of truth | This English file. [`01-install.zh-CN.md`](01-install.zh-CN.md) is the Chinese mirror. |
 
-troy-mode ships inside the troy-pstack plugin. You install the plugin once, give each project one permission, and choose models only if the defaults do not suit you.
+troy-mode ships inside the tstack plugin. You install the plugin once, give each project one permission, and choose models only if the defaults do not suit you.
 
 ## 1.1 What your PC needs
 
@@ -28,35 +28,48 @@ troy-mode ships inside the troy-pstack plugin. You install the plugin once, give
 - **No Python found.** In a troy-mode project, the hooks stop with "troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON". Set `TROY_MODE_PYTHON` to a Python 3.11 or newer.
 - **C/C++ projects** get CMake, Ninja, and the clang tools from their mamba environment. The compiler comes from outside it: on your PC, the MSYS2 GCC on the PATH ([C/C++ pack's README](../../../troy-mode/lang/cpp/README.md)). The feature loop does not work for C/C++ yet: a test PR registers its tests in `CMakeLists.txt`, which counts as a dependency file, so troy-mode undoes every Test Engineer run there. A small fix to troy-mode comes before the first C/C++ project ([F11 design section 3.3](../design/F11-pilot.md#33-cc-and-the-f07-fix)).
 
-## 1.2 Install troy-pstack
+## 1.2 Install tstack
 
-troy-pstack's folder is both the plugin and a one-plugin marketplace. Install it with the Claude Code CLI. The desktop app's Code tab does not offer the `/plugin` dialogs, and on your PC `claude` is not on PowerShell's PATH: the app bundles the CLI as `claude.exe` under `%LOCALAPPDATA%\Claude-Data\`, in a folder named after the app's version, which changes when the app updates. In PowerShell:
+tstack's folder is both the plugin and a one-plugin marketplace. Install it with the Claude Code CLI. The desktop app's Code tab does not offer the `/plugin` dialogs, and on your PC `claude` is not on PowerShell's PATH: the app bundles the CLI as `claude.exe` under `%LOCALAPPDATA%\Claude-Data\`, in a folder named after the app's version, which changes when the app updates. In PowerShell:
 
 ```powershell
 $claude = (Get-ChildItem "$env:LOCALAPPDATA\Claude-Data\*\claude-code\*\*\claude.exe" | Sort-Object LastWriteTime | Select-Object -Last 1).FullName
-& $claude plugin marketplace add D:/Troy/Projects/troy-pstack
-& $claude plugin install troy-pstack@troy-pstack
+& $claude plugin marketplace add D:/Troy/Projects/tstack
+& $claude plugin install tstack@tstack
 ```
 
-The first line finds the newest bundled CLI; run it again in each new PowerShell window. In the CLI's own interactive session, `/plugin marketplace add D:/Troy/Projects/troy-pstack` and `/plugin install troy-pstack@troy-pstack` do the same. Then restart Claude Code.
+The first line finds the newest bundled CLI; run it again in each new PowerShell window. In the CLI's own interactive session, `/plugin marketplace add D:/Troy/Projects/tstack` and `/plugin install tstack@tstack` do the same. Then restart Claude Code.
 
-Claude Code puts the plugin's name in front of its skills and agents. So you type `/troy-pstack:troy-mode` and `/troy-pstack:troy-init`, and the roles are the agents `troy-pstack:troy-architect`, `troy-pstack:troy-interface-designer`, `troy-pstack:troy-test-manager`, `troy-pstack:troy-developer`, `troy-pstack:troy-test-engineer`, and `troy-pstack:troy-code-reviewer`.
+Claude Code puts the plugin's name in front of its skills and agents. So you type `/tstack:troy-mode` and `/tstack:troy-init`, and the roles are the agents `tstack:troy-architect`, `tstack:troy-interface-designer`, `tstack:troy-test-manager`, `tstack:troy-developer`, `tstack:troy-test-engineer`, and `tstack:troy-code-reviewer`.
 
-To see that troy-mode is there, open a new session: `/troy-pstack:troy-mode` and `/troy-pstack:troy-init` are among the commands Claude Code offers ([F11 design section 2](../design/F11-pilot.md#2-prerequisites)). To see the installed version, run `& $claude plugin list`: the entry `troy-pstack@troy-pstack` shows it on its `Version:` line. The plugin's version must be 0.2.0 or newer: that is the first version that documents troy-mode for use.
+To see that troy-mode is there, open a new session: `/tstack:troy-mode` and `/tstack:troy-init` are among the commands Claude Code offers ([F11 design section 2](../design/F11-pilot.md#2-prerequisites)). To see the installed version, run `& $claude plugin list`: the entry `tstack@tstack` shows it on its `Version:` line. The plugin's version must be 0.2.0 or newer: that is the first version that documents troy-mode for use.
 
 ## 1.3 Update after a new plugin version
 
-Claude Code installs a plugin as a copy, and it updates the copy only when the plugin's version rises ([F10 design section 6](../design/F10-docs.md#6-the-plugin-version-d89)). The marketplace is a `directory` source on troy-pstack's main checkout, `D:\Troy\Projects\troy-pstack`, so an update finds only the version that folder's `main` holds. After a troy-pstack PR raises the version, run this in PowerShell, with `$claude` from section 1.2:
+Claude Code takes in a new version of a plugin only when the plugin's version rises ([F10 design section 6](../design/F10-docs.md#6-the-plugin-version-d89)). The marketplace is a `directory` source on tstack's main checkout, `D:\Troy\Projects\tstack`, so an update finds only the version that folder's `main` holds. A plugin from a `directory` marketplace also runs from that folder itself, not from a copy: Claude Code keeps a copy under `~/.claude/plugins/cache/` and names it in its records, but every session's skills and hooks run from the folder's working tree ([F19 design section 3](../design/F19-rename.md#3-probes), checked again in F19's trial on 2026-11-16). After a tstack PR raises the version, run this in PowerShell, with `$claude` from section 1.2:
 
 ```powershell
-git -C D:\Troy\Projects\troy-pstack pull --ff-only
-& $claude plugin marketplace update troy-pstack
-& $claude plugin update troy-pstack@troy-pstack
+git -C D:\Troy\Projects\tstack pull --ff-only
+& $claude plugin marketplace update tstack
+& $claude plugin update tstack@tstack
 ```
 
-The pull needs that checkout on `main` with no changes of its own. During the pilot it was once five commits behind, and the update found no new version until it was pulled. The update keeps the old copy, so sessions that are already running go on with it. Restart Claude Code at a natural stop, such as after a PR merged.
+The pull needs that checkout on `main` with no changes of its own. During the pilot it was once five commits behind, and the update found no new version until it was pulled. The pull changes what sessions that are already running run, from their hooks' next call on. So pull at a natural stop when no session is working, such as after a PR merged, and restart Claude Code right after it.
 
-A project you already set up keeps its own copy of troy-check, the templates, and the workflow. To bring it to the new version, type `/troy-pstack:troy-mode upgrade troy-mode` in the project ([reference: an older copy](08-reference.md#86-problems)).
+A project you already set up keeps its own copy of troy-check, the templates, and the workflow. To bring it to the new version, type `/tstack:troy-mode upgrade troy-mode` in the project ([reference: an older copy](08-reference.md#86-problems)).
+
+**Moving from troy-pstack to tstack.** The plugin was called troy-pstack until version 0.5.0 and is tstack from 0.6.0, in its own folder `D:\Troy\Projects\tstack`, a clone of the renamed repository `ZJUCao/tstack` ([F19 design section 7](../design/F19-rename.md#7-troys-move-d194) lists every step, with the repository and the mamba environment). Move once, when no session is working. Uninstall troy-pstack before you install tstack: with both on, each plugin's hooks refuse the other's role writes ([section 8.6](08-reference.md#86-problems)). In PowerShell, with `$claude` from section 1.2:
+
+```powershell
+& $claude plugin uninstall troy-pstack@troy-pstack   # the old name, before tstack
+& $claude plugin marketplace remove troy-pstack      # the old name, before tstack
+& $claude plugin marketplace add D:\Troy\Projects\tstack
+& $claude plugin install tstack@tstack
+& $claude plugin list
+& $claude plugin marketplace list
+```
+
+`plugin list` must show `tstack@tstack`, enabled, and `marketplace list` must show `tstack`; neither may show troy-pstack any more. If `~/.claude/settings.json` still holds a troy-pstack key under `extraKnownMarketplaces` or `enabledPlugins`, remove it and keep the tstack keys. Then quit the desktop app and open it again. In a new session in a troy-mode project, `/tstack:troy-mode status` runs, and Claude Code offers no `/troy-pstack:` command. Each project then moves with `/tstack:troy-mode upgrade troy-mode` at a natural stop, as for any new version. Until then it keeps working with tstack, and `status` says that its troy-check differs from the plugin's.
 
 ## 1.4 The merge permission
 
@@ -83,12 +96,12 @@ Each role runs as a subagent with its own model. The Product Manager is the main
 | Role | Runs as | Model |
 | --- | --- | --- |
 | Product Manager | The main session | The session's model |
-| Architect | `troy-pstack:troy-architect` | opus |
-| Interface Designer | `troy-pstack:troy-interface-designer` | opus |
-| Test Manager | `troy-pstack:troy-test-manager` | opus |
-| Developer | `troy-pstack:troy-developer` | sonnet |
-| Test Engineer | `troy-pstack:troy-test-engineer` | sonnet |
-| Code Reviewer | `troy-pstack:troy-code-reviewer` | opus |
+| Architect | `tstack:troy-architect` | opus |
+| Interface Designer | `tstack:troy-interface-designer` | opus |
+| Test Manager | `tstack:troy-test-manager` | opus |
+| Developer | `tstack:troy-developer` | sonnet |
+| Test Engineer | `tstack:troy-test-engineer` | sonnet |
+| Code Reviewer | `tstack:troy-code-reviewer` | opus |
 
 Every role runs with the session's effort. To change a role in one project, add a `[roles.<role>]` table to the project's `.troy-mode/config.toml` ([F07 design section 3.2](../design/F07-entry-skill.md#32-model-and-effort-f04-d32)). For example, to run the Developer on opus with high effort:
 

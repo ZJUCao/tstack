@@ -1,4 +1,4 @@
-# textstats: the sample Python project that troy-pstack's CI takes through the
+# textstats: the sample Python project that tstack's CI takes through the
 # Python pack (F03 design 10).
 #
 # troy-mode/dev/build_sample.py builds a git repository from this file. The

@@ -10,6 +10,10 @@ Planted bugs of design 14.2 caught here:
 - "a dependency change allowed without ``--allow-dependency``":
   ``DependencyTests.test_dependency_change_needs_allow_dependency``.
 - "another role's log lines reported": ``HooksLogTests``.
+
+F19's planted bug "the run check's hooks.log match left" (F19 design 11.3) is caught by
+``HooksLogTests.test_only_this_roles_lines_since_the_snapshot`` and
+``test_each_roles_tstack_lines_count_and_its_old_prefix_lines_do_not``.
 """
 
 import json
@@ -549,13 +553,13 @@ class HooksLogTests(RunCase):
     def test_only_this_roles_lines_since_the_snapshot(self):
         """An older line, another role's line, and the main session's line are left out."""
         snap = self.snapshot("developer")
-        dev = "troy-pstack:troy-developer"
+        dev = "tstack:troy-developer"
         at = hooks_line(snap["time"], dev, "a1", path="tests/a.py")
         later = hooks_line(shifted(snap["time"], 10), dev, "a1", path="tests/b.py")
         self.write_log([
             hooks_line(shifted(snap["time"], -120), dev, "a0", path="tests/old.py"),
             at,
-            hooks_line(shifted(snap["time"], 5), "troy-pstack:troy-test-engineer", "a2"),
+            hooks_line(shifted(snap["time"], 5), "tstack:troy-test-engineer", "a2"),
             hooks_line(shifted(snap["time"], 6), None, None),
             "not a JSON line",
             later,
@@ -564,6 +568,29 @@ class HooksLogTests(RunCase):
         report = self.report_of(self.check(snap["run"]), 0)
         self.assertEqual(report["hooks_log"], [at, later])
         self.assertEqual(report["problems"], [])
+
+    def test_each_roles_tstack_lines_count_and_its_old_prefix_lines_do_not(self):
+        """F19 11.1: the run check counts ``tstack:troy-<role>`` lines, not the old prefix's.
+
+        For each of the six roles, a line of the role under its new name and
+        one under the plugin's old prefix, both since the snapshot: only the
+        first is the run's.
+
+        F19 planted bug caught: the run check's hooks.log match left on the old
+        prefix (design 11.3).
+        """
+        old_prefix = "troy" + "-pstack:"  # the plugin's prefix before tstack
+        for role in ("architect", "interface-designer", "test-manager", "developer",
+                     "test-engineer", "code-reviewer"):
+            with self.subTest(role=role):
+                snap = self.snapshot(role)
+                new = hooks_line(shifted(snap["time"], 5), f"tstack:troy-{role}", "a1",
+                                 path="docs/new.md")
+                old = hooks_line(shifted(snap["time"], 6), f"{old_prefix}troy-{role}", "a2",
+                                 path="docs/old.md")
+                self.write_log([old, new])
+                report = self.report_of(self.check(snap["run"]), 0)
+                self.assertEqual(report["hooks_log"], [new])
 
     def test_product_manager_gets_the_main_sessions_lines(self):
         """For the Product Manager, lines with no agent ID count, a role's line does not."""
@@ -574,7 +601,7 @@ class HooksLogTests(RunCase):
         self.write_log([
             hooks_line(shifted(snap["time"], -60), None, None),
             main,
-            hooks_line(shifted(snap["time"], 5), "troy-pstack:troy-developer", "a1"),
+            hooks_line(shifted(snap["time"], 5), "tstack:troy-developer", "a1"),
             missing,
         ])
         report = self.report_of(self.check(snap["run"]), 0)

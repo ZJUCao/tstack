@@ -150,7 +150,7 @@ from pathlib import Path
 from typing import Iterable, Mapping, Optional, Sequence, Union
 
 # ---------------------------------------------------------------------------
-# Locations in troy-pstack.
+# Locations in tstack.
 # ---------------------------------------------------------------------------
 
 TESTS = Path(__file__).resolve().parent
@@ -203,7 +203,9 @@ PAD = SCRATCH / "pad"
 NEUTRAL = SCRATCH / "neutral"
 REPOS = SCRATCH / "repos"
 TEMPLATES = SCRATCH / "templates"
-PLUGIN_ROOT = SCRATCH / "plugins" / "cache" / "troy-market" / "troy-pstack" / "9.9.9"
+# An installed plugin's cache folder, as F19 design 5.2 names it:
+# ~/.claude/plugins/cache/tstack/tstack/<version>.
+PLUGIN_ROOT = SCRATCH / "plugins" / "cache" / "tstack" / "tstack" / "9.9.9"
 for _folder in (HOOK_TEMP, PAD, NEUTRAL, REPOS, TEMPLATES, PLUGIN_ROOT):
     _folder.mkdir(parents=True, exist_ok=True)
 _GLOBAL_CONFIG = SCRATCH / "gitconfig"
@@ -593,11 +595,15 @@ def git_bash_form(path: Path) -> str:
 
 ROLE_NAMES = ("architect", "interface-designer", "test-manager", "developer", "test-engineer",
               "code-reviewer")
-# Subagents that are not roles (design section 4): an unknown troy-pstack
-# name, the fork /code-review runs as, Explore, and names with text before or
-# after a role name.
-OTHER_TYPES = ("troy-pstack:troy-foo", "general-purpose", "Explore",
-               "xtroy-pstack:troy-developer", "troy-pstack:troy-developer-2")
+# The plugin's prefix (F19 design 4.1), and its prefix before F19.
+PREFIX = "tstack:"
+OLD_PREFIX = "troy-pstack:"  # the plugin's name before tstack (F19 design 4.1)
+# Subagents that are not roles (design section 4): an unknown tstack name, the
+# fork /code-review runs as, Explore, names with text before or after a role
+# name, and a role under the old prefix (F19 design section 3, probe 4).
+OTHER_TYPES = ("tstack:troy-foo", "general-purpose", "Explore",
+               "xtstack:troy-developer", "tstack:troy-developer-2",
+               OLD_PREFIX + "troy-developer")
 
 
 @dataclass(frozen=True)
@@ -619,8 +625,13 @@ MAIN = Caller(None, None, "main session")
 
 
 def role(name: str, suffix: str = "") -> Caller:
-    """Returns a role caller, for example ``role("developer")``."""
-    return Caller(f"troy-pstack:troy-{name}", f"agent-{name}{suffix}", name)
+    """Returns a role caller, for example ``role("developer")``: ``tstack:troy-developer``."""
+    return Caller(f"tstack:troy-{name}", f"agent-{name}{suffix}", name)
+
+
+def old_role(name: str, suffix: str = "") -> Caller:
+    """Returns a caller with a role's name under the old prefix: no longer a role (F19)."""
+    return Caller(f"{OLD_PREFIX}troy-{name}", f"agent-old-{name}{suffix}", f"old {name}")
 
 
 def other(agent_type: Optional[str], suffix: str = "") -> Caller:
@@ -637,7 +648,7 @@ TM = role("test-manager")
 CR = role("code-reviewer")
 GP = other("general-purpose")
 EXPLORE = other("Explore")
-FOO = other("troy-pstack:troy-foo")
+FOO = other("tstack:troy-foo")
 
 # ---------------------------------------------------------------------------
 # Hook runs.

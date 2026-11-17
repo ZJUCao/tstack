@@ -8,7 +8,7 @@ status: "Sample. Holds only what troy-check reads."
 
 # textstats architecture
 
-textstats is troy-pstack's sample Python project. Its documents hold only what `troy-check code` reads, so they have no Chinese mirrors.
+textstats is tstack's sample Python project. Its documents hold only what `troy-check code` reads, so they have no Chinese mirrors.
 
 ## 1. Overview
 

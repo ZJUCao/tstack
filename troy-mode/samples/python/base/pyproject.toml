@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "textstats"
 version = "0.1.0"
-description = "Prints the most frequent words of a text file. troy-pstack's sample project."
+description = "Prints the most frequent words of a text file. tstack's sample project."
 requires-python = ">=3.13"
 dependencies = []
 

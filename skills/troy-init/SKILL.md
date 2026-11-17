@@ -1,18 +1,18 @@
 ---
 name: troy-init
-description: Make this folder a troy-mode project, add its language pack, or bring troy-mode's files in it up to date. Runs troy-init's engine and takes its result through one [rules] PR, which it merges once the checks pass. Use only when Troy types /troy-pstack:troy-init.
+description: Make this folder a troy-mode project, add its language pack, or bring troy-mode's files in it up to date. Runs troy-init's engine and takes its result through one [rules] PR, which it merges once the checks pass. Use only when Troy types /tstack:troy-init.
 disable-model-invocation: true
 ---
 
 # troy-init
 
-troy-init turns a folder into a troy-mode project and keeps troy-mode's files in it current. troy-pstack's F06 design (`docs/troy-mode/design/F06-troy-init.md`) is the source for every step below. Talk to Troy in Troy's language.
+troy-init turns a folder into a troy-mode project and keeps troy-mode's files in it current. tstack's F06 design (`docs/troy-mode/design/F06-troy-init.md`) is the source for every step below. Talk to Troy in Troy's language.
 
 | Troy types | Step | Engine command |
 | --- | --- | --- |
-| `/troy-pstack:troy-init` | Setup | `setup --email <address>` |
-| `/troy-pstack:troy-init lang python` or `lang cpp` | Language step | `lang python` or `lang cpp` |
-| `/troy-pstack:troy-init upgrade` | Upgrade | `upgrade` |
+| `/tstack:troy-init` | Setup | `setup --email <address>` |
+| `/tstack:troy-init lang python` or `lang cpp` | Language step | `lang python` or `lang cpp` |
+| `/tstack:troy-init upgrade` | Upgrade | `upgrade` |
 
 ## The engine
 
@@ -50,13 +50,13 @@ Each step lands as one `[rules]` PR with one commit (design section 7). F07 runs
 
 ## After setup merges
 
-- **Git hooks.** When the report's `hooks_path` is set, the git hooks are on in this clone. In other clones, troy-pstack's `SessionStart` hook turns them on. When it is null, this troy-pstack has no git hooks yet.
+- **Git hooks.** When the report's `hooks_path` is set, the git hooks are on in this clone. In other clones, tstack's `SessionStart` hook turns them on. When it is null, this tstack has no git hooks yet.
 - **Required check.** Ask GitHub whether the repository can use branch protection: `gh api repos/<owner>/<project>/branches/main/protection`. A private repository on a free plan answers 403 ("Upgrade to GitHub Pro"); then say that `troy-mode checks` stays optional. Only if it answers 404 "Branch not protected" or 200, ask Troy, and on yes mark `troy-mode checks` as a required status check.
 - **Next.** The requirements (Product Manager), or the architecture (Architect) when `docs/requirements.md` already exists.
 
 ## Language step
 
-The language step adds the language pack (troy-pstack's F03) and its CI job, after Troy approved the architecture: `docs/architecture.md` on `origin/main` must have `version` 1.0 or higher. The engine checks this and stops otherwise.
+The language step adds the language pack (tstack's F03) and its CI job, after Troy approved the architecture: `docs/architecture.md` on `origin/main` must have `version` 1.0 or higher. The engine checks this and stops otherwise.
 
 - **Engine command.** `lang python` or `lang cpp`, with these options:
   - `--environment <name>`, and one `--series <folder>` for each other member, when Troy says the project belongs to a series, for example `--environment troy-agent-env --series ../troy-voice`. With no series, leave both out: the environment is named after the project.
@@ -72,7 +72,7 @@ The language step adds the language pack (troy-pstack's F03) and its CI job, aft
 
 ## Upgrade
 
-Upgrade replaces troy-mode's own files (troy-check, the templates, the PR template, the workflow) when nobody edited them since troy-init wrote them, creates the files troy-pstack added, and deletes the ones it dropped. An edited file is a conflict: ask Troy whether to replace it. It brings the R rows of `docs/rules.md` and its mirror up to date and keeps the P rows. It never changes `.troy-mode/config.toml` or the build files; show Troy the report's `differences`, which Troy may take into a rules PR.
+Upgrade replaces troy-mode's own files (troy-check, the templates, the PR template, the workflow) when nobody edited them since troy-init wrote them, creates the files tstack added, and deletes the ones it dropped. An edited file is a conflict: ask Troy whether to replace it. It brings the R rows of `docs/rules.md` and its mirror up to date and keeps the P rows. It never changes `.troy-mode/config.toml` or the build files, with one exception: the one comment line in each of `.troy-mode/config.toml` and `pyproject.toml` that named the plugin before tstack is rewritten when it is exactly what troy-init wrote (F19 design section 8). Show Troy the report's `differences`, which Troy may take into a rules PR.
 
 ## Report
 

@@ -1,4 +1,4 @@
-"""Tests for check_pairs.py, the EN/ZH mirror check for troy-pstack's own documents.
+"""Tests for check_pairs.py, the EN/ZH mirror check for tstack's own documents.
 
 Each test builds a small git repository, adds document pairs, and runs the
 script as a subprocess. Exit code 0 means every pair matches, 1 means at

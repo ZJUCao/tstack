@@ -178,7 +178,7 @@ class AllowedTasksTests(FlowCase):
             role = ROLE_OF[task[:2]]
             self.assertEqual((report["task"], report["role"], report["item"], report["stage"],
                               report["title"]), (task, role, item, None, want_title))
-            self.assertEqual(report["agent"], {"subagent_type": f"troy-pstack:troy-{role}"})
+            self.assertEqual(report["agent"], {"subagent_type": f"tstack:troy-{role}"})
             lines = report["prompt"].split("\n")
             found = [next((i for i, line in enumerate(lines) if line.startswith(p)), None)
                      for p in FIELDS]

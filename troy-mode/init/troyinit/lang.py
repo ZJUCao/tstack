@@ -1,7 +1,7 @@
 """The language step: the language pack and its CI job (design section 5).
 
 lang_files() builds every file the step writes, without the preconditions of
-section 5.1, so troy-pstack's build_sample.py sets its samples up exactly as
+section 5.1, so tstack's build_sample.py sets its samples up exactly as
 troy-init sets up a project (design section 8). plan_lang() adds the
 preconditions, the conflicts, and the environment work of section 5.4.
 """
@@ -378,7 +378,7 @@ def plan_lang(plugin: Plugin, repo: Path, top: Path, options: LangOptions) -> Pl
         InitError: A plugin file cannot be read, or mamba cannot list its
             environments.
     """
-    plan = Plan("lang", plugin.version)
+    plan = Plan("lang", plugin.version, plugin.name)
     pack = get_pack(options.language)
     plan.env = env = EnvPlan(options.environment, options.env_prefix, list(options.series),
                              pack.lock, options.no_env)

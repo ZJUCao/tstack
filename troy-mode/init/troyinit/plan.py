@@ -96,6 +96,7 @@ class Plan:
     Attributes:
         command: "setup", "lang", or "upgrade".
         version: The plugin's version.
+        plugin: The plugin's name, for the text report.
         actions: One entry per file.
         conflicts: (path, reason) for files in the way.
         problems: Failed preconditions.
@@ -111,6 +112,7 @@ class Plan:
 
     command: str
     version: str
+    plugin: str = ""
     actions: list[FileAction] = field(default_factory=list)
     conflicts: list[tuple[str, str]] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)

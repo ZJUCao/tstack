@@ -1,5 +1,5 @@
 # troy-mode checks. troy-init copies this file to .github/workflows/troy-mode.yml.
-# Design: docs/troy-mode/design/F02-checks.md, section 8, in troy-pstack.
+# Design: docs/troy-mode/design/F02-checks.md, section 8, in tstack.
 name: troy-mode checks
 on:
   pull_request:

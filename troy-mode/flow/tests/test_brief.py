@@ -7,6 +7,11 @@ Planted bugs of design 14.2 caught here:
   ``test_roles_added_only_in_the_working_tree_change_nothing``.
 - "effort passed when unset": ``RolesTests.test_model_and_effort_come_from_roles`` (the
   Developer has a model and no effort) and ``test_unset_role_gets_neither``.
+
+After F19 (design 5.1 and 11.1), every brief's ``subagent_type`` is ``tstack:troy-<role>``.
+F19's planted bug "the engine's subagent_type left" is caught by
+``TaskRoleTests.test_each_task_names_its_role_and_subagent`` (all six roles) and by every
+other test that compares a report's ``agent``.
 """
 
 import unittest
@@ -167,7 +172,7 @@ class BriefFieldsTests(FlowCase):
         self.assertEqual((report["task"], report["role"], report["item"], report["stage"]),
                          ("IF1", "interface-designer", "F01", 1))
         self.assertEqual(report["title"], "[F01 1/6 design] Count words")
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-interface-designer"})
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-interface-designer"})
         self.assertEqual((report["input"], report["round"], report["checks"]), (None, None, []))
 
     def test_read_first_before_the_feature_has_documents(self):
@@ -197,7 +202,7 @@ class TaskRoleTests(FlowCase):
                 self.assertEqual((report["task"], report["role"], report["item"], report["stage"]),
                                  (task, role, "F01", stage))
                 self.assertEqual(report["title"], F01.title(stage))
-                self.assertEqual(report["agent"], {"subagent_type": f"troy-pstack:troy-{role}"})
+                self.assertEqual(report["agent"], {"subagent_type": f"tstack:troy-{role}"})
 
     def test_ar1_has_no_item(self):
         """AR1 writes the architecture: no item or stage; it reads rules and requirements."""
@@ -455,9 +460,9 @@ class RolesTests(FlowCase):
         """Planted bug "effort passed when unset": each key appears only when the role sets it."""
         project = shared("roles")
         cases = {
-            "DV1": {"subagent_type": "troy-pstack:troy-developer", "model": "opus"},
-            "CR1": {"subagent_type": "troy-pstack:troy-code-reviewer", "effort": "medium"},
-            "AR5": {"subagent_type": "troy-pstack:troy-architect", "model": "opus",
+            "DV1": {"subagent_type": "tstack:troy-developer", "model": "opus"},
+            "CR1": {"subagent_type": "tstack:troy-code-reviewer", "effort": "medium"},
+            "AR5": {"subagent_type": "tstack:troy-architect", "model": "opus",
                     "effort": "max"},
         }
         for task, agent in cases.items():
@@ -467,7 +472,7 @@ class RolesTests(FlowCase):
     def test_unset_role_gets_neither(self):
         """Planted bug "effort passed when unset": no ``[roles]`` table, no model, no effort."""
         report = self.report_of(brief(shared("stage3"), "DV1"))
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-developer"})
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-developer"})
 
     def test_roles_are_read_at_head_not_from_the_working_tree(self):
         """Planted bug "``[roles]`` read from the working tree": an uncommitted edit is ignored."""
@@ -476,11 +481,11 @@ class RolesTests(FlowCase):
                   '[roles.code-reviewer]\neffort = "medium"\n')
         project.write(CONFIG, config_text(extra=edited))
         report = self.report_of(brief(project, "DV1"))
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-developer",
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-developer",
                                            "model": "opus"})
         project.git("commit", "-q", "-a", "-m", "[rules] Set the Developer's model and effort")
         report = self.report_of(brief(project, "DV1"))
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-developer",
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-developer",
                                            "model": "sonnet", "effort": "low"})
 
     def test_roles_added_only_in_the_working_tree_change_nothing(self):
@@ -489,7 +494,7 @@ class RolesTests(FlowCase):
         project.write(CONFIG, config_text(extra='[roles.developer]\nmodel = "opus"\n'
                                                 'effort = "xhigh"\n'))
         report = self.report_of(brief(project, "DV1"))
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-developer"})
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-developer"})
 
 
 class InputRoundTests(FlowCase):

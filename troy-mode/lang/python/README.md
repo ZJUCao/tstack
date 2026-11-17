@@ -54,7 +54,7 @@ Run them in the activated environment, or as `mamba run -n <environment> <comman
 
 ## 4. Tool settings
 
-- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in troy-pstack. It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests, and the version tests in `version-tests/`, may use `assert` and need no annotations.
+- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in tstack. It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests, and the version tests in `version-tests/`, may use `assert` and need no annotations.
 - **mypy** checks `src` in strict mode.
 - **pytest** finds tests in `tests/` and runs with `-ra --strict-markers`. It leaves out the version tests in `version-tests/`, which run only in the release test (F08 design 5.3). Their names start with their scenario ID, for example `test_v0_1_s01_counts_words_and_lines`.
 - **coverage** measures lines and branches in `src`.
@@ -67,7 +67,7 @@ The job checks out the PR with its full history and asks `git ls-files` whether 
 
 ## 6. Sample project
 
-[`troy-mode/samples/python`](../../samples/python) holds textstats, a small project whose feature F01 goes through design, test plan, mock, tests, and implementation. [`build_sample.py`](../../dev/build_sample.py) builds its git repository with `troy-init`'s own setup and language step. troy-pstack's workflow `troy-python-sample.yml` then runs the steps of section 5 on three PRs:
+[`troy-mode/samples/python`](../../samples/python) holds textstats, a small project whose feature F01 goes through design, test plan, mock, tests, and implementation. [`build_sample.py`](../../dev/build_sample.py) builds its git repository with `troy-init`'s own setup and language step. tstack's workflow `troy-python-sample.yml` then runs the steps of section 5 on three PRs:
 
 - the design PR, whose head has no code yet, so the code steps are skipped;
 - the tests PR, where every new test must fail against the mock (R09);

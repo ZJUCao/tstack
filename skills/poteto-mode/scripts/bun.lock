@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@troy-pstack/poteto-mode-tools",
+      "name": "@tstack/poteto-mode-tools",
       "dependencies": {
         "commander": "14.0.0",
       },

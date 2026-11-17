@@ -1,19 +1,9 @@
-# Checks that each English document in troy-pstack matches its Chinese mirror, and that
-# the links in the README and troy-mode's documents resolve.
+# Checks that each English document in tstack matches its Chinese mirror, that the
+# links in the README and troy-mode's documents resolve, and that living text no
+# longer names the old plugin (F19 design 11.2). It runs on every PR (F19 design 5.4).
 name: troy-mode docs
 on:
   pull_request:
-    paths:
-      - "**/*.md"
-      - "troy-mode/dev/**"
-      # The dev tests check the packs and samples, and build the samples
-      # through troy-init's engine (F06 design 8).
-      - "troy-mode/init/troyinit/**"
-      - "troy-mode/lang/**"
-      - "troy-mode/samples/**"
-      - ".github/workflows/troy-python-sample.yml"
-      - ".github/workflows/troy-cpp-sample.yml"
-      - ".github/workflows/troy-docs.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,9 +14,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: Test troy-pstack's dev tools
+      - name: Test tstack's dev tools
         run: python3 -m unittest discover -s troy-mode/dev/tests -v
       - name: Check every EN/ZH pair
         run: python3 troy-mode/dev/check_pairs.py
       - name: Check the links and anchors in the README and troy-mode's documents
         run: python3 troy-mode/dev/check_links.py
+      - name: Check that living text no longer names the old plugin
+        run: python3 troy-mode/dev/check_name.py

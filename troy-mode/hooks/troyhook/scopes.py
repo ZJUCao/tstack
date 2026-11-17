@@ -6,7 +6,9 @@ agent file; a test keeps them equal.
 
 import re
 
-PLUGIN_PREFIX = "troy-pstack:"
+# The plugin's name as Claude Code puts it before agents and commands (F19 design 5.1).
+# hooks.json's matchers and troyflow.PLUGIN_PREFIX say the same; a test keeps them equal.
+PLUGIN_PREFIX = "tstack:"
 
 SCOPES: dict[str, dict[str, tuple[str, ...]]] = {
     "troy-architect": {
@@ -29,8 +31,8 @@ SCOPES: dict[str, dict[str, tuple[str, ...]]] = {
 NOTHING: dict[str, tuple[str, ...]] = {"patterns": (), "classes": ()}
 
 ROLE_PATTERN = re.compile(
-    r"^troy-pstack:troy-(architect|interface-designer|test-manager|developer|test-engineer"
-    r"|code-reviewer)$"
+    "^" + re.escape(PLUGIN_PREFIX)
+    + r"troy-(architect|interface-designer|test-manager|developer|test-engineer|code-reviewer)$"
 )
 
 MAIN, ROLE, OTHER = "main", "role", "other"

@@ -24,7 +24,7 @@ troy-mode 在 `troy-mode/v0.1-test-plan` 上开出 `[docs] Add the v0.1 test pla
 版本的最后一个功能验收之后，输入：
 
 ```text
-/troy-pstack:troy-mode 发布 v0.1
+/tstack:troy-mode 发布 v0.1
 ```
 
 只说“发布”，指的是 troy-mode 说该发布的那个版本。发布请求从不做功能。如果版本里有功能还没验收，troy-mode 会告诉你是哪些，然后停下：先请求这些功能，比如“v0.1 剩下的功能”，再请求发布（[F07 设计 D63](../design/F07-entry-skill.zh-CN.md#16-需要-troy-决定的事项)）。
@@ -93,7 +93,7 @@ troy-mode 把每次回复记录到发布 PR 上，标题为 `Release test by Tro
 ## 5.7 补丁版本
 
 ```text
-/troy-pstack:troy-mode 发布 v0.1.1
+/tstack:troy-mode 发布 v0.1.1
 ```
 
 补丁版本发布 v0.1.0 之后合入的 bug 修复。它没有自己的版本测试方案，也不加新的版本测试，但发布测试会把全部版本测试再运行一遍，你测试修好的 bug 涉及的场景。changelog 的这一节只有 Fixed，功能保持原来的状态。补丁版本不做复盘。

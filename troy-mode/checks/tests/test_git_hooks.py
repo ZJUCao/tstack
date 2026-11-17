@@ -258,7 +258,7 @@ class HookFileTests(unittest.TestCase):
     """The git hook files themselves (design 2 and contract 7)."""
 
     def test_hooks_are_executable_in_the_index(self) -> None:
-        """Each of the four hooks has mode 100755 in troy-pstack's git index."""
+        """Each of the four hooks has mode 100755 in tstack's git index."""
         out = run_git(REPO, "ls-files", "-s", "--", "troy-mode/checks/git-hooks")
         modes = {}
         for line in out.splitlines():

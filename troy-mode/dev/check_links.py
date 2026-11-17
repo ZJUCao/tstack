@@ -1,4 +1,4 @@
-"""Checks the relative links and anchors in troy-pstack's README and troy-mode documents.
+"""Checks the relative links and anchors in tstack's README and troy-mode documents.
 
 Usage:
     python troy-mode/dev/check_links.py [--repo PATH]
@@ -16,7 +16,7 @@ inline code, and HTML comments:
   kept, spaces turned into "-", and "-1", "-2" added to repeated headings.
 - Links with a scheme, such as ``https:`` or ``mailto:``, are not checked.
 
-This is troy-pstack's own tool. It is not copied into projects.
+This is tstack's own tool. It is not copied into projects.
 
 Exit codes: 0 when every link resolves, 1 when one does not, and 2 when the
 script cannot run.

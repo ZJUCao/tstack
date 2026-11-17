@@ -84,7 +84,7 @@ C/C++ 项目里 troy-check 要用 lizard，所以要用环境里的 Python 运�
 
 ## 6. 示例项目
 
-[`troy-mode/samples/cpp`](../../samples/cpp) 里是 C++ 版的 textstats，F01 和 Python 示例相同，另外多一个文件读不了的测试用例。troy-pstack 的工作流 `troy-cpp-sample.yml` 用 [`build_sample.py`](../../dev/build_sample.py) 通过 `troy-init` 自己的初始化和语言步骤构建它，然后在三个 PR 上运行第 5 节的步骤：设计 PR（还没有代码，跳过代码步骤）、测试 PR 和实现 PR。`troy-mode/dev/tests/test_cpp_pack.py` 检查示例的工作流和 `workflow-job.yml` 运行的是同样的步骤。自己构建示例：
+[`troy-mode/samples/cpp`](../../samples/cpp) 里是 C++ 版的 textstats，F01 和 Python 示例相同，另外多一个文件读不了的测试用例。tstack 的工作流 `troy-cpp-sample.yml` 用 [`build_sample.py`](../../dev/build_sample.py) 通过 `troy-init` 自己的初始化和语言步骤构建它，然后在三个 PR 上运行第 5 节的步骤：设计 PR（还没有代码，跳过代码步骤）、测试 PR 和实现 PR。`troy-mode/dev/tests/test_cpp_pack.py` 检查示例的工作流和 `workflow-job.yml` 运行的是同样的步骤。自己构建示例：
 
 ```text
 python troy-mode/dev/build_sample.py build cpp --pr impl --out <空文件夹>

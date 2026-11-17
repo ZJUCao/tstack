@@ -11,7 +11,7 @@ Every troy-mode project has a rules table, `docs/rules.md` and its mirror. Rows 
 ## 6.1 Add a rule for this project
 
 ```text
-/troy-pstack:troy-mode add a rule: no f-string in exception messages
+/tstack:troy-mode add a rule: no f-string in exception messages
 ```
 
 If the request does not say whether the rule is for this project or for every troy-mode project, troy-mode asks you that one question, and recommends this project. Then:
@@ -64,8 +64,8 @@ A rule's cleanup PRs come before the feature loop's next stage. In the trial, th
 ## 6.2 Change or retire a rule
 
 ```text
-/troy-pstack:troy-mode change P01: also cover messages built with %
-/troy-pstack:troy-mode retire P02
+/tstack:troy-mode change P01: also cover messages built with %
+/tstack:troy-mode retire P02
 ```
 
 - **A change** runs the same steps and lands as `[rules] Change P01, <summary>`. The row keeps its Since date, and its config and baseline change in the same PR.
@@ -76,7 +76,7 @@ A rule's cleanup PRs come before the feature loop's next stage. In the trial, th
 Never edit an R row: troy-init's upgrade replaces the R rows. Where troy-check's config allows an adjustment, such as R03's size limits, R11's coverage limits, or R19's attribution mode, ask for it as a project rule:
 
 ```text
-/troy-pstack:troy-mode in this project, R03's limit is 800 lines
+/tstack:troy-mode in this project, R03's limit is 800 lines
 ```
 
 A P row records the adjustment, for example "In this project, R03's limit is 800 changed lines.", and the same rule PR changes `.troy-mode/config.toml`. Any other change to an R rule is a rule for every project (section 6.4).
@@ -84,14 +84,14 @@ A P row records the adjustment, for example "In this project, R03's limit is 800
 ## 6.4 Propose a rule for every project
 
 ```text
-/troy-pstack:troy-mode a rule for every project: no TODO comments in merged source
+/tstack:troy-mode a rule for every project: no TODO comments in merged source
 ```
 
-A rule for every troy-mode project lives in troy-pstack and ships in a new plugin version. So this flow changes nothing in the project and nothing in troy-pstack ([F09 design D83](../design/F09-rule-change.md#12-decisions-for-troy)):
+A rule for every troy-mode project lives in tstack and ships in a new plugin version. So this flow changes nothing in the project and nothing in tstack ([F09 design D83](../design/F09-rule-change.md#12-decisions-for-troy)):
 
-1. The Architect proposes the enforcement as for a project rule, names the troy-pstack files that would change, and says whether existing projects' code would break the rule when the upgrade brings it.
-2. troy-mode sends you the proposal and asks whether to open an issue in troy-pstack.
-3. **Only on your yes**, it opens the issue `Rule proposal: <summary>` in troy-pstack. Opening it reaches outside the project, so it always asks. On a no, it opens nothing.
-4. troy-pstack builds the rule through its own process ([section 9](09-changing-troy-mode.md)), and the project gets it through the upgrade.
+1. The Architect proposes the enforcement as for a project rule, names the tstack files that would change, and says whether existing projects' code would break the rule when the upgrade brings it.
+2. troy-mode sends you the proposal and asks whether to open an issue in tstack.
+3. **Only on your yes**, it opens the issue `Rule proposal: <summary>` in tstack. Opening it reaches outside the project, so it always asks. On a no, it opens nothing.
+4. tstack builds the rule through its own process ([section 9](09-changing-troy-mode.md)), and the project gets it through the upgrade.
 
 In the trial, the proposal for R22, no TODO comments, was declined, and no issue was opened.

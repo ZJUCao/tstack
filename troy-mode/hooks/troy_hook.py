@@ -5,7 +5,7 @@ Usage:
 
 <Event> is SessionStart, SubagentStart, PreToolUse, PostToolUse,
 SubagentStop, or UserPromptExpansion. The hook input is JSON on stdin. See
-docs/troy-mode/design/F05-hooks.md and F13-mode-guard.md in troy-pstack.
+docs/troy-mode/design/F05-hooks.md and F13-mode-guard.md in tstack.
 
 This file checks the Python version before it imports anything else, so it
 must stay readable by old Pythons: no annotations and no f-strings here.

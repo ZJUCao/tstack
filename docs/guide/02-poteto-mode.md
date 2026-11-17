@@ -88,7 +88,7 @@ continue
 keep going until done
 ```
 
-Short works because the playbook holds the structure. **Not ported to Claude Code:** the Custom Mode that keeps `/poteto-mode` in context on every turn. Claude Code has none, so start a follow-up with `/poteto-mode` again when the chat has moved on, as [Set up troy-pstack](./01-setup.md#run-your-first-task) explains. Your words carry the intent, and the skill carries the rigor.
+Short works because the playbook holds the structure. **Not ported to Claude Code:** the Custom Mode that keeps `/poteto-mode` in context on every turn. Claude Code has none, so start a follow-up with `/poteto-mode` again when the chat has moved on, as [Set up tstack](./01-setup.md#run-your-first-task) explains. Your words carry the intent, and the skill carries the rigor.
 
 ## Switch tasks with "new task"
 

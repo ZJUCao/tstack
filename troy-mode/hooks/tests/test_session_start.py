@@ -23,7 +23,7 @@ def log_line(age_seconds, agent_id):
     """Returns one log line whose time is the given number of seconds ago."""
     moment = datetime.now(timezone.utc) - timedelta(seconds=age_seconds)
     return json.dumps({"time": moment.strftime("%Y-%m-%dT%H:%M:%SZ"), "session": "s1",
-                       "agent_id": agent_id, "agent_type": "troy-pstack:troy-developer",
+                       "agent_id": agent_id, "agent_type": "tstack:troy-developer",
                        "event": "PreToolUse", "tool": "Write", "rule": "scope",
                        "paths": ["tests/test_app.py"], "subcommand": None, "decision": "deny"})
 

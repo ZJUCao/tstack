@@ -198,7 +198,7 @@ class RulesScopeTests(RunCase):
         folder = self.project.git_dir() / "troy-mode"
         folder.mkdir(parents=True, exist_ok=True)
         lines = [hooks_line(shifted(snap["time"], -60), None, None), main,
-                 hooks_line(shifted(snap["time"], 5), "troy-pstack:troy-developer", "a1")]
+                 hooks_line(shifted(snap["time"], 5), "tstack:troy-developer", "a1")]
         (folder / "hooks.log").write_bytes("".join(json.dumps(line) + "\n"
                                                    for line in lines).encode("utf-8"))
         report = self.report_of(self.project.run("check-run", "--run", snap["run"]), 0)

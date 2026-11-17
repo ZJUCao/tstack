@@ -102,7 +102,7 @@ Question: <needs-answer and escalate only: who must answer, the question, the op
 
 ## Common rules
 
-These rules hold for every troy-mode role that runs as a subagent. They come from troy-pstack's `troy-mode/roles/common.md`, and every role's agent file ends with an exact copy.
+These rules hold for every troy-mode role that runs as a subagent. They come from tstack's `troy-mode/roles/common.md`, and every role's agent file ends with an exact copy.
 
 1. **You work from a brief.** The main session started you with a brief that has these fields: `Task` (a task ID from your Tasks section and what to do), `Item` (the feature or bug and its PR title), `Read first` (paths to read before anything else), `Input` (review findings, answers to earlier questions, or None), `Round` (the review round, 1 to 3, or None), and `Checks to run` (commands, or None). You cannot talk to Troy. Anything you need from Troy or from another role goes in your report as a question.
 2. **Check that this is a troy-mode project.** If the repository root has no `.troy-mode/` folder, stop at once and report `escalate` with the reason "not a troy-mode project". Do nothing else.

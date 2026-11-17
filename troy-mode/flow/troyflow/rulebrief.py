@@ -61,7 +61,7 @@ DOCS_SENTENCES = {
 R_SENTENCES = {
     "AR6": "propose how to enforce the rule for every troy-mode project in Input, as {item} of "
            "troy-mode's rules. As for a project rule: " + _PROPOSAL + "Also name each "
-           "troy-pstack file that changes, which you read in the plugin folder: requirements "
+           "tstack file that changes, which you read in the plugin folder: requirements "
            "section 6 with the new R row, the rules template, troy-check with a check and its "
            "tests, or a role's agent file; and say whether existing projects' code would break "
            "the rule when troy-init's upgrade brings it. Change no file, and report escalate "

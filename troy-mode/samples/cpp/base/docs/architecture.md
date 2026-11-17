@@ -8,7 +8,7 @@ status: "Sample. Holds only what troy-check reads."
 
 # textstats architecture
 
-textstats in C++ is troy-pstack's sample C/C++ project. Its documents hold only what `troy-check code` reads, so they have no Chinese mirrors.
+textstats in C++ is tstack's sample C/C++ project. Its documents hold only what `troy-check code` reads, so they have no Chinese mirrors.
 
 ## 1. Overview
 

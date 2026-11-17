@@ -113,8 +113,8 @@ class RetroTests(FlowCase):
         merged.append(merged_pr(26, "[docs] Never on main", None))
         start = commit_time(cls.project, shas["[docs] Release v0.1.0"])
         lines = [hooks_line(stamp(start - 3600), None, None, "scope"),
-                 hooks_line(stamp(start), "troy-pstack:troy-developer", "a1", "scope"),
-                 hooks_line(stamp(start + 120), "troy-pstack:troy-developer", "a2", "scope"),
+                 hooks_line(stamp(start), "tstack:troy-developer", "a1", "scope"),
+                 hooks_line(stamp(start + 120), "tstack:troy-developer", "a2", "scope"),
                  hooks_line(stamp(start + 180), None, None, "bash")]
         text = ("".join(json.dumps(line) + "\n" for line in lines[:2]) + "not json at all\n"
                 + "".join(json.dumps(line) + "\n" for line in lines[2:]))

@@ -223,7 +223,7 @@ class Tm8BriefTests(FlowCase):
         self.assertEqual((report["task"], report["role"], report["item"], report["stage"]),
                          ("TM8", "test-manager", "F02", 6))
         self.assertEqual(report["title"], F02.title(6))
-        self.assertEqual(report["agent"], {"subagent_type": "troy-pstack:troy-test-manager"})
+        self.assertEqual(report["agent"], {"subagent_type": "tstack:troy-test-manager"})
         self.assertEqual(report["input"].rstrip("\n"), MISMATCHES.rstrip("\n"))
         self.assertEqual(report["checks"], [])
 

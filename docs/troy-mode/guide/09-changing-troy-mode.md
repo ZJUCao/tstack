@@ -6,7 +6,7 @@
 | Date | 2026-11-16 |
 | Source of truth | This English file. [`09-changing-troy-mode.zh-CN.md`](09-changing-troy-mode.zh-CN.md) is the Chinese mirror. |
 
-This page is for work on troy-mode itself, in troy-pstack: by you, or by a Claude Code session you start there. troy-mode's own pipeline does not run here. troy-pstack has its own process, kept on this page so every session finds it ([F10 design D92](../design/F10-docs.md#11-decisions-for-troy)).
+This page is for work on troy-mode itself, in tstack: by you, or by a Claude Code session you start there. troy-mode's own pipeline does not run here. tstack has its own process, kept on this page so every session finds it ([F10 design D92](../design/F10-docs.md#11-decisions-for-troy)).
 
 ## 9.1 Where things live
 
@@ -20,7 +20,7 @@ This page is for work on troy-mode itself, in troy-pstack: by you, or by a Claud
 | The hooks | `hooks/hooks.json` and `troy-mode/hooks/` |
 | The engines | `troy-mode/checks/` (troy-check), `troy-mode/init/` (troy-init), `troy-mode/flow/` (the entry skill's engine) |
 | What projects get | `troy-mode/templates/`, `troy-mode/lang/` (the language packs), `troy-mode/checks/` |
-| troy-pstack's own tools | `troy-mode/dev/`: `check_pairs.py`, `check_links.py`, `build_sample.py`, and the sample projects' tests |
+| tstack's own tools | `troy-mode/dev/`: `check_pairs.py`, `check_links.py`, `check_name.py`, `build_sample.py`, and the sample projects' tests |
 
 Every new skill and agent name starts with `troy-`, troy-mode edits no upstream file, and the only shared files it touches are `README.md`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` ([requirements section 8](../requirements.md#8-non-functional-requirements)).
 
@@ -40,7 +40,7 @@ Decision IDs continue across designs: F11's design ends at D100, so the next des
 
 ## 9.3 Checks before a push
 
-Use the `troy-pstack` mamba environment's Python, `D:\miniforge3\envs\troy-pstack\python.exe`. Never use the system Python 3.14, which hides missing imports that CI's Python catches, and never create a `.venv`. With that Python as `python`, run each suite from the repository's root:
+Use the `tstack` mamba environment's Python, `D:\miniforge3\envs\tstack\python.exe`. Until that environment exists, the `troy-pstack` environment holds the same packages and works the same for tstack ([F19 design section 6.4](../design/F19-rename.md#64-the-mamba-env-d196)). Never use the system Python 3.14, which hides missing imports that CI's Python catches, and never create a `.venv`. With that Python as `python`, run each suite from the repository's root:
 
 ```bash
 python -m unittest discover -s troy-mode/checks/tests
@@ -50,15 +50,18 @@ python -m unittest discover -s troy-mode/flow/tests
 python -m unittest discover -s troy-mode/dev/tests
 python troy-mode/dev/check_pairs.py
 python troy-mode/dev/check_links.py
+python troy-mode/dev/check_name.py
 ```
 
-Each suite must print "Ran N tests" and OK. Do not add `-t`. `check_pairs.py` checks that each English document and its mirror have the same headings, tables, code blocks, markers, and version. `check_links.py` checks that every relative link and anchor in `README.md` and `docs/troy-mode/` resolves. CI runs all of these on GitHub; the Windows tests job takes about 20 to 25 minutes, and its limit is 45.
+Each suite must print "Ran N tests" and OK. Do not add `-t`. `check_pairs.py` checks that each English document and its mirror have the same headings, tables, code blocks, markers, and version. `check_links.py` checks that every relative link and anchor in `README.md` and `docs/troy-mode/` resolves. `check_name.py` checks that text outside the history, such as approved designs and change logs, no longer names the plugin's old name ([F19 design section 11.2](../design/F19-rename.md#112-the-name-check)). CI runs all of these on GitHub; the Windows tests job takes about 20 to 25 minutes, and its limit is 45.
 
 ## 9.4 Trials
 
-A trial runs troy-mode in nested `claude -p` sessions on your PC, with troy-pstack loaded from the PR branch, on the private repository `ZJUCao/troy-mode-trial`. Your answers are given in the sessions' prompts.
+A trial runs troy-mode in nested `claude -p` sessions on your PC, with tstack loaded from the PR branch, on the private repository `ZJUCao/troy-mode-trial`. Your answers are given in the sessions' prompts.
 
-You gave a standing permission for this on 2026-11-08, as an `autoMode.allow` rule in troy-pstack's `.claude/settings.local.json` ([F08 design section 11.3](../design/F08-release.md#113-trial-d78)): nested `claude -p` sessions that load troy-pstack may create branches, issues, and PRs, and merge PRs, in `ZJUCao/troy-mode-trial`, without asking. It does not cover:
+The session copies the PR's head with `git archive` into a folder named `tstack` in its scratchpad, so that the hooks' Read rule `Read(//**/tstack/**)` matches it, and loads it with `--plugin-dir` and a Windows path such as `C:/...`; a Git Bash path such as `/c/...` silently loads nothing. Each nested session also gets `--settings '{"enabledPlugins":{"tstack@tstack":false}}'`, which turns your installed copy off for that session only, so that two copies of the plugin never run together ([F19 design section 3](../design/F19-rename.md#3-probes)).
+
+You gave a standing permission for this on 2026-11-08, and extended it to the name tstack on 2026-11-16, as an `autoMode.allow` rule in tstack's `.claude/settings.local.json` ([F08 design section 11.3](../design/F08-release.md#113-trial-d78)): nested `claude -p` sessions that load tstack may create branches, issues, and PRs, and merge PRs, in `ZJUCao/troy-mode-trial`, without asking. It does not cover:
 
 - any other repository;
 - pushing `main`;
@@ -66,7 +69,7 @@ You gave a standing permission for this on 2026-11-08, as an `autoMode.allow` ru
 
 If a trial is refused anyway, the session tells you and does not work around it.
 
-## 9.5 Who merges troy-pstack's PRs
+## 9.5 Who merges tstack's PRs
 
 Your standing permissions of 2026-11-06:
 
@@ -75,13 +78,13 @@ Your standing permissions of 2026-11-06:
 - **Designs and requirement changes** are merged by the session after you approve their content in chat. A draft whose questions are still open is never merged.
 - **PR branches** may be amended and force-pushed, to keep one commit per PR.
 
-The session merges with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, only when every check passes. Nobody commits on `main` or pushes `main`. troy-pstack's `.claude/settings.local.json` allows `gh pr merge` and denies any `git push` line that mentions `main`, so the push and `gh pr create --base main` run as separate commands. A refused merge is reported to you, never worked around.
+The session merges with `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, only when every check passes. Nobody commits on `main` or pushes `main`. tstack's `.claude/settings.local.json` allows `gh pr merge` and denies any `git push` line that mentions `main`, so the push and `gh pr create --base main` run as separate commands. A refused merge is reported to you, never worked around.
 
 ## 9.6 A new plugin version
 
-Claude Code updates an installed plugin only when `version` in `.claude-plugin/plugin.json` rises ([F10 design section 6](../design/F10-docs.md#6-the-plugin-version-d89)). So a troy-pstack PR that changes what projects get, such as troy-check, the templates, the packs, the skills, or the roles, raises the version:
+Claude Code updates an installed plugin only when `version` in `.claude-plugin/plugin.json` rises ([F10 design section 6](../design/F10-docs.md#6-the-plugin-version-d89)). So a tstack PR that changes what projects get, such as troy-check, the templates, the packs, the skills, or the roles, raises the version:
 
 - the patch number for a fix, such as 0.2.0 to 0.2.1;
 - the minor number for a feature, such as 0.2.0 to 0.3.0.
 
-After it merges, update the installed plugin as [section 1.3](01-install.md#13-update-after-a-new-plugin-version) says: pull troy-pstack's main checkout, update the marketplace and the plugin with the bundled CLI, and restart Claude Code. Each project then takes in the new version with `/troy-pstack:troy-mode upgrade troy-mode`, whose PR title names the version ([section 8.6](08-reference.md#86-problems)). The pilot (F11) relies on this to bring fixes into its project ([F11 design](../design/F11-pilot.md)).
+After it merges, update the installed plugin as [section 1.3](01-install.md#13-update-after-a-new-plugin-version) says: pull tstack's main checkout, update the marketplace and the plugin with the bundled CLI, and restart Claude Code. Each project then takes in the new version with `/tstack:troy-mode upgrade troy-mode`, whose PR title names the version ([section 8.6](08-reference.md#86-problems)). The pilot (F11) relies on this to bring fixes into its project ([F11 design](../design/F11-pilot.md)).

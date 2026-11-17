@@ -1,6 +1,6 @@
 ---
 name: poteto-help
-description: Guides users through troy-pstack setup, /troy-pstack:poteto-mode, and picking the skill, playbook, or principle for a task. Type /troy-pstack:poteto-help with a question.
+description: Guides users through tstack setup, /tstack:poteto-mode, and picking the skill, playbook, or principle for a task. Type /tstack:poteto-help with a question.
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,11 @@ disable-model-invocation: true
 
 In Claude Code, read [the Claude Code adapter](../../docs/harness/claude-code.md) once per session before you follow this skill. It maps the Cursor names in pstack skills to Claude Code.
 
-Answer the user's question about troy-pstack, hand them a prompt they can send, and link the file the answer came from. For a help question, don't start the work. The user asked how, and a troy-pstack run spends real tokens, so let them send the prompt.
+Answer the user's question about tstack, hand them a prompt they can send, and link the file the answer came from. For a help question, don't start the work. The user asked how, and a tstack run spends real tokens, so let them send the prompt.
 
-A message that asks for work, such as "use troy-pstack to fix this bug", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that starting each new task with `/troy-pstack:poteto-mode` keeps it on.
+A message that asks for work, such as "use tstack to fix this bug", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that starting each new task with `/tstack:poteto-mode` keeps it on.
 
-This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here are relative paths into the installed plugin. troy-pstack is a local plugin, so give the user the file's local path: the plugin folder followed by its path.
+This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here are relative paths into the installed plugin. tstack is a local plugin, so give the user the file's local path: the plugin folder followed by its path.
 
 ## Find out what they need
 
@@ -22,11 +22,11 @@ Infer the need from the message and the conversation. A named situation, such as
 - Start a task with `/poteto-mode`
 - Pick a skill for a situation
 - Fix a run that went wrong
-- Make troy-pstack my own
+- Make tstack my own
 
 Check the state that changes the answer, and mention it only when it does:
 
-- No `~/.claude/rules/troy-pstack-models.md` means `/setup-pstack` hasn't run for this user, so every role uses its default model.
+- No `~/.claude/rules/tstack-models.md` means `/setup-pstack` hasn't run for this user, so every role uses its default model.
 - No `verify-*` skill or other app harness in the project means agents have no scripted way to drive the app. Mention `/create-verification-skill` when the question is about proving a change works.
 - No formal verification skill in the project means no property is checked past what tests reach. Mention `/create-formal-verification-skill` when the question is about a race, an invariant, or another case tests rarely hit. When one exists and the code it covers changed after the commit it records as last in sync, mention `/maintain-formal-verification-skill` if the question touches that code.
 
@@ -37,15 +37,15 @@ When the model rule is missing and it matters, ask whether the user wants to pic
 
 ## Get set up
 
-1. Install with `/plugin marketplace add <path to the troy-pstack folder>`, then `/plugin install troy-pstack@troy-pstack`.
+1. Install with `/plugin marketplace add <path to the tstack folder>`, then `/plugin install tstack@tstack`.
 2. Run [`/setup-pstack`](../setup-pstack/SKILL.md). It asks for a reasoning budget, maps a model to each role, and writes a rule. The rule applies to new chats. Then it offers once each to generate a verification skill and a formal verification skill for the project, unless the project already has one.
 3. Start a real task with `/poteto-mode`, a goal, and a check that can pass or fail.
 
 Installing changes nothing until the user invokes a skill. Only `/setup-pstack` loads from the user's words. The [README](../../README.md) and [guide page 1](../../docs/guide/01-setup.md) have the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
 
-If cost is the worry, say where the tokens go and how to spend fewer. troy-pstack spends extra tokens on subagents and review panels. Rerun `/setup-pstack` and pick a smaller budget or cheaper models. A role set to `auto` or `inherit-parent` runs on the chat's model, which saves tokens when the chat runs on a cheaper model. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
+If cost is the worry, say where the tokens go and how to spend fewer. tstack spends extra tokens on subagents and review panels. Rerun `/setup-pstack` and pick a smaller budget or cheaper models. A role set to `auto` or `inherit-parent` runs on the chat's model, which saves tokens when the chat runs on a cheaper model. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
 
-troy-pstack is a Claude Code fork of upstream pstack, which is built for Cursor. Each command takes a `troy-pstack:` prefix, such as `/troy-pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.
+tstack is a Claude Code fork of upstream pstack, which is built for Cursor. Each command takes a `tstack:` prefix, such as `/tstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.
 
 Other tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, spawn Claude Code subagents with per-role models, and `/loop` is a Claude Code built-in, so those parts may not work there.
 
@@ -100,7 +100,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
 | Turn what a finished task taught into skill edits | [`/reflect`](../reflect/SKILL.md) |
 | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
 | Build a page whose buttons wake a Grok Bot over a webhook | **Not ported to Claude Code:** `/make-bot-ui`. It only works with Cursor routines and Grok Bot. |
-| Find their way around troy-pstack | `/poteto-help` |
+| Find their way around tstack | `/poteto-help` |
 
 If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
 
@@ -113,11 +113,11 @@ Close calls:
 - `/recall` rebuilds context across recent chats. `/ketchup` covers only this chat since the user's last message. Resuming one specific chat or branch is the Session pickup playbook.
 - `/figure-it-out` designs one rigorous run. The Orchestrate playbook runs a program that spans days and many PRs. The Autonomous run playbook drives one task to a finish condition.
 
-Not in troy-pstack:
+Not in tstack:
 
-- `/deslop`, `control-cli`, and `control-ui` ship in Cursor's `cursor-team-kit` plugin, which troy-pstack does not install. For `/deslop`, use Claude Code's `/simplify` when the session has it, else `/unslop` and `/no-comments`. For `control-ui` and `control-cli`, use the project's verify skill (see `/create-verification-skill`), a browser tool the session has, or the CLI run through Bash.
+- `/deslop`, `control-cli`, and `control-ui` ship in Cursor's `cursor-team-kit` plugin, which tstack does not install. For `/deslop`, use Claude Code's `/simplify` when the session has it, else `/unslop` and `/no-comments`. For `control-ui` and `control-cli`, use the project's verify skill (see `/create-verification-skill`), a browser tool the session has, or the CLI run through Bash.
 - `/loop` is a Claude Code built-in. Cursor's `/create-skill` has no Claude Code twin, so use Anthropic's `skill-creator` skill when the session has it.
-- troy-pstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.
+- tstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.
 
 ## Playbooks and principles
 
@@ -132,7 +132,7 @@ Playbooks are step lists inside `/poteto-mode`, not skills, so they have no slas
 
 Without `/poteto-mode`, a phrase such as "babysit this pr" does not reach the playbook. Claude Code has no built-in babysit skill, and the Babysit playbook covers that job. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook and when it applies. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.
 
-troy-pstack has no planning skill. Claude Code's plan mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
+tstack has no planning skill. Claude Code's plan mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
 
 Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." Typing `/principle-<name>` still loads one on demand. [Guide page 8](../../docs/guide/08-principles.md) lists them.
 
@@ -151,7 +151,7 @@ Principles are one-rule skills that `/poteto-mode` reads and cites in its replie
 
 For a run that drifts, [`references/prompting.md`](references/prompting.md) has one-line steers. [Guide page 10](../../docs/guide/10-recipes-and-pitfalls.md) has more pitfalls and the recipes worth copying.
 
-## Make troy-pstack my own
+## Make tstack my own
 
 - [`/automate-me`](../automate-me/SKILL.md) drafts a personal mode skill from the user's own history, to use alongside `/poteto-mode`.
 - [`/reflect`](../reflect/SKILL.md) after a session turns its lessons into skill edits the user approves.

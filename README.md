@@ -1,48 +1,50 @@
-# troy-pstack
+# tstack
 
-troy-pstack is Troy's personal Claude Code plugin: a fork of **[pstack](https://github.com/cursor/plugins/tree/main/pstack)** by Lauren Tan ([poteto](https://x.com/poteto)), taken from pstack **0.15.36** (`cursor/plugins` commit `bb68f23`, 2026-11-03). It keeps Lauren's verification-first skills, principles, playbooks, and subagent workflows, and makes them run in Claude Code on Windows.
+tstack is Troy's own stack for Claude Code, named the way Lauren Tan's pstack is named after poteto. It was called troy-pstack until version 0.5.0. Most of its skills, playbooks, agents, and guide pages are Lauren Tan's work from pstack, used under the MIT License. troy-mode is Troy's own work.
 
-> **Not affiliated.** troy-pstack is an independent fork. It is not affiliated with, sponsored by, or endorsed by Lauren Tan or Cursor. The names `pstack`, `poteto-mode`, `poteto-agent`, and `poteto-help` are kept only to credit where the work comes from. troy-pstack ships no Cursor logos or branding.
+The plugin is a fork of **[pstack](https://github.com/cursor/plugins/tree/main/pstack)** by Lauren Tan ([poteto](https://x.com/poteto)), taken from pstack **0.15.36** (`cursor/plugins` commit `bb68f23`, 2026-11-03). It keeps Lauren's verification-first skills, principles, playbooks, and subagent workflows, and makes them run in Claude Code on Windows.
+
+> **Not affiliated.** tstack is an independent fork. It is not affiliated with, sponsored by, or endorsed by Lauren Tan or Cursor. The names `pstack`, `poteto-mode`, `poteto-agent`, and `poteto-help` are kept only to credit where the work comes from. tstack ships no Cursor logos or branding.
 
 ## Credit and license
 
 Almost every skill, playbook, agent, and guide page here is Lauren Tan's work from pstack, used under the MIT License. [`LICENSE`](./LICENSE) keeps her copyright notice and the full permission notice, and adds a line for Troy's modifications, which are under the same license. If you want the original, use upstream pstack, not this fork.
 
-What troy-pstack changes is listed in [How the port works](#how-the-port-works) and in the [skill table](#skill-table).
+What tstack changes is listed in [How the port works](#how-the-port-works) and in the [skill table](#skill-table).
 
 ## Install (local)
 
 In Claude Code:
 
 ```
-/plugin marketplace add D:/Troy/Projects/troy-pstack
-/plugin install troy-pstack@troy-pstack
+/plugin marketplace add D:/Troy/Projects/tstack
+/plugin install tstack@tstack
 ```
 
-This folder is both the plugin and a one-plugin marketplace (`.claude-plugin/marketplace.json`). To try it for one session without installing, start Claude Code with `claude --plugin-dir D:/Troy/Projects/troy-pstack`.
+This folder is both the plugin and a one-plugin marketplace (`.claude-plugin/marketplace.json`). To try it for one session without installing, start Claude Code with `claude --plugin-dir D:/Troy/Projects/tstack`.
 
-Claude Code prefixes plugin skills and agents, so type `/troy-pstack:poteto-mode`, `/troy-pstack:setup-pstack`, and so on. The agents are `troy-pstack:poteto-agent` and `troy-pstack:comment-sicko`, plus troy-mode's six roles ([troy-mode](#troy-mode)).
+Claude Code prefixes plugin skills and agents, so type `/tstack:poteto-mode`, `/tstack:setup-pstack`, and so on. The agents are `tstack:poteto-agent` and `tstack:comment-sicko`, plus troy-mode's six roles ([troy-mode](#troy-mode)).
 
-After you edit the plugin, raise `version` in [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json), then run `claude plugin update troy-pstack@troy-pstack` and restart Claude Code.
+After you edit the plugin, raise `version` in [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json), then run `claude plugin update tstack@tstack` and restart Claude Code.
 
 ## Get started
 
-1. Run `/troy-pstack:setup-pstack`. It reads which models the `Agent` tool accepts, asks for a reasoning budget, and writes `~/.claude/rules/troy-pstack-models.md`. It can also offer to create a project verification skill.
-2. Start any task that needs rigor with `/troy-pstack:poteto-mode <task>`. It restates your goal, picks one of its 23 playbooks, and routes to the other skills as the steps need them.
-3. Unsure which skill fits? Ask `/troy-pstack:poteto-help <question>`.
+1. Run `/tstack:setup-pstack`. It reads which models the `Agent` tool accepts, asks for a reasoning budget, and writes `~/.claude/rules/tstack-models.md`. It can also offer to create a project verification skill.
+2. Start any task that needs rigor with `/tstack:poteto-mode <task>`. It restates your goal, picks one of its 23 playbooks, and routes to the other skills as the steps need them.
+3. Unsure which skill fits? Ask `/tstack:poteto-help <question>`.
 
 The [guide](./docs/guide/README.md) walks through a first real task. It is Lauren's guide, adapted for Claude Code.
 
 ## troy-mode
 
-> **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of troy-pstack.
+> **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of tstack.
 
 troy-mode is a fixed pipeline of roles that takes a project from its requirements to a released version. Each role works in its own context, and a different role reviews its output. Automated checks enforce the rules, so they do not depend on Claude remembering them.
 
 ### Quick start
 
-1. Once per project: `/troy-pstack:troy-init` turns the folder into a troy-mode project. `/troy-pstack:troy-mode start a project: <idea>` runs it for you.
-2. For all work: `/troy-pstack:troy-mode <request>`, such as `next feature`, `bug: ...`, `release v0.1`, or `continue`.
+1. Once per project: `/tstack:troy-init` turns the folder into a troy-mode project. `/tstack:troy-mode start a project: <idea>` runs it for you.
+2. For all work: `/tstack:troy-mode <request>`, such as `next feature`, `bug: ...`, `release v0.1`, or `continue`.
 
 troy-mode waits for Troy at five steps only: the requirements, the architecture, the design and test plan PRs of the first features, each version's test on Troy's own devices, and each escalation ([requirements 3.3](./docs/troy-mode/requirements.md#33-where-troy-takes-part)).
 
@@ -66,7 +68,7 @@ In a troy-mode project, a hook refuses `/poteto-mode` and `/no-comments` and poi
 - The skills `troy-init` and `troy-mode`, which run only when Troy types them.
 - Six agents, one per role: `troy-architect`, `troy-interface-designer`, `troy-test-manager`, `troy-developer`, `troy-test-engineer`, and `troy-code-reviewer`. The main session is the Product Manager.
 - The hooks in [`hooks/hooks.json`](./hooks/hooks.json), which keep each role inside its write scope and exit at once outside troy-mode projects.
-- Everything under [`troy-mode/`](./troy-mode/), such as troy-check, troy-init's engine, the entry skill's engine, the hook code, the Product Manager's instructions, the templates, the Python and C/C++ language packs, and troy-pstack's own checks of them.
+- Everything under [`troy-mode/`](./troy-mode/), such as troy-check, troy-init's engine, the entry skill's engine, the hook code, the Product Manager's instructions, the templates, the Python and C/C++ language packs, and tstack's own checks of them.
 
 The [skill table](#skill-table) below records the port of upstream's skills. troy-mode's parts are not a port, so they are not in it.
 
@@ -77,12 +79,12 @@ The [skill table](#skill-table) below records the port of upstream's skills. tro
 
 ## How the port works
 
-troy-pstack starts from the Claude Code copy that upstream already generates (`harness/pstack/claude-code` in `cursor/plugins`), not from a rewrite.
+tstack starts from the Claude Code copy that upstream already generates (`harness/pstack/claude-code` in `cursor/plugins`), not from a rewrite.
 
-- **Cursor names stay in the skill text.** Skills still say `Task`, `AskQuestion`, `readonly`, Cursor model slugs, and `.cursor/` paths. [`docs/harness/claude-code.md`](./docs/harness/claude-code.md), the adapter, maps each one to Claude Code at run time, and every skill that needs it tells the agent to read it first. This keeps troy-pstack's diff against upstream small, so Lauren's later releases can still be merged.
+- **Cursor names stay in the skill text.** Skills still say `Task`, `AskQuestion`, `readonly`, Cursor model slugs, and `.cursor/` paths. [`docs/harness/claude-code.md`](./docs/harness/claude-code.md), the adapter, maps each one to Claude Code at run time, and every skill that needs it tells the agent to read it first. This keeps tstack's diff against upstream small, so Lauren's later releases can still be merged.
 - **Cursor-only features are adapted or marked.** Where a step needs something only Cursor has, the step now names the Claude Code equivalent (for example Claude Code's `/loop`, `/simplify`, `/code-review`, `skill-creator`, worktree subagents), or it carries an inline `**Not ported to Claude Code:**` marker that says what is missing and why.
-- **Models.** Claude Code's `Agent` tool takes only Claude models, so troy-pstack replaces upstream's Grok-plus-Opus matrix. Code delegates, explorers, investigators, and swarm workers use `sonnet`. Judgment, prose, the hardest changes, explainers, and synthesizers use `opus`. Review panels (arena, architect, interrogate) pair `opus` with `sonnet`. `/troy-pstack:setup-pstack` writes these defaults and lets you change any role.
-- **Identity.** The plugin, marketplace, model rule, and command prefix are named `troy-pstack`. Skill and agent names stay as upstream has them.
+- **Models.** Claude Code's `Agent` tool takes only Claude models, so tstack replaces upstream's Grok-plus-Opus matrix. Code delegates, explorers, investigators, and swarm workers use `sonnet`. Judgment, prose, the hardest changes, explainers, and synthesizers use `opus`. Review panels (arena, architect, interrogate) pair `opus` with `sonnet`. `/tstack:setup-pstack` writes these defaults and lets you change any role.
+- **Identity.** The plugin, marketplace, model rule, and command prefix are named `tstack`. Skill and agent names stay as upstream has them.
 - **Line endings.** Every text file is LF, and [`.gitattributes`](./.gitattributes) keeps it that way, so the shell scripts also run under WSL and macOS.
 
 ### Not shipped
@@ -106,15 +108,15 @@ troy-pstack starts from the Claude Code copy that upstream already generates (`h
 Legend:
 
 - **as-is**: the file is upstream's text. Any Cursor names in it are mapped at run time by the adapter.
-- **adapted**: some lines were changed for Claude Code or for the troy-pstack name.
+- **adapted**: some lines were changed for Claude Code or for the tstack name.
 - **partly not ported**: adapted, and at least one step is marked `**Not ported to Claude Code:**`.
 - **not ported**: not shipped.
 
 | Skill | Status | Reason |
 | --- | --- | --- |
 | `poteto-mode` | partly not ported | Claude model defaults in place of the Grok/Opus matrix, `/simplify` for `deslop`, verify skill for `control-ui`/`control-cli`. In the 23 playbooks, Origin (Cursor's forge) and Cursor cloud-agent URLs are marked not ported. Claude Code's `/loop` replaces Cursor's, and worktree subagents replace cloud VMs. |
-| `poteto-help` | adapted | Local install commands, `/troy-pstack:` prefix, local file links, and no Custom Mode. |
-| `setup-pstack` | adapted | Rewritten for Claude models: writes `~/.claude/rules/troy-pstack-models.md` with `<model> <effort>` values. |
+| `poteto-help` | adapted | Local install commands, `/tstack:` prefix, local file links, and no Custom Mode. |
+| `setup-pstack` | adapted | Rewritten for Claude models: writes `~/.claude/rules/tstack-models.md` with `<model> <effort>` values. |
 | `how` | adapted | Model rule path. |
 | `why` | adapted | MCP discovery uses Claude Code's `mcp__*` tools. Slack auth goes through `/mcp`. Model rule path. |
 | `teach` | partly not ported | Cursor's image-generation tool is marked not ported. It falls back to an MCP image tool or ASCII diagrams. |
@@ -162,11 +164,11 @@ That is 57 of upstream's 58 skills shipped. Troy chose to keep all of Lauren's p
 | File | Status | Reason |
 | --- | --- | --- |
 | `docs/guide/` (11 pages) | partly not ported | Images removed, local install, Claude Code's `/loop`. Cursor Custom Mode, cloud agents, Projects, and benny are marked not ported. |
-| `docs/harness/claude-code.md` | adapted | Rewritten as troy-pstack's adapter, with Claude model mapping, Windows notes, and Cursor-only feature table. |
+| `docs/harness/claude-code.md` | adapted | Rewritten as tstack's adapter, with Claude model mapping, Windows notes, and Cursor-only feature table. |
 
 ## Make it yours
 
-Lauren's README says it best: `poteto-mode` is her style. troy-mode is Troy's own mode, built in this fork on top of troy-pstack's skills: see [troy-mode](#troy-mode).
+Lauren's README says it best: `poteto-mode` is her style. troy-mode is Troy's own mode, built in this fork on top of tstack's skills: see [troy-mode](#troy-mode).
 
 ## Pull in upstream changes
 

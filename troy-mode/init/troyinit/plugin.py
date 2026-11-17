@@ -1,4 +1,4 @@
-"""The troy-pstack plugin that troy-init copies from (design sections 4.2 and 4.6)."""
+"""The tstack plugin that troy-init copies from (design sections 4.2 and 4.6)."""
 
 import json
 import os
@@ -17,7 +17,7 @@ HOOKS_DEST = ".troy-mode/checks/git-hooks"
 WORKFLOW_DEST = ".github/workflows/troy-mode.yml"
 PR_TEMPLATE_DEST = ".github/pull_request_template.md"
 
-# Top-level entries of troy-mode/checks/ that stay in troy-pstack.
+# Top-level entries of troy-mode/checks/ that stay in tstack.
 _CHECKS_LEFT_OUT = ("tests", "workflow.yml", "config.default.toml")
 _CACHE_DIRS = ("__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache")
 _CACHE_SUFFIXES = (".pyc", ".pyo")
@@ -31,11 +31,14 @@ class Plugin:
 
     Attributes:
         root: The plugin's root folder, which holds .claude-plugin/.
+        name: The name in .claude-plugin/plugin.json, which Claude Code puts
+            before the plugin's commands and agents (F19 design 5.1).
         version: The version in .claude-plugin/plugin.json.
         commit: The checked-out commit when the root is a git checkout, else None.
     """
 
     root: Path
+    name: str
     version: str
     commit: str | None
 
@@ -89,7 +92,7 @@ def _git_commit(root: Path) -> str | None:
 
 
 def load_plugin(root: Path) -> Plugin:
-    """Reads the plugin's version and commit.
+    """Reads the plugin's name, version, and commit.
 
     Args:
         root: The plugin's root folder.
@@ -98,16 +101,19 @@ def load_plugin(root: Path) -> Plugin:
         The plugin.
 
     Raises:
-        InitError: plugin.json is missing or has no version.
+        InitError: plugin.json is missing or has no name or no version.
     """
     manifest = root / ".claude-plugin" / "plugin.json"
     try:
-        version = json.loads(manifest.read_text(encoding="utf-8"))["version"]
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        name, version = data.get("name"), data["version"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         raise InitError(f"cannot read the plugin version from {manifest}: {exc}") from exc
     if not isinstance(version, str) or not version:
         raise InitError(f"{manifest} has no version")
-    return Plugin(root, version, _git_commit(root))
+    if not isinstance(name, str) or not name:
+        raise InitError(f"{manifest} has no name")
+    return Plugin(root, name, version, _git_commit(root))
 
 
 def _files_under(folder: Path) -> list[str]:
