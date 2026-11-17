@@ -97,9 +97,9 @@ class PluginJsonTests(unittest.TestCase):
         """The description credits Lauren Tan's pstack and says troy-mode is Troy's own work."""
         self.assertEqual(CREDIT, self.data["description"])
 
-    def test_version_is_0_6_0_or_a_later_minor_version(self):
-        """F19 raises the minor version: 0.6.0, or the next free 0.x.0 (D193)."""
-        match = re.fullmatch(r"0\.(\d+)\.0", self.data["version"])
+    def test_version_is_0_6_0_or_later(self):
+        """F19 raised the minor version to 0.6.0 (D193); later fixes raise the patch (F10 D89)."""
+        match = re.fullmatch(r"0\.(\d+)\.(\d+)", self.data["version"])
         self.assertIsNotNone(match, self.data["version"])
         self.assertGreaterEqual(int(match.group(1)), 6, self.data["version"])
 

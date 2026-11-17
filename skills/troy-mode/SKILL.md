@@ -31,7 +31,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py snapshot --role <role>` | Records the state before a run and prints its `run` ID. It refuses a working tree with changes. `--role rules` is your own work on a `[rules]` PR. |
 | `troy_flow.py check-run --run <run ID> [--allow-dependency <path>]...` | Compares the tree after the run with the snapshot: the paths to `stage`, the `problems`, `escalate`, how to `undo` each change, and the role's `hooks_log` lines. A dependency change that only deletes `baseline:` lines needs no `--allow-dependency`. |
 | `troy_flow.py approve --doc <path> [--date <YYYY-MM-DD>]` | Records Troy's approval in a document's header and its mirror's: the next major version, the date, and the status, and adds "Approved by Troy." to each one's change log (F08 D77). |
-| `troy_flow.py check-text --file <path>` | Checks a PR comment, description, or issue for attribution in the project's `[attribution] mode`. |
+| `troy_flow.py check-text --file <path>` | Checks a PR comment, description, review, issue, or release notes for attribution in the project's `[attribution] mode`. Read its exit code, never its output (section "Text for GitHub"). |
 | `troy_flow.py check-skips --report <file> --junit <file>` | Reads `troy-check code`'s JSON report and the JUnit file: exit 0 when nothing failed but tests skipped on this platform, with those cases in `ci_only` (D69). |
 | `troy_flow.py series` | After a dependency change Troy accepted: the `commands` that compile and install the series lock, each member's `tests`, and the members whose lock is now `stale` (D66). It runs nothing. |
 | `troy_flow.py release-test --version <version> --junit <file>... [--real-run <file>]` | The release test's report from the version test plan and the JUnit files: each scenario's result, the failed tests, Troy's scenarios, and the `comment` to post, headed `Release test, run <n>: passed` or `failed`. With `--real-run`, the JSON report of `real-run --all` adds a "Real run" part, and a mismatch fails the run. Exit 1 when anything failed. |
@@ -44,6 +44,15 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 
 - Exit code 0: done. 1: a problem stops the step; the report says which. 2: the engine could not run; show Troy its error.
 - The engine never commits, pushes, or writes to GitHub. You do, as below.
+
+### Text for GitHub
+
+R19 covers every text you post: PR titles and descriptions, PR comments and reviews, issues, and release notes. GitHub keeps the history of every edit, so a text is checked before it is posted, never fixed after.
+
+- Write the text to a file in one call. Check it with `troy_flow.py check-text --file <file>` and read its exit code, never its output: 0 means it may be posted. In recipe-menu's #92, a command read the output with grep, and a failed check was posted.
+- Post it in a later call, with `--body-file <file>` (or `--notes-file <file>`).
+- F05's `gh` hook runs the same check on every `gh` command that posts text, with the same function and mode. It reads a file as it is when the call starts, so a call that writes the file and posts it is refused or checked against the old text. It also refuses text it cannot see: a missing file, `--body-file -` from a pipe, `--editor`, `--web`, and `--body "$(cat <file>)"`.
+- When the hook refuses a post, reword the text and check it again. Never work around the refusal.
 
 ## Routing
 
@@ -196,7 +205,7 @@ Post every review, failed attempt, escalation, and request to Troy as a PR comme
 
 Under a review heading, write the findings as the role reports them, one numbered line each, starting with the rule ID or checklist item and a colon, for example `1. R05: src/wc.py:12 ...`, so the retrospective can group them.
 
-Every role acts through Troy's account, so the heading records who did what. A comment without one of these headings is Troy's. Write each comment to a file, check it with `troy_flow.py check-text --file <file>`, then post it with `gh pr comment <number> --body-file <file>`.
+Every role acts through Troy's account, so the heading records who did what. A comment without one of these headings is Troy's. Write each comment to a file, check it with `troy_flow.py check-text --file <file>` and read its exit code, then post it in a later call with `gh pr comment <number> --body-file <file>` (section "Text for GitHub").
 
 ### Merging
 
@@ -335,7 +344,7 @@ tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for t
 1. PM4, on the release branch under a snapshot with `--role product-manager`: each feature of the version gets the status "Usable on Troy's devices" in both languages (R13), the requirements' `version` rises by one minor step with a change-log row, and the changelog section takes today's date. A patch keeps the features' statuses.
 2. After `check-run` of the Product Manager's run has passed and its paths are staged, write Troy's notes, and any bugs Troy deferred, to a file, then run `troy_flow.py accept-version --tag <tag> --notes-file <file>`. Like `approve`, it is the engine's change, outside any role's snapshot: run it after the snapshot's check, never inside it. It adds the acceptance row, raises the plan to the next major version, and adds its change-log row, in both languages.
 3. Stage both sets of paths, amend the commit, run the local checks, push, wait for CI, and merge (section "Merging").
-4. `git fetch origin --prune`, then `troy_flow.py release-notes --tag <tag> --out <file>`, then `gh release create <tag> --target <merge commit> --title <tag> --notes-file <file>`, where the merge commit is the full ID of the `[docs] Release <tag>` commit on `origin/main` (`status` gives it as `next.commit` for `tag`). GitHub creates the tag on that commit; nothing is pushed from Troy's PC.
+4. `git fetch origin --prune`, then `troy_flow.py release-notes --tag <tag> --out <file>`, then check the notes with `troy_flow.py check-text --file <file>` and read its exit code, then `gh release create <tag> --target <merge commit> --title <tag> --notes-file <file>`, where the merge commit is the full ID of the `[docs] Release <tag>` commit on `origin/main` (`status` gives it as `next.commit` for `tag`). GitHub creates the tag on that commit; nothing is pushed from Troy's PC.
 5. Report to Troy, and run `troy_flow.py status --write-progress`.
 
 If Troy merges the release PR on GitHub instead, `status` gives `record-acceptance`: on `next.branch`, do step 1 and step 2 with Troy's words, commit as `next.title` (`[docs] Record Troy's acceptance of <tag>`), check, open, and merge it yourself, then step 4. Creating the GitHub release is one of your rights, only after Troy's acceptance and only on the release PR's merge commit.

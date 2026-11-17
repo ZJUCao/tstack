@@ -1,13 +1,13 @@
 # F05 设计：hook
 
-> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.2（2026-11-17）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.15](../requirements.zh-CN.md#72-功能列表) 中的 F05 |
-| 版本 | 1.1 |
-| 日期 | 2026-11-07 |
-| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46。1.1 版记录第 13.3 节试运行确认的事实。 |
+| 版本 | 1.2 |
+| 日期 | 2026-11-17 |
+| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46。1.1 版记录第 13.3 节试运行确认的事实。1.2 版加入 D200，即 Troy 于 2026-11-16 批准的 tstack issue #65。 |
 | 事实来源 | 英文版 [`F05-hooks.md`](F05-hooks.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -18,7 +18,7 @@
    - 让每个角色留在自己的写入范围内（F04 设计 D31），开发工程师修改测试（R08）是其中一种情况；
    - 让其他所有子代理只读；
    - 只允许角色运行只读的 git 和 GitHub 命令，以及它们需要的技能；
-   - 阻止 Claude 跳过 git hook、从 `main` 开 PR（R21）、开出标题或描述里带署名的 PR（R19）；
+   - 阻止 Claude 跳过 git hook、从 `main` 开 PR（R21）、发出文字里带署名的 PR、评论、评审、issue 或发布说明（R19，D200）；
    - 让角色不需要权限规则就能读插件自己的文件。
 2. **git hook**，放在 troy-check 的文件夹里，由 troy-init 复制进每个项目。不论谁运行 git，它们都拒绝违反 R19 的提交、在 `main` 上的提交和推送到 `main`（R21）。
 3. **一份本地日志**，记录每次拦截。F07 在每次角色运行后读取它。
@@ -197,7 +197,28 @@ F04 的试运行表明，开发工程师和测试工程师大多通过 Bash 的 
 - 任何 git 子命令前的 `-c core.hooksPath=...`，以及设置或取消 `core.hooksPath` 的 `git config`。
 - `core.hooksPath` 不是 `.troy-mode/checks/git-hooks` 或者 hook 文件缺失时的 `git commit`、`git merge` 和 `git push`。原因里会说明怎样打开它们。
 - 从 `main` 发出的 `gh pr create`：带 `--head main` 或 `-H main`，或者没有 `--head` 而当前分支是 `main`（R21）。
-- 命令文本或 `--body-file` 在项目的 `[attribution] mode` 下不能通过 troy-check 署名规则的 `gh pr create` 和 `gh pr edit`（R19）。这样在 PR 出现之前就能拦住"Generated with Claude Code"那一行，而不是等到 CI。
+对主会话，同一个 hook 在每条向 GitHub 发文字的 `gh` 命令运行前检查它的文字（R19，D200）。子代理的每个 `gh` 写操作仍然一律拒绝（第 7.3 节）。
+
+| 命令 | 读取的文字 |
+| --- | --- |
+| `gh pr create`、`gh pr edit`、`gh issue create`、`gh issue edit` | `--title`/`-t`、`--body`/`-b`、`--body-file`/`-F` |
+| `gh pr comment`、`gh issue comment`、`gh pr review` | `--body`/`-b`、`--body-file`/`-F` |
+| `gh pr merge` | `--subject`/`-t`、`--body`/`-b`、`--body-file`/`-F` |
+| `gh release create`、`gh release edit` | `--title`/`-t`、`--notes`/`-n`、`--notes-file`/`-F` |
+| 方法不是 `GET` 或带字段的 `gh api` | `-f`/`--raw-field` 和 `-F`/`--field` 的值、`-F key=@file` 指定的文件，以及 `--input` 文件 |
+
+- **检查什么。** 每个选项都认 `--x v`、`--x=v`、`-x v` 和 `-xv` 几种写法。检查的文字是选项的值、这次调用里的每个 heredoc，以及每个指定文件的内容，文件按命令运行所在的文件夹解析。`troycheck.attribution.find_attribution` 按项目 `HEAD` 上提交的 `[attribution] mode` 检查，和 `check-text` 一样。没有文字要发的 `gh` 命令，比如 `gh pr merge --rebase` 或 `gh pr review --approve`，直接通过。发往另一个仓库（`--repo`）的命令同样检查。
+- **拒绝。** 规则为 `attribution`。原因里写明 R19、命令和第一行不通过的文字。日志行只记命令名，比如 `gh pr comment`，从不记文字或文件路径（第 10 节）。
+- **失败即拒绝。** 以下发文字的命令也以规则 `attribution` 拒绝：
+  - 正文、发布说明或输入文件不存在或读不了，或者由 hook 解析不了的词指定（未知变量，或在 hook 跟不上的 `cd` 之后的相对路径）；
+  - 用了 `--body-file -`、`--notes-file -`、`--input -` 或 `-F key=@-`，而调用里没有 heredoc，因为管道里的文字 hook 看不到；
+  - 用了 `--editor`/`-e` 或 `--web`/`-w`，因为文字会写在 hook 看不到的地方；
+  - 文字选项里有未知变量，或者不是对 heredoc 做 `cat` 的命令替换，比如 `--body "$(cat c.md)"`，因为这样的文字 hook 也看不到。
+
+  主会话的调用拆不开、而文本里有发文字的 `gh` 命令时，以规则 `unparsed` 拒绝（第 7.1 节）。检查发文字的命令时出错，以规则 `error` 拒绝（第 10 节）。
+- **从不扫描路径。** hook 从不扫描文件路径或整条命令行：临时目录的路径本身可能含有 strict 模式拒绝的词，扫描路径会拒绝从那里发出的每一条。
+- **已知限制。** 文件按调用开始时的样子检查。同一行里先改写正文文件再发出的调用，按旧文字检查；文件那时还不存在则拒绝。troy-mode 技能要求在更早的一次调用里写好文件。hook 不把 heredoc 和它喂给的命令对应起来，所以同一次调用里另有 heredoc 时，通过管道进 `--body-file -` 的文字会放行，而那个 heredoc 会被检查。带字段的 `gh api -X GET` 按表格算作发文字。
+- 这样在 PR 出现之前就能拦住"Generated with Claude Code"那一行，也能拦住 #92 那种 `check-text` 失败后仍发出的评论，赶在 GitHub 保存文字和编辑历史之前。
 
 ## 9. 插件文件（D45）
 
@@ -212,7 +233,7 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 
 ## 10. 错误、速度和日志
 
-**错误（D39）。** `troy_hook.py` 里的任何错误，比如配置读不了或 git 失败，都会被捕获。对角色或其他子代理，调用被拒绝，并附上错误。对主会话，hook 在 stderr 上输出一条提示，以退出码 1 退出，Claude Code 把它当作不阻断的错误，所以主会话仍然可以修复项目。没有 Python 3.11 或更新版本时，在 troy-mode 项目里拦住调用，在别处放行：解释器缺失时，`hooks.json` 的命令用 shell 内置命令检查 `$CLAUDE_PROJECT_DIR/.troy-mode`，以退出码 2 或 0 退出；`troy_hook.py` 在导入其他任何东西之前先检查版本。不使用 `onFailure: "block"`，因为它在 troy-mode 项目之外也会拦住调用。
+**错误（D39）。** `troy_hook.py` 里的任何错误，比如配置读不了或 git 失败，都会被捕获。对角色或其他子代理，调用被拒绝，并附上错误。对主会话，hook 在 stderr 上输出一条提示，以退出码 1 退出，Claude Code 把它当作不阻断的错误，所以主会话仍然可以修复项目。有一个例外（D200）：检查发文字的 `gh` 命令（第 8.2 节）时出错，比如配置无效，主会话的调用以规则 `error` 拒绝，因为发到 GitHub 的文字会保留编辑历史。主会话的其他调用仍然只给警告。没有 Python 3.11 或更新版本时，在 troy-mode 项目里拦住调用，在别处放行：解释器缺失时，`hooks.json` 的命令用 shell 内置命令检查 `$CLAUDE_PROJECT_DIR/.troy-mode`，以退出码 2 或 0 退出；`troy_hook.py` 在导入其他任何东西之前先检查版本。不使用 `onFailure: "block"`，因为它在 troy-mode 项目之外也会拦住调用。
 
 **速度。** 2026-11-06 在 Troy 的电脑上测得：Python 启动 40 到 65 毫秒，bash 大约 25 毫秒，一条 git 命令 40 到 50 毫秒。
 
@@ -236,6 +257,7 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 | F05 一行和 F04 D31：每个角色的写入范围，包括 R08 | 第 5 节和第 6 节 |
 | F05 一行和 F04 D31：角色不做 git 和 GitHub 写操作 | 第 7 节 |
 | F05 一行：违反 R19 的提交 | 第 8.1 节（`commit-msg`）和第 8.2 节（PR 标题和描述） |
+| 第 6 节 R19：PR 评论和评审、issue 以及发布说明在发出前检查（D200） | 第 8.2 节（每条发文字的 `gh` 命令）和第 10 节（出错时拒绝发出） |
 | F05 一行：在 `main` 上提交和推送 `main`（R21） | 第 8.1 节（`pre-commit`、`pre-merge-commit`、`pre-push`），以及第 8.2 节的 `gh pr create` |
 | 第 8 节，hook 在 troy-mode 项目之外立即退出 | 第 4 节的门槛，以及第 9 节的 `if` 规则 |
 | 第 8 节，每次调用低于 200 毫秒 | 第 10 节 |
@@ -270,6 +292,7 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 | 技能 | `code-review` 通过，带 `--fix` 或 `--comment` 拒绝，其他技能拒绝。主会话可以运行任何技能。 |
 | 改动 | 开发工程师通过 Bash 新建一个测试文件：`PostToolUse` 拦截并指出它。`git restore` 或删掉之后，不再拦截。原本已改动的文件再次改动，通过哈希发现。范围内的改动不报告。`SubagentStop` 拦一次，然后让角色停止。缺失的开始记录在第一次调用时生成。 |
 | 防护 | `--no-verify` 和 `commit -n` 拒绝，`push -n` 通过。`-c core.hooksPath=` 和 `git config core.hooksPath` 拒绝。`core.hooksPath` 未设置时的提交拒绝。在 `main` 上和带 `--head main` 的 `gh pr create` 拒绝，在分支上通过。含有"Generated with Claude Code"的 PR 描述拒绝。`trailers` 模式下的 Claude 一词通过。 |
+| 发文字防护（D200） | 第 8.2 节的每条发文字命令，用长、短和 `=` 写法，标题、正文、发布说明或文件有问题时拒绝，干净时通过；strict 模式拒绝的词在 `trailers` 模式下通过。#92 那种 `check-text ... \| grep -q ok; gh pr comment ...` 拒绝。stdin 上的 heredoc 被检查。来自管道的 `--body-file -` 拒绝。文件不存在拒绝。文件夹名是 strict 模式拒绝的词、里面的干净文件通过。`gh api -X POST` 带 `-f`、`-F key=@file` 或 `--input` 且文字有问题时拒绝，`GET` 通过。发往另一个仓库的 `gh issue create --repo` 也检查。`--editor` 和 `--web` 拒绝。`--body "$(cat <file>)"` 拒绝，`--body "$(cat <<'EOF' ...)"` 被检查。主会话拆不开的发文字调用拒绝。检查出错时拒绝发文字的命令，其他命令只警告。日志行只有命令名，没有文字。子代理仍然得到第 7.3 节的 `gh` 拒绝。 |
 | 插件文件 | troy-mode 项目里读取 `CLAUDE_PLUGIN_ROOT` 之内的文件得到 `allow`。之外的路径，或在别的项目里，什么也不输出。 |
 | 错误和日志 | 异常会拒绝角色的调用，对主会话只给警告。每次拒绝写一行不含命令文本的日志。 |
 | SessionStart | 未设置的 `core.hooksPath` 被设置。别的值保持不变并报告。hook 文件缺失会报告。旧记录被删除。 |
@@ -278,7 +301,7 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 
 ### 13.2 埋 bug
 
-代码通过后，在临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：开发工程师的范围里有 `tests` 类别、角色模式不锚定、不检查忽略、临时文件夹判断接受 `/tmp-other`、允许的 git 命令里有 `commit`、临时仓库判断接受项目本身、`pre-push` 读本地 ref 而不是远程 ref、出异常时放行角色的调用、`SubagentStop` 从不拦截、忽略 `stop_hook_active`、从工作区读配置，以及在 `CLAUDE_PLUGIN_ROOT` 之外放行插件读取。数量写在 PR 描述里。
+代码通过后，在临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：开发工程师的范围里有 `tests` 类别、角色模式不锚定、不检查忽略、临时文件夹判断接受 `/tmp-other`、允许的 git 命令里有 `commit`、临时仓库判断接受项目本身、`pre-push` 读本地 ref 而不是远程 ref、出异常时放行角色的调用、`SubagentStop` 从不拦截、忽略 `stop_hook_active`、从工作区读配置，以及在 `CLAUDE_PLUGIN_ROOT` 之外放行插件读取。D200 的改动再加上：发文字命令表里漏了 `comment`、不读 `-F`、扫描路径而不是内容，以及放行不存在的文件。数量写在 PR 描述里。
 
 ### 13.3 在示例项目上试运行
 
@@ -325,7 +348,9 @@ D1 到 D38 属于 F01 到 F04 的设计，所以 F05 从 D39 开始。
 | D45 | 在没人能批准提示的会话里，角色怎样读插件自己的文件，比如 `technical-writing/SKILL.md`？F04 试运行里的 IF1 就因此失败。 | A：一个 `PreToolUse` hook 在 troy-mode 项目里放行 `CLAUDE_PLUGIN_ROOT` 之内的 `Read`、`Glob` 和 `Grep`，所以 troy-init 不写任何权限规则（第 9 节）。B：troy-init 把 `Read(<plugin folder>/**)` 写进项目的 `.claude/settings.local.json`。C：Troy 在用户设置里加一次 `Read(~/.claude/plugins/**)`。 | A。插件文件夹随每个版本变化，写下的规则会过时，而且每个新的 worktree 和克隆里都没有 `settings.local.json`。hook 每次读取当前的文件夹，而且只放行读取。 |
 | D46 | F05 怎样检查？状态什么时候改？ | A：单元测试和埋 bug，再在 PR 开出前在 Python 示例上做带探测的试运行（第 13 节）。合入后状态为"在示例项目上跑通"。B：只做单元测试，状态为"已编写"。 | A。试运行能确认文档没有说清的事实（`Skill` 的输入、`acceptEdits` 模式下的 `deny`、`if` 规则对 `Glob` 和 `Grep` 是否有效），并在 Windows 上实测速度。代价大约是 8 次角色运行。 |
 
-需求文档 1.15 版记录了已批准的改动：F05 一行按第 4 到第 9 节的实际做法描述 hook，包括 git hook、只读的子代理、shell 调用后的检查，以及插件文件的读取。
+| D200 | 主会话发到 GitHub 的文字怎样检查？`ZJUCao/recipe-menu#92` 上的一条评审评论在 `check-text` 失败后仍被发出，而 GitHub 会保留每次编辑的历史。来自 tstack issue #65，即 recipe-menu v0.1.0 回顾提出的规则提案。D161 到 D199 留给 F17 到 F19，所以这个决定用 D200。 | 架构师在 issue 里权衡过的层级：项目的架构；lint、troy-check 或 CI 里的 `project-rules.yml` 任务；Review 或 Process 一行；或者 F05 的 `PreToolUse` `gh` 防护。以及是放宽 R19 还是新增一行 R 规则。 | F05 的 `gh` 防护，硬规则，并把 R19 放宽到 PR 评论和评审、issue 以及发布说明，不新增 R 规则。对主会话，防护用 `check-text` 的函数和模式检查每条发文字的 `gh` 命令的文字，读不到的文字和检查出错时都拒绝（第 8.2 节和第 10 节）。只有 hook 这一层在文字离开本机之前运行，而且对每个调用者都运行。其他层级读的是仓库，或者在 CI 里运行，那时 GitHub 已经保存了文字和编辑历史；Review 一行实际上已经存在，#92 说明它在形式上执行了，实际上没有起作用。Troy 于 2026-11-16 按架构师的推荐批准（AR6：A2、B1、C）。 |
+
+需求文档 1.15 版记录了已批准的改动：F05 一行按第 4 到第 9 节的实际做法描述 hook，包括 git hook、只读的子代理、shell 调用后的检查，以及插件文件的读取。需求文档 1.46 版记录 D200：第 6 节的 R19 和 F05 一行。
 
 ## 16. 修改记录
 
@@ -334,3 +359,4 @@ D1 到 D38 属于 F01 到 F04 的设计，所以 F05 从 D39 开始。
 | 0.1 | 2026-11-06 | 初稿。 |
 | 1.0 | 2026-11-06 | Troy 批准，含 D39 到 D46，全部采用推荐答案。 |
 | 1.1 | 2026-11-07 | 第 13.3 节试运行确认的事实：`if` 规则只过滤 `Read`，所以 `Glob` 和 `Grep` 单独一项、不带 `if`（第 3、9、10 节）。在没人能批准提示的会话里，Claude Code 自己的权限会拒绝项目之外的 `Write`，所以角色用 Bash 做临时副本（第 5.2 节）。试运行里测试经理用一个 `mktemp -d` 变量指定临时文件夹，所以第 7.1 节也跟踪同一条命令里前面设成字面路径或 `mktemp -d` 的变量（第 7.1、7.2 节）。`Skill` 的输入字段（第 7.4 节）。实测的中位数（第 10 节）。 |
+| 1.2 | 2026-11-17 | D200，来自 Troy 于 2026-11-16 批准的 tstack issue #65：主会话向 GitHub 发文字的 `gh` 命令在运行前检查，读不到时拒绝（第 1、8.2、10、11、13.1、13.2 和 15 节）。 |

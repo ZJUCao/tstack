@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-16 |
+| Date | 2026-11-17 |
 | Source of truth | This English file. [`08-reference.zh-CN.md`](08-reference.zh-CN.md) is the Chinese mirror. |
 
 Lookup tables for daily use. The entry skill, [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md), is the source for every request, title, and heading here.
@@ -156,7 +156,7 @@ The full text is in the [rules template](../../../troy-mode/templates/rules.md),
 | R16 | A new third-party dependency needs the Architect's approval | Review |
 | R17 | A review loop stops at 3 rounds and escalates | Process |
 | R18 | You approve PR 1 and PR 2 of the first features; troy-mode merges the rest | Process |
-| R19 | Commits use your email and carry no Claude attribution | Hard |
+| R19 | Commits use your email. Commits, PRs, comments, reviews, issues, and release notes carry no Claude attribution, checked before they are posted | Hard |
 | R20 | No template markers or guidance in a merged document or PR description | Hard |
 | R21 | Every change reaches `main` through a PR from its own branch | Hard |
 | R22 | A design, test plan, requirements, or architecture PR opens with a summary for you, in Chinese and English | Hard |
