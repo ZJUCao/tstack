@@ -1,0 +1,3254 @@
+diff --git a/tests/f13_blocks.py b/tests/f13_blocks.py
+new file mode 100644
+index 0000000..b06f2eb
+--- /dev/null
++++ b/tests/f13_blocks.py
+@@ -0,0 +1,397 @@
++"""The blocks A to H of the F13 test plan: the outputs of ``shop`` that no prototype shows.
++
++Each block is a function that gives its lines, with the full path of the list file in place of
++``P`` in the last line, or the bytes of a file. They are literals, and nothing here calls an
++interface of F13 when the module is imported.
++"""
++
++from pathlib import Path
++
++from f05_texts import lines_text
++
++# The dates of the weeks of the cases, in English and in Chinese.
++DATES: dict[str, tuple[str, str]] = {
++    "2026-W01": ("29 December 2025 to 4 January 2026", "2025年12月29日至2026年1月4日"),
++    "2026-W23": ("1 to 7 June 2026", "2026年6月1日至7日"),
++    "2026-W47": ("16 to 22 November 2026", "2026年11月16日至22日"),
++    "2026-W48": ("23 to 29 November 2026", "2026年11月23日至29日"),
++    "2026-W49": ("30 November to 6 December 2026", "2026年11月30日至12月6日"),
++    "2026-W53": ("28 December 2026 to 3 January 2027", "2026年12月28日至2027年1月3日"),
++    "2027-W01": ("4 to 10 January 2027", "2027年1月4日至10日"),
++}
++
++# ---------------------------------------------------------------- block A
++
++
++def block_a(path: Path | str) -> list[str]:
++    """Gives block A: 2026-W47 in English with the settings of all meals and 3 servings."""
++    return [
++        "Shopping list for 2026-W47, 16 to 22 November 2026: 4 meals, 9 dishes",
++        "",
++        "Vegetables and fruit",
++        "  Tomato          900 g",
++        "  Choy sum        1.75 kg",
++        "  Scallion        7 stalks",
++        "  Ginger          6 slices",
++        "  Garlic          14 cloves",
++        "Meat and seafood",
++        "  Minced pork     150 g",
++        "  Chicken wings   1 kg",
++        "Eggs, dairy, and tofu",
++        "  Egg             8 pieces",
++        "  Tofu            2 blocks",
++        "Rice, flour, and oil",
++        "  Rice            800 g",
++        "  Noodles         300 g",
++        "Seasonings",
++        "  Doubanjiang     23 ml",
++        "  White pepper    to taste",
++        "Other",
++        "  Cola            2 cans",
++        "",
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar, Soy sauce, "
++        "Sichuan pepper",
++        "",
++        f"Saved {path}",
++    ]
++
++
++# ---------------------------------------------------------------- block B
++
++
++def block_b(path: Path | str) -> list[str]:
++    """Gives the English output of block B: week B in a new example."""
++    return [
++        "Shopping list for 2026-W48, 23 to 29 November 2026: 4 meals, 5 dishes",
++        "",
++        "Vegetables and fruit",
++        "  Choy sum      2.5 kg",
++        "  Scallion      3 stalks",
++        "  Ginger        3 slices",
++        "  Garlic        17 cloves",
++        "Meat and seafood",
++        "  Pork belly    500 g",
++        "  Minced pork   100 g",
++        "Eggs, dairy, and tofu",
++        "  Tofu          1 block",
++        "Rice, flour, and oil",
++        "  Rice          320 g",
++        "Seasonings",
++        "  Rock sugar    30 g",
++        "  Doubanjiang   15 ml",
++        "",
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Soy sauce, "
++        "Sichuan pepper",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_b_zh(path: Path | str) -> list[str]:
++    """Gives the Chinese output of block B."""
++    return [
++        "2026-W48 购物清单，2026年11月23日至29日：4 餐，5 道菜",
++        "",
++        "蔬菜水果",
++        "  菜心         2.5 kg",
++        "  葱           3 根",
++        "  姜           3 片",
++        "  大蒜         17 瓣",
++        "肉类水产",
++        "  五花肉       500 g",
++        "  猪肉末       100 g",
++        "蛋奶豆制品",
++        "  豆腐         1 块",
++        "米面粮油",
++        "  大米         320 g",
++        "调味品",
++        "  冰糖         30 g",
++        "  郫县豆瓣酱   15 ml",
++        "",
++        "常备，不用买：食用油、盐、生抽、花椒",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++# ---------------------------------------------------------------- block C
++
++
++def block_c(path: Path | str) -> list[str]:
++    """Gives the English output of block C: v0.1-S16 in the S16 folder."""
++    return [
++        "Shopping list for 2026-W48, 23 to 29 November 2026: 1 meal, 1 dish",
++        "",
++        "Vegetables and fruit",
++        "  Tomato     450 g",
++        "  Scallion   2 stalks",
++        "Eggs, dairy, and tofu",
++        "  Egg        5 pieces",
++        "",
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_c_zh(path: Path | str) -> list[str]:
++    """Gives the Chinese output of block C."""
++    return [
++        "2026-W48 购物清单，2026年11月23日至29日：1 餐，1 道菜",
++        "",
++        "蔬菜水果",
++        "  番茄   450 g",
++        "  葱     2 根",
++        "蛋奶豆制品",
++        "  鸡蛋   5 个",
++        "",
++        "常备，不用买：食用油、盐、糖",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++# ---------------------------------------------------------------- block D
++
++
++def block_d(path: Path | str) -> list[str]:
++    """Gives block D: the chicken break, whatever the line break S is."""
++    return [
++        "Shopping list for 2026-W47, 16 to 22 November 2026: 4 meals, 9 dishes",
++        "",
++        "Vegetables and fruit",
++        "  Tomato         600 g",
++        "  Choy sum       1.5 kg",
++        "  Scallion       5 stalks",
++        "  Ginger         6 slices",
++        "  Garlic         11 cloves",
++        "Meat and seafood",
++        "  Minced pork    100 g",
++        "  Chicken        1 kg",
++        "  wings",
++        "Eggs, dairy, and tofu",
++        "  Egg            5 pieces",
++        "  Tofu           1 block",
++        "Rice, flour, and oil",
++        "  Rice           640 g",
++        "  Noodles        200 g",
++        "Seasonings",
++        "  Doubanjiang    15 ml",
++        "  White pepper   to taste",
++        "Other",
++        "  Cola           2 cans",
++        "",
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar, Soy sauce, "
++        "Sichuan pepper",
++        "",
++        f"Saved {path}",
++    ]
++
++
++# ---------------------------------------------------------------- blocks E and F
++
++
++def _file(lines: list[str]) -> bytes:
++    """Gives the lines as UTF-8 bytes, each ended by LF, the last one included."""
++    return lines_text(*lines).encode("utf-8")
++
++
++def block_e(path: Path | str) -> list[str]:
++    """Gives the English output of block E: the water week."""
++    return [
++        "Shopping list for 2026-W50, 7 to 13 December 2026: 1 meal, 1 dish",
++        "",
++        "There is nothing to buy.",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_e_zh(path: Path | str) -> list[str]:
++    """Gives the Chinese output of block E."""
++    return [
++        "2026-W50 购物清单，2026年12月7日至13日：1 餐，1 道菜",
++        "",
++        "没有要买的东西。",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++FILE_E = _file(
++    [
++        "# Shopping list for 2026-W50",
++        "",
++        "7 to 13 December 2026: 1 meal, 1 dish.",
++        "",
++        "There is nothing to buy.",
++    ]
++)
++FILE_E_ZH = _file(
++    [
++        "# 2026-W50 购物清单",
++        "",
++        "2026年12月7日至13日：1 餐，1 道菜。",
++        "",
++        "没有要买的东西。",
++    ]
++)
++
++
++def block_f(path: Path | str) -> list[str]:
++    """Gives the English output of block F: the egg week."""
++    return [
++        "Shopping list for 2026-W51, 14 to 20 December 2026: 1 meal, 2 dishes",
++        "",
++        "There is nothing to buy.",
++        "",
++        "Not on the list, because they are in the pantry: Egg, Salt",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_f_zh(path: Path | str) -> list[str]:
++    """Gives the Chinese output of block F."""
++    return [
++        "2026-W51 购物清单，2026年12月14日至20日：1 餐，2 道菜",
++        "",
++        "没有要买的东西。",
++        "",
++        "常备，不用买：鸡蛋、盐",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++FILE_F = _file(
++    [
++        "# Shopping list for 2026-W51",
++        "",
++        "14 to 20 December 2026: 1 meal, 2 dishes.",
++        "",
++        "There is nothing to buy.",
++        "",
++        "Not on the list, because they are in the pantry: Egg, Salt",
++    ]
++)
++FILE_F_ZH = _file(
++    [
++        "# 2026-W51 购物清单",
++        "",
++        "2026年12月14日至20日：1 餐，2 道菜。",
++        "",
++        "没有要买的东西。",
++        "",
++        "常备，不用买：鸡蛋、盐",
++    ]
++)
++
++# ---------------------------------------------------------------- block G
++
++
++def block_g(path: Path | str) -> list[str]:
++    """Gives the English output of block G: v0.1-S18."""
++    return [
++        "Shopping list for 2026-W48, 23 to 29 November 2026: 5 meals, 5 dishes",
++        "",
++        "Vegetables and fruit",
++        "  Tomato         900 g",
++        "  Scallion       5 stalks + 1 bunch",
++        "  Ginger         3 slices",
++        "Meat and seafood",
++        "  Pork belly     500 g",
++        "Eggs, dairy, and tofu",
++        "  Egg            8 pieces",
++        "Rice, flour, and oil",
++        "  Noodles        400 g",
++        "Seasonings",
++        "  Soy sauce      30 ml + 10 g",
++        "  Rock sugar     30 g",
++        "  White pepper   to taste",
++        "",
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_g_zh(path: Path | str) -> list[str]:
++    """Gives the Chinese output of block G."""
++    return [
++        "2026-W48 购物清单，2026年11月23日至29日：5 餐，5 道菜",
++        "",
++        "蔬菜水果",
++        "  番茄       900 g",
++        "  葱         5 根 + 1 把",
++        "  姜         3 片",
++        "肉类水产",
++        "  五花肉     500 g",
++        "蛋奶豆制品",
++        "  鸡蛋       8 个",
++        "米面粮油",
++        "  面条       400 g",
++        "调味品",
++        "  生抽       30 ml + 10 g",
++        "  冰糖       30 g",
++        "  白胡椒粉   适量",
++        "",
++        "常备，不用买：食用油、盐、糖",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++# ---------------------------------------------------------------- block H
++
++
++def block_h(week: str, dates: str, path: Path | str) -> list[str]:
++    """Gives ``H(W, D)`` of block H in English: the rice week ``week`` with its English dates."""
++    return [
++        f"Shopping list for {week}, {dates}: 1 meal, 1 dish",
++        "",
++        "Rice, flour, and oil",
++        "  Rice   160 g",
++        "",
++        f"Saved {path}",
++    ]
++
++
++def block_h_zh(week: str, dates: str, path: Path | str) -> list[str]:
++    """Gives ``H_ZH(W, D)`` of block H: the rice week ``week`` with its Chinese dates."""
++    return [
++        f"{week} 购物清单，{dates}：1 餐，1 道菜",
++        "",
++        "米面粮油",
++        "  大米   160 g",
++        "",
++        f"已保存 {path}",
++    ]
++
++
++def file_h(week: str, dates: str) -> bytes:
++    """Gives ``FILE_H(W, D)``: the file of the English run of the rice week."""
++    lines = [
++        f"# Shopping list for {week}",
++        "",
++        f"{dates}: 1 meal, 1 dish.",
++        "",
++        "## Rice, flour, and oil",
++        "",
++        "- [ ] Rice 160 g",
++    ]
++    return _file(lines)
++
++
++def file_h_zh(week: str, dates: str) -> bytes:
++    """Gives ``FILE_H_ZH(W, D)``: the file of the Chinese run of the rice week."""
++    lines = [
++        f"# {week} 购物清单",
++        "",
++        f"{dates}：1 餐，1 道菜。",
++        "",
++        "## 米面粮油",
++        "",
++        "- [ ] 大米 160 g",
++    ]
++    return _file(lines)
+diff --git a/tests/f13_support.py b/tests/f13_support.py
+new file mode 100644
+index 0000000..4955593
+--- /dev/null
++++ b/tests/f13_support.py
+@@ -0,0 +1,422 @@
++"""Helpers that the F13 tests share: the fault harness, the builders, and the named changes.
++
++The module holds ``ShopFaults`` and ``shop_faults``, which add the rules ``move``, ``close``, and
++``unlink P: later`` to the harness of ``f08_support``, the links and the messages of the system,
++the builders ``shop_list``, ``shop_lines``, and ``shop_file``, which follow design 2.2 and use no
++code of F13, and the named changes of the test plan. Nothing here calls an interface of F13 when
++the module is imported: ``SHOP_COMMAND`` and ``replace_file`` are never called here, so the test
++files import against the mock and against a broken implementation. The expected texts are in
++``f13_texts`` and ``f13_blocks``.
++"""
++
++import builtins
++import errno
++import io
++import os
++import sys
++from collections.abc import Callable, Iterator, Sequence
++from contextlib import contextmanager
++from datetime import date
++from functools import partial
++from pathlib import Path
++from typing import Any
++
++import pytest
++
++from f03_support import put_bytes, write
++from f05_support import TODAY, copy_example
++from f05_texts import Msg, Result
++from f07_changes import edit
++from f07_texts import NOT_A_WEEK_NAME, Prob, m_pantry_ingredient, p_item
++from f08_support import Faults, Rule
++from f08_texts import FILE_WRITE_DENIED, file_error
++from f09_support import extra_recipes
++from f11_support import menu_text, new_base, on
++from f12_support import LUNCH_DINNER, read_week
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.menus import IsoWeek
++from recipe_menu.shopping import ShoppingList, build_shopping_list
++from recipe_menu.text import comma_list, display_width, format_table
++
++type Change = Callable[[Path], None]
++
++EXISTS = partial(FileExistsError, errno.EEXIST, "File exists")
++
++# ---------------------------------------------------------------- the records of the cases
++
++READ_SETTINGS = "read settings.toml"
++LISTINGS = ["recipes", "menus"]
++TEMP_47 = "shopping/2026-W47.md.tmp"
++W47 = [f"unlink {TEMP_47}", f"open {TEMP_47}", f"move {TEMP_47} shopping/2026-W47.md"]
++R47_IDS = ("tomato-egg", "choy-sum", "rice", "mapo-tofu", "tomato-egg-noodles", "cola-wings")
++R47 = [
++    READ_SETTINGS,
++    "read catalog.toml",
++    "read pantry.toml",
++    "read menus/2026-W47.toml",
++    *[f"read recipes/{recipe_id}.toml" for recipe_id in R47_IDS],
++]
++
++# ---------------------------------------------------------------- the fault harness
++
++
++class _CloseFile:
++    """A file that closes for real and then raises when it is closed."""
++
++    def __init__(self, real: Any, effect: Callable[[], BaseException]) -> None:
++        """Wraps the real file that an ``open`` gave."""
++        self._real = real
++        self._effect = effect
++
++    def __getattr__(self, name: str) -> Any:
++        """Passes every other call to the real file."""
++        return getattr(self._real, name)
++
++    def __enter__(self) -> "_CloseFile":
++        """Gives the wrapper, as a file does."""
++        return self
++
++    def close(self) -> None:
++        """Closes the real file, and raises."""
++        self._real.close()
++        raise self._effect()
++
++    def __exit__(self, kind: object, *rest: object) -> None:
++        """Closes the real file, and raises unless another exception is on its way."""
++        self._real.close()
++        if kind is None:
++            raise self._effect()
++
++
++class ShopFaults(Faults):
++    """The harness of F08 with the move, the close, and ``unlink P: later``.
++
++    Attributes:
++        calls: The calls in order, as in ``Faults``. A move is ``move A B``.
++    """
++
++    def __init__(self, base: Path, rules: Sequence[Rule]) -> None:
++        """Takes the original ``os.replace`` as well."""
++        super().__init__(base, rules)
++        self._os["replace"] = os.replace
++        self._later: dict[tuple[str, str], int] = {}
++
++    def _run(self, kind: str, path: object, original: Callable[[], Any]) -> Any:
++        """Records a call, and applies its rule. A ``later`` rule lets the first call run."""
++        rel = self._rel(path)
++        found = None if rel is None else self._find(kind, rel)
++        if rel is None or found is None or found.how != "later":
++            return super()._run(kind, path, original)
++        self.calls.append(f"{kind} {rel}")
++        count = self._later.get((kind, rel), 0)
++        self._later[kind, rel] = count + 1
++        if count == 0:
++            return original()
++        assert found.effect is not None
++        raise found.effect()
++
++    def replace(self, source: Any, target: Any, *args: Any, **kwargs: Any) -> Any:
++        """Stands in for ``os.replace``: records ``move A B``, and applies ``move A``."""
++        rel = self._rel(source)
++        if rel is None:
++            return self._os["replace"](source, target, *args, **kwargs)
++        self.calls.append(f"move {rel} {self._rel(target)}")
++        found = self._find("move", rel)
++        if found is not None:
++            assert found.effect is not None
++            assert found.how == "raise", found.how
++            raise found.effect()
++        return self._os["replace"](source, target, *args, **kwargs)
++
++    def open(self, file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
++        """Stands in for ``io.open``, and wraps a file that a ``close`` rule names."""
++        handle = super().open(file, mode, *args, **kwargs)
++        rel = self._rel(file)
++        found = self._find("close", rel) if rel is not None and "x" in mode else None
++        if found is None or found.effect is None:
++            return handle
++        return _CloseFile(handle, found.effect)
++
++
++@contextmanager
++def shop_faults(base: Path, *rules: Rule) -> Iterator[ShopFaults]:
++    """Replaces the calls of ``faults`` and ``os.replace`` while it is open.
++
++    Args:
++        base: The folder whose paths the harness records.
++        *rules: The rules to apply.
++
++    Yields:
++        The ``ShopFaults`` with the record and the listings.
++    """
++    state = ShopFaults(base, rules)
++    with pytest.MonkeyPatch.context() as patch:
++        for name in ("mkdir", "rmdir", "unlink", "remove", "scandir", "listdir", "replace"):
++            patch.setattr(os, name, getattr(state, name))
++        patch.setattr(io, "open", state.open)
++        patch.setattr(builtins, "open", state.open)
++        yield state
++
++
++# ---------------------------------------------------------------- links and system messages
++
++
++def folder_link(path: Path, target: Path) -> None:
++    """Makes ``path`` a link to the folder ``target``: a junction, or a symbolic link."""
++    if sys.platform == "win32":
++        import _winapi  # noqa: PLC0415 - exists on Windows only
++
++        _winapi.CreateJunction(str(target), str(path))
++    else:
++        path.symlink_to(target, target_is_directory=True)
++    assert path.is_dir()
++
++
++def move_message(base: Path) -> Msg:
++    """Gives the message of ``replace_file`` for a move of a file onto a folder.
++
++    It moves a file of its own onto an empty folder of its own in ``base``, takes the row of the
++    error table that the system's error gives, and removes both. Windows gives
++    ``PermissionError``, and Linux gives ``IsADirectoryError`` with ``Is a directory``.
++    """
++    source, target = base / "move-source", base / "move-target"
++    source.write_bytes(b"x")
++    target.mkdir()
++    try:
++        source.replace(target)
++    except PermissionError:
++        message = FILE_WRITE_DENIED
++    except OSError as error:
++        message = file_error(error.strerror or type(error).__name__)
++    else:
++        raise AssertionError("the move onto a folder did not raise")
++    finally:
++        source.unlink()
++        target.rmdir()
++    return message
++
++
++@contextmanager
++def held_open(path: Path) -> Iterator[None]:
++    """Holds a file open with ``open(path, "rb")``, as another program does."""
++    with path.open("rb"):
++        yield
++
++
++def new_shop(tmp_path: Path, name: str) -> tuple[Path, DataFolder]:
++    """Makes the empty ``base`` of a call and ``F`` on ``base/recipe-menu``, which exists."""
++    base, folder = new_base(tmp_path, name)
++    folder.root.mkdir()
++    return base, folder
++
++
++# ---------------------------------------------------------------- the builders of design 2.2
++
++
++def shop_list(folder: DataFolder, week: IsoWeek) -> ShoppingList:
++    """Reads the week with ``read_week`` and gives ``build_shopping_list`` of its values."""
++    menu, recipes, catalog, pantry = read_week(folder, week, [])
++    return build_shopping_list(menu, recipes, catalog, pantry)
++
++
++def _counts(shopping: ShoppingList, lang: Lang) -> tuple[str, str]:
++    """Gives the meals and the dishes of the list as the counts of the heading, in a language."""
++    meals, dishes = shopping.meal_count, shopping.dish_count
++    if lang is Lang.ZH:
++        return f"{meals} 餐", f"{dishes} 道菜"
++    return (
++        f"{meals} meal{'' if meals == 1 else 's'}",
++        f"{dishes} dish{'' if dishes == 1 else 'es'}",
++    )
++
++
++def _width(shopping: ShoppingList, lang: Lang) -> int:
++    """Gives the largest display width of a line of a name of the whole list."""
++    names = [line.ingredient.name.get(lang) for group in shopping.groups for line in group.lines]
++    return max((display_width(part) for name in names for part in name.splitlines()), default=0)
++
++
++def _pantry(shopping: ShoppingList, lang: Lang) -> str:
++    """Gives the pantry line of a list."""
++    items = comma_list(item.name for item in shopping.pantry_used).get(lang)
++    head = (
++        "常备，不用买：" if lang is Lang.ZH else "Not on the list, because they are in the pantry: "
++    )
++    return head + items
++
++
++def shop_lines(shopping: ShoppingList, lang: Lang, path: Path | str) -> list[str]:
++    """Gives the lines of the output of 2.2 for a list in a language, with the list file ``path``.
++
++    They are the heading, an empty line, the groups, then an empty line and the pantry line when
++    the menu uses a pantry ingredient, then an empty line and ``Saved P``.
++    """
++    zh = lang is Lang.ZH
++    week, dates = str(shopping.week), shopping.week.date_range.get(lang)
++    meals, dishes = _counts(shopping, lang)
++    if zh:
++        lines = [f"{week} 购物清单，{dates}：{meals}，{dishes}", ""]
++    else:
++        lines = [f"Shopping list for {week}, {dates}: {meals}, {dishes}", ""]
++    width = _width(shopping, lang)
++    for group in shopping.groups:
++        lines.append(group.category.name.get(lang))
++        rows = [(i.ingredient.name.get(lang), i.amount_text(lang)) for i in group.lines]
++        lines.extend(format_table(rows, indent=2, min_widths=(width,)))
++    if not shopping.groups:
++        lines.append("没有要买的东西。" if zh else "There is nothing to buy.")
++    if shopping.pantry_used:
++        lines += ["", _pantry(shopping, lang)]
++    return [*lines, "", f"已保存 {path}" if zh else f"Saved {path}"]
++
++
++def shop_file(shopping: ShoppingList, lang: Lang) -> bytes:
++    """Gives the bytes of the file of 2.2 for a list in a language, each line ended by LF."""
++    zh = lang is Lang.ZH
++    week, dates = str(shopping.week), shopping.week.date_range.get(lang)
++    meals, dishes = _counts(shopping, lang)
++    if zh:
++        lines = [f"# {week} 购物清单", "", f"{dates}：{meals}，{dishes}。"]
++    else:
++        lines = [f"# Shopping list for {week}", "", f"{dates}: {meals}, {dishes}."]
++    for group in shopping.groups:
++        lines += ["", f"## {group.category.name.get(lang)}", ""]
++        lines += [f"- [ ] {i.ingredient.name.get(lang)} {i.amount_text(lang)}" for i in group.lines]
++    if not shopping.groups:
++        lines += ["", "没有要买的东西。" if zh else "There is nothing to buy."]
++    if shopping.pantry_used:
++        lines += ["", _pantry(shopping, lang)]
++    return "".join(f"{line}\n" for line in lines).encode("utf-8")
++
++
++def pt01_shop(root: Path) -> Result:
++    """Gives the result of ``shop 2026-W26`` on the PT01 folder: ``(0, out, "")``."""
++    shopping = shop_list(DataFolder(root), IsoWeek(2026, 26))
++    path = root / "shopping" / "2026-W26.md"
++    lines = shop_lines(shopping, Lang.EN, path)
++    return 0, "".join(f"{line}\n" for line in lines), ""
++
++
++# ---------------------------------------------------------------- the named changes of F13
++
++
++def rice_week(week: str) -> Change:
++    """Gives the change that writes ``menus/<week>.toml`` with ``rice`` in its first dinner."""
++
++    def change(root: Path) -> None:
++        """Writes the rice week."""
++        path = root / "menus" / f"{week}.toml"
++        put_bytes(path, menu_text(week, LUNCH_DINNER))
++        edit(path, "dinner = []", 'dinner = ["rice"]')
++
++    return change
++
++
++def water_week(root: Path) -> None:
++    """Adds the extra recipes and ``menus/2026-W50.toml`` with ``water`` in Monday's lunch."""
++    extra_recipes(root)
++    write(
++        root / "menus" / "2026-W50.toml",
++        'week = "2026-W50"\n\n[monday]\nlunch = ["water"]\n',
++    )
++
++
++def egg_week(root: Path) -> None:
++    """Adds the extra recipes, the egg to the pantry, and ``menus/2026-W51.toml``."""
++    extra_recipes(root)
++    edit(root / "pantry.toml", '"花椒"]', '"花椒", "鸡蛋"]')
++    write(
++        root / "menus" / "2026-W51.toml",
++        'week = "2026-W51"\n\n[tuesday]\ndinner = ["water", "boiled-egg"]\n',
++    )
++
++
++def chicken_break(escape: str) -> Change:
++    """Gives the change that puts the TOML escape ``escape`` into the chicken wings."""
++
++    def change(root: Path) -> None:
++        """Gives the English name of the chicken wings two lines."""
++        edit(root / "catalog.toml", 'en = "Chicken wings"', f'en = "Chicken{escape}wings"')
++
++    return change
++
++
++def meat_break(root: Path) -> None:
++    """Gives the English name of the meat category two lines, with a TOML escape."""
++    edit(root / "catalog.toml", 'en = "Meat and seafood"', 'en = "Meat\\nand seafood"')
++
++
++def missing_name(root: Path) -> None:
++    """Deletes the English name of the cola in the catalog."""
++    old = '{ zh = "可乐", en = "Cola", category = "other", unit = "罐" }'
++    edit(root / "catalog.toml", old, '{ zh = "可乐", category = "other", unit = "罐" }')
++
++
++def shopping_as_file(root: Path) -> None:
++    """Writes the file ``shopping`` with one line of text."""
++    put_bytes(root / "shopping", b"x\n")
++
++
++def empty_shopping(root: Path) -> None:
++    """Makes the empty folder ``shopping/``."""
++    (root / "shopping").mkdir()
++
++
++def ticked_list(root: Path) -> None:
++    """Writes ``shopping/2026-W47.md`` with one ticked line."""
++    write(root / "shopping" / "2026-W47.md", "# 2026-W47 购物清单\n\n- [x] 番茄 600 g\n")
++
++
++def old_list(root: Path) -> None:
++    """Writes ``shopping/2026-W47.md`` with the text ``old``."""
++    put_bytes(root / "shopping" / "2026-W47.md", b"old\n")
++
++
++def old_temp(root: Path) -> None:
++    """Writes ``shopping/2026-W47.md.tmp`` with the text ``half``."""
++    put_bytes(root / "shopping" / "2026-W47.md.tmp", b"half\n")
++
++
++def no_pantry(root: Path) -> None:
++    """Deletes ``pantry.toml``."""
++    (root / "pantry.toml").unlink()
++
++
++def empty_menu_file(name: str) -> Change:
++    """Gives the change that writes the empty file ``menus/<name>``."""
++    return lambda root: write(root / "menus" / name, "")
++
++
++# ---------------------------------------------------------------- problems of the readers
++
++E_PANTRY = Prob("pantry.toml", p_item(3), m_pantry_ingredient("sesame oil"))
++E_LOWER_48 = Prob("menus/2026-w48.toml", None, NOT_A_WEEK_NAME)
++
++
++def traced(
++    home: Path, root: Path, *argv: str, today: date = TODAY
++) -> tuple[Result, list[str], list[str]]:
++    """Runs ``main`` on a date in a folder inside the harness, and gives the result and the record.
++
++    Args:
++        home: The home folder.
++        root: The data folder.
++        *argv: The command line before ``--data``.
++        today: The date that ``main`` gets as today.
++
++    Returns:
++        The result, the calls that the harness recorded, and its listings.
++    """
++    with shop_faults(root) as state:
++        result = on(home, root, today, *argv)
++    return result, state.calls, state.listings
++
++
++def pristine(example: DataFolder, tmp_path: Path) -> DataFolder:
++    """Copies the example folder at its start, for the new examples that a case makes later.
++
++    A case that runs ``shop`` in ``example`` writes ``shopping/`` there, and a copy made after it
++    would hold that folder. The new examples of such a case are copies of this one.
++    """
++    return DataFolder(copy_example(example, tmp_path / "pristine"))
+diff --git a/tests/f13_texts.py b/tests/f13_texts.py
+new file mode 100644
+index 0000000..c3eb18d
+--- /dev/null
++++ b/tests/f13_texts.py
+@@ -0,0 +1,220 @@
++"""The expected texts of F13: the output of ``shop`` for the example week, its files, and the lines.
++
++Every text is written out as a literal, so a test imports no message of ``shop`` or of
++``datafile`` and reads no prototype file. Nothing here calls an interface of F13 when the module
++is imported. A problem of the readers is a ``Prob`` of ``f07_texts``, and ``stop`` of
++``f09_texts`` gives the three lines of ``stop_at_error`` for it.
++
++``shop_47`` and ``shop_47_zh`` are the two outputs of the F13 prototype, with the full path of
++the list file in their last line. ``PROTOTYPE_FILE`` is the file of the Chinese run, and
++``FILE_47`` the file of the English run.
++"""
++
++from pathlib import Path
++
++from f05_texts import Msg, lines_text
++
++# ---------------------------------------------------------------- the example week 2026-W47
++
++_EN_GROUPS = [
++    "Shopping list for 2026-W47, 16 to 22 November 2026: 4 meals, 9 dishes",
++    "",
++    "Vegetables and fruit",
++    "  Tomato          600 g",
++    "  Choy sum        1.5 kg",
++    "  Scallion        5 stalks",
++    "  Ginger          6 slices",
++    "  Garlic          11 cloves",
++    "Meat and seafood",
++    "  Minced pork     100 g",
++    "  Chicken wings   1 kg",
++    "Eggs, dairy, and tofu",
++    "  Egg             5 pieces",
++    "  Tofu            1 block",
++    "Rice, flour, and oil",
++    "  Rice            640 g",
++    "  Noodles         200 g",
++    "Seasonings",
++    "  Doubanjiang     15 ml",
++    "  White pepper    to taste",
++    "Other",
++    "  Cola            2 cans",
++    "",
++    "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar, Soy sauce, "
++    "Sichuan pepper",
++    "",
++]
++_ZH_GROUPS = [
++    "2026-W47 购物清单，2026年11月16日至22日：4 餐，9 道菜",
++    "",
++    "蔬菜水果",
++    "  番茄         600 g",
++    "  菜心         1.5 kg",
++    "  葱           5 根",
++    "  姜           6 片",
++    "  大蒜         11 瓣",
++    "肉类水产",
++    "  猪肉末       100 g",
++    "  鸡翅中       1 kg",
++    "蛋奶豆制品",
++    "  鸡蛋         5 个",
++    "  豆腐         1 块",
++    "米面粮油",
++    "  大米         640 g",
++    "  面条         200 g",
++    "调味品",
++    "  郫县豆瓣酱   15 ml",
++    "  白胡椒粉     适量",
++    "其他",
++    "  可乐         2 罐",
++    "",
++    "常备，不用买：食用油、盐、糖、生抽、花椒",
++    "",
++]
++
++
++def shop_47(path: Path | str) -> list[str]:
++    """Gives the 26 lines of the English output for 2026-W47, saved at the list file ``path``."""
++    return [*_EN_GROUPS, f"Saved {path}"]
++
++
++def shop_47_zh(path: Path | str) -> list[str]:
++    """Gives the 26 lines of the Chinese output for 2026-W47, saved at the list file ``path``."""
++    return [*_ZH_GROUPS, f"已保存 {path}"]
++
++
++_FILE_ZH = [
++    "# 2026-W47 购物清单",
++    "",
++    "2026年11月16日至22日：4 餐，9 道菜。",
++    "",
++    "## 蔬菜水果",
++    "",
++    "- [ ] 番茄 600 g",
++    "- [ ] 菜心 1.5 kg",
++    "- [ ] 葱 5 根",
++    "- [ ] 姜 6 片",
++    "- [ ] 大蒜 11 瓣",
++    "",
++    "## 肉类水产",
++    "",
++    "- [ ] 猪肉末 100 g",
++    "- [ ] 鸡翅中 1 kg",
++    "",
++    "## 蛋奶豆制品",
++    "",
++    "- [ ] 鸡蛋 5 个",
++    "- [ ] 豆腐 1 块",
++    "",
++    "## 米面粮油",
++    "",
++    "- [ ] 大米 640 g",
++    "- [ ] 面条 200 g",
++    "",
++    "## 调味品",
++    "",
++    "- [ ] 郫县豆瓣酱 15 ml",
++    "- [ ] 白胡椒粉 适量",
++    "",
++    "## 其他",
++    "",
++    "- [ ] 可乐 2 罐",
++    "",
++    "常备，不用买：食用油、盐、糖、生抽、花椒",
++]
++_FILE_EN = [
++    "# Shopping list for 2026-W47",
++    "",
++    "16 to 22 November 2026: 4 meals, 9 dishes.",
++    "",
++    "## Vegetables and fruit",
++    "",
++    "- [ ] Tomato 600 g",
++    "- [ ] Choy sum 1.5 kg",
++    "- [ ] Scallion 5 stalks",
++    "- [ ] Ginger 6 slices",
++    "- [ ] Garlic 11 cloves",
++    "",
++    "## Meat and seafood",
++    "",
++    "- [ ] Minced pork 100 g",
++    "- [ ] Chicken wings 1 kg",
++    "",
++    "## Eggs, dairy, and tofu",
++    "",
++    "- [ ] Egg 5 pieces",
++    "- [ ] Tofu 1 block",
++    "",
++    "## Rice, flour, and oil",
++    "",
++    "- [ ] Rice 640 g",
++    "- [ ] Noodles 200 g",
++    "",
++    "## Seasonings",
++    "",
++    "- [ ] Doubanjiang 15 ml",
++    "- [ ] White pepper to taste",
++    "",
++    "## Other",
++    "",
++    "- [ ] Cola 2 cans",
++    "",
++    "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar, Soy sauce, "
++    "Sichuan pepper",
++]
++
++
++def _file_bytes(lines: list[str]) -> bytes:
++    """Gives the lines as UTF-8 bytes, each ended by LF, the last one included."""
++    return lines_text(*lines).encode("utf-8")
++
++
++# The file of the Chinese run, the block "The saved file" of the prototype, and of an English run.
++PROTOTYPE_FILE = _file_bytes(_FILE_ZH)
++FILE_47 = _file_bytes(_FILE_EN)
++LINES_FILE_ZH = _FILE_ZH
++LINES_FILE_EN = _FILE_EN
++
++# ---------------------------------------------------------------- a week with no dish
++
++
++def no_dishes(week: str) -> str:
++    """Gives ``NO_DISHES`` in English for a week."""
++    return f"The menu for {week} has no dishes, so there is nothing to buy. No file was saved."
++
++
++def no_dishes_zh(week: str) -> str:
++    """Gives ``NO_DISHES`` in Chinese for a week."""
++    return f"{week} 的菜单没有菜，所以没有要买的东西。没有保存文件。"
++
++
++# ---------------------------------------------------------------- a failed save
++
++
++def shop_fail(path: Path | str, msg: Msg) -> list[str]:
++    """Gives the three lines of a failure in English: the list file, the problem, and the end."""
++    return [str(path), f"  {msg[0]}", "No file was saved."]
++
++
++def shop_fail_zh(path: Path | str, msg: Msg) -> list[str]:
++    """Gives the three lines of a failure in Chinese."""
++    return [str(path), f"  {msg[1]}", "没有保存文件。"]
++
++
++def shop_left(path: Path | str, msg: Msg, temp: Path | str) -> list[str]:
++    """Gives the three lines of a failure in English when ``temp`` could not be removed."""
++    last = f"No file was saved, but shop could not remove {temp}. Delete it."
++    return [str(path), f"  {msg[0]}", last]
++
++
++def shop_left_zh(path: Path | str, msg: Msg, temp: Path | str) -> list[str]:
++    """Gives the three lines of a failure in Chinese when ``temp`` could not be removed."""
++    return [str(path), f"  {msg[1]}", f"没有保存文件，但 shop 没能删除 {temp}。请删除它。"]
++
++
++def parent(folder: str) -> Msg:
++    """Gives ``PARENT_NOT_A_FOLDER`` for a folder written as the problem writes it."""
++    return (
++        f'The file cannot be written: "{folder}" is not a folder.',
++        f"无法写入文件：“{folder}”不是文件夹。",
++    )
+diff --git a/tests/test_f13_cli.py b/tests/test_f13_cli.py
+new file mode 100644
+index 0000000..7ffd9a4
+--- /dev/null
++++ b/tests/test_f13_cli.py
+@@ -0,0 +1,48 @@
++"""Tests of F13 for what cli reports before it runs shop (T22)."""
++
++from pathlib import Path
++
++from f05_support import make_home
++from f05_texts import HELP_EN, HELP_ZH, no_data_folder
++from f07_changes import broken_settings
++from f09_support import at, made
++from f09_texts import E_SETTINGS, RUN_HELP_COMMANDS, RUN_HELP_OPTIONS, ZH, err, out, stop
++from f13_support import pristine
++from f13_texts import shop_47
++from recipe_menu.datafile import DataFolder
++
++
++def test_f13_t22_cli_reports_the_mistakes_of_the_command_line_before_it_runs_shop(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Two weeks, an option, ``--help``, a missing folder, broken settings, and then the list."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    two_weeks = 'Unexpected argument "2026-W48". Write "recipe-menu shop [WEEK]".'
++    two_weeks_zh = "多余的参数“2026-W48”。请写成“recipe-menu shop [周]”。"
++    tag = '"shop" has no option "--tag". It has no options of its own.'
++    tag_zh = "“shop”没有选项“--tag”。它没有自己的选项。"
++    lines = [
++        (("shop", "2026-W47", "2026-W48"), err(2, [two_weeks, RUN_HELP_COMMANDS[0]])),
++        (
++            ("shop", "2026-W47", "2026-W48", "--lang", "zh"),
++            err(2, [two_weeks_zh, RUN_HELP_COMMANDS[1]]),
++        ),
++        (("shop", "--tag", "x"), err(2, [tag, RUN_HELP_OPTIONS[0]])),
++        (("shop", "--tag", "x", "--lang", "zh"), err(2, [tag_zh, RUN_HELP_OPTIONS[1]])),
++        (("shop", "next", "--help"), (0, HELP_EN, "")),
++        (("shop", "2026-W99", "--help", "--lang", "zh"), (0, HELP_ZH, "")),
++    ]
++    for argv, expected in lines:
++        assert at(home, example_folder, *argv) == expected, argv
++    assert not example_folder.shopping.exists()
++    missing = tmp_path / "missing"
++    assert at(home, missing, "shop") == no_data_folder(missing)
++    assert at(home, missing, "shop", "next", "--lang", "zh") == no_data_folder(missing, ZH)
++    assert not missing.exists()
++    broken = made(source, tmp_path, "broken", broken_settings)
++    assert at(home, broken, "shop", "2026-W47") == stop(E_SETTINGS)
++    assert not (broken / "shopping").exists()
++    assert not example_folder.shopping.exists()
++    file = example_folder.shopping_file("2026-W47")
++    assert at(home, example_folder, "shop", "2026-W47") == out(shop_47(file))
+diff --git a/tests/test_f13_command.py b/tests/test_f13_command.py
+new file mode 100644
+index 0000000..1d3e80b
+--- /dev/null
++++ b/tests/test_f13_command.py
+@@ -0,0 +1,157 @@
++"""Tests of F13 for SHOP_COMMAND, its run, the week argument, and the help (T01, T02)."""
++
++import io
++from datetime import date
++from pathlib import Path
++
++import pytest
++
++from f05_support import make_home
++from f05_texts import HELP_EN, HELP_ZH, lines_text
++from f06_support import MEALS_DINNER, m_unknown_meal
++from f07_support import call
++from f07_texts import Prob, p_slot
++from f09_support import new_context, run_command
++from f09_texts import E_NO_CATALOG, EN, out, stop
++from f11_texts import not_a_week, not_a_week_zh
++from f13_blocks import block_a
++from f13_support import old_list, shop_faults
++from f13_texts import FILE_47, PROTOTYPE_FILE, shop_47, shop_47_zh
++from recipe_menu.app import Argument, Arguments, Context, FolderUse, UsageError
++from recipe_menu.commands.shop import SHOP_COMMAND
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import BiText, Lang
++from recipe_menu.settings import Meal, Settings
++from recipe_menu.text import Message
++
++BAD_WEEKS = [
++    "2026-W99",
++    "Next",
++    "THIS",
++    "",
++    " 2026-W47",
++    "2026-W47\n",
++    "2026-w47",
++    "2026-W7",
++    "2025-W53",
++    "2026-W00",
++    "this week",
++    "\uff12\uff10\uff12\uff16-W47",
++]
++GOOD_WEEKS = [(), ("this",), ("next",), ("2026-W47",), ("2026-W53",), ("0001-W01",)]
++
++
++def _check_fields() -> None:
++    """Checks the fields of ``SHOP_COMMAND``."""
++    assert SHOP_COMMAND.words == ("shop",)
++    assert SHOP_COMMAND.usage == BiText("shop [WEEK]", "shop [周]")
++    assert SHOP_COMMAND.help_line.render(Lang.EN) == "Make the shopping list of a week menu."
++    assert SHOP_COMMAND.help_line.render(Lang.ZH) == "生成一个周菜单的购物清单。"
++    assert SHOP_COMMAND.argument == Argument(Message("WEEK", "周"), required=False)
++    assert SHOP_COMMAND.options == ()
++    assert SHOP_COMMAND.folder is FolderUse.READ
++
++
++def _check_example(example: DataFolder, home: Path) -> None:
++    """Runs the example of 2.1, then the call that raises and the two helps, and checks them."""
++    stdout, stderr = io.StringIO(), io.StringIO()
++    context = Context(Lang.EN, example, Settings(), stdout, stderr, date(2026, 11, 10))
++    assert SHOP_COMMAND.run(context, Arguments(("next",))) == 0
++    file = example.shopping_file("2026-W47")
++    assert stdout.getvalue() == lines_text(*shop_47(file))
++    assert stderr.getvalue() == ""
++    text = file.read_bytes().decode("utf-8")
++    assert text.split("\n")[:7] == [
++        "# Shopping list for 2026-W47",
++        "",
++        "16 to 22 November 2026: 4 meals, 9 dishes.",
++        "",
++        "## Vegetables and fruit",
++        "",
++        "- [ ] Tomato 600 g",
++    ]
++    pantry = "Cooking oil, Salt, Sugar, Soy sauce, Sichuan pepper"
++    assert text.endswith(
++        f"- [ ] Cola 2 cans\n\nNot on the list, because they are in the pantry: {pantry}\n"
++    )
++    assert "\r" not in text
++    assert [path.name for path in example.shopping.iterdir()] == ["2026-W47.md"]
++    assert file.read_bytes() == FILE_47
++    assert call(home, ["--help"]) == (0, HELP_EN, "")
++    assert call(home, ["--help", "--lang", "zh"]) == (0, HELP_ZH, "")
++    context, stdout, stderr = new_context(Lang.EN, example)
++    with pytest.raises(UsageError):
++        SHOP_COMMAND.run(context, Arguments(("2026-W99",)))
++    assert (stdout.getvalue(), stderr.getvalue()) == ("", "")
++    assert [path.name for path in example.shopping.iterdir()] == ["2026-W47.md"]
++    assert file.read_bytes() == FILE_47
++
++
++def test_f13_t01_the_shop_command_takes_its_week_and_settings_and_the_help_lists_it(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The example of 2.1, then the runs of inputs 1 to 5 and the whole help."""
++    home = make_home(tmp_path)
++    example = example_folder
++    _check_fields()
++    _check_example(example, home)
++    file = example.shopping_file("2026-W47")
++    every = Settings(Lang.ZH, tuple(Meal), 3)
++    result = run_command(
++        SHOP_COMMAND, Lang.EN, example, Arguments(("2026-W47",)), every, today=date(2030, 1, 1)
++    )
++    assert result == out(block_a(file))
++    assert file.read_bytes().startswith(b"# Shopping list for 2026-W47\n")
++    assert b"- [ ] Tomato 900 g\n" in file.read_bytes()
++    lunch_dinner = Settings(Lang.EN, (Meal.LUNCH, Meal.DINNER), 2)
++    result = run_command(
++        SHOP_COMMAND, Lang.ZH, example, Arguments(()), lunch_dinner, today=date(2026, 11, 17)
++    )
++    assert result == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    dinner = Settings(Lang.EN, (Meal.DINNER,), 5)
++    saturday = Prob(
++        "menus/2026-W47.toml", p_slot("saturday", "lunch"), m_unknown_meal("lunch", MEALS_DINNER)
++    )
++    result = run_command(
++        SHOP_COMMAND, Lang.EN, example, Arguments(()), dinner, today=date(2026, 11, 17)
++    )
++    assert result == stop(saturday)
++    assert file.read_bytes() == PROTOTYPE_FILE
++    for _ in range(2):
++        result = run_command(SHOP_COMMAND, Lang.EN, example, Arguments(("next",)))
++        assert result == out(shop_47(file))
++        assert file.read_bytes() == FILE_47
++
++
++def _check_wrong_week(folder: DataFolder, value: str) -> None:
++    """Runs ``shop`` with a value that is not a week, and checks the error and the streams."""
++    context, stdout, stderr = new_context(EN, folder)
++    with pytest.raises(UsageError) as caught:
++        SHOP_COMMAND.run(context, Arguments((value,)))
++    assert (stdout.getvalue(), stderr.getvalue()) == ("", "")
++    raised = caught.value
++    assert raised.text(EN) == not_a_week(value)
++    assert raised.text(Lang.ZH) == not_a_week_zh(value)
++    assert (raised.hint, raised.values) == (None, (("week", value),))
++
++
++def test_f13_t02_a_value_that_is_not_a_week_raises_before_the_disk_is_touched(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Step 1: twelve wrong values raise ``UsageError``, and six good ones pass."""
++    folder = DataFolder(tmp_path / "missing")
++    with shop_faults(tmp_path) as state:
++        for value in BAD_WEEKS:
++            _check_wrong_week(folder, value)
++        assert (state.calls, state.listings) == ([], [])
++        for values in GOOD_WEEKS:
++            result = run_command(SHOP_COMMAND, EN, folder, Arguments(values))
++            assert result == stop(E_NO_CATALOG), values
++    assert not (tmp_path / "missing").exists()
++    old_list(example_folder.root)
++    with shop_faults(example_folder.root) as state:
++        for value in BAD_WEEKS:
++            _check_wrong_week(example_folder, value)
++        assert (state.calls, state.listings) == ([], [])
++    assert example_folder.shopping_file("2026-W47").read_bytes() == b"old\n"
+diff --git a/tests/test_f13_failures.py b/tests/test_f13_failures.py
+new file mode 100644
+index 0000000..c28b823
+--- /dev/null
++++ b/tests/test_f13_failures.py
+@@ -0,0 +1,279 @@
++"""Tests of F13 for shop when the save fails: the harness, Ctrl+C, real failures (T19-T21)."""
++
++import os
++import sys
++from collections.abc import Sequence
++from pathlib import Path
++from typing import NamedTuple
++
++from f05_support import make_home
++from f05_texts import Result
++from f08_support import (
++    CTRL_C,
++    DENIED,
++    IO,
++    NO_SPACE,
++    Effect,
++    Rule,
++    call_main,
++    dangling_link,
++    rule,
++)
++from f08_texts import FILE_WRITE_DENIED, FOLDER_CREATE_DENIED, file_error, folder_error
++from f09_support import at, made
++from f09_texts import err, out
++from f11_support import first_half, held
++from f13_support import (
++    TEMP_47,
++    W47,
++    empty_shopping,
++    held_open,
++    move_message,
++    old_list,
++    pristine,
++    shop_faults,
++    shopping_as_file,
++)
++from f13_texts import (
++    FILE_47,
++    PROTOTYPE_FILE,
++    parent,
++    shop_47,
++    shop_47_zh,
++    shop_fail,
++    shop_fail_zh,
++    shop_left,
++    shop_left_zh,
++)
++from recipe_menu.datafile import DataFolder
++
++NO_SPACE_MSG = file_error("No space left on device")
++IO_MSG = file_error("Input/output error")
++OLD = b"old\n"
++UNLINK = f"unlink {TEMP_47}"
++OPEN = f"open {TEMP_47}"
++MOVE = f"move {TEMP_47} shopping/2026-W47.md"
++EN = ["2026-W47"]
++ZH = ["2026-W47", "--lang", "zh"]
++
++
++def _paths(root: Path) -> tuple[Path, Path]:
++    """Gives P and T of 2026-W47 in a data folder."""
++    path = root / "shopping" / "2026-W47.md"
++    return path, path.with_name("2026-W47.md.tmp")
++
++
++def _run_lines(
++    home: Path, root: Path, rules: Sequence[Rule], *lines: list[str]
++) -> tuple[list[Result], list[str]]:
++    """Runs ``shop`` once for each list of arguments inside one harness.
++
++    Returns:
++        The results in order, and the record of the last call.
++    """
++    done = []
++    record: list[str] = []
++    with shop_faults(root, *rules) as state:
++        for argv in lines:
++            before = len(state.calls)
++            done.append(at(home, root, "shop", *argv))
++            record = state.calls[before:]
++    return done, record
++
++
++def _entries(root: Path) -> list[str]:
++    """Gives the sorted names in ``shopping/``."""
++    return sorted(entry.name for entry in (root / "shopping").iterdir())
++
++
++class Failure(NamedTuple):
++    """An input of F13-T19.
++
++    Attributes:
++        old: Whether an old list is in place.
++        kind: The kind of the rule, such as ``open``.
++        target: ``"shopping"`` or ``"temp"``, the path that the rule names.
++        effect: The exception that the rule raises.
++        message: The problem's text in English and in Chinese.
++        lines: The arguments of each run of ``shop``.
++    """
++
++    old: bool
++    kind: str
++    target: str
++    effect: Effect
++    message: tuple[str, str]
++    lines: tuple[list[str], ...]
++
++
++CASES_19 = {
++    1: Failure(False, "mkdir", "shopping", DENIED, FOLDER_CREATE_DENIED, (EN, ZH)),
++    2: Failure(False, "mkdir", "shopping", IO, folder_error("Input/output error"), (EN,)),
++    3: Failure(True, "open", "temp", DENIED, FILE_WRITE_DENIED, (EN, ZH)),
++    4: Failure(True, "open", "temp", IO, IO_MSG, (EN,)),
++    5: Failure(True, "write", "temp", NO_SPACE, NO_SPACE_MSG, (EN,)),
++    8: Failure(True, "close", "temp", IO, IO_MSG, (EN,)),
++    9: Failure(True, "move", "temp", DENIED, FILE_WRITE_DENIED, (EN, ZH)),
++}
++
++
++def test_f13_t19_a_failed_save_is_three_lines_on_the_error_stream(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Ten inputs: the full path, the problem, the last line, the old file, and the next run."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    for number, case in CASES_19.items():
++        root = made(source, tmp_path, f"in{number}", *([old_list] if case.old else []))
++        path, temp = _paths(root)
++        target = root / "shopping" if case.target == "shopping" else temp
++        results, record = _run_lines(
++            home, root, [rule(case.kind, target, case.effect)], *case.lines
++        )
++        assert results[0] == err(1, shop_fail(path, case.message)), number
++        if len(results) == 2:
++            assert results[1] == err(1, shop_fail_zh(path, case.message)), number
++        if number == 5:
++            assert record[-3:] == [UNLINK, OPEN, UNLINK], number
++        if number == 9:
++            assert record[-2:] == [MOVE, UNLINK], number
++        assert held(path) == (OLD if case.old else None), number
++        assert (root / "shopping").exists() == case.old, number
++        assert not [entry for entry in root.rglob("*") if entry.name.endswith(".tmp")], number
++    _check_left(home, source, tmp_path)
++    _check_folder_stays(home, source, tmp_path)
++
++
++def _check_left(home: Path, source: DataFolder, tmp_path: Path) -> None:
++    """Inputs 6 and 7 of F13-T19: the temporary file cannot be removed, and the line names it."""
++    root = made(source, tmp_path, "in6", old_list)
++    path, temp = _paths(root)
++    rules = [rule("write", temp, NO_SPACE), rule("unlink", temp, DENIED, "later")]
++    results, _ = _run_lines(home, root, rules, ["next"])
++    assert results == [err(1, shop_left(path, NO_SPACE_MSG, temp))]
++    assert temp.read_bytes() == first_half(FILE_47)
++    assert held(path) == OLD
++    assert at(home, root, "shop", "next") == out(shop_47(path))
++    assert (path.read_bytes(), _entries(root)) == (FILE_47, ["2026-W47.md"])
++    root = made(source, tmp_path, "in7", old_list)
++    path, temp = _paths(root)
++    rules = [rule("write", temp, NO_SPACE), rule("unlink", temp, DENIED, "later")]
++    results, _ = _run_lines(home, root, rules, ZH)
++    assert results == [err(1, shop_left_zh(path, NO_SPACE_MSG, temp))]
++    assert held(path) == OLD
++
++
++def _check_folder_stays(home: Path, source: DataFolder, tmp_path: Path) -> None:
++    """Input 10 of F13-T19: a folder that ``shop`` made stays when the write fails."""
++    root = made(source, tmp_path, "in10")
++    path, temp = _paths(root)
++    results, _ = _run_lines(home, root, [rule("write", temp, NO_SPACE)], EN)
++    assert results == [err(1, shop_fail(path, NO_SPACE_MSG))]
++    assert (root / "shopping").is_dir()
++    assert _entries(root) == []
++    assert at(home, root, "shop", "2026-W47") == out(shop_47(path))
++    assert path.read_bytes() == FILE_47
++
++
++class Stop(NamedTuple):
++    """An input of F13-T20: the rules, the line, and the end of the record the case expects."""
++
++    rules: tuple[tuple[str, Effect, str], ...]
++    line: list[str]
++    record: list[str]
++
++
++CASES_20 = {
++    1: Stop((("write", CTRL_C, "raise"),), EN, [UNLINK, OPEN, UNLINK]),
++    2: Stop((("move", CTRL_C, "raise"),), EN, [OPEN, MOVE, UNLINK]),
++    3: Stop((("open", CTRL_C, "after"),), EN, [UNLINK, OPEN]),
++    4: Stop((("write", CTRL_C, "raise"), ("unlink", DENIED, "later")), ZH, [UNLINK, OPEN, UNLINK]),
++}
++
++
++def test_f13_t20_ctrl_c_during_the_save_exits_with_130_and_keeps_the_old_file(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Four inputs: ``temp`` is removed, or it stays empty after an open that was cut."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    for number, case in CASES_20.items():
++        root = made(source, tmp_path, f"in{number}", old_list)
++        path, temp = _paths(root)
++        rules = [rule(kind, temp, effect, how) for kind, effect, how in case.rules]
++        with shop_faults(root, *rules) as state:
++            result = call_main(home, ["shop", *case.line, "--data", str(root)])
++        assert result == (130, "", ""), number
++        assert state.calls[-len(case.record) :] == case.record, number
++        assert held(path) == OLD, number
++        if number == 3:
++            assert held(temp) == b"", number
++        elif number == 4:
++            half = PROTOTYPE_FILE.decode("utf-8")
++            assert held(temp) == half[: len(half) // 2].encode("utf-8")
++        else:
++            assert not temp.exists(), number
++        if number in (3, 4):
++            with shop_faults(root) as again:
++                shown = call_main(home, ["shop", *case.line, "--data", str(root)])
++            expected = shop_47(path) if number == 3 else shop_47_zh(path)
++            assert shown == out(expected), number
++            assert again.calls[-3:] == W47, number
++            assert not temp.exists()
++            assert path.read_bytes() == (FILE_47 if number == 3 else PROTOTYPE_FILE)
++
++
++def _check_not_a_folder(home: Path, source: DataFolder, tmp_path: Path) -> None:
++    """Inputs 1 and 2 of F13-T21: a file and a dangling link at ``shopping``."""
++    root = made(source, tmp_path, "in1", shopping_as_file)
++    path, _ = _paths(root)
++    assert at(home, root, "shop", "2026-W47") == err(1, shop_fail(path, parent("shopping")))
++    assert at(home, root, "shop", *ZH) == err(1, shop_fail_zh(path, parent("shopping")))
++    assert (root / "shopping").read_bytes() == b"x\n"
++    (root / "shopping").unlink()
++    assert at(home, root, "shop", "2026-W47") == out(shop_47(path))
++    assert (path.read_bytes(), _entries(root)) == (FILE_47, ["2026-W47.md"])
++    root = made(source, tmp_path, "in2")
++    dangling_link(root / "shopping")
++    path, _ = _paths(root)
++    assert at(home, root, "shop", "2026-W47") == err(1, shop_fail(path, parent("shopping")))
++    link = root / "shopping"
++    assert link.is_symlink() or os.path.isjunction(link)
++
++
++def _check_file_system(home: Path, source: DataFolder, tmp_path: Path) -> None:
++    """Inputs 3 and 4 of F13-T21: a folder at the list file's path, and a file held open."""
++    root = made(source, tmp_path, "in3", empty_shopping)
++    path, temp = _paths(root)
++    path.mkdir()
++    messages = tmp_path / "messages"
++    messages.mkdir()
++    message = move_message(messages)
++    assert at(home, root, "shop", "2026-W47") == err(1, shop_fail(path, message))
++    assert path.is_dir()
++    assert not temp.exists()
++    path.rmdir()
++    assert at(home, root, "shop", "2026-W47") == out(shop_47(path))
++    assert path.read_bytes() == FILE_47
++    root = made(source, tmp_path, "in4", old_list)
++    path, temp = _paths(root)
++    with held_open(path):
++        shown = at(home, root, "shop", "2026-W47")
++    if sys.platform == "win32":
++        assert shown == err(1, shop_fail(path, FILE_WRITE_DENIED))
++        assert (path.read_bytes(), temp.exists()) == (OLD, False)
++    else:
++        assert shown == out(shop_47(path))
++        assert path.read_bytes() == FILE_47
++    assert at(home, root, "shop", "2026-W47") == out(shop_47(path))
++    assert (path.read_bytes(), _entries(root)) == (FILE_47, ["2026-W47.md"])
++
++
++def test_f13_t21_real_failures_of_the_file_system_give_the_failure_lines(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """A file at ``shopping``, a dangling link, a folder at the list file, and a held file."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    _check_not_a_folder(home, source, tmp_path)
++    _check_file_system(home, source, tmp_path)
+diff --git a/tests/test_f13_integration.py b/tests/test_f13_integration.py
+new file mode 100644
+index 0000000..bf9a013
+--- /dev/null
++++ b/tests/test_f13_integration.py
+@@ -0,0 +1,217 @@
++"""Tests of F13 for shop with the whole program: folders, v0.1 steps, entry point (T23-T28)."""
++
++from datetime import date
++from pathlib import Path
++
++import pytest
++
++from f05_support import copy_example, make_home, run_module
++from f05_texts import HELP_EN, no_data_folder
++from f07_changes import edit, make_init
++from f07_support import call, snapshot
++from f09_support import at, made
++from f09_texts import RUN_HELP_OPTIONS, err, out
++from f10_support import bom_and_crlf, chinese_settings
++from f11_support import empty_menus, on
++from f11_texts import no_menu, not_a_week, not_a_week_zh
++from f12_support import s18_changes
++from f13_blocks import block_c, block_c_zh, block_g, block_g_zh
++from f13_support import (
++    empty_shopping,
++    pristine,
++    shop_file,
++    shop_list,
++    shopping_as_file,
++)
++from f13_texts import (
++    FILE_47,
++    PROTOTYPE_FILE,
++    no_dishes,
++    no_dishes_zh,
++    parent,
++    shop_47,
++    shop_47_zh,
++    shop_fail,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.menus import IsoWeek
++
++
++def _check_file(root: Path, expected: bytes) -> None:
++    """Checks the saved file of 2026-W47: its bytes, no byte order mark, and no CR."""
++    data = (root / "shopping" / "2026-W47.md").read_bytes()
++    assert data == expected
++    assert not data.startswith(b"\xef\xbb\xbf")
++    assert b"\r" not in data
++
++
++def _check_settings_and_bom(home: Path, source: DataFolder, tmp_path: Path) -> None:
++    """Inputs 5 and 6 of F13-T23: Chinese settings, and a byte order mark with CRLF."""
++    c = made(source, tmp_path, "c", chinese_settings)
++    file = c / "shopping" / "2026-W47.md"
++    assert at(home, c, "shop", "2026-W47") == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    assert at(home, c, "shop", "2026-W47", "--lang", "en") == out(shop_47(file))
++    assert file.read_bytes() == FILE_47
++    d = made(source, tmp_path, "d", bom_and_crlf)
++    assert at(home, d, "shop", "2026-W47") == out(shop_47(d / "shopping" / "2026-W47.md"))
++    _check_file(d, FILE_47)
++
++
++def test_f13_t23_shop_uses_the_folder_and_the_language_that_cli_picks(
++    example_folder: DataFolder, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    """``--data``, ``RECIPE_MENU_DATA``, ``~/recipe-menu``, ``--lang``, the settings, and BOM."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    b = copy_example(source, tmp_path / "One Drive" / "菜谱")
++    environ = {"RECIPE_MENU_DATA": str(b)}
++    shown = at(home, None, "shop", "2026-W47", environ=environ)
++    assert shown == out(shop_47(b / "shopping" / "2026-W47.md"))
++    _check_file(b, FILE_47)
++    assert at(home, None, "shop", "2026-W47") == no_data_folder(home / "recipe-menu")
++    by_home = copy_example(source, home / "recipe-menu")
++    shown = at(home, None, "shop", "2026-W47")
++    assert shown == out(shop_47(by_home / "shopping" / "2026-W47.md"))
++    _check_file(by_home, FILE_47)
++    cwd = tmp_path / "cwd"
++    copy_example(source, cwd / "rel")
++    monkeypatch.chdir(cwd)
++    shown = call(home, ["shop", "2026-W47", "--data", "rel"])
++    assert shown == out(shop_47(Path.cwd() / "rel" / "shopping" / "2026-W47.md"))
++    _check_file(Path.cwd() / "rel", FILE_47)
++    other = copy_example(source, home / "other")
++    shown = call(home, ["shop", "2026-W47", "--data", "~/other"])
++    assert shown == out(shop_47(other / "shopping" / "2026-W47.md"))
++    _check_file(other, FILE_47)
++    _check_settings_and_bom(home, source, tmp_path)
++
++
++# The dates of F13-T24 with the week of the date and the week 7 days later.
++DAYS = [
++    (date(2026, 11, 10), "2026-W46", "2026-W47"),
++    (date(2026, 12, 30), "2026-W53", "2027-W01"),
++    (date(2027, 1, 3), "2026-W53", "2027-W01"),
++]
++
++
++def test_f13_t24_v0_1_s14_a_new_empty_menu_gives_no_dishes_and_saves_nothing(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """``menu new`` makes two empty menus, and ``shop`` says that there is nothing to buy."""
++    home = make_home(tmp_path)
++    for number, (today, this, following) in enumerate(DAYS):
++        root = made(example_folder, tmp_path, f"day{number}", empty_menus, empty_shopping)
++        assert on(home, root, today, "menu", "new")[0] == 0
++        assert on(home, root, today, "menu", "new", "next")[0] == 0
++        names = sorted(path.name for path in (root / "menus").iterdir())
++        assert names == sorted([f"{this}.toml", f"{following}.toml"])
++        assert on(home, root, today, "shop") == out([no_dishes(this)])
++        assert on(home, root, today, "shop", "next") == out([no_dishes(following)])
++        assert on(home, root, today, "shop", "this", "--lang", "zh") == out([no_dishes_zh(this)])
++        assert list((root / "shopping").iterdir()) == []
++
++
++def test_f13_t25_v0_1_s16_the_settings_name_the_meals_and_the_servings_of_the_list(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The init folder with three meals and 3 servings: a new menu, one dish, and the list."""
++    home = make_home(tmp_path)
++    root = make_init(example_folder, tmp_path / "init")
++    settings = root / "settings.toml"
++    edit(settings, 'meals = ["lunch", "dinner"]', 'meals = ["breakfast", "lunch", "dinner"]')
++    edit(settings, "servings = 2 ", "servings = 3 ")
++    file = root / "shopping" / "2026-W48.md"
++    assert at(home, root, "menu", "new", "2026-W48")[0] == 0
++    edit(
++        root / "menus" / "2026-W48.toml",
++        "[monday]\nbreakfast = []",
++        '[monday]\nbreakfast = ["tomato-egg"]',
++    )
++    assert at(home, root, "menu", "show", "2026-W48")[0] == 0
++    english = at(home, root, "shop", "2026-W48")
++    assert english == out(block_c(file))
++    assert (
++        english[1].split("\n")[0]
++        == "Shopping list for 2026-W48, 23 to 29 November 2026: 1 meal, 1 dish"
++    )
++    assert english[1].split("\n")[-4] == (
++        "Not on the list, because they are in the pantry: Cooking oil, Salt, Sugar"
++    )
++    assert at(home, root, "shop", "2026-W48", "--lang", "zh") == out(block_c_zh(file))
++
++
++def test_f13_t26_v0_1_s18_amounts_that_cannot_be_added_share_one_line(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Amounts that cannot be added share one line, in English and in Chinese."""
++    home = make_home(tmp_path)
++    root = made(example_folder, tmp_path, "s18", lambda path: s18_changes(DataFolder(path)))
++    file = root / "shopping" / "2026-W48.md"
++    shopping = shop_list(DataFolder(root), IsoWeek(2026, 48))
++    english = at(home, root, "shop", "2026-W48")
++    assert english == out(block_g(file))
++    assert "  Scallion       5 stalks + 1 bunch\n" in english[1]
++    assert "  Soy sauce      30 ml + 10 g\n" in english[1]
++    assert file.read_bytes() == shop_file(shopping, Lang.EN)
++    assert b"- [ ] Scallion 5 stalks + 1 bunch\n" in file.read_bytes()
++    chinese = at(home, root, "shop", "2026-W48", "--lang", "zh")
++    assert chinese == out(block_g_zh(file))
++    assert "  葱         5 根 + 1 把\n" in chinese[1]
++    assert "  生抽       30 ml + 10 g\n" in chinese[1]
++    assert file.read_bytes() == shop_file(shopping, Lang.ZH)
++    assert "- [ ] 葱 5 根 + 1 把\n".encode() in file.read_bytes()
++
++
++def test_f13_t27_v0_1_s23_two_runs_change_only_the_list_file_of_the_week(
++    example_folder: DataFolder, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    """A snapshot of ``home`` and of the current folder is the same after each run but one file."""
++    home = make_home(tmp_path)
++    root = copy_example(pristine(example_folder, tmp_path), home / "recipe-menu")
++    (root / "shopping").mkdir()
++    cwd = tmp_path / "cwd"
++    cwd.mkdir()
++    monkeypatch.chdir(cwd)
++    tag = '"shop" has no option "--tag". It has no options of its own.'
++    before = (snapshot(home), snapshot(cwd))
++    assert at(home, None, "shop", "2026-W48") == err(1, [no_menu("2026-W48")])
++    assert at(home, None, "shop", "2026-W99") == err(2, [not_a_week("2026-W99")])
++    assert at(home, None, "shop", "--help") == (0, HELP_EN, "")
++    assert at(home, None, "shop", "--tag", "x") == err(2, [tag, RUN_HELP_OPTIONS[0]])
++    assert (snapshot(home), snapshot(cwd)) == before
++    skip = {"recipe-menu/shopping", "recipe-menu/shopping/2026-W47.md"}
++    file = root / "shopping" / "2026-W47.md"
++    for _ in range(2):
++        before = (snapshot(home), snapshot(cwd))
++        assert at(home, None, "shop", "2026-W47") == out(shop_47(file))
++        after = snapshot(home)
++        assert {k: v for k, v in after.items() if k not in skip} == {
++            k: v for k, v in before[0].items() if k not in skip
++        }
++        assert after["recipe-menu/shopping/2026-W47.md"][0] == FILE_47
++        assert [path.name for path in (root / "shopping").iterdir()] == ["2026-W47.md"]
++        assert snapshot(cwd) == before[1]
++
++
++def test_f13_t28_python_dash_m_runs_shop_and_writes_utf8(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The real entry point: a Chinese list, an English list, a wrong week, no menu, a file."""
++    source = pristine(example_folder, tmp_path)
++    root = example_folder.root
++    file = example_folder.shopping_file("2026-W47")
++    zh = run_module(tmp_path, "shop", "2026-W47", "--lang", "zh", "--data", str(root))
++    assert zh == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    en = run_module(tmp_path, "shop", "2026-W47", "--data", str(root))
++    assert en == out(shop_47(file))
++    assert file.read_bytes() == FILE_47
++    wrong = run_module(tmp_path, "shop", "2026-W99", "--lang", "zh", "--data", str(root))
++    assert wrong == err(2, [not_a_week_zh("2026-W99")])
++    assert run_module(tmp_path, "shop", "2026-W48", data=root) == err(1, [no_menu("2026-W48")])
++    x = made(source, tmp_path, "x", shopping_as_file)
++    shown = run_module(tmp_path, "shop", "2026-W47", "--data", str(x))
++    path = x / "shopping" / "2026-W47.md"
++    assert shown == err(1, shop_fail(path, parent("shopping")))
+diff --git a/tests/test_f13_performance.py b/tests/test_f13_performance.py
+new file mode 100644
+index 0000000..8834576
+--- /dev/null
++++ b/tests/test_f13_performance.py
+@@ -0,0 +1,56 @@
++"""Test of F13 for the performance target PT01 of recipe-menu shop (T30)."""
++
++from collections.abc import Callable
++from pathlib import Path
++
++import pytest
++
++from f13_support import pt01_shop, shop_file, shop_list
++from pt01_support import command_run, command_runs, make_pt01, record_times, time_limit
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.menus import IsoWeek
++
++CATEGORIES = [
++    "Vegetables and fruit",
++    "Meat and seafood",
++    "Eggs, dairy, and tofu",
++    "Rice, flour, and oil",
++    "Seasonings",
++    "Other",
++]
++
++
++def _check_facts(text: str) -> None:
++    """Checks the facts that the plan takes from the model: the lines, the groups, the pantry."""
++    lines = text.split("\n")[:-1]
++    assert lines[0] == "Shopping list for 2026-W26, 22 to 28 June 2026: 21 meals, 63 dishes"
++    assert len(lines) == 302
++    assert [line for line in lines if line in CATEGORIES] == CATEGORIES
++    assert sum(line.startswith("  ") for line in lines) == 290
++    pantry = next(line for line in lines if line.startswith("Not on the list"))
++    assert len(pantry.split(": ", 1)[1].split(", ")) == 10
++
++
++# pytest warns that record_property is incompatible with xunit2, but pytest 9.2.0 writes the
++# properties into the xunit2 JUnit file anyway, so the warning is silenced.
++@pytest.mark.filterwarnings("ignore:record_property is incompatible:pytest.PytestWarning")
++def test_f13_t30_shop_finishes_the_pt01_week_within_the_limit(
++    tmp_path: Path, record_property: Callable[[str, object], None]
++) -> None:
++    """PT01: the median of 5 runs of python -m recipe_menu shop is under the limit."""
++    pt01 = tmp_path / "pt01"
++    make_pt01(pt01)
++    expected = pt01_shop(pt01)
++    _check_facts(expected[1])
++    argv = ["shop", "2026-W26"]
++    command_run(tmp_path, pt01, argv, expected)
++    times = command_runs(tmp_path, pt01, argv, expected)
++    saved = pt01 / "shopping"
++    assert [path.name for path in saved.iterdir()] == ["2026-W26.md"]
++    shopping = shop_list(DataFolder(pt01), IsoWeek(2026, 26))
++    data = (saved / "2026-W26.md").read_bytes()
++    assert data == shop_file(shopping, Lang.EN)
++    assert len(data) == 10345
++    median = record_times(record_property, times)
++    assert median < time_limit(), (median, times)
+diff --git a/tests/test_f13_random.py b/tests/test_f13_random.py
+new file mode 100644
+index 0000000..3718373
+--- /dev/null
++++ b/tests/test_f13_random.py
+@@ -0,0 +1,171 @@
++"""Tests of F13 on random weeks of random catalogs, checked with the builders of the plan (T29)."""
++
++import random
++import string
++import tomllib
++from datetime import date, timedelta
++from pathlib import Path
++
++from f03_support import write
++from f05_support import make_home
++from f09_support import WATER_FILE, made
++from f09_texts import out
++from f11_support import on
++from f13_support import pristine, shop_file, shop_lines, shop_list
++from f13_texts import no_dishes, no_dishes_zh
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.menus import IsoWeek
++
++SEED = 20261116
++FOLDERS = 100
++WEEKS = ["2026-W01", "2026-W23", "2026-W47", "2026-W49", "2026-W53", "2027-W01"]
++POOL = string.ascii_letters + "\u00e9" + "番茄鸡蛋豆腐葱姜蒜米面油"
++DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
++RECIPES = (
++    "tomato-egg",
++    "choy-sum",
++    "rice",
++    "mapo-tofu",
++    "cola-wings",
++    "tomato-egg-noodles",
++    "red-braised-pork",
++    "water",
++)
++EXAMPLE = tomllib.loads(
++    (Path(__file__).parent / "data" / "example" / "catalog.toml").read_text("utf-8")
++)
++
++
++def _word(rng: random.Random, size: int) -> str:
++    """Builds a word of 1 to ``size`` characters from the pool."""
++    return "".join(rng.choice(POOL) for _ in range(rng.randint(1, size)))
++
++
++def _names(
++    rng: random.Random, heads: tuple[str, str], number: str, ingredient: bool
++) -> tuple[str, str]:
++    r"""Builds the Chinese and the English name of an item, as the TOML text of the two strings.
++
++    The English name has 0 to 3 words. 1 time in 10, the name of an ingredient with a word has the
++    TOML escape ``\n`` in place of the space before its last word.
++    """
++    zh = heads[0] + number + "".join(_word(rng, 4) for _ in range(rng.randint(0, 3)))
++    words = [_word(rng, 6) for _ in range(rng.randint(0, 3))]
++    en = heads[1] + number
++    if ingredient and words and rng.random() < 0.1:
++        return zh, en + "".join(f" {word}" for word in words[:-1]) + "\\n" + words[-1]
++    return zh, en + "".join(f" {word}" for word in words)
++
++
++def _write_catalog(rng: random.Random, root: Path) -> dict[str, str]:
++    """Writes ``catalog.toml`` with new names, and gives the new Chinese name of each old one."""
++    lines = ["categories = ["]
++    for number, item in enumerate(EXAMPLE["categories"], 1):
++        zh, en = _names(rng, ("类", "C"), str(number), False)
++        lines.append(f'  {{ key = "{item["key"]}", zh = "{zh}", en = "{en}" }},')
++    lines += ["]", "", "ingredients = ["]
++    renamed = {}
++    for number, item in enumerate(EXAMPLE["ingredients"], 1):
++        zh, en = _names(rng, ("食", "I"), f"{number:02d}", True)
++        renamed[item["zh"]] = zh
++        unit = f', unit = "{item["unit"]}"' if "unit" in item else ""
++        lines.append(f'  {{ zh = "{zh}", en = "{en}", category = "{item["category"]}"{unit} }},')
++    lines += ["]", ""]
++    lines.append("tags = [")
++    lines += [f'  {{ zh = "{tag["zh"]}", en = "{tag["en"]}" }},' for tag in EXAMPLE["tags"]]
++    lines.append("]")
++    write(root / "catalog.toml", "\n".join(lines) + "\n")
++    return renamed
++
++
++def _rename_in_recipes(root: Path, renamed: dict[str, str]) -> None:
++    """Replaces each ``item = "<old name>"`` of the recipes by the new Chinese name."""
++    for path in sorted((root / "recipes").glob("*.toml")):
++        text = path.read_text(encoding="utf-8")
++        for old, new in renamed.items():
++            text = text.replace(f'item = "{old}"', f'item = "{new}"')
++        write(path, text)
++
++
++def _dish(rng: random.Random) -> str:
++    """Writes one dish of a random recipe in one of the three forms."""
++    recipe = rng.choice(RECIPES)
++    form = rng.randrange(3)
++    if form == 0:
++        return f'"{recipe}"'
++    if form == 1:
++        return f'{{ recipe = "{recipe}" }}'
++    return f'{{ recipe = "{recipe}", servings = {rng.randint(1, 12)} }}'
++
++
++def _write_menu(rng: random.Random, root: Path, week: str, meals: list[str]) -> None:
++    """Writes ``menus/<week>.toml``: days left out, meals in a random order, 0 to 3 dishes."""
++    lines = [f'week = "{week}"']
++    bare = rng.random() < 0.1
++    for day in DAYS:
++        if rng.random() < 0.25:
++            continue
++        lines += ["", f"[{day}]"]
++        for meal in rng.sample(meals, len(meals)):
++            count = 0 if bare else rng.randint(0, 3)
++            lines.append(f"{meal} = [{', '.join(_dish(rng) for _ in range(count))}]")
++    write(root / "menus" / f"{week}.toml", "\n".join(lines) + "\n")
++
++
++def _make_folder(
++    rng: random.Random, source: DataFolder, tmp_path: Path, number: int
++) -> tuple[Path, str]:
++    """Makes random folder ``number``, a new example with the extra recipe ``water``."""
++    root = made(source, tmp_path, f"random-{number}")
++    write(root / "recipes" / "water.toml", WATER_FILE)
++    renamed = _write_catalog(rng, root)
++    _rename_in_recipes(root, renamed)
++    items = [renamed[name] for name in renamed if rng.random() < 1 / 3]
++    write(root / "pantry.toml", "pantry = [" + ", ".join(f'"{name}"' for name in items) + "]\n")
++    meals = rng.sample(["breakfast", "lunch", "dinner"], rng.randint(1, 3))
++    text = f'language = "en"\nmeals = [{", ".join(f"{meal!r}" for meal in meals)}]\n'
++    write(root / "settings.toml", text.replace("'", '"') + f"servings = {rng.randint(1, 5)}\n")
++    week = rng.choice(WEEKS)
++    _write_menu(rng, root, week, meals)
++    return root, week
++
++
++def _run(rng: random.Random, home: Path, root: Path, week: str) -> None:
++    """Runs ``shop`` twice in the folder and checks the output and the file of each run."""
++    folder = DataFolder(root)
++    parsed = IsoWeek.parse(week)
++    assert parsed is not None, week
++    shopping = shop_list(folder, parsed)
++    file = folder.shopping_file(week)
++    dates: list[date] = list(parsed.dates)
++    value = rng.choice([[week], ["this"], [], ["next"]])
++    today = rng.choice(dates)
++    if value == ["next"]:
++        today -= timedelta(days=7)
++    for argv, day, lang in (
++        (value, today, rng.choice(["en", "zh"])),
++        ([week], dates[0], rng.choice(["en", "zh"])),
++    ):
++        language = Lang(lang)
++        shown = on(home, root, day, "shop", *argv, "--lang", lang)
++        if shopping.dish_count == 0:
++            line = no_dishes(week) if language is Lang.EN else no_dishes_zh(week)
++            assert shown == out([line]), (root, argv, lang)
++            assert not folder.shopping.exists()
++        else:
++            assert shown == out(shop_lines(shopping, language, file)), (root, argv, lang)
++            assert file.read_bytes() == shop_file(shopping, language), (root, argv, lang)
++            assert [path.name for path in folder.shopping.iterdir()] == [f"{week}.md"]
++
++
++def test_f13_t29_random_weeks_give_the_output_and_the_file_of_the_rules(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """A hundred random folders: names of any width, any pantry, any meals, and any mix."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    rng = random.Random(SEED)  # noqa: S311 - a fixed seed, no security
++    for number in range(FOLDERS):
++        root, week = _make_folder(rng, source, tmp_path, number)
++        _run(rng, home, root, week)
+diff --git a/tests/test_f13_replace.py b/tests/test_f13_replace.py
+new file mode 100644
+index 0000000..9f9c2ce
+--- /dev/null
++++ b/tests/test_f13_replace.py
+@@ -0,0 +1,191 @@
++"""Tests of F13 for replace_file: the example, a wrong call, a call that works, and a bad parent."""
++
++import os
++from pathlib import Path
++
++import pytest
++
++from f03_support import put_bytes
++from f08_support import FOLDER, dangling_link, file_of, full_record, tree
++from f11_support import assert_failed
++from f13_support import folder_link, new_shop, shop_faults
++from f13_texts import parent
++from recipe_menu.datafile import DataFolder, FileCreation, FileOutcome, replace_file
++from recipe_menu.lang import Lang
++
++CREATED = FileCreation(FileOutcome.CREATED)
++S = "recipe-menu/shopping"
++Q = f"{S}/2026-W47.md"
++T = f"{Q}.tmp"
++MOVE = [f"unlink {T}", f"open {T}", f"move {T} {Q}"]
++TEXT_2 = "# 2\n番茄 600 g\n"
++
++
++def test_f13_t03_the_example_of_replace_file_holds(tmp_path: Path) -> None:
++    """A new ``shopping/``, a file replaced, a folder at the path, a file at ``shopping``."""
++    tmp = tmp_path / "tmp"
++    tmp.mkdir()
++    folder = DataFolder(tmp / "recipe-menu")
++    folder.root.mkdir()
++    file = folder.shopping_file("2026-W47")
++    assert replace_file(folder, file, "# 1\n") == CREATED
++    assert file.read_bytes() == b"# 1\n"
++    assert replace_file(folder, file, TEXT_2).outcome is FileOutcome.CREATED
++    assert file.read_bytes() == TEXT_2.encode()
++    assert [path.name for path in folder.shopping.iterdir()] == ["2026-W47.md"]
++    week48 = folder.shopping_file("2026-W48")
++    week48.mkdir()
++    blocked = replace_file(folder, week48, "# 3\n")
++    assert blocked.outcome is FileOutcome.FAILED
++    assert blocked.problem is not None
++    assert (blocked.problem.file, blocked.problem.place) == (Path("shopping", "2026-W48.md"), None)
++    assert blocked.problem.text(Lang.EN).startswith("The file cannot be written")
++    assert blocked.left == ()
++    assert sorted(path.name for path in folder.shopping.iterdir()) == ["2026-W47.md", "2026-W48.md"]
++    other = DataFolder(tmp / "other")
++    other.root.mkdir()
++    other.shopping.write_text("", encoding="utf-8")
++    failed = replace_file(other, other.shopping_file("2026-W47"), "# 1\n")
++    assert failed.outcome is FileOutcome.FAILED
++    assert failed.problem is not None
++    assert failed.problem.text(Lang.EN) == parent("shopping")[0]
++    assert other.shopping.read_bytes() == b""
++    with pytest.raises(ValueError):
++        replace_file(folder, tmp / "elsewhere.md", "")
++    with pytest.raises(ValueError):
++        replace_file(folder, folder.root, "")
++    with pytest.raises(UnicodeEncodeError):
++        replace_file(folder, file, "\udc80")
++    assert tree(tmp) == {
++        "recipe-menu": FOLDER,
++        "recipe-menu/shopping": FOLDER,
++        "recipe-menu/shopping/2026-W47.md": file_of(TEXT_2.encode("utf-8")),
++        "recipe-menu/shopping/2026-W48.md": FOLDER,
++        "other": FOLDER,
++        "other/shopping": file_of(b""),
++    }
++
++
++def test_f13_t04_a_wrong_call_raises_before_the_disk_is_touched(tmp_path: Path) -> None:
++    """A path outside the root, the root, a relative path, and a text that UTF-8 cannot encode."""
++    base, folder = new_shop(tmp_path, "t04")
++    q = folder.shopping_file("2026-W47")
++    calls = [
++        (ValueError, base / "elsewhere.md", ""),
++        (ValueError, folder.root, ""),
++        (ValueError, Path("shopping", "2026-W47.md"), ""),
++        (UnicodeEncodeError, q, "\udc80"),
++        (UnicodeEncodeError, q, "ok\n\ud800"),
++        (UnicodeEncodeError, folder.root / "a" / "b.md", "\udc80"),
++    ]
++    for number, (error, path, text) in enumerate(calls, 1):
++        before = tree(base)
++        with shop_faults(base) as state, pytest.raises(error):
++            replace_file(folder, path, text)
++        assert (state.calls, state.listings) == ([], []), number
++        assert tree(base) == before, number
++    assert not folder.shopping.exists()
++    assert not (folder.root / "a").exists()
++
++
++def _fill(folder: DataFolder, files: dict[str, bytes]) -> None:
++    """Makes ``F.shopping`` and writes the files into it."""
++    folder.shopping.mkdir()
++    for name, data in files.items():
++        put_bytes(folder.shopping / name, data)
++
++
++# Inputs 1, 3 to 6, and 10 of F13-T05: the files that ``F.shopping`` holds, and the text.
++OLD = b"old\n"
++PREPARED: dict[int, dict[str, bytes]] = {
++    1: {},
++    3: {"2026-W47.md": OLD},
++    4: {"2026-W47.md": OLD, "2026-W47.md.tmp": b"half\n"},
++    5: {},
++    6: {},
++    10: {"2026-W48.md": b"other\n", "notes.txt": b"x\n"},
++}
++TEXTS = {3: TEXT_2, 5: "", 6: "a\r\nb\n", 7: 'week = "2026-W47"\n\n[monday]\n'}
++WRITTEN = {3: TEXT_2.encode("utf-8"), 5: b"", 6: b"a\r\nb\n", 7: b'week = "2026-W47"\n\n[monday]\n'}
++
++
++def _t05_input(base: Path, folder: DataFolder, number: int) -> tuple[Path, list[str]]:
++    """Makes input ``number`` of F13-T05 and gives the path to write and the expected record."""
++    path = folder.shopping_file("2026-W47")
++    record = MOVE
++    if number in PREPARED:
++        _fill(folder, PREPARED[number])
++    elif number == 2:
++        record = [f"mkdir {S}", *MOVE]
++    elif number == 7:
++        put_bytes(folder.menus / "2026-W47.toml", b'week = "2026-W47"\n')
++        path = folder.menu_file("2026-W47")
++        stem = "recipe-menu/menus/2026-W47.toml"
++        record = [f"unlink {stem}.tmp", f"open {stem}.tmp", f"move {stem}.tmp {stem}"]
++    elif number == 8:
++        path = folder.root / "notes.md"
++        stem = "recipe-menu/notes.md"
++        record = [f"unlink {stem}.tmp", f"open {stem}.tmp", f"move {stem}.tmp {stem}"]
++    else:
++        (base / "synced").mkdir()
++        folder_link(folder.shopping, base / "synced")
++    return path, record
++
++
++def test_f13_t05_a_call_that_works_replaces_the_file_through_a_temporary_file(
++    tmp_path: Path,
++) -> None:
++    """Ten inputs: the folder, the temporary file, the bytes, the record, and ``CREATED``."""
++    for number in range(1, 11):
++        base, folder = new_shop(tmp_path, f"t05-{number}")
++        path, record = _t05_input(base, folder, number)
++        others = {}
++        if number == 10:
++            others = {
++                n: (folder.shopping / n).stat().st_mtime_ns for n in ("2026-W48.md", "notes.txt")
++            }
++        with shop_faults(base) as state:
++            creation = replace_file(folder, path, TEXTS.get(number, "# 1\n"))
++        assert creation == CREATED, number
++        assert state.calls == record, number
++        assert state.listings == [], number
++        assert path.read_bytes() == WRITTEN.get(number, b"# 1\n"), number
++        assert not [entry for entry in base.rglob("*") if entry.name.endswith(".tmp")], number
++        for name, mtime in others.items():
++            assert (folder.shopping / name).stat().st_mtime_ns == mtime
++        if number == 10:
++            assert (folder.shopping / "2026-W48.md").read_bytes() == b"other\n"
++            assert (folder.shopping / "notes.txt").read_bytes() == b"x\n"
++        if number == 2:
++            assert sorted(entry.name for entry in folder.shopping.iterdir()) == ["2026-W47.md"]
++        if number == 9:
++            assert [entry.name for entry in (base / "synced").iterdir()] == ["2026-W47.md"]
++            assert folder.shopping.is_symlink() or os.path.isjunction(folder.shopping)
++
++
++def _t06_input(base: Path, folder: DataFolder, number: int) -> tuple[Path, str, str]:
++    """Makes input ``number`` of F13-T06 and gives the path, the problem's file and the folder."""
++    if number == 1:
++        put_bytes(folder.shopping, b"x\n")
++    elif number == 2:
++        dangling_link(folder.shopping)
++    elif number == 3:
++        put_bytes(folder.root / "notes.md", b"x\n")
++        return folder.root / "notes.md" / "2026-W47.md", "notes.md/2026-W47.md", "notes.md"
++    elif number == 4:
++        put_bytes(folder.root / "a" / "b", b"")
++        return folder.root / "a" / "b" / "c.md", "a/b/c.md", str(Path("a", "b"))
++    return folder.shopping_file("2026-W47"), "shopping/2026-W47.md", "shopping"
++
++
++def test_f13_t06_something_other_than_a_folder_at_the_parent_gives_failed(tmp_path: Path) -> None:
++    """A file, a dangling link, and a file higher up: ``PARENT_NOT_A_FOLDER``, nothing touched."""
++    for number in range(1, 5):
++        base, folder = new_shop(tmp_path, f"t06-{number}")
++        path, file, shown = _t06_input(base, folder, number)
++        before = full_record(base)
++        with shop_faults(base) as state:
++            creation = replace_file(folder, path, "x")
++        assert_failed(creation, file, parent(shown))
++        assert (state.calls, state.listings) == ([], []), number
++        assert full_record(base) == before, number
+diff --git a/tests/test_f13_replace_errors.py b/tests/test_f13_replace_errors.py
+new file mode 100644
+index 0000000..f188852
+--- /dev/null
++++ b/tests/test_f13_replace_errors.py
+@@ -0,0 +1,283 @@
++"""Tests of F13 for replace_file when the disk fails (T07 to T10)."""
++
++from pathlib import Path
++from typing import NamedTuple
++
++import pytest
++
++from f03_support import put_bytes
++from f05_support import unreadable_name
++from f08_support import (
++    BUG,
++    CTRL_C,
++    DENIED,
++    EMPTY_IO,
++    IO,
++    NO_SPACE,
++    Effect,
++    Rule,
++    rule,
++    system_message,
++    tree,
++)
++from f08_texts import FILE_WRITE_DENIED, FOLDER_CREATE_DENIED, file_error, folder_error
++from f11_support import assert_failed, held
++from f13_support import EXISTS, move_message, new_shop, shop_faults
++from recipe_menu.datafile import DataFolder, FileCreation, FileOutcome, replace_file
++
++S = "recipe-menu/shopping"
++Q = f"{S}/2026-W47.md"
++T = f"{Q}.tmp"
++FILE = "shopping/2026-W47.md"
++OLD = b"old\n"
++FULL = "0123456789\n"
++HALF = b"01234"
++CREATED = FileCreation(FileOutcome.CREATED)
++WRITE = [f"unlink {T}", f"open {T}", f"unlink {T}"]
++MOVE = [f"unlink {T}", f"open {T}", f"move {T} {Q}", f"unlink {T}"]
++NO_SPACE_MSG = file_error("No space left on device")
++IO_MSG = file_error("Input/output error")
++
++
++def _folder_input(
++    tmp_path: Path, number: int
++) -> tuple[Path, DataFolder, list[Rule], Path, tuple[str, str | None]]:
++    """Makes input ``number`` of F13-T07 and gives ``base``, ``F``, the rules, the path, the result.
++
++    The result is the problem's file and its message.
++    """
++    base, folder = new_shop(tmp_path, f"t07-{number}")
++    effects: dict[int, Effect] = {1: DENIED, 2: IO, 3: EXISTS, 4: OSError, 5: TimeoutError}
++    effects |= {6: EMPTY_IO, 9: CTRL_C}
++    rules = [rule("mkdir", folder.shopping, effects[number])] if number in effects else []
++    messages = {
++        1: FOLDER_CREATE_DENIED,
++        2: folder_error("Input/output error"),
++        3: folder_error("File exists"),
++        4: folder_error("OSError"),
++        5: folder_error("TimeoutError"),
++        6: folder_error("OSError"),
++    }
++    path, result = folder.shopping_file("2026-W47"), (FILE, messages.get(number))
++    if number == 7:
++        folder.root.rmdir()
++        result = (FILE, system_message("folder", folder.shopping))
++    if number == 8:
++        name = unreadable_name(base).name
++        path = folder.root / name / "x.md"
++        result = (f"{name}/x.md", system_message("folder", folder.root / name))
++    return base, folder, rules, path, result
++
++
++def test_f13_t07_a_folder_that_cannot_be_made_gives_the_problem_of_the_folder_rows(
++    tmp_path: Path,
++) -> None:
++    """Nine inputs: the first two rows of the error table, a probe that fails, and Ctrl+C."""
++    for number in range(1, 10):
++        base, folder, rules, path, (file, message) = _folder_input(tmp_path, number)
++        before = tree(base)
++        if number == 9:
++            with shop_faults(base, *rules) as state, pytest.raises(KeyboardInterrupt):
++                replace_file(folder, path, "x")
++        else:
++            with shop_faults(base, *rules) as state:
++                creation = replace_file(folder, path, "x")
++            assert_failed(creation, file, message)
++        made = f"mkdir recipe-menu/{path.parent.name}" if number == 8 else f"mkdir {S}"
++        assert state.calls == [made], number
++        assert tree(base) == before, number
++
++
++class Open(NamedTuple):
++    """An input of F13-T08: the rule on ``temp``, and the message of the problem."""
++
++    kind: str
++    effect: Effect | None
++    how: str
++    message: tuple[str, str]
++
++
++CASES_08 = {
++    1: Open("unlink", DENIED, "raise", FILE_WRITE_DENIED),
++    2: Open("unlink", IO, "raise", IO_MSG),
++    3: Open("open", DENIED, "raise", FILE_WRITE_DENIED),
++    4: Open("open", IO, "raise", IO_MSG),
++    5: Open("open", EXISTS, "raise", file_error("File exists")),
++    6: Open("open", None, "race", file_error("File exists")),
++    7: Open("open", TimeoutError, "raise", file_error("TimeoutError")),
++    8: Open("open", EMPTY_IO, "raise", file_error("OSError")),
++}
++
++
++def test_f13_t08_a_failure_before_temp_exists_removes_nothing(tmp_path: Path) -> None:
++    """Eight inputs: the rows of steps 3 to 5, with ``FileExistsError`` as ``FILE_WRITE_ERROR``."""
++    for number, case in CASES_08.items():
++        base, folder = new_shop(tmp_path, f"t08-{number}")
++        path, temp = folder.shopping_file("2026-W47"), folder.shopping / "2026-W47.md.tmp"
++        put_bytes(path, OLD)
++        if number <= 2:
++            put_bytes(temp, b"half\n")
++        with shop_faults(base, rule(case.kind, temp, case.effect, case.how)) as state:
++            creation = replace_file(folder, path, "new\n")
++        assert_failed(creation, FILE, case.message)
++        assert state.calls == ([f"unlink {T}"] if number <= 2 else [f"unlink {T}", f"open {T}"])
++        expected = {2: b"half\n", 1: b"half\n", 6: b"mine\n"}.get(number)
++        assert held(temp) == expected, number
++        assert held(path) == OLD, number
++        names = sorted(entry.name for entry in folder.shopping.iterdir())
++        assert names == (
++            ["2026-W47.md"] if expected is None else ["2026-W47.md", "2026-W47.md.tmp"]
++        )
++
++
++class After(NamedTuple):
++    """An input of F13-T09.
++
++    Attributes:
++        rules: The rules as kind, effect, and how.
++        text: The text to write.
++        message: The problem's text, or ``None`` for the message of the move.
++        record: The calls that the harness records.
++        left: Whether the temporary file is reported as left.
++        temp: The bytes of the temporary file afterwards, or ``None`` when it is gone.
++        no_shopping: Whether ``F.shopping`` is empty and has no old file.
++    """
++
++    rules: tuple[tuple[str, Effect, str], ...]
++    text: str
++    message: tuple[str, str] | None
++    record: list[str]
++    left: bool = False
++    temp: bytes | None = None
++    no_shopping: bool = False
++
++
++CASES_09 = {
++    1: After((("write", NO_SPACE, "raise"),), FULL, NO_SPACE_MSG, WRITE),
++    2: After((("write", DENIED, "raise"),), FULL, FILE_WRITE_DENIED, WRITE),
++    3: After(
++        (("write", IO, "raise"), ("unlink", DENIED, "later")), FULL, IO_MSG, WRITE, True, HALF
++    ),
++    4: After((("write", NO_SPACE, "raise"),), "", NO_SPACE_MSG, WRITE),
++    5: After((("close", NO_SPACE, "raise"),), FULL, NO_SPACE_MSG, WRITE),
++    6: After(
++        (("close", DENIED, "raise"), ("unlink", IO, "later")),
++        FULL,
++        FILE_WRITE_DENIED,
++        WRITE,
++        True,
++        FULL.encode(),
++    ),
++    7: After((("move", DENIED, "raise"),), FULL, FILE_WRITE_DENIED, MOVE),
++    8: After((("move", IO, "raise"),), FULL, IO_MSG, MOVE),
++    9: After((("move", OSError, "raise"),), FULL, file_error("OSError"), MOVE),
++    10: After(
++        (("move", DENIED, "raise"), ("unlink", DENIED, "later")),
++        FULL,
++        FILE_WRITE_DENIED,
++        MOVE,
++        True,
++        FULL.encode(),
++    ),
++    11: After((), FULL, None, MOVE),
++    12: After(
++        (("write", NO_SPACE, "raise"),),
++        FULL,
++        NO_SPACE_MSG,
++        [f"mkdir {S}", *WRITE],
++        False,
++        None,
++        True,
++    ),
++    13: After(
++        (("move", DENIED, "raise"),),
++        FULL,
++        FILE_WRITE_DENIED,
++        [f"mkdir {S}", *MOVE],
++        False,
++        None,
++        True,
++    ),
++}
++
++
++def test_f13_t09_a_failure_after_the_open_removes_temp_and_keeps_the_old_file(
++    tmp_path: Path,
++) -> None:
++    """Thirteen inputs: a write, a close, or a move that fails, and a removal that fails too."""
++    for number, case in CASES_09.items():
++        base, folder = new_shop(tmp_path, f"t09-{number}")
++        path, temp = folder.shopping_file("2026-W47"), folder.shopping / "2026-W47.md.tmp"
++        if number == 11:
++            path.mkdir(parents=True)
++        elif not case.no_shopping:
++            put_bytes(path, OLD)
++        message = case.message or move_message(base)
++        rules = [rule(kind, temp, effect, how) for kind, effect, how in case.rules]
++        with shop_faults(base, *rules) as state:
++            creation = replace_file(folder, path, case.text)
++        assert_failed(creation, FILE, message, (temp,) if case.left else ())
++        assert state.calls == case.record, number
++        assert held(temp) == case.temp, number
++        if number == 11:
++            assert path.is_dir()
++            assert list(path.iterdir()) == []
++        elif case.no_shopping:
++            assert list(folder.shopping.iterdir()) == []
++        else:
++            assert held(path) == OLD, number
++
++
++class Stop(NamedTuple):
++    """An input of F13-T10.
++
++    Attributes:
++        rules: The rules as kind, effect, and how.
++        error: The exception that must come out of ``replace_file``.
++        record: The calls that the harness records.
++        temp: The bytes of the temporary file afterwards, or ``None`` when it is gone.
++    """
++
++    rules: tuple[tuple[str, Effect, str], ...]
++    error: type[BaseException]
++    record: list[str]
++    temp: bytes | None = None
++
++
++CASES_10 = {
++    1: Stop((("write", BUG, "raise"),), RuntimeError, WRITE),
++    2: Stop((("write", CTRL_C, "raise"),), KeyboardInterrupt, WRITE),
++    3: Stop((("close", CTRL_C, "raise"),), KeyboardInterrupt, WRITE),
++    4: Stop((("move", CTRL_C, "raise"),), KeyboardInterrupt, MOVE),
++    5: Stop(
++        (("write", CTRL_C, "raise"), ("unlink", DENIED, "later")), KeyboardInterrupt, WRITE, HALF
++    ),
++    6: Stop(
++        (("write", CTRL_C, "raise"), ("unlink", CTRL_C, "later")), KeyboardInterrupt, WRITE, HALF
++    ),
++    7: Stop((("open", CTRL_C, "after"),), KeyboardInterrupt, WRITE[:2], b""),
++    9: Stop((("unlink", CTRL_C, "raise"),), KeyboardInterrupt, WRITE[:1], b"half\n"),
++}
++
++
++def test_f13_t10_an_interruption_or_a_bug_removes_temp_and_goes_on(tmp_path: Path) -> None:
++    """Nine inputs: the ``finally`` block, an open that was cut, and the rerun."""
++    for number, case in CASES_10.items():
++        base, folder = new_shop(tmp_path, f"t10-{number}")
++        path, temp = folder.shopping_file("2026-W47"), folder.shopping / "2026-W47.md.tmp"
++        put_bytes(path, OLD)
++        if number == 9:
++            put_bytes(temp, b"half\n")
++        rules = [rule(kind, temp, effect, how) for kind, effect, how in case.rules]
++        with shop_faults(base, *rules) as state, pytest.raises(case.error):
++            replace_file(folder, path, FULL)
++        assert state.calls == case.record, number
++        assert held(temp) == case.temp, number
++        assert held(path) == OLD, number
++        if number == 7:
++            with shop_faults(base) as again:
++                creation = replace_file(folder, path, "# 1\n")
++            assert creation == CREATED
++            assert again.calls == [f"unlink {T}", f"open {T}", f"move {T} {Q}"]
++            assert held(temp) is None
++            assert held(path) == b"# 1\n"
+diff --git a/tests/test_f13_shop.py b/tests/test_f13_shop.py
+new file mode 100644
+index 0000000..e2591f4
+--- /dev/null
++++ b/tests/test_f13_shop.py
+@@ -0,0 +1,319 @@
++"""Tests of F13 for shop with the real commands: the example and other weeks (T11 to T14)."""
++
++import re
++import shutil
++from collections.abc import Callable
++from pathlib import Path
++
++from f03_support import put_bytes, write
++from f05_support import make_home
++from f07_changes import edit
++from f07_texts import TYPO
++from f09_support import at, made
++from f09_texts import err, out, stop
++from f10_support import chinese_settings
++from f11_support import empty_menus, held, menu_text, week_b
++from f11_texts import no_menu, not_a_week
++from f12_support import LUNCH_DINNER, s16_folder
++from f13_blocks import (
++    FILE_E,
++    FILE_E_ZH,
++    FILE_F,
++    FILE_F_ZH,
++    block_b,
++    block_b_zh,
++    block_c,
++    block_c_zh,
++    block_d,
++    block_e,
++    block_e_zh,
++    block_f,
++    block_f_zh,
++    block_h,
++    block_h_zh,
++    file_h,
++    file_h_zh,
++)
++from f13_support import (
++    LISTINGS,
++    READ_SETTINGS,
++    chicken_break,
++    egg_week,
++    empty_shopping,
++    meat_break,
++    old_temp,
++    rice_week,
++    shop_faults,
++    shop_file,
++    shop_lines,
++    shop_list,
++    ticked_list,
++    water_week,
++)
++from f13_texts import (
++    FILE_47,
++    PROTOTYPE_FILE,
++    no_dishes,
++    no_dishes_zh,
++    parent,
++    shop_47,
++    shop_47_zh,
++    shop_fail,
++)
++from recipe_menu.datafile import DataFolder
++from recipe_menu.lang import Lang
++from recipe_menu.menus import IsoWeek
++from recipe_menu.text import display_width
++
++Lines = Callable[[Path], list[str]]
++
++
++def _amount_columns(lines: list[str], count: int) -> set[int]:
++    """Gives the display widths of what comes before the amount in each line of a group.
++
++    A line of a group starts with two spaces. The check also counts those lines.
++    """
++    widths = set()
++    group = [line for line in lines if line.startswith("  ")]
++    assert len(group) == count, group
++    for line in group:
++        found = re.match(r"(  \S.*?\s{3,})\S", line)
++        assert found is not None, line
++        widths.add(display_width(found.group(1)))
++    return widths
++
++
++def _iso(week: str) -> IsoWeek:
++    """Gives the ``IsoWeek`` of a text such as ``2026-W47``, read by ``IsoWeek.parse``."""
++    parsed = IsoWeek.parse(week)
++    assert parsed is not None, week
++    return parsed
++
++
++def test_f13_t11_the_example_of_shop_holds_with_the_real_commands(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The English list that makes ``shopping/``, the Chinese file, no menu, a mistake, a file."""
++    home = make_home(tmp_path)
++    folder = example_folder
++    file = folder.shopping_file("2026-W47")
++    assert not folder.shopping.exists()
++    assert at(home, folder, "shop", "2026-W47") == out(shop_47(file))
++    assert at(home, folder, "shop", "2026-W47", "--lang", "zh") == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    assert [path.name for path in folder.shopping.iterdir()] == ["2026-W47.md"]
++    assert at(home, folder, "shop", "2026-W48") == err(1, [no_menu("2026-W48")])
++    assert at(home, folder, "shop", "2026-W99") == err(2, [not_a_week("2026-W99")])
++    edit(folder.menu_file("2026-W47"), '"tomato-egg"', '"tomato-eggs"')
++    assert at(home, folder, "shop", "next") == stop(TYPO)
++    assert file.read_bytes() == PROTOTYPE_FILE
++    assert at(home, folder, "menu", "new", "this")[0] == 0
++    assert at(home, folder, "shop") == out([no_dishes("2026-W46")])
++    assert at(home, folder, "shop", "this", "--lang", "zh") == out([no_dishes_zh("2026-W46")])
++    assert [path.name for path in folder.shopping.iterdir()] == ["2026-W47.md"]
++    edit(folder.menu_file("2026-W47"), '"tomato-eggs"', '"tomato-egg"')
++    shutil.rmtree(folder.shopping)
++    write(folder.shopping, "")
++    result = at(home, folder, "shop", "2026-W47")
++    assert result == err(1, shop_fail(file, parent("shopping")))
++    assert folder.shopping.read_bytes() == b""
++
++
++def test_f13_t12_v0_1_s17_replaces_the_file_of_the_week_in_the_language_of_the_run(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The prototype's outputs and file, a ticked list that loses its ticks, and the builders."""
++    home = make_home(tmp_path)
++    x = made(example_folder, tmp_path, "x")
++    file = x / "shopping" / "2026-W47.md"
++    assert not (x / "shopping").exists()
++    english = at(home, x, "shop", "2026-W47")
++    assert english == out(shop_47(file))
++    assert [path.name for path in file.parent.iterdir()] == ["2026-W47.md"]
++    data = file.read_bytes()
++    assert data == FILE_47
++    assert not data.startswith(b"\xef\xbb\xbf")
++    assert b"\r" not in data
++    assert sum(line.startswith(b"- [ ] ") for line in data.split(b"\n")) == 14
++    chinese = at(home, x, "shop", "2026-W47", "--lang", "zh")
++    assert chinese == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    assert [path.name for path in file.parent.iterdir()] == ["2026-W47.md"]
++    assert _amount_columns(english[1].split("\n"), 14) == {18}
++    assert _amount_columns(chinese[1].split("\n"), 14) == {15}
++    ticked_list(x)
++    old_temp(x)
++    assert at(home, x, "shop", "next") == out(shop_47(file))
++    assert file.read_bytes() == FILE_47
++    assert b"- [x]" not in file.read_bytes()
++    assert [path.name for path in file.parent.iterdir()] == ["2026-W47.md"]
++    assert at(home, x, "shop", "next", "--lang", "zh") == out(shop_47_zh(file))
++    assert file.read_bytes() == PROTOTYPE_FILE
++    y = made(example_folder, tmp_path, "y", chinese_settings, empty_shopping)
++    shown = y / "shopping" / "2026-W47.md"
++    assert at(home, y, "shop", "2026-W47") == out(shop_47_zh(shown))
++    assert shown.read_bytes() == PROTOTYPE_FILE
++    assert at(home, y, "shop", "2026-W47", "--lang", "en") == out(shop_47(shown))
++    assert shown.read_bytes() == FILE_47
++    week = shop_list(DataFolder(x), IsoWeek(2026, 47))
++    assert shop_lines(week, Lang.EN, file) == shop_47(file)
++    assert shop_lines(week, Lang.ZH, file) == shop_47_zh(file)
++    assert shop_file(week, Lang.EN) == FILE_47
++    assert shop_file(week, Lang.ZH) == PROTOTYPE_FILE
++
++
++def _run_both(home: Path, root: Path, week: str, blocks: tuple[Lines, Lines]) -> list[list[str]]:
++    """Runs ``shop`` in English and in Chinese, and checks the outputs, the files, and builders.
++
++    Args:
++        home: The home folder.
++        root: The data folder.
++        week: The week to run, such as ``2026-W48``.
++        blocks: The functions that give the two outputs for the list file.
++
++    Returns:
++        The two outputs as lines.
++    """
++    folder = DataFolder(root)
++    file = folder.shopping_file(week)
++    shopping = shop_list(folder, _iso(week))
++    shown = []
++    for lang, argv, block in ((Lang.EN, [], blocks[0]), (Lang.ZH, ["--lang", "zh"], blocks[1])):
++        result = at(home, root, "shop", week, *argv)
++        assert result == out(block(file)), lang
++        assert held(file) == shop_file(shopping, lang), lang
++        assert shop_lines(shopping, lang, file) == block(file), lang
++        shown.append(result[1].split("\n"))
++    return shown
++
++
++def _check_week_b(example: DataFolder, home: Path, tmp_path: Path) -> None:
++    """Input 1 of F13-T13: week B, with ``Pork belly`` before ``Minced pork``."""
++    root = made(example, tmp_path, "b", week_b)
++    english, chinese = _run_both(home, root, "2026-W48", (block_b, block_b_zh))
++    assert _amount_columns(english, 10) == {16}
++    assert _amount_columns(chinese, 10) == {15}
++    top = b"# Shopping list for 2026-W48\n\n23 to 29 November 2026: 4 meals, 5 dishes.\n"
++    file = root / "shopping" / "2026-W48.md"
++    assert at(home, root, "shop", "2026-W48") == out(block_b(file))
++    assert file.read_bytes().startswith(top)
++
++
++def _check_s16(example: DataFolder, home: Path, tmp_path: Path) -> None:
++    """Input 2 of F13-T13: the S16 folder."""
++    folder = s16_folder(example, tmp_path / "init")
++    english, chinese = _run_both(home, folder.root, "2026-W48", (block_c, block_c_zh))
++    assert _amount_columns(english, 3) == {13}
++    assert _amount_columns(chinese, 3) == {9}
++
++
++def _check_chicken_break(example: DataFolder, home: Path, tmp_path: Path) -> None:
++    """Input 3 of F13-T13: each line break of the chicken break gives the same output."""
++    for number, escape in enumerate(["\\n", "\\r\\n", "\\u2028"]):
++        root = made(example, tmp_path, f"d{number}", chicken_break(escape))
++        file = root / "shopping" / "2026-W47.md"
++        result = at(home, root, "shop", "2026-W47")
++        assert result == out(block_d(file)), escape
++        assert "\r" not in result[1]
++        assert "\u2028" not in result[1]
++        assert "  wings\n" in result[1]
++        shopping = shop_list(DataFolder(root), IsoWeek(2026, 47))
++        assert file.read_bytes() == shop_file(shopping, Lang.EN)
++        assert shop_lines(shopping, Lang.EN, file) == block_d(file)
++        if escape == "\\n":
++            assert b"- [ ] Chicken\nwings 1 kg\n" in file.read_bytes()
++
++
++def _check_meat_break_and_rice(example: DataFolder, home: Path, tmp_path: Path) -> None:
++    """Inputs 4 and 5 of F13-T13: a category with a line break, and a week with no pantry line."""
++    root = made(example, tmp_path, "meat", meat_break)
++    file = root / "shopping" / "2026-W47.md"
++    lines = shop_47(file)
++    place = lines.index("Meat and seafood")
++    lines[place : place + 1] = ["Meat", "and seafood"]
++    assert at(home, root, "shop", "2026-W47") == out(lines)
++    assert file.read_bytes() == FILE_47.replace(b"## Meat and seafood\n", b"## Meat\nand seafood\n")
++    root = made(example, tmp_path, "h", rice_week("2026-W49"))
++    en, zh = "30 November to 6 December 2026", "2026年11月30日至12月6日"
++    blocks = (
++        lambda path: block_h("2026-W49", en, path),
++        lambda path: block_h_zh("2026-W49", zh, path),
++    )
++    english, chinese = _run_both(home, root, "2026-W49", blocks)
++    assert not any("pantry" in line for line in english)
++    assert not any("常备" in line for line in chinese)
++    file = root / "shopping" / "2026-W49.md"
++    assert at(home, root, "shop", "2026-W49")[0] == 0
++    assert file.read_bytes() == file_h("2026-W49", en)
++    assert at(home, root, "shop", "2026-W49", "--lang", "zh")[0] == 0
++    assert file.read_bytes() == file_h_zh("2026-W49", zh)
++
++
++def test_f13_t13_each_week_gets_the_width_of_its_own_names(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Week B, the S16 folder, the chicken break, the meat break, and the rice week."""
++    home = make_home(tmp_path)
++    _check_week_b(example_folder, home, tmp_path)
++    _check_s16(example_folder, home, tmp_path)
++    _check_chicken_break(example_folder, home, tmp_path)
++    _check_meat_break_and_rice(example_folder, home, tmp_path)
++
++
++def _nothing_input(
++    example: DataFolder, tmp_path: Path, name: str, with_shopping: bool = False
++) -> Path:
++    """Makes an empty-menus example with ``menus/2026-W46.toml``, and an empty shopping if asked."""
++    root = made(example, tmp_path, name, empty_menus)
++    put_bytes(root / "menus" / "2026-W46.toml", menu_text("2026-W46", LUNCH_DINNER))
++    if with_shopping:
++        empty_shopping(root)
++    return root
++
++
++def _check_no_dishes(home: Path, root: Path) -> None:
++    """Runs ``shop`` and ``shop this --lang zh`` for 2026-W46: the line, and the calls."""
++    lines = (
++        (("shop",), no_dishes("2026-W46")),
++        (("shop", "this", "--lang", "zh"), no_dishes_zh("2026-W46")),
++    )
++    for argv, line in lines:
++        with shop_faults(root) as state:
++            assert at(home, root, *argv) == out([line])
++        assert state.calls == [
++            READ_SETTINGS,
++            "read catalog.toml",
++            "read pantry.toml",
++            "read menus/2026-W46.toml",
++        ]
++        assert state.listings == LISTINGS
++
++
++def test_f13_t14_a_week_with_no_dish_saves_nothing_and_nothing_to_buy_saves_a_file(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """``NO_DISHES``, the old file that stays, the water week, and the egg week."""
++    home = make_home(tmp_path)
++    x = _nothing_input(example_folder, tmp_path, "x")
++    _check_no_dishes(home, x)
++    assert not (x / "shopping").exists()
++    y = _nothing_input(example_folder, tmp_path, "y", True)
++    old = y / "shopping" / "2026-W46.md"
++    put_bytes(old, b"old\n")
++    stamp = old.stat().st_mtime_ns
++    _check_no_dishes(home, y)
++    assert [path.name for path in old.parent.iterdir()] == ["2026-W46.md"]
++    assert (old.read_bytes(), old.stat().st_mtime_ns) == (b"old\n", stamp)
++    z = made(example_folder, tmp_path, "z")
++    write(z / "menus" / "2026-W52.toml", 'week = "2026-W52"\n')
++    assert at(home, z, "shop", "2026-W52") == out([no_dishes("2026-W52")])
++    assert not (z / "shopping").exists()
++    water = (water_week, "2026-W50", (block_e, block_e_zh), (FILE_E, FILE_E_ZH))
++    eggs = (egg_week, "2026-W51", (block_f, block_f_zh), (FILE_F, FILE_F_ZH))
++    for change, week, blocks, files in (water, eggs):
++        root = made(example_folder, tmp_path, f"week-{week}", change)
++        _run_both(home, root, week, blocks)
++        file = root / "shopping" / f"{week}.md"
++        assert file.read_bytes() == files[1]
++        shopping = shop_list(DataFolder(root), _iso(week))
++        assert (shop_file(shopping, Lang.EN), shop_file(shopping, Lang.ZH)) == files
+diff --git a/tests/test_f13_stops.py b/tests/test_f13_stops.py
+new file mode 100644
+index 0000000..d02c540
+--- /dev/null
++++ b/tests/test_f13_stops.py
+@@ -0,0 +1,207 @@
++"""Tests of F13 for shop when a file has an error or the week has no menu (T17, T18)."""
++
++from collections.abc import Callable
++from datetime import date
++from functools import partial
++from pathlib import Path
++
++from f03_support import m_missing_key, write
++from f05_support import make_home
++from f06_support import mistakes
++from f07_changes import (
++    catalog_brace,
++    edit,
++    mapo_mistake,
++    menu_path,
++    pantry_not_text,
++    pantry_sesame,
++    servings_zero,
++    the_typo,
++)
++from f07_texts import (
++    ITEM_NOT_A_TEXT,
++    NOT_A_WEEK_NAME,
++    P_WEEK,
++    TYPO,
++    Prob,
++    m_week_name,
++    p_ingredient,
++    p_item,
++)
++from f09_support import (
++    assert_among_check,
++    at,
++    capital_rice,
++    folder_x,
++    made,
++    mapo_and_rice_at_0,
++    no_catalog,
++    no_recipes_folder,
++    recipes_as_file,
++    rice_bowl,
++)
++from f09_texts import (
++    E_BRACE,
++    E_CAPITAL,
++    E_FOLDER_X,
++    E_MAPO,
++    E_NO_CATALOG,
++    E_NO_RECIPES,
++    E_RECIPES_FILE,
++    E_RICE_BOWL,
++    E_RICE_ZERO,
++    FILE_MISSING,
++    FOLDER_IS_FILE,
++    FOLDER_MISSING,
++    TOML_ENDING_NOT_SMALL,
++    ZH,
++    err,
++    out,
++    stop,
++)
++from f11_support import empty_menus, menus_as_file, no_menus_folder, on
++from f11_texts import no_menu, no_menu_zh, not_a_week
++from f13_support import (
++    E_LOWER_48,
++    E_PANTRY,
++    empty_menu_file,
++    empty_shopping,
++    missing_name,
++    no_pantry,
++    pristine,
++)
++from f13_texts import shop_47
++from recipe_menu.datafile import DataFolder
++
++Change = Callable[[Path], None]
++MENUS = "menus/2026-W47.toml"
++PLAN = Prob("menus/plan.toml", None, NOT_A_WEEK_NAME)
++UPPER = Prob("menus/2026-W48.TOML", None, TOML_ENDING_NOT_SMALL)
++NAME_EN = Prob("catalog.toml", p_ingredient(22), m_missing_key("en"))
++PANTRY_TEXT = Prob("pantry.toml", p_item(3), ITEM_NOT_A_TEXT)
++WEEK_NAME = Prob(MENUS, P_WEEK, m_week_name("2026-W47", "2026-W48"))
++
++
++def _menu_mistakes(root: Path) -> None:
++    """Makes the three menu mistakes of v0.1-S07."""
++    mistakes(DataFolder(root))
++
++
++def _folder_x_dish(root: Path) -> None:
++    """Makes the folder ``recipes/x.toml`` and adds ``"x"`` to Wednesday's dinner."""
++    folder_x(root)
++    old = "[wednesday]\nlunch = []\ndinner = []"
++    edit(menu_path(root), old, '[wednesday]\nlunch = []\ndinner = ["x"]')
++
++
++# Inputs 1 to 27 of F13-T17: the changes of the folder, and the error that stops shop.
++STOPPED: list[tuple[list[Change], Prob]] = [
++    ([no_catalog], E_NO_CATALOG),
++    ([catalog_brace], E_BRACE),
++    ([missing_name], NAME_EN),
++    ([pantry_sesame], E_PANTRY),
++    ([pantry_not_text], PANTRY_TEXT),
++    ([no_pantry], Prob("pantry.toml", None, FILE_MISSING)),
++    ([no_recipes_folder], E_NO_RECIPES),
++    ([recipes_as_file], E_RECIPES_FILE),
++    ([rice_bowl], E_RICE_BOWL),
++    ([capital_rice], E_CAPITAL),
++    ([no_menus_folder], Prob("menus", None, FOLDER_MISSING)),
++    ([menus_as_file], Prob("menus", None, FOLDER_IS_FILE)),
++    ([empty_menu_file("2026-w48.toml")], E_LOWER_48),
++    ([empty_menu_file("plan.toml")], PLAN),
++    ([empty_menu_file("2026-W48.TOML")], UPPER),
++    ([the_typo], TYPO),
++    ([_menu_mistakes], WEEK_NAME),
++    ([mapo_mistake], E_MAPO),
++    ([partial(servings_zero, recipe="rice")], E_RICE_ZERO),
++    ([mapo_and_rice_at_0], E_RICE_ZERO),
++    ([catalog_brace, pantry_sesame], E_BRACE),
++    ([pantry_sesame, rice_bowl], E_PANTRY),
++    ([pantry_sesame, no_menus_folder], E_PANTRY),
++    ([rice_bowl, empty_menu_file("2026-w48.toml")], E_RICE_BOWL),
++    ([empty_menu_file("2026-w48.toml"), the_typo], E_LOWER_48),
++    ([the_typo, mapo_mistake], TYPO),
++    ([_folder_x_dish], E_FOLDER_X),
++]
++
++
++def _breaks_week_48(root: Path) -> None:
++    """Writes ``[[[`` in ``menus/2026-W48.toml``."""
++    write(root / "menus" / "2026-W48.toml", "[[[\n")
++
++
++def test_f13_t17_the_first_error_of_each_reader_stops_shop_in_the_order_of_the_readers(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Thirty-two inputs: the error that stops ``shop``, and the errors that do not."""
++    home = make_home(tmp_path)
++    for number, (changes, problem) in enumerate(STOPPED, 1):
++        root = made(example_folder, tmp_path, f"in{number}", *changes)
++        assert at(home, root, "shop", "2026-W47") == stop(problem), number
++        shown = at(home, root, "shop", "2026-W47", "--lang", "zh")
++        assert shown == stop(problem, ZH), number
++        assert_among_check(home, root, problem)
++        assert not (root / "shopping").exists(), number
++    fine = [
++        (28, [folder_x]),
++        (29, [partial(servings_zero, recipe="red-braised-pork")]),
++        (30, [_breaks_week_48]),
++    ]
++    for number, changes in fine:
++        root = made(example_folder, tmp_path, f"in{number}", *changes)
++        file = root / "shopping" / "2026-W47.md"
++        assert at(home, root, "shop", "2026-W47") == out(shop_47(file)), number
++    root = made(example_folder, tmp_path, "in31", empty_menu_file("2026-w48.toml"))
++    assert at(home, root, "shop", "2026-W48") == stop(E_LOWER_48)
++    root = made(example_folder, tmp_path, "in32", pantry_sesame)
++    assert at(home, root, "shop", "2026-W48") == stop(E_PANTRY)
++
++
++def _check_s15(home: Path, root: Path) -> None:
++    """Input 1 of F13-T18: the lines of v0.1-S15 in English, and then ``shop`` in Chinese."""
++    no_48 = err(1, [no_menu("2026-W48")])
++    assert at(home, root, "menu", "show", "2026-W48") == no_48
++    assert at(home, root, "menu", "show", "2026-W99") == err(2, [not_a_week("2026-W99")])
++    assert at(home, root, "shop", "2026-W48") == no_48
++    the_typo(root)
++    assert at(home, root, "menu", "show", "2026-W47") == stop(TYPO)
++    assert at(home, root, "shop", "2026-W47") == stop(TYPO)
++    assert at(home, root, "shop", "2026-W48", "--lang", "zh") == err(1, [no_menu_zh("2026-W48")])
++    assert at(home, root, "shop", "2026-W47", "--lang", "zh") == stop(TYPO, ZH)
++    assert list((root / "shopping").iterdir()) == []
++
++
++def _not_menus(root: Path) -> None:
++    """Adds to ``menus/`` a backup with the bytes of week 47, a folder, and a text file."""
++    week47 = (root / "menus" / "2026-W47.toml").read_bytes()
++    (root / "menus" / "2026-W48.toml.bak").write_bytes(week47)
++    (root / "menus" / "2026-W48").mkdir()
++    write(root / "menus" / "notes.txt", "Ideas\n")
++
++
++def test_f13_t18_a_week_with_no_menu_file_gives_no_menu_and_exit_code_1(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The lines of v0.1-S15, this and next week, names that are not menus, and the readers."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    _check_s15(home, made(source, tmp_path, "s15", empty_shopping))
++    assert at(home, example_folder, "shop") == err(1, [no_menu("2026-W46")])
++    assert at(home, example_folder, "shop", "this", "--lang", "zh") == err(
++        1, [no_menu_zh("2026-W46")]
++    )
++    assert on(home, example_folder, date(2026, 11, 17), "shop", "next") == err(
++        1, [no_menu("2026-W48")]
++    )
++    assert not example_folder.shopping.exists()
++    others = made(source, tmp_path, "others", _not_menus)
++    assert at(home, others, "shop", "2026-W48") == err(1, [no_menu("2026-W48")])
++    empty = made(source, tmp_path, "empty", empty_menus)
++    assert at(home, empty, "shop", "2026-W47") == err(1, [no_menu("2026-W47")])
++    cases = [(catalog_brace, E_BRACE), (no_recipes_folder, E_NO_RECIPES), (rice_bowl, E_RICE_BOWL)]
++    for number, (change, problem) in enumerate(cases):
++        root = made(source, tmp_path, f"reader{number}", change)
++        assert at(home, root, "shop", "2026-W48") == stop(problem), number
++    for name in ("others", "empty", "reader0", "reader1", "reader2"):
++        assert not (tmp_path / name / "shopping").exists(), name
+diff --git a/tests/test_f13_weeks_and_reads.py b/tests/test_f13_weeks_and_reads.py
+new file mode 100644
+index 0000000..115e503
+--- /dev/null
++++ b/tests/test_f13_weeks_and_reads.py
+@@ -0,0 +1,203 @@
++"""Tests of F13 for the week of shop and for the files that it reads and writes (T15, T16)."""
++
++from datetime import date
++from pathlib import Path
++
++from f03_support import write
++from f05_support import make_home
++from f05_texts import Result
++from f07_changes import catalog_brace, mapo_mistake, pantry_sesame, the_typo
++from f07_texts import TYPO
++from f08_support import full_record
++from f09_support import at, made, rice_bowl
++from f09_texts import E_BRACE, E_MAPO, E_RICE_BOWL, err, out, stop
++from f10_support import chinese_settings
++from f11_support import on, week_b
++from f11_texts import no_menu, no_menu_zh, not_a_week, not_a_week_zh
++from f13_blocks import DATES, block_b, block_h, block_h_zh, file_h, file_h_zh
++from f13_support import (
++    E_LOWER_48,
++    E_PANTRY,
++    LISTINGS,
++    R47,
++    READ_SETTINGS,
++    W47,
++    empty_menu_file,
++    old_list,
++    pristine,
++    rice_week,
++    shopping_as_file,
++    traced,
++)
++from f13_texts import FILE_47, PROTOTYPE_FILE, shop_47, shop_47_zh
++from recipe_menu.datafile import DataFolder
++
++RICE_WEEKS = ["2026-W01", "2026-W23", "2026-W49", "2026-W53", "2027-W01"]
++# The dates of F13-T15 input 2, with the week of the date and the week 7 days later.
++DAYS = [
++    (date(2026, 11, 10), "2026-W46", "2026-W47"),
++    (date(2026, 11, 22), "2026-W47", "2026-W48"),
++    (date(2026, 12, 27), "2026-W52", "2026-W53"),
++    (date(2026, 12, 30), "2026-W53", "2027-W01"),
++    (date(2027, 1, 3), "2026-W53", "2027-W01"),
++    (date(2025, 12, 29), "2026-W01", "2026-W02"),
++]
++BAD_WEEKS = ["2026-W99", "Next", "", "2026-w47", "2025-W53", " this"]
++
++
++def _expected(root: Path, week: str, zh: bool) -> Result:
++    """Gives the result of ``shop`` for a week in the folder of input 2 of F13-T15."""
++    file = DataFolder(root).shopping_file(week)
++    if week == "2026-W47":
++        return out(shop_47_zh(file) if zh else shop_47(file))
++    if week in RICE_WEEKS:
++        en_dates, zh_dates = DATES[week]
++        return out(block_h_zh(week, zh_dates, file) if zh else block_h(week, en_dates, file))
++    return err(1, [no_menu_zh(week) if zh else no_menu(week)])
++
++
++def _check_rice_weeks(home: Path, root: Path) -> None:
++    """Input 1 of F13-T15: each rice week, in both languages, with its dates and its file."""
++    file_of = DataFolder(root).shopping_file
++    for week in RICE_WEEKS:
++        en_dates, zh_dates = DATES[week]
++        assert at(home, root, "shop", week) == out(block_h(week, en_dates, file_of(week))), week
++        assert file_of(week).read_bytes() == file_h(week, en_dates), week
++        zh = at(home, root, "shop", week, "--lang", "zh")
++        assert zh == out(block_h_zh(week, zh_dates, file_of(week))), week
++        assert file_of(week).read_bytes() == file_h_zh(week, zh_dates), week
++
++
++def _check_days(home: Path, root: Path) -> None:
++    """Input 2 of F13-T15: ``shop``, ``shop this``, and ``shop next`` on six dates."""
++    for today, this, following in DAYS:
++        for argv in (("shop",), ("shop", "this")):
++            assert on(home, root, today, *argv) == _expected(root, this, False), (today, argv)
++        shown = on(home, root, today, "shop", "next", "--lang", "zh")
++        assert shown == _expected(root, following, True), today
++
++
++def test_f13_t15_shop_takes_its_week_from_the_argument_and_the_date_of_today(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """Rice weeks, ``this`` and ``next`` across years, and values that are not a week."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    changes = [rice_week(week) for week in RICE_WEEKS]
++    root = made(source, tmp_path, "rice", *changes)
++    _check_rice_weeks(home, root)
++    _check_days(home, root)
++    old_list(example_folder.root)
++    for value in BAD_WEEKS:
++        before = full_record(example_folder.root)
++        result, calls, listings = traced(home, example_folder.root, "shop", value)
++        assert result == err(2, [not_a_week(value)]), value
++        assert (calls, listings) == ([READ_SETTINGS], []), value
++        assert full_record(example_folder.root) == before, value
++    for value in ("2026-W99", "Next"):
++        shown = at(home, example_folder, "shop", value, "--lang", "zh")
++        assert shown == err(2, [not_a_week_zh(value)]), value
++    for change, value in ((catalog_brace, "2026-W99"), (pantry_sesame, "Next")):
++        folder = made(source, tmp_path, f"wrong-{value}", change)
++        assert at(home, folder, "shop", value) == err(2, [not_a_week(value)]), value
++    folder = made(source, tmp_path, "as-file", shopping_as_file)
++    assert at(home, folder, "shop", "") == err(2, [not_a_week("")])
++    assert (folder / "shopping").read_bytes() == b"x\n"
++    zh = made(source, tmp_path, "zh", chinese_settings)
++    assert at(home, zh, "shop", "2026-W99") == err(2, [not_a_week_zh("2026-W99")])
++    assert at(home, zh, "shop", "2026-W99", "--lang", "en") == err(2, [not_a_week("2026-W99")])
++
++
++def _check_example_reads(home: Path, example: DataFolder) -> None:
++    """Input 1 of F13-T16: ``shop 2026-W47`` in English and then in Chinese."""
++    file = example.shopping_file("2026-W47")
++    result, calls, listings = traced(home, example.root, "shop", "2026-W47")
++    assert result == out(shop_47(file))
++    assert calls == [*R47, "mkdir shopping", *W47]
++    assert listings == LISTINGS
++    result, calls, listings = traced(home, example.root, "shop", "2026-W47", "--lang", "zh")
++    assert result == out(shop_47_zh(file))
++    assert (calls, listings) == ([*R47, *W47], LISTINGS)
++    assert file.read_bytes() == PROTOTYPE_FILE
++
++
++def _check_week_b_reads(
++    home: Path, example: DataFolder, source: DataFolder, tmp_path: Path
++) -> None:
++    """Inputs 2 and 3 of F13-T16: week B, and a week that has no menu."""
++    root = made(source, tmp_path, "b", week_b)
++    file = root / "shopping" / "2026-W48.md"
++    result, calls, listings = traced(home, root, "shop", "2026-W48")
++    assert result == out(block_b(file))
++    reads = [READ_SETTINGS, "read catalog.toml", "read pantry.toml", "read menus/2026-W48.toml"]
++    reads += [f"read recipes/{name}.toml" for name in ("mapo-tofu", "rice", "choy-sum")]
++    reads += ["read recipes/red-braised-pork.toml", "mkdir shopping"]
++    temp = "shopping/2026-W48.md.tmp"
++    writes = [f"unlink {temp}", f"open {temp}", f"move {temp} shopping/2026-W48.md"]
++    assert calls == [*reads, *writes]
++    assert listings == LISTINGS
++    result, calls, listings = traced(home, example.root, "shop", "2026-W48")
++    assert result == err(1, [no_menu("2026-W48")])
++    assert calls == [READ_SETTINGS, "read catalog.toml", "read pantry.toml"]
++    assert listings == LISTINGS
++
++
++def _check_no_reads(home: Path, example: DataFolder) -> None:
++    """Input 4 of F13-T16: a wrong week, and ``--help``, read nothing but the settings."""
++    result, calls, listings = traced(home, example.root, "shop", "2026-W99")
++    assert result == err(2, [not_a_week("2026-W99")])
++    assert (calls, listings) == ([READ_SETTINGS], [])
++    result, calls, listings = traced(home, example.root, "shop", "2026-W47", "--help")
++    assert result == (0, at(home, None, "--help")[1], "")
++    assert (calls, listings) == ([READ_SETTINGS], [])
++
++
++def _check_stops(home: Path, example: DataFolder, tmp_path: Path) -> None:
++    """Input 5 of F13-T16: the reads stop at the first error of each reader."""
++    three = [READ_SETTINGS, "read catalog.toml", "read pantry.toml"]
++    menu = [*three, "read menus/2026-W47.toml"]
++    stops = [
++        (catalog_brace, [READ_SETTINGS, "read catalog.toml"], [], E_BRACE),
++        (pantry_sesame, three, [], E_PANTRY),
++        (rice_bowl, three, LISTINGS[:1], E_RICE_BOWL),
++        (empty_menu_file("2026-w48.toml"), three, LISTINGS, E_LOWER_48),
++        (the_typo, menu, LISTINGS, TYPO),
++        (mapo_mistake, [*R47[: R47.index("read recipes/mapo-tofu.toml") + 1]], LISTINGS, E_MAPO),
++    ]
++    for number, (change, calls, listings, problem) in enumerate(stops):
++        root = made(example, tmp_path, f"stop-{number}", change)
++        result, found, seen = traced(home, root, "shop", "2026-W47")
++        assert result == stop(problem), number
++        assert (found, seen) == (calls, listings), number
++        assert not (root / "shopping").exists()
++
++
++def _check_other_files(home: Path, example: DataFolder, tmp_path: Path) -> None:
++    """Input 6 of F13-T16: ``shop`` reads nothing in ``shopping/``, and keeps its other files."""
++    root = made(example, tmp_path, "others", old_list)
++    write(root / "shopping" / "2026-W48.md", "other\n")
++    write(root / "shopping" / "notes.txt", "x\n")
++    others = {
++        name: (root / "shopping" / name).stat().st_mtime_ns for name in ("2026-W48.md", "notes.txt")
++    }
++    result, calls, _ = traced(home, root, "shop", "2026-W47")
++    assert result == out(shop_47(root / "shopping" / "2026-W47.md"))
++    assert calls == [*R47, *W47]
++    assert (root / "shopping" / "2026-W47.md").read_bytes() == FILE_47
++    assert (root / "shopping" / "2026-W48.md").read_bytes() == b"other\n"
++    assert (root / "shopping" / "notes.txt").read_bytes() == b"x\n"
++    for name, stamp in others.items():
++        assert (root / "shopping" / name).stat().st_mtime_ns == stamp
++
++
++def test_f13_t16_shop_reads_each_file_once_in_order_and_writes_through_replace_file(
++    example_folder: DataFolder, tmp_path: Path
++) -> None:
++    """The record of the reads and the writes for a list, a failure, a wrong week, and a stop."""
++    home = make_home(tmp_path)
++    source = pristine(example_folder, tmp_path)
++    _check_example_reads(home, example_folder)
++    _check_week_b_reads(home, example_folder, source, tmp_path)
++    _check_no_reads(home, example_folder)
++    _check_stops(home, source, tmp_path)
++    _check_other_files(home, source, tmp_path)

@@ -1,0 +1,46 @@
+id = "ar-error-review"
+version = 1
+role = "architect"
+task = "AR2"
+item = "F11"
+title = "[F11 1/6 design] Create and show a week menu"
+round = 1
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "54a76f1d336249c8e8c88e6b221806f4b865421e"
+branch = "troy-mode/f11-1-design"
+pilot = ["#14", "#20", "#71"]
+title = "[F11 1/6 design] Create and show a week menu"
+pr = 71
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 20.00
+
+[judge]
+diff = ["docs/features/*/design.md"]
+shared = ["docs/architecture.md"]
+
+[[criteria]]
+id = "asks-changes"
+check = "result_is"
+must = true
+want = "changes-requested"
+
+[[criteria]]
+id = "finds-k1"
+judge = 1
+must = true
+
+[[criteria]]
+id = "none-false"
+judge = 2
+must = false
+
+[[criteria]]
+id = "section-four"
+judge = 3
+must = false

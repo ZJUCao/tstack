@@ -1,0 +1,22 @@
+id = "if-example-format"
+version = 1
+role = "interface-designer"
+task = "IF1"
+item = "F09"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "d00e595c3fd4d59a5e5a962a0e4738b2f52e53af"
+branch = "troy-mode/f09-1-design"
+pilot = ["#9", "#52", "#59"]
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 35.00
+
+[[criteria]]
+id = "examples-format"
+check = "ruff_format_blocks"
+must = true

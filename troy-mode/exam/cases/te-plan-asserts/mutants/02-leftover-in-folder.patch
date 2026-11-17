@@ -1,0 +1,12 @@
+diff --git a/src/recipe_menu/datafile/_replace.py b/src/recipe_menu/datafile/_replace.py
+--- a/src/recipe_menu/datafile/_replace.py
++++ b/src/recipe_menu/datafile/_replace.py
+@@ -178,6 +178,8 @@
+             handle.write(text)
+         temp.replace(path)
+     except OSError as error:
++        if path.is_dir():
++            (path / temp.name).touch()
+         return error
+     return None
+ 

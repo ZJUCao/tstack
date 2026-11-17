@@ -1,0 +1,10 @@
+diff --git a/src/recipe_menu/commands/menu/_run.py b/src/recipe_menu/commands/menu/_run.py
+--- a/src/recipe_menu/commands/menu/_run.py
++++ b/src/recipe_menu/commands/menu/_run.py
+@@ -149,5 +149,5 @@
+     week = week_from_argument(value, context.today)
+     if week is None:
+         # Only a value that is given can fail, so it is a str here.
+-        raise UsageError(NOT_A_WEEK, None, week=cast(str, value))
++        raise UsageError(NOT_A_WEEK, None, week=cast(str, value).lower())
+     return week

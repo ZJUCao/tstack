@@ -20,7 +20,8 @@ This page is for work on troy-mode itself, in tstack: by you, or by a Claude Cod
 | The hooks | `hooks/hooks.json` and `troy-mode/hooks/` |
 | The engines | `troy-mode/checks/` (troy-check), `troy-mode/init/` (troy-init), `troy-mode/flow/` (the entry skill's engine) |
 | What projects get | `troy-mode/templates/`, `troy-mode/lang/` (the language packs), `troy-mode/checks/` |
-| tstack's own tools | `troy-mode/dev/`: `check_pairs.py`, `check_links.py`, `check_name.py`, `build_sample.py`, and the sample projects' tests |
+| tstack's own tools | `troy-mode/dev/`: `check_pairs.py`, `check_links.py`, `check_name.py`, `check_exam.py`, `build_sample.py`, and the sample projects' tests |
+| The role exam | `troy-mode/exam/`: `troy_exam.py`, its engine, and its cases (section 9.7) |
 
 Every new skill and agent name starts with `troy-`, troy-mode edits no upstream file, and the only shared files it touches are `README.md`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` ([requirements section 8](../requirements.md#8-non-functional-requirements)).
 
@@ -47,6 +48,7 @@ python -m unittest discover -s troy-mode/checks/tests
 python -m unittest discover -s troy-mode/init/tests
 python -m unittest discover -s troy-mode/hooks/tests
 python -m unittest discover -s troy-mode/flow/tests
+python -m unittest discover -s troy-mode/exam/tests
 python -m unittest discover -s troy-mode/dev/tests
 python troy-mode/dev/check_pairs.py
 python troy-mode/dev/check_links.py
@@ -88,3 +90,24 @@ Claude Code updates an installed plugin only when `version` in `.claude-plugin/p
 - the minor number for a feature, such as 0.2.0 to 0.3.0.
 
 After it merges, update the installed plugin as [section 1.3](01-install.md#13-update-after-a-new-plugin-version) says: pull tstack's main checkout, update the marketplace and the plugin with the bundled CLI, and restart Claude Code. Each project then takes in the new version with `/tstack:troy-mode upgrade troy-mode`, whose PR title names the version ([section 8.6](08-reference.md#86-problems)). The pilot (F11) relies on this to bring fixes into its project ([F11 design](../design/F11-pilot.md)).
+
+## 9.7 The role exam
+
+A change to the instructions that roles follow passes the role exam before it merges ([F16 design](../design/F16-role-exam.md)). The exam runs the roles on scratch copies of the pilot's project states, once with the PR's base and once with its head, and a fresh session that did not do the task grades the outputs blind.
+
+**Which PRs.** A PR that changes a file of the instruction set: `agents/troy-*.md`, `troy-mode/roles/common.md`, `troy-mode/flow/troyflow/brief.py` and the engine modules it imports, `troy-mode/templates/`, the skills that roles read (`skills/technical-writing/` and `skills/benchmark-checklist/`), the sections "Running a role" and "The summary for Troy" of `skills/troy-mode/SKILL.md`, and the exam's own cases and code in `troy-mode/exam/`. CI's docs job refuses such a PR until its description holds the exam's section with the head's instruction hash ([F16 design section 9](../design/F16-role-exam.md#9-which-changes-must-pass-and-the-pr-d157)).
+
+**How to start it.** From the PR's worktree, with the `tstack` environment's Python:
+
+```bash
+python troy-mode/exam/troy_exam.py affected --base origin/main
+python troy-mode/exam/troy_exam.py run --base origin/main
+```
+
+`affected` lists the cases that the change touches, with no model call. `run` estimates the cost, runs each affected case 5 times with each version, has the judge grade every run, compares the two versions, and writes the report. It reuses the base's runs of the last 14 days when nothing they depend on changed. It takes minutes to hours, so the session waits for it in the background. A PR that fixes a case names it with `--fixes <case>`. After a usage limit, `troy_exam.py resume <exam ID>` goes on.
+
+**The budget.** Up to $60 at list prices, the exam starts without asking. Above that, the session shows you the estimate, the cases, and the time, and starts only on your yes. The exam starts no new run once it has spent 1.5 times its estimate, runs at most two role runs at a time, and gives each run a cap.
+
+**What goes in the PR.** `troy_exam.py block <exam ID>` prints the "Role exam" section, and the session pastes it into the PR's description. Its `Instructions` line must match the PR's head, so a later push that changes the instruction set needs the exam again. A failed exam is not run again on the same head: the head changes, or you accept the failure in chat, and the section then says `failed, accepted by Troy on <date>: <reason>`.
+
+**Where its files live.** `D:\Troy\troy-mode-work` holds the mirrors of the pilot's repository, one environment for each start, each run's scratch project while it runs, the results with every report, and each case's runs. `TROY_EXAM_ROOT` names another folder.

@@ -1,0 +1,51 @@
+id = "ar-design-review"
+version = 1
+role = "architect"
+task = "AR2"
+item = "F08"
+title = "[F08 1/6 design] Start a data folder"
+round = 1
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "ea66fd419baf480f5b9e72219796e2363861e969"
+branch = "troy-mode/f08-1-design"
+pilot = ["#52"]
+title = "[F08 1/6 design] Start a data folder"
+pr = 52
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 20.00
+
+[judge]
+diff = ["docs/features/*/design.md"]
+shared = ["docs/architecture.md"]
+
+[[criteria]]
+id = "asks-changes"
+check = "result_is"
+must = true
+want = "changes-requested"
+
+[[criteria]]
+id = "finds-k1"
+judge = 1
+must = true
+
+[[criteria]]
+id = "finds-k2"
+judge = 2
+must = true
+
+[[criteria]]
+id = "finds-k4"
+judge = 3
+must = true
+
+[[criteria]]
+id = "none-false"
+judge = 4
+must = true

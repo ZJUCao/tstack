@@ -1,0 +1,20 @@
+Role: Architect
+Task: AR2, F08, [F08 1/6 design] Start a data folder
+Result: changes-requested
+Changed files: None
+Checks: see Findings
+Summary: Choices 1 to 8 and 10 hold on a model of sections 2 and 3 built from the design: all four examples (2.1, 2.2, 3.1, 3.2) and their 8 `# raises` lines hold with Python 3.13 on Windows, the model's output matches the F08 prototype exactly in both languages, v0.1-S03 keeps the bytes and the modification time, Ctrl+C during a write gives exit code 130 with nothing left, and a failed removal gives `LEFT_BEHIND`. The tests of F01 to F07 pass on the model (405 passed, 3 skipped: F04-T12, F04-T51, F06-T28, Linux only), with F05-T48, F05-T49, and F07-T17 unchanged. Section 3 is right that no implemented interface changes, and the split of mock and implementation is sound. Choice 9's account is wrong in two places, and choice 8's full path departs from architecture 6 without saying so.
+Findings:
+Blocking:
+
+1. Follows the error handling conventions: choice 9, both files. Run on Windows with 6 trailing forms (a space, two spaces, `.`, `..`, ` .`, `. `), each in 4 folder states. The first bullet holds: `init` reports `...\recipe-menu \recipes` with "The folder cannot be created. The system says: The system cannot find the path specified", removes what it created, and exits with 1. (a) Wrong: when `D:\x\recipe-menu` exists, its listing does not fail; `os.listdir` and `Path.iterdir` give its entries. An empty folder fails at `recipes`, as in bullet 1, and a folder with an entry gives `ALREADY_HOLDS_FILES`, with the name and its space. (b) Wrong: Windows also drops one trailing dot from a middle part of a path (PR #38 found it), so `--data "D:\x\recipe-menu."` works: `init` creates `recipe-menu` with every file and exits with 0, and its first line shows the dot; later commands with that value use the same folder. Correct the title, the first sentence, and the second bullet of choice 9. Choice 5 still keeps every form safe.
+2. Follows the error handling conventions: choice 8 and "A failure is three lines" in 2.2, both files. Architecture 6 says a problem names its file relative to the data folder, but the failure's first line writes the problem's file as a full path. The full path is right here: you just named the folder, and `Path(".")` would show as `.`. In choice 8, name the rule of architecture 6 that it departs from and why, and list it for Troy beside open questions A to C, because section 2 now says that none of them changes the architecture. After Troy approves, the Architect adds the case to architecture 6 in a `[docs]` PR.
+
+Non-blocking:
+
+3. Choice 5: a Ctrl+C after the system creates an entry but before the call records it (inside `open`, for example) leaves that entry, and a second Ctrl+C during the removal stops the removal. Both act like a killed process, which choice 5 already covers; a sentence in choice 5 is optional.
+4. Lines 550, 564, 663, and 673 of each file are 101 to 105 columns wide. `ruff format` at line length 100 wraps them and moves the `# raises` comment of line 564.
+5. For the Test Manager: more tests pass against the mock, and so break R09, than section 2 names: tests of the fields of `INIT_COMMAND`, of the values of `CreationOutcome`, of the defaults or equality of a valid `Creation`, and of `init extra` or `init --tag`. Each such test must also check something the mock gets wrong.
+
+For Troy at the approval: the Architect agrees with option 1 of open questions A (`os.path.abspath` on Windows in F05's next revision; on this PC it drops a trailing space or dot from the last part, keeps a space in a middle part, and turns `C:\x\..\y` into `C:\y`, so F05's `x/../y` test changes), B (every entry counts; the model refuses `menus\` alone and `.keep`), and C (the first line shows the full path, and a failure removes the parent folders that `init` created), and with the new Chinese texts of 2.2 and 3.2. The 300-character failure of 3.2 gives `OSError` errno 22 on Windows, so `FILE_WRITE_ERROR`; with long paths off it would be `FileNotFoundError`, with the same message. On Linux it should be `ENAMETOOLONG`, not run here.
+Question: None

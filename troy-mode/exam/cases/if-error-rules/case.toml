@@ -1,0 +1,36 @@
+id = "if-error-rules"
+version = 1
+role = "interface-designer"
+task = "IF1"
+item = "F08"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "ea66fd419baf480f5b9e72219796e2363861e969"
+branch = "troy-mode/f08-1-design"
+pilot = ["#14", "#20", "#52", "#71"]
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 90
+max_cost = 35.00
+
+[judge]
+diff = ["docs/features/*/design.md"]
+shared = ["docs/architecture.md"]
+
+[[criteria]]
+id = "windows-ends"
+judge = 1
+must = true
+
+[[criteria]]
+id = "paths-rule"
+judge = 2
+must = true
+
+[[criteria]]
+id = "stops"
+judge = 3
+must = false

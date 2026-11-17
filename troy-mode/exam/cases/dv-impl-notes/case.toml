@@ -1,0 +1,47 @@
+id = "dv-impl-notes"
+version = 2
+role = "developer"
+task = "DV2"
+item = "F08"
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "fa38a36804184e2b9fc2109876233f296b7f19e4"
+branch = "troy-mode/f08-5-impl"
+pilot = ["#12", "#57", "#76"]
+
+[run]
+model = "sonnet"
+effort = "high"
+minutes = 60
+max_cost = 2.50
+
+[judge]
+diff = ["src/**"]
+files = ["src/recipe_menu/datafile/_creation.py"]
+shared = ["src/recipe_menu/datafile/_listing.py"]
+
+[[criteria]]
+id = "no-notes"
+check = "no_mock_notes_left"
+must = true
+
+[[criteria]]
+id = "steps"
+check = "pack_steps_pass"
+must = true
+
+[[criteria]]
+id = "docs-match"
+judge = 1
+must = true
+
+[[criteria]]
+id = "no-mock-words"
+judge = 2
+must = true
+
+[[criteria]]
+id = "order"
+judge = 3
+must = false

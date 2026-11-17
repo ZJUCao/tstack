@@ -1,0 +1,42 @@
+id = "cr-mock-review"
+version = 1
+role = "code-reviewer"
+task = "CR1"
+item = "F05"
+title = "[F05 3/6 mock] Command line and settings"
+round = 1
+
+[start]
+repository = "ZJUCao/recipe-menu"
+commit = "b966872c716a5023a0f86b3eb7c80abe5fd649d8"
+branch = "troy-mode/f05-3-mock"
+pilot = ["#36", "#55", "#88"]
+title = "[F05 3/6 mock] Command line and settings"
+pr = 36
+
+[run]
+model = "opus"
+effort = "high"
+minutes = 60
+max_cost = 15.00
+
+[[criteria]]
+id = "asks-changes"
+check = "result_is"
+must = true
+want = "changes-requested"
+
+[[criteria]]
+id = "finds-sort"
+judge = 1
+must = true
+
+[[criteria]]
+id = "finds-note"
+judge = 2
+must = true
+
+[[criteria]]
+id = "none-false"
+judge = 3
+must = false
