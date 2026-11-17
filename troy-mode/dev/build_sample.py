@@ -1,4 +1,4 @@
-"""Builds a sample project's git repository for troy-pstack's CI (F03 design 10).
+"""Builds a sample project's git repository for tstack's CI (F03 design 10).
 
 Usage:
     python troy-mode/dev/build_sample.py build python --pr tests --out DIR

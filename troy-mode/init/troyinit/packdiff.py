@@ -3,7 +3,7 @@
 Upgrade never changes the config's [lang] table, environment.yml, the
 appended pyproject.toml tables, CMakeLists.txt, or requirements-tools.in:
 they belong to the project once written. It only reports where they differ
-from the pack troy-pstack would install now, for Troy to take into a rules PR.
+from the pack tstack would install now, for Troy to take into a rules PR.
 """
 
 import tomllib
@@ -42,7 +42,7 @@ def _lang_table(plugin: Plugin, pack: Pack, config: dict) -> list[tuple[str, str
     keys = [k for k, v in wanted.items() if k not in ("environment", "series") and have.get(k) != v]
     if not keys:
         return []
-    return [(CONFIG_PATH, f"[lang] {', '.join(keys)} differ from troy-pstack's {pack.title} "
+    return [(CONFIG_PATH, f"[lang] {', '.join(keys)} differ from {plugin.name}'s {pack.title} "
                           f"pack {plugin.version}.")]
 
 
@@ -59,10 +59,10 @@ def _filled_files(plugin: Plugin, repo: Path, pack: Pack, environment: str) -> l
             missing = [line.strip() for line in wanted.split("\n")
                        if line.strip() and not line.startswith("#") and line.strip() not in lines]
             if missing:
-                found.append((dest, f"lacks {', '.join(missing)}, which troy-pstack's pack "
+                found.append((dest, f"lacks {', '.join(missing)}, which {plugin.name}'s pack "
                                     f"{plugin.version} lists."))
         elif have != wanted:
-            found.append((dest, f"differs from troy-pstack's {pack.title} pack {plugin.version}."))
+            found.append((dest, f"differs from {plugin.name}'s {pack.title} pack {plugin.version}."))
     return found
 
 
@@ -83,7 +83,7 @@ def _build_file(plugin: Plugin, repo: Path, pack: Pack) -> list[tuple[str, str]]
     keys = [".".join(path) for path, value in _flatten(wanted) if _lookup(data, path) != value]
     if not keys:
         return []
-    return [(pack.build_file, f"{', '.join(keys)} differ from troy-pstack's Python pack "
+    return [(pack.build_file, f"{', '.join(keys)} differ from {plugin.name}'s Python pack "
                               f"{plugin.version}.")]
 
 

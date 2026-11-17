@@ -1,6 +1,6 @@
 # benny: not ported (TODO)
 
-troy-pstack does not ship benny. This file records what benny is upstream, why it does not run in Claude Code, and how it could be rebuilt. Upstream source: [pstack/automations/benny](https://github.com/cursor/plugins/tree/main/pstack/automations/benny) (pstack 0.15.36, MIT, Lauren Tan).
+tstack does not ship benny. This file records what benny is upstream, why it does not run in Claude Code, and how it could be rebuilt. Upstream source: [pstack/automations/benny](https://github.com/cursor/plugins/tree/main/pstack/automations/benny) (pstack 0.15.36, MIT, Lauren Tan).
 
 ## What benny does upstream
 
@@ -19,7 +19,7 @@ Every step leans on Cursor-only machinery:
 | --- | --- | --- |
 | A Slack "new top-level message" trigger | Cursor Automations triggers | No built-in Slack trigger |
 | Creating and editing the automations | Cursor's built-in `/automate` and the Automations editor | None |
-| Shared skills in the target repo | `.cursor/settings.json` → `plugins.pstack.enabled` | Install troy-pstack instead (see below) |
+| Shared skills in the target repo | `.cursor/settings.json` → `plugins.pstack.enabled` | Install tstack instead (see below) |
 | Slack read, thread post, file download, edit | Cursor's Slack actions (`prefer_cursor_actions`) | A Slack MCP server, or a bot token in the runner |
 | Per-role model slugs | Cursor's model matrix | `opus` / `sonnet` / `haiku` via the `Agent` tool |
 
@@ -31,13 +31,13 @@ Pick one trigger. The rest of the design carries over.
 
 Use GitHub Issues as the intake channel instead of Slack.
 
-- `triage.yml` runs on `issues: opened`. It checks out the repo, installs troy-pstack, and runs Claude Code headless (`claude -p`, or Anthropic's `anthropics/claude-code-action`) with the triage instructions. It answers with one issue comment and one label: `benny:bug`, `benny:performance`, or `benny:other`.
-- `reproduce.yml` runs on `issues: labeled` when the label is `benny:bug` or `benny:performance`. It drives the app through the project's own verify skill (make one with `/troy-pstack:create-verification-skill`), attaches evidence as workflow artifacts, and may open a draft PR with `gh pr create --draft`.
+- `triage.yml` runs on `issues: opened`. It checks out the repo, installs tstack, and runs Claude Code headless (`claude -p`, or Anthropic's `anthropics/claude-code-action`) with the triage instructions. It answers with one issue comment and one label: `benny:bug`, `benny:performance`, or `benny:other`.
+- `reproduce.yml` runs on `issues: labeled` when the label is `benny:bug` or `benny:performance`. It drives the app through the project's own verify skill (make one with `/tstack:create-verification-skill`), attaches evidence as workflow artifacts, and may open a draft PR with `gh pr create --draft`.
 - Secrets live in GitHub Actions secrets (`ANTHROPIC_API_KEY`). Give the workflow only `issues: write`, `contents: write`, and `pull-requests: write`. Never allow merge or deploy.
 
 ### Option B: a scheduled Claude Code agent (keeps Slack)
 
-- Run Claude Code on a schedule: Claude Code's `/schedule` (cloud routines on a cron), or Windows Task Scheduler / cron calling `claude -p --plugin-dir <troy-pstack>`.
+- Run Claude Code on a schedule: Claude Code's `/schedule` (cloud routines on a cron), or Windows Task Scheduler / cron calling `claude -p --plugin-dir <tstack>`.
 - Each run reads the source channel through a Slack MCP server, keeps a state file of processed message timestamps so a rerun is idempotent, and replies in threads only.
 - The repro run is the same as Option A, but it reads the marker from the Slack thread instead of a label.
 

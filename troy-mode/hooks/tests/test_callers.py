@@ -9,8 +9,8 @@ fixture, so a hook that refuses or allows everything fails.
 import unittest
 
 from hook_helpers import (
-    MAIN, OTHER_TYPES, ROLE_NAMES, HookTestCase, Project, bash_call, other, role, run_many,
-    start_call, write_call,
+    MAIN, OLD_PREFIX, OTHER_TYPES, ROLE_NAMES, HookTestCase, Project, bash_call, other, role,
+    run_many, start_call, write_call,
 )
 
 # For each role: a path in its write scope and a path outside it.
@@ -26,8 +26,10 @@ ROLE_PATHS = {
 
 # Subagents that are not roles: design section 4's examples, plus names a
 # role pattern without ^ or $ would take for the Developer, a name without the
-# plugin prefix, and an agent_id without agent_type.
-NOT_ROLES = OTHER_TYPES + ("troy-developer", "troy-pstack:troy-developerx", None)
+# plugin prefix, the Test Engineer under the old prefix (F19 design section 3),
+# and an agent_id without agent_type.
+NOT_ROLES = OTHER_TYPES + ("troy-developer", "tstack:troy-developerx",
+                           OLD_PREFIX + "troy-test-engineer", None)
 
 
 class CallerTests(HookTestCase):
@@ -84,7 +86,7 @@ class CallerTests(HookTestCase):
                                    msg=f"{name} writing {outside}:")
 
     def test_other_subagents_may_change_nothing_in_the_repository(self):
-        """Unknown troy-pstack names, general-purpose, Explore, and impostors: source refused."""
+        """Unknown tstack names, general-purpose, Explore, old-prefix roles, impostors: refused."""
         calls = [write_call(self.project, other(t), self.project.path("src/pkg/app.py"))
                  for t in NOT_ROLES]
         for agent_type, out in zip(NOT_ROLES, run_many(calls)):
@@ -115,18 +117,20 @@ class CallerTests(HookTestCase):
         """A Developer or Test Engineer name with extra text gets no write scope.
 
         Planted bug caught: an unanchored role pattern (13.2). Without ^ and $,
-        xtroy-pstack:troy-developer and troy-pstack:troy-developer-2 would be
-        taken for the Developer and allowed to write source.
+        xtstack:troy-developer and tstack:troy-developer-2 would be taken for
+        the Developer and allowed to write source. F19 design 11.1 names
+        xtstack:troy-developer, tstack:troy-developer-2, and
+        my-tstack:troy-test-engineer.
         """
-        cases = (("troy-pstack:troy-developer", "src/pkg/app.py", "source"),
-                 ("troy-pstack:troy-test-engineer", "tests/test_app.py", "tests"))
-        impostors = {"troy-pstack:troy-developer": ("xtroy-pstack:troy-developer",
-                                                    "troy-pstack:troy-developer-2",
-                                                    "Xtroy-pstack:troy-developer",
-                                                    "troy-pstack:troy-developer "),
-                     "troy-pstack:troy-test-engineer": ("xtroy-pstack:troy-test-engineer",
-                                                        "troy-pstack:troy-test-engineer-2",
-                                                        "my-troy-pstack:troy-test-engineer")}
+        cases = (("tstack:troy-developer", "src/pkg/app.py", "source"),
+                 ("tstack:troy-test-engineer", "tests/test_app.py", "tests"))
+        impostors = {"tstack:troy-developer": ("xtstack:troy-developer",
+                                               "tstack:troy-developer-2",
+                                               "Xtstack:troy-developer",
+                                               "tstack:troy-developer "),
+                     "tstack:troy-test-engineer": ("xtstack:troy-test-engineer",
+                                                   "tstack:troy-test-engineer-2",
+                                                   "my-tstack:troy-test-engineer")}
         for real, rel, cls in cases:
             real_caller = role(real.split(":troy-", 1)[1])
             with self.subTest(agent_type=real):

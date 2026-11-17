@@ -39,12 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          path: troy-pstack
+          path: tstack
       - name: Build the sample
         working-directory: .
         env:
           PR: ${{ matrix.pr }}
-        run: python3 troy-pstack/troy-mode/dev/build_sample.py build cpp --pr "$PR" --out sample
+        run: python3 tstack/troy-mode/dev/build_sample.py build cpp --pr "$PR" --out sample
       - name: Look for code
         id: code
         # Until the first mock PR the project has no code, and the tools below
@@ -124,12 +124,12 @@ jobs:
         # fails on the runner and turns exit 0 into 1.
         run: |
           if [ "$FOUND" != true ]; then
-            python3 ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" --no-code
+            python3 ../tstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" --no-code
           else
             python .troy-mode/checks/troy_check.py code --base "$BASE_SHA" --head "$HEAD_SHA" \
               --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md" \
               --junit reports/junit.xml --coverage reports/coverage.xml \
               --doc-warnings reports/doxygen.log --json > "$RUNNER_TEMP/report.json"
-            python ../troy-pstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" \
+            python ../tstack/troy-mode/dev/build_sample.py verify cpp --pr "$PR" \
               --report "$RUNNER_TEMP/report.json"
           fi

@@ -221,7 +221,7 @@ class SetupFromCrlfPluginTest(InitCase):
 
 
 class SetupWithRealPluginTest(InitCase):
-    """Setup run from the troy-pstack checkout itself."""
+    """Setup run from the tstack checkout itself."""
 
     def test_setup_records_the_commit_of_a_plugin_checkout(self):
         """A fake plugin made the top of its own git checkout has its HEAD in the record."""

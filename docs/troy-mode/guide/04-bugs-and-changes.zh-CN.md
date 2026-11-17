@@ -15,8 +15,8 @@ bug 先得到一个重现它的测试，然后才修复。需求变更先改需�
 描述这个 bug，或者给出它的 GitHub issue：
 
 ```text
-/troy-pstack:troy-mode bug：count_words("") 抛出 PermissionError，而不是 FileNotFoundError
-/troy-pstack:troy-mode 修复 #12
+/tstack:troy-mode bug：count_words("") 抛出 PermissionError，而不是 FileNotFoundError
+/tstack:troy-mode 修复 #12
 ```
 
 如果你给的是描述，troy-mode 会开一个带 `bug` 标签的 GitHub issue。issue 的编号就是 bug 的编号：issue 12 是 `B12`。然后（[需求文档第 5.3 节](../requirements.zh-CN.md#53-修-bug)）：
@@ -46,7 +46,7 @@ PR B 是 [#15](https://github.com/ZJUCao/troy-mode-trial/pull/15)。
 说出要改什么：
 
 ```text
-/troy-pstack:troy-mode 变更：一个单词至少要有一个字母或数字
+/tstack:troy-mode 变更：一个单词至少要有一个字母或数字
 ```
 
 1. **需求文档。** 产品经理在 `troy-mode/change-<slug>` 上更新 `docs/requirements.md` 和它的镜像，开 `[docs] Change the requirements: <summary>`。你像批准需求文档时那样批准它（[第 2.3 节](02-start.zh-CN.md#23-需求文档)）。在你批准之前，其他什么都不改。
@@ -70,9 +70,9 @@ PR B 是 [#15](https://github.com/ZJUCao/troy-mode-trial/pull/15)。
 问题和调查不开 PR：
 
 ```text
-/troy-pstack:troy-mode 为什么 count_words 一次读入整个文件？
-/troy-pstack:troy-mode 发布测试怎样找到版本测试？
-/troy-pstack:troy-mode 试一个流式读取的 count_words
+/tstack:troy-mode 为什么 count_words 一次读入整个文件？
+/tstack:troy-mode 发布测试怎样找到版本测试？
+/tstack:troy-mode 试一个流式读取的 count_words
 ```
 
 troy-mode 直接在对话里回答，合适时按 pstack 的 `how` 或 `why` 技能来做，不启动任何角色。试验在从 `origin/main` 拉出的临时分支 `troy-mode/try-<slug>` 上进行，或者在一个临时文件夹里。它从不推送，也从不成为 PR。值得保留的代码要走需求变更和功能循环（[需求文档第 5.9 节](../requirements.zh-CN.md#59-流水线之外的工作)）。

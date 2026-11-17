@@ -66,6 +66,12 @@ names its bug in its docstring.
   test_hooks_json.HooksJsonTests.test_user_prompt_expansion_matcher_matches_only_the_guarded_names,
   test_user_prompt_expansion_entry, and test_matchers_and_if_rules.
 
+F19 (design 10 and 11.1) renames the plugin to tstack: the message points to
+/tstack:troy-mode, written out in TROY_MODE_COMMAND, and the names before the
+rename are refused like any other prefix. F19's planted bug "the guard's
+message pointing to the old command" (11.3) is caught by every MessageTests
+test and by ModuleTests.test_plugin_prefix_is_tstack.
+
 Run from the repository root:
 python -m unittest discover -s troy-mode/hooks/tests -p "test_mode_guard.py" -v
 """
@@ -77,9 +83,9 @@ import sys
 import unittest
 
 from hook_helpers import (
-    BASE_FILES, CHECKS, DEV, ERROR_PREFIX, GP, HOOK, HOOKS_DIR, MAIN, NEUTRAL, Call, HookRun,
-    HookTestCase, Project, has_git_ancestor, hook_env, hook_input, plain_folder, remove_tree,
-    run_many, unique, write_call,
+    BASE_FILES, CHECKS, DEV, ERROR_PREFIX, GP, HOOK, HOOKS_DIR, MAIN, NEUTRAL, OLD_PREFIX, Call,
+    HookRun, HookTestCase, Project, has_git_ancestor, hook_env, hook_input, plain_folder,
+    remove_tree, run_many, unique, write_call,
 )
 
 EVENT = "UserPromptExpansion"
@@ -104,31 +110,34 @@ def troyhook_module(name):
 
 
 PLUGIN_PREFIX = troyhook_module("troyhook.scopes").PLUGIN_PREFIX
-# T of contract 4: the command the message points to.
-TROY_MODE_COMMAND = "/" + PLUGIN_PREFIX + "troy-mode"
+# T of contract 4: the command the message points to, /tstack:troy-mode
+# after F19 (design 10, F13 row). Written out, so a message that still
+# points to the old command fails whatever PLUGIN_PREFIX holds.
+TROY_MODE_COMMAND = "/tstack:troy-mode"
 
 # ---------------------------------------------------------------------------
 # Names (design section 4, contract section 3).
 # ---------------------------------------------------------------------------
 
-PREFIXED = ("troy-pstack:poteto-mode", "troy-pstack:no-comments")
-OTHER_PREFIXES = ("tstack:poteto-mode", "tstack:no-comments", "pstack:poteto-mode",
+PREFIXED = ("tstack:poteto-mode", "tstack:no-comments")
+# The old prefix, before tstack (F19 11.1), and upstream pstack's.
+OTHER_PREFIXES = (OLD_PREFIX + "poteto-mode", OLD_PREFIX + "no-comments", "pstack:poteto-mode",
                   "pstack:no-comments")
 BARE = ("poteto-mode", "no-comments")
 REFUSED = PREFIXED + OTHER_PREFIXES + BARE
 
 # Other commands, troy-mode's own and the tools design section 4 leaves off
 # the list.
-OTHER_COMMANDS = ("troy-pstack:troy-mode", "troy-pstack:bro", "troy-pstack:arena",
+OTHER_COMMANDS = ("tstack:troy-mode", "tstack:bro", "tstack:arena", OLD_PREFIX + "troy-mode",
                   "code-review")
 # Near misses: one letter off, another skill, or another case (contract 3:
 # case-sensitive).
-NEAR_MISSES = ("troy-pstack:no-comment", "troy-pstack:poteto-help", "troy-pstack:POTETO-MODE",
-               "troy-pstack:No-Comments", "POTETO-MODE")
+NEAR_MISSES = ("tstack:no-comment", "tstack:poteto-help", "tstack:POTETO-MODE",
+               "tstack:No-Comments", "POTETO-MODE")
 # Names that hold a guarded name with text before or after it, or after a
 # second prefix (contract 3: only the part before the first ":" is dropped).
-CONTAINS_GUARDED = ("troy-pstack:poteto-mode-extra", "troy-pstack:no-comments-extra",
-                    "my-poteto-mode", "troy-pstack:my-no-comments", "a:b:poteto-mode",
+CONTAINS_GUARDED = ("tstack:poteto-mode-extra", "tstack:no-comments-extra",
+                    "my-poteto-mode", "tstack:my-no-comments", "a:b:poteto-mode",
                     "a:b:no-comments")
 LET_THROUGH = OTHER_COMMANDS + NEAR_MISSES + CONTAINS_GUARDED
 
@@ -311,7 +320,7 @@ class TroyModeProjectTests(GuardTestCase):
         cls.addClassCleanup(remove_tree, cls.worktree)
 
     def test_prefixed_commands_are_refused_in_the_project_root(self):
-        """troy-pstack:poteto-mode and troy-pstack:no-comments, with and without command_args.
+        """tstack:poteto-mode and tstack:no-comments, with and without command_args.
 
         Planted bugs caught: no-comments left out (its rows); exit code 2 in
         place of JSON (every row needs exit code 0 and the JSON object).
@@ -333,9 +342,9 @@ class TroyModeProjectTests(GuardTestCase):
         self.check_all(calls, self.assert_refused)
 
     def test_other_plugin_prefixes_are_refused(self):
-        """tstack: (after F19) and pstack: (upstream) are refused too (design section 4).
+        """The old prefix (before tstack, F19 11.1) and pstack: (upstream) are refused too.
 
-        Planted bug caught: the prefix kept, so only troy-pstack: is refused.
+        Planted bug caught: the prefix kept, so only tstack: is refused.
         """
         calls = [expansion(self.project.root, name, args) for name in OTHER_PREFIXES
                  for args in ARG_FORMS[:2]]
@@ -377,18 +386,18 @@ class TroyModeProjectTests(GuardTestCase):
     def test_arguments_that_name_a_guarded_command_are_let_through(self):
         """Pair: troy-mode asked about /poteto-mode is silent; only command_name counts (3.3)."""
         args = "compare /poteto-mode and /no-comments with troy-mode"
-        calls = [expansion(self.project.root, "troy-pstack:troy-mode", args),
-                 expansion(self.project.root, "troy-pstack:bro", "/troy-pstack:poteto-mode")]
+        calls = [expansion(self.project.root, "tstack:troy-mode", args),
+                 expansion(self.project.root, "tstack:bro", "/tstack:poteto-mode")]
         self.check_all(calls, self.assert_let_through)
 
     def test_missing_empty_or_non_string_command_name_is_let_through(self):
         """Pair: no command_name, an empty one, null, a number, or a list is silent (contract 3).
 
-        Each input's prompt names /troy-pstack:poteto-mode, so a hook that
+        Each input's prompt names /tstack:poteto-mode, so a hook that
         falls back to the typed text fails.
         """
-        prompt = "/troy-pstack:poteto-mode build the export feature"
-        names = (MISSING, "", None, 42, ["troy-pstack:poteto-mode"])
+        prompt = "/tstack:poteto-mode build the export feature"
+        names = (MISSING, "", None, 42, ["tstack:poteto-mode"])
         calls = [expansion(self.project.root, name, "build the export feature", prompt)
                  for name in names]
         self.check_all(calls, self.assert_let_through)
@@ -458,8 +467,8 @@ class MessageTests(GuardTestCase):
     def test_message_names_the_command_as_given_with_a_slash(self):
         """Both lines name "/" + command_name, prefix and all, and no other spelling of it.
 
-        Planted bug caught: the prefix kept or replaced, so a bare or a
-        tstack: name is shown as /troy-pstack:<name>.
+        Planted bug caught: the prefix kept or replaced, so a bare or an
+        old-prefix name is shown as /tstack:<name>.
         """
         for name in REFUSED:
             with self.subTest(command_name=name):
@@ -486,12 +495,33 @@ class MessageTests(GuardTestCase):
                         self.assertNotIn(word, self.reason(name))
 
     def test_message_points_to_troy_mode(self):
-        """Both lines tell Troy to type /troy-pstack:troy-mode (from PLUGIN_PREFIX) instead."""
+        """Both lines tell Troy to type /tstack:troy-mode instead (F19 11.1).
+
+        Planted bug caught: the guard's message pointing to the old command
+        (F19 11.3).
+        """
         for name in REFUSED:
             with self.subTest(command_name=name):
                 english, chinese = (self.reason(name).split("\n") + ["", ""])[:2]
                 self.assertIn(f" Type {TROY_MODE_COMMAND} and your request instead. ", english)
                 self.assertIn(f"请改用 {TROY_MODE_COMMAND} 加上你的请求。", chinese)
+
+    def test_old_and_new_prefix_are_both_refused_as_typed(self):
+        """F19 11.1: the old-prefix and the tstack: poteto-mode are both refused.
+
+        Each message shows the command as typed, with a "/", and points to
+        /tstack:troy-mode, never to the old command.
+        """
+        old_command = "/" + OLD_PREFIX + "troy-mode"  # the old command; tstack's is expected
+        for name in (OLD_PREFIX + "poteto-mode", "tstack:poteto-mode"):
+            with self.subTest(command_name=name):
+                reason = self.reason(name)
+                english, chinese = (reason.split("\n") + ["", ""])[:2]
+                self.assertTrue(english.startswith(f"troy-mode: /{name} is off here. "), english)
+                self.assertTrue(chinese.startswith(f"troy-mode：这里停用 /{name}。"), chinese)
+                self.assertIn(" Type /tstack:troy-mode and your request instead. ", english)
+                self.assertIn("请改用 /tstack:troy-mode 加上你的请求。", chinese)
+                self.assertNotIn(old_command, reason)
 
     def test_message_has_an_english_line_and_a_chinese_line(self):
         """Exactly two lines joined by one line break: English first, then Chinese."""
@@ -568,7 +598,7 @@ class ErrorTests(GuardTestCase):
         through F05's refusal rule for subagents (D39).
         """
         for caller in (DEV, GP):
-            payload = expansion_input(self.troy.root, "troy-pstack:poteto-mode", "build it")
+            payload = expansion_input(self.troy.root, "tstack:poteto-mode", "build it")
             payload.update(agent_id=caller.agent_id, agent_type=caller.agent_type)
             with self.subTest(agent_type=caller.agent_type):
                 self.assert_warning(run_patched(payload, "check"))
@@ -580,13 +610,13 @@ class ErrorTests(GuardTestCase):
 
         Planted bug caught: the gate skipped.
         """
-        out = run_patched(expansion_input(self.plain.root, "troy-pstack:poteto-mode"), "check")
+        out = run_patched(expansion_input(self.plain.root, "tstack:poteto-mode"), "check")
         self.assert_let_through(out)
 
     def test_input_that_is_not_a_json_object_exits_1(self):
         """Text that is not JSON, or JSON that is not an object, exits 1 with nothing on stdout."""
-        for text in ("/troy-pstack:poteto-mode build", '["troy-pstack:poteto-mode"]',
-                     '"troy-pstack:poteto-mode"'):
+        for text in ("/tstack:poteto-mode build", '["tstack:poteto-mode"]',
+                     '"tstack:poteto-mode"'):
             with self.subTest(stdin=text):
                 self.assert_main_error(run_raw(text))
 
@@ -639,6 +669,14 @@ class ModuleTests(unittest.TestCase):
         """
         self.assertEqual(("poteto-mode", "no-comments"),
                          troyhook_module("troyhook.modeguard").GUARDED)
+
+    def test_plugin_prefix_is_tstack(self):
+        """troyhook.scopes.PLUGIN_PREFIX is "tstack:", which the message's command is built from.
+
+        F19 design 5.1 and the F13 row of section 10.
+        """
+        self.assertEqual("tstack:", PLUGIN_PREFIX)
+        self.assertEqual(TROY_MODE_COMMAND, "/" + PLUGIN_PREFIX + "troy-mode")
 
 
 if __name__ == "__main__":

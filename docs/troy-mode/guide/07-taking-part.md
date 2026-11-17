@@ -39,7 +39,7 @@ troy-mode merges every PR except those that wait for you, once every review appr
 - after you accept a version, create its GitHub release on the release PR's merge commit;
 - merge the PRs of a rule you approved.
 
-Anything else asks you first. In particular, nothing outside the project happens without your yes: creating the GitHub repository at setup, and opening an issue in troy-pstack for a rule for every project. troy-mode never commits on `main`, pushes `main`, or opens a PR from `main` (R21), and it never works around a refused permission.
+Anything else asks you first. In particular, nothing outside the project happens without your yes: creating the GitHub repository at setup, and opening an issue in tstack for a rule for every project. troy-mode never commits on `main`, pushes `main`, or opens a PR from `main` (R21), and it never works around a refused permission.
 
 ## 7.3 Answer an escalation
 
@@ -90,7 +90,7 @@ troy-mode keeps no state in the conversation. The state is in git and on GitHub:
 To pick up, open a new session in the project and type:
 
 ```text
-/troy-pstack:troy-mode continue
+/tstack:troy-mode continue
 ```
 
 "status", or the command with no request, does the same. troy-mode reports where the project stands and what waits on you, then goes on with the next step as far as the request reaches. In the F09 trial, a new session found a rule's cleanup this way and merged it:

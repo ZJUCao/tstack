@@ -1,4 +1,4 @@
-"""Checks that every English document in troy-pstack matches its Chinese mirror.
+"""Checks that every English document in tstack matches its Chinese mirror.
 
 Usage:
     python troy-mode/dev/check_pairs.py [--repo PATH]
@@ -14,7 +14,7 @@ For every tracked ``X.zh-CN.md``, ``X.md`` must exist, and the pair must have:
   document.
 - The same fill-in markers ({{...}}) outside HTML comments and inline code.
 
-This is troy-pstack's own tool. It is not copied into projects; there,
+This is tstack's own tool. It is not copied into projects; there,
 troy-check's R12 does this job.
 
 Exit codes: 0 when every pair matches, 1 when there is a problem, and 2 when

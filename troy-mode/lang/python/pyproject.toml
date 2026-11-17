@@ -15,7 +15,7 @@ dev = [
 line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
-# troy-check is checked in troy-pstack, not in the project.
+# troy-check is checked in tstack, not in the project.
 extend-exclude = [".troy-mode"]
 
 [tool.ruff.lint]

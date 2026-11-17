@@ -56,7 +56,7 @@ uv pip install -e . --no-deps
 
 ## 4. 工具设置
 
-- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 troy-pstack 里检查。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试和 `version-tests/` 里的版本测试可以用 `assert`，也不需要类型标注。
+- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 tstack 里检查。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试和 `version-tests/` 里的版本测试可以用 `assert`，也不需要类型标注。
 - **mypy** 用严格模式检查 `src`。
 - **pytest** 在 `tests/` 里找测试，参数是 `-ra --strict-markers`。它不收集 `version-tests/` 里的版本测试，那些只在发布测试里运行（F08 设计第 5.3 节）。版本测试的名字以场景编号开头，比如 `test_v0_1_s01_counts_words_and_lines`。
 - **coverage** 统计 `src` 里的行覆盖和分支覆盖。
@@ -69,7 +69,7 @@ uv pip install -e . --no-deps
 
 ## 6. 示例项目
 
-[`troy-mode/samples/python`](../../samples/python) 里是 textstats，一个很小的项目，它的功能 F01 依次经过设计、测试计划、mock、测试和实现。[`build_sample.py`](../../dev/build_sample.py) 用 `troy-init` 自己的初始化和语言步骤建出它的 git 仓库。然后 troy-pstack 的工作流 `troy-python-sample.yml` 在三个 PR 上运行第 5 节的步骤：
+[`troy-mode/samples/python`](../../samples/python) 里是 textstats，一个很小的项目，它的功能 F01 依次经过设计、测试计划、mock、测试和实现。[`build_sample.py`](../../dev/build_sample.py) 用 `troy-init` 自己的初始化和语言步骤建出它的 git 仓库。然后 tstack 的工作流 `troy-python-sample.yml` 在三个 PR 上运行第 5 节的步骤：
 
 - 设计 PR：最新提交里还没有代码，所以跳过代码步骤；
 - 测试 PR：每个新测试都必须在 mock 上失败（R09）；

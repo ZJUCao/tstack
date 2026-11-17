@@ -55,7 +55,7 @@ def _gitignore(repo: Path) -> FileAction:
 def setup_files(plugin: Plugin, repo: Path, options: SetupOptions) -> list[FileAction]:
     """Builds every file setup writes, without the preconditions of section 4.1.
 
-    troy-pstack's build_sample.py uses this too, so its samples are set up
+    tstack's build_sample.py uses this too, so its samples are set up
     exactly as troy-init sets up a project (design section 8).
 
     Args:
@@ -137,7 +137,7 @@ def _git_settings(plugin: Plugin, repo: Path, plan: Plan, wanted: str) -> None:
             plan.notes.append(f"core.hooksPath was {old}; setup sets it to {HOOKS_DEST}.")
         plan.notes.append("The git hooks are on: core.hooksPath is " + HOOKS_DEST + ".")
     else:
-        plan.notes.append("This troy-pstack has no git hooks yet (F05), so core.hooksPath "
+        plan.notes.append(f"This {plugin.name} has no git hooks yet (F05), so core.hooksPath "
                           "stays unset.")
     configured = config_get(repo, "user.email")
     plan.email = {"wanted": wanted, "configured": configured, "matches": configured == wanted}
@@ -170,7 +170,7 @@ def plan_setup(plugin: Plugin, repo: Path, top: Path, options: SetupOptions) -> 
     Returns:
         The plan. It is blocked when a precondition fails or a file conflicts.
     """
-    plan = Plan("setup", plugin.version)
+    plan = Plan("setup", plugin.version, plugin.name)
     plan.problems = setup_problems(repo, top)
     if plan.problems and not is_root(repo, top):
         return plan

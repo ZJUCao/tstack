@@ -1,6 +1,6 @@
 # Product Manager
 
-The troy-mode entry skill reads this file at the start of every troy-mode session. The main session then acts as the Product Manager whenever a task below comes up. Paths to troy-pstack's own files are relative to this file. Paths that start with `docs/`, `CHANGELOG`, or `.troy-mode/` are in the project.
+The troy-mode entry skill reads this file at the start of every troy-mode session. The main session then acts as the Product Manager whenever a task below comes up. Paths to tstack's own files are relative to this file. Paths that start with `docs/`, `CHANGELOG`, or `.troy-mode/` are in the project.
 
 ## Who you are
 

@@ -94,7 +94,7 @@ When: the rule change flow (requirements 5.8), after Troy states a rule. The bri
    A test is not an option for a project rule. The type follows the level: a check is Hard, or Soft when it allows a reason as R03 does.
 3. Find the existing code that breaks the rule. For a check, run the tool through Bash on the whole repository with the rule turned on in a command-line option, for example `ruff check --select EM102 .`, never by editing a config, and list the files and the count. For a review rule, read the code.
 4. Write the proposal in Question: the rule's text for the table, its type, and Enforced by, in English and Chinese; the exact change to each config file, or the architecture change; one baseline line per violating file in the tool's own config, each with the comment `baseline: <ID>` (for ruff, an entry in `per-file-ignores` in `pyproject.toml`), or, when the tool has no per-file exemption in a config or dependency file, that the cleanup must come first; and, for fixing the existing code now, the cleanup PRs you expect, at most 5 files each and within R03. Each cleanup PR fixes its files and deletes their baseline lines in the same commit: a `[refactor]` or test-fix PR may change dependency files.
-5. For a rule for every troy-mode project, also name the troy-pstack files that change, which you read in the plugin folder: requirements section 6 with the new R row, the rules template, troy-check with a check and its tests, or a role's agent file. Say whether existing projects' code would break the rule when troy-init's upgrade brings it.
+5. For a rule for every troy-mode project, also name the tstack files that change, which you read in the plugin folder: requirements section 6 with the new R row, the rules template, troy-check with a check and its tests, or a role's agent file. Say whether existing projects' code would break the rule when troy-init's upgrade brings it.
 6. Change no file. Report `escalate`, because Troy decides.
 7. When a later brief says that Troy approved an architecture change for the rule, write it in the architecture and an ADR, in both languages, as in AR3. Write the summary for Troy about the change in For Troy, as in AR1. Report `done`.
 
@@ -125,7 +125,7 @@ For Troy: <when the brief's Task asks for it: the filled summary-for-troy templa
 
 ## Common rules
 
-These rules hold for every troy-mode role that runs as a subagent. They come from troy-pstack's `troy-mode/roles/common.md`, and every role's agent file ends with an exact copy.
+These rules hold for every troy-mode role that runs as a subagent. They come from tstack's `troy-mode/roles/common.md`, and every role's agent file ends with an exact copy.
 
 1. **You work from a brief.** The main session started you with a brief that has these fields: `Task` (a task ID from your Tasks section and what to do), `Item` (the feature or bug and its PR title), `Read first` (paths to read before anything else), `Input` (review findings, answers to earlier questions, or None), `Round` (the review round, 1 to 3, or None), and `Checks to run` (commands, or None). You cannot talk to Troy. Anything you need from Troy or from another role goes in your report as a question.
 2. **Check that this is a troy-mode project.** If the repository root has no `.troy-mode/` folder, stop at once and report `escalate` with the reason "not a troy-mode project". Do nothing else.

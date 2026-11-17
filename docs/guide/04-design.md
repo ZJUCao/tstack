@@ -98,7 +98,7 @@ Writing the tutorial first forces the caller's view. You describe the API to a h
 
 ## Plan after the design settles
 
-troy-pstack has no planning skill, on purpose. When you do want a written plan, ask for it once the design is settled:
+tstack has no planning skill, on purpose. When you do want a written plan, ask for it once the design is settled:
 
 ```text
 /poteto-mode turn this design into a plan. small verifiable PRs, each with its own verification steps.

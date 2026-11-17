@@ -1,6 +1,6 @@
 """The language packs troy-init installs (design sections 5.2 and 5.3).
 
-Each pack lives in troy-pstack's troy-mode/lang/<name>/ (F03). This module
+Each pack lives in tstack's troy-mode/lang/<name>/ (F03). This module
 says where each of its files lands in a project and who owns it there.
 """
 
@@ -91,9 +91,9 @@ def get_pack(name: str) -> Pack:
     """Returns the pack for a language name.
 
     Raises:
-        InitError: troy-pstack has no pack for that language.
+        InitError: tstack has no pack for that language.
     """
     try:
         return PACKS[name]
     except KeyError:
-        raise InitError(f"troy-pstack has no language pack named {name!r}") from None
+        raise InitError(f"tstack has no language pack named {name!r}") from None

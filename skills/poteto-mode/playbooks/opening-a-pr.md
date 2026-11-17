@@ -21,7 +21,7 @@ Invoked at the end of every other playbook.
 
 After the sections, attach videos or screenshots when they prove a claim. Full SHAs, swarm or arena lane recitals, lever-correction essays, file-by-file checklists, and "CLEAN" verdicts go in a linked artifact, not the body.
 
-**Forge.** Resolve the forge before the first PR operation and keep that choice for create, edit, view, watch, and merge. GitHub CLI (`gh`) is the default. **Not ported to Claude Code:** the Origin forge and every Origin step in this playbook. Origin is Cursor's own forge, so troy-pstack always uses `gh`. Do not require Graphite (`gt`).
+**Forge.** Resolve the forge before the first PR operation and keep that choice for create, edit, view, watch, and merge. GitHub CLI (`gh`) is the default. **Not ported to Claude Code:** the Origin forge and every Origin step in this playbook. Origin is Cursor's own forge, so tstack always uses `gh`. Do not require Graphite (`gt`).
 
 **Built-in PR tool.** When the run provides a built-in PR tool, create, edit, retarget, and mark ready through it, never through a forge CLI. A CLI-made PR misses what the tool tracks. Use the resolved forge for everything the tool does not cover, and for every PR operation when the run has no such tool.
 

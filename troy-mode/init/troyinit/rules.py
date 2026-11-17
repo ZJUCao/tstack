@@ -16,8 +16,8 @@ _LAST_CELL = re.compile(r"\|\s*([^|]*?)\s*\|\s*$")
 _VERSION = re.compile(r'^version: "(\d+)\.(\d+)"$', re.MULTILINE)
 _UPDATED = re.compile(r'^updated: "[^"]*"$', re.MULTILINE)
 _CHANGE_TEXT = {
-    "en": "troy-mode's rules brought up to troy-pstack {version}.",
-    "zh-CN": "troy-mode 的规则更新到 troy-pstack {version}。",
+    "en": "troy-mode's rules brought up to {name} {version}.",
+    "zh-CN": "troy-mode 的规则更新到 {name} {version}。",
 }
 
 
@@ -61,7 +61,7 @@ def merge_rows(project: str, template: str, date: str) -> str:
 
     Args:
         project: The project's rules document.
-        template: troy-pstack's rules template in the same language.
+        template: The plugin's rules template in the same language.
         date: The date for R rows that are new.
 
     Returns:
@@ -108,7 +108,8 @@ def _add_change_row(text: str, version: str, date: str, change: str) -> str:
     return "\n".join(lines)
 
 
-def bump(text: str, version: str, date: str, lang: str, plugin_version: str) -> str:
+def bump(text: str, version: str, date: str, lang: str, plugin_version: str,
+         plugin_name: str) -> str:
     """Sets version and updated in the header and records the change.
 
     Args:
@@ -116,19 +117,20 @@ def bump(text: str, version: str, date: str, lang: str, plugin_version: str) -> 
         version: The new version, MAJOR.MINOR.
         date: The upgrade's date.
         lang: "en" or "zh-CN".
-        plugin_version: troy-pstack's version, named in the change log.
+        plugin_version: The plugin's version, named in the change log.
+        plugin_name: The plugin's name from plugin.json, named with it.
 
     Returns:
         The document with its new header values and change-log row.
     """
     text = _VERSION.sub(f'version: "{version}"', text, count=1)
     text = _UPDATED.sub(f'updated: "{date}"', text, count=1)
-    change = _CHANGE_TEXT[lang].format(version=plugin_version)
+    change = _CHANGE_TEXT[lang].format(name=plugin_name, version=plugin_version)
     return _add_change_row(text, version, date, change)
 
 
 def upgrade_pair(en: str, zh: str, en_template: str, zh_template: str, date: str,
-                 plugin_version: str) -> tuple[str, str] | None:
+                 plugin_version: str, plugin_name: str) -> tuple[str, str] | None:
     """Upgrades the rules table and its mirror together.
 
     Both texts are read with LF line endings, so that a checkout with CRLF
@@ -137,10 +139,11 @@ def upgrade_pair(en: str, zh: str, en_template: str, zh_template: str, date: str
     Args:
         en: docs/rules.md as it is.
         zh: docs/rules.zh-CN.md as it is.
-        en_template: troy-pstack's rules.md template.
-        zh_template: troy-pstack's rules.zh-CN.md template.
+        en_template: The plugin's rules.md template.
+        zh_template: The plugin's rules.zh-CN.md template.
         date: The upgrade's date.
-        plugin_version: troy-pstack's version.
+        plugin_version: The plugin's version.
+        plugin_name: The plugin's name.
 
     Returns:
         The new English and Chinese texts with LF line endings, both at the
@@ -153,5 +156,5 @@ def upgrade_pair(en: str, zh: str, en_template: str, zh_template: str, date: str
     if en_rows == en and zh_rows == zh:
         return None
     version = next_version(en)
-    return (bump(en_rows, version, date, "en", plugin_version),
-            bump(zh_rows, version, date, "zh-CN", plugin_version))
+    return (bump(en_rows, version, date, "en", plugin_version, plugin_name),
+            bump(zh_rows, version, date, "zh-CN", plugin_version, plugin_name))

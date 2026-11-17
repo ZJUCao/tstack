@@ -13,12 +13,12 @@ A project becomes a troy-mode project in four steps: setup, the requirements, th
 Before you start, give the project the merge permission ([section 1.4](01-install.md#14-the-merge-permission)). Then open a new Claude Code session in the project's folder, new or existing. In the desktop app, choose the folder itself: the pilot ran there for its whole version, and a session in a git worktree of the project has not been tried. Type every troy-mode request for the project in such a session, not in a session of another project. Then type what you want to build:
 
 ```text
-/troy-pstack:troy-mode start a project: a command-line tool that counts the words in a text file
+/tstack:troy-mode start a project: a command-line tool that counts the words in a text file
 ```
 
 In a folder with no `.troy-mode/`, troy-mode answers a question but changes nothing. For any other request it asks you once whether to make the folder a troy-mode project. Then it runs the four steps in order, and stops where it needs you. A project that has some steps already resumes at the first missing one.
 
-To run only the setup step, type `/troy-pstack:troy-init`. It turns the folder into a troy-mode project and stops there ([troy-init skill](../../../skills/troy-init/SKILL.md)).
+To run only the setup step, type `/tstack:troy-init`. It turns the folder into a troy-mode project and stops there ([troy-init skill](../../../skills/troy-init/SKILL.md)).
 
 ## 2.2 Setup
 

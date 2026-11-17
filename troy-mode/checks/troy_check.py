@@ -4,7 +4,7 @@ Usage:
     python troy_check.py pr --base <ref> --title <text> [options]
     python troy_check.py commit --message-file <path> [options]
 
-See docs/troy-mode/design/F02-checks.md in troy-pstack for the full design.
+See docs/troy-mode/design/F02-checks.md in tstack for the full design.
 """
 
 import sys

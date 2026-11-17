@@ -19,8 +19,8 @@ class Install:
     """What troy-init installed in a project.
 
     Attributes:
-        version: The troy-pstack version of the last step.
-        commit: The troy-pstack commit, when the plugin was a git checkout.
+        version: The tstack version of the last step.
+        commit: The tstack commit, when the plugin was a git checkout.
         steps: The date of each step by name: "setup", "lang", "upgrade".
         lang: The language pack, or None before the language step.
         files: SHA-256 (LF form) of every file troy-init owns, by path.

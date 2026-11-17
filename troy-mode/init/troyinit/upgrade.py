@@ -6,6 +6,7 @@ from pathlib import Path
 from .errors import InitError
 from .gitops import config_get, current_branch, is_root
 from .install import INSTALL_PATH, Install, parse, render
+from .oldname import comment_actions
 from .plan import FileAction, Plan, edited_bytes, exists, file_hash, read_project_file
 from .packdiff import pack_differences
 from .plugin import HOOKS_DEST, Plugin, owned_contents, pack_patterns
@@ -64,7 +65,7 @@ def _dropped_owned(path: str, current: bytes | None, recorded: str | None,
         return None, None
     if (recorded is not None and file_hash(current) == recorded) or path in replace:
         return FileAction(path, "delete", owned=True), None
-    return None, ("was edited since troy-init wrote it, and troy-pstack no longer has it. "
+    return None, ("was edited since troy-init wrote it, and the plugin no longer has it. "
                   "Name it with --replace to let upgrade delete it.")
 
 
@@ -104,7 +105,7 @@ def _rules_actions(plugin: Plugin, repo: Path, date: str, plan: Plan) -> None:
         result = upgrade_pair(en.decode("utf-8"), zh.decode("utf-8"),
                               plugin.text("troy-mode/templates/rules.md"),
                               plugin.text("troy-mode/templates/rules.zh-CN.md"),
-                              date, plugin.version)
+                              date, plugin.version, plugin.name)
     except (InitError, UnicodeDecodeError) as exc:
         plan.differences.append((RULES_EN, f"Its R rows were not upgraded: {exc}"))
         return
@@ -139,7 +140,7 @@ def config_differences(plugin: Plugin, repo: Path,
         missing = [p for p in patterns if p not in paths.get(key, [])]
         if missing:
             found.append((CONFIG_PATH, f"[paths] {key} lacks {', '.join(missing)}, which "
-                                       f"troy-pstack {plugin.version} sets up."))
+                                       f"{plugin.name} {plugin.version} sets up."))
     if lang:
         found += pack_differences(plugin, repo, lang)
     return found
@@ -150,7 +151,7 @@ def _hooks_note(repo: Path, plan: Plan) -> None:
     arriving = any(a.action == "create" and a.path.startswith(HOOKS_DEST + "/")
                    for a in plan.actions)
     if arriving and config_get(repo, "core.hooksPath") != HOOKS_DEST:
-        plan.notes.append("The git hooks arrive with this upgrade. troy-pstack's SessionStart "
+        plan.notes.append(f"The git hooks arrive with this upgrade. {plan.plugin}'s SessionStart "
                           f"hook turns them on in each clone by setting core.hooksPath to "
                           f"{HOOKS_DEST}.")
 
@@ -162,7 +163,7 @@ def _finish(plugin: Plugin, install: Install, hashes: dict[str, str], date: str,
     current is the record's bytes as they are, whose line endings it keeps.
     """
     if not plan.changed:
-        plan.notes.append(f"Nothing to upgrade: troy-mode's files already match troy-pstack "
+        plan.notes.append(f"Nothing to upgrade: troy-mode's files already match {plugin.name} "
                           f"{plugin.version}.")
         return
     steps = {**install.steps, "upgrade": date}
@@ -192,7 +193,7 @@ def plan_upgrade(plugin: Plugin, repo: Path, top: Path, date: str, replace: list
     Raises:
         InitError: The install record cannot be read.
     """
-    plan = Plan("upgrade", plugin.version)
+    plan = Plan("upgrade", plugin.version, plugin.name)
     plan.problems = upgrade_problems(repo, top)
     if plan.problems:
         return plan
@@ -200,6 +201,7 @@ def plan_upgrade(plugin: Plugin, repo: Path, top: Path, date: str, replace: list
     install = parse((raw or b"").decode("utf-8", "replace"))
     hashes = _owned_actions(plugin, repo, install, replace, plan)
     _rules_actions(plugin, repo, date, plan)
+    comment_actions(repo, plan)
     plan.differences += config_differences(plugin, repo, install.lang)
     _hooks_note(repo, plan)
     _finish(plugin, install, hashes, date, plan, raw)

@@ -22,7 +22,7 @@ troy-mode opens `[docs] Add the v0.1 test plan` on `troy-mode/v0.1-test-plan`, c
 After the version's last feature is accepted, type:
 
 ```text
-/troy-pstack:troy-mode release v0.1
+/tstack:troy-mode release v0.1
 ```
 
 "release" alone means the version that troy-mode names as due. A release request never builds features. If a feature of the version is not accepted, troy-mode tells you which and stops: ask for the features first, such as "the rest of v0.1", then for the release ([F07 design D63](../design/F07-entry-skill.md#16-decisions-for-troy)).
@@ -91,7 +91,7 @@ If you merge the release PR on GitHub yourself, troy-mode records your acceptanc
 ## 5.7 Patch releases
 
 ```text
-/troy-pstack:troy-mode release v0.1.1
+/tstack:troy-mode release v0.1.1
 ```
 
 A patch releases the bug fixes merged since v0.1.0. It has no version test plan of its own and no new version tests, but the release test runs every version test again, and you test the scenarios the fixed bugs touched. The changelog section lists only Fixed, and the features keep their statuses. A patch has no retrospective.

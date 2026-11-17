@@ -57,7 +57,7 @@ file_lines = 500
 legacy = []
 
 [lang]
-# Set by the language pack (troy-mode/lang/ in troy-pstack), for example:
+# Set by the language pack (troy-mode/lang/ in tstack), for example:
 # name = "python"                  # or "cpp"
 # source_roots = ["src"]           # Python: where imports are resolved from
 # include_dirs = ["include", "src"]  # C/C++: tried after the including file's folder

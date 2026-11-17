@@ -124,7 +124,7 @@ class VersionTaskTests(FlowCase):
                 role = ROLE_OF[task[:2]]
                 self.assertEqual((report["task"], report["role"], report["item"],
                                   report["stage"]), (task, role, "v0.1", None))
-                self.assertEqual(report["agent"], {"subagent_type": f"troy-pstack:troy-{role}"})
+                self.assertEqual(report["agent"], {"subagent_type": f"tstack:troy-{role}"})
                 self.assertEqual(report["title"], titles.get(task, TESTS_TITLE))
                 self.assertEqual(line_of(report, "Item: "), f"Item: v0.1, {report['title']}")
                 found = [next((i for i, line in enumerate(report["prompt"].split("\n"))

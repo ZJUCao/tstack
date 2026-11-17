@@ -1,9 +1,9 @@
-# troy-pstack in Claude Code
+# tstack in Claude Code
 
-troy-pstack is a fork of Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) 0.15.36. Its skills keep upstream's Cursor names so that upstream changes still merge cleanly. Read this file once per session, then map each Cursor name in a skill with the tables below.
+tstack is a fork of Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) 0.15.36. Its skills keep upstream's Cursor names so that upstream changes still merge cleanly. Read this file once per session, then map each Cursor name in a skill with the tables below.
 
-- `<pstack>` means the troy-pstack plugin folder, the one that holds `skills/` and `docs/`. When Claude Code loads a skill it shows the skill's base directory, `<pstack>/skills/<name>`, so `<pstack>` is two levels up from it.
-- When a skill says "pstack", it means troy-pstack, unless it talks about Lauren's upstream project.
+- `<pstack>` means the tstack plugin folder, the one that holds `skills/` and `docs/`. When Claude Code loads a skill it shows the skill's base directory, `<pstack>/skills/<name>`, so `<pstack>` is two levels up from it.
+- When a skill says "pstack", it means tstack, unless it talks about Lauren's upstream project.
 - If a Cursor field has no row, drop it and say so. Never pass a field or value the tool schema rejects.
 
 ## Tools
@@ -13,7 +13,7 @@ troy-pstack is a fork of Lauren Tan's [pstack](https://github.com/cursor/plugins
 | `Task` | `Agent` |
 | `AskQuestion` | `AskUserQuestion`. In `-p` mode it is absent, so ask in plain text. |
 | Open a todolist | Use the session's task-list tool (`TodoWrite`, or `TaskCreate` and `TaskUpdate`). Otherwise keep the list in your reply and update it at each phase. |
-| Run another pstack skill (`/name` or "the **name** skill") | `Read` `<pstack>/skills/<name>/SKILL.md` and follow it. Every troy-pstack skill but `setup-pstack` sets `disable-model-invocation: true`, so the `Skill` tool refuses it. When you tell the user to type it, write `/troy-pstack:<name>`. |
+| Run another pstack skill (`/name` or "the **name** skill") | `Read` `<pstack>/skills/<name>/SKILL.md` and follow it. Every tstack skill but `setup-pstack` sets `disable-model-invocation: true`, so the `Skill` tool refuses it. When you tell the user to type it, write `/tstack:<name>`. |
 | `Grep`, `Glob` | `Bash` with `rg` when the session has no `Grep` or `Glob`. |
 
 ## Subagent fields
@@ -21,7 +21,7 @@ troy-pstack is a fork of Lauren Tan's [pstack](https://github.com/cursor/plugins
 | Cursor | Claude Code |
 | --- | --- |
 | `subagent_type: generalPurpose` | `subagent_type: "general-purpose"` |
-| `poteto-agent`, `comment-sicko` | `troy-pstack:poteto-agent`, `troy-pstack:comment-sicko` |
+| `poteto-agent`, `comment-sicko` | `tstack:poteto-agent`, `tstack:comment-sicko` |
 | `readonly: true` | `subagent_type: "Explore"`. It keeps `Bash`, so the brief also says "do not edit files", and you check `git status` afterward. |
 | `readonly: false` | `general-purpose`. It keeps the session's MCP servers. |
 | `environment: "cloud"` | `isolation: "worktree"`. Name the branch or commit the worker checks out. Use `isolation: "remote"` only when the `Agent` tool offers it and the user asked for cloud work. |
@@ -35,7 +35,7 @@ troy-pstack is a fork of Lauren Tan's [pstack](https://github.com/cursor/plugins
 
 ## Models
 
-Claude Code's `Agent` tool takes `model` (`opus`, `sonnet`, `haiku`, or `fable`) and `effort` (`low`, `medium`, `high`, `xhigh`, or `max`). A model's **family** is that alias, so `opus` and `sonnet` are two families. Upstream pstack routes code to Grok and judgment to Claude Opus. troy-pstack maps them like this:
+Claude Code's `Agent` tool takes `model` (`opus`, `sonnet`, `haiku`, or `fable`) and `effort` (`low`, `medium`, `high`, `xhigh`, or `max`). A model's **family** is that alias, so `opus` and `sonnet` are two families. Upstream pstack routes code to Grok and judgment to Claude Opus. tstack maps them like this:
 
 | Cursor slug in a skill | Claude Code |
 | --- | --- |
@@ -50,7 +50,7 @@ Claude Code's `Agent` tool takes `model` (`opus`, `sonnet`, `haiku`, or `fable`)
 
 So the upstream panel pair "Opus and Grok" becomes "Opus and Sonnet". Those are two families, which keeps every "use a family other than the parent's" rule working. Both come from one vendor, so weigh their agreement as somewhat less independent than upstream's cross-vendor panels.
 
-The model rule is `~/.claude/rules/troy-pstack-models.md`. It replaces upstream's `~/.cursor/rules/pstack-models.mdc`. Claude Code loads every `.md` file in `~/.claude/rules/` into each new session, so its role lines are usually in context already. If they are not, read the file. If the file or the role's line is missing, use the skill's default slug and map it with the table above. `setup-pstack` writes this file.
+The model rule is `~/.claude/rules/tstack-models.md`. It replaces upstream's `~/.cursor/rules/pstack-models.mdc`. Claude Code loads every `.md` file in `~/.claude/rules/` into each new session, so its role lines are usually in context already. If they are not, read the file. If the file or the role's line is missing, use the skill's default slug and map it with the table above. `setup-pstack` writes this file.
 
 ## Paths
 
@@ -59,7 +59,7 @@ The model rule is `~/.claude/rules/troy-pstack-models.md`. It replaces upstream'
 | `.cursor/skills/`, `~/.cursor/skills/` | `.claude/skills/`, `~/.claude/skills/` |
 | `~/.cursor/plugins/`, `.cursor-plugin/plugin.json` | `~/.claude/plugins/` (search it recursively), `.claude-plugin/plugin.json` |
 | `.cursor/rules/*.mdc`, always-applied rules | `CLAUDE.md`, or `AGENTS.md` when no `CLAUDE.md` exists. Claude Code never reads `.mdc` files. The model rule is the exception. See Models. |
-| `https://github.com/cursor/plugins/blob/main/pstack/<path>` | `<pstack>/<path>` when that file exists. troy-pstack ships the skills, the agents, `docs/guide/`, and `README.md`. Read the local copy and never fetch it. It does not ship `automations/`, `assets/`, the guide images, the `make-bot-ui` skill, or `skills/statechart/scripts/test/`. |
+| `https://github.com/cursor/plugins/blob/main/pstack/<path>` | `<pstack>/<path>` when that file exists. tstack ships the skills, the agents, `docs/guide/`, and `README.md`. Read the local copy and never fetch it. It does not ship `automations/`, `assets/`, the guide images, the `make-bot-ui` skill, or `skills/statechart/scripts/test/`. |
 | Transcripts in `~/.cursor/projects/<slug>/agent-transcripts/` | `~/.claude/projects/<slug>/<session>.jsonl`. The slug is the workspace path with every character that is not a letter or a digit changed to `-`, so `/Users/you/proj` is `-Users-you-proj` and `D:\Projects\Troy Voice` is `D--Projects-Troy-Voice`. The newest `.jsonl` directly in that folder is the current session. Its `<session>/subagents/` folder holds subagent transcripts. Read only this workspace's folder. Each line is one JSON record. The first user message is the first line with `"type":"user"`, not line one, and its `message.content` is either a string or a list of blocks. |
 | "the `agent-transcripts/` directory the system prompt names" | Claude Code's system prompt names no such folder. Use the transcript folder in the row above. |
 
@@ -82,4 +82,4 @@ Claude Code has no Cursor Automations, Bugbot, Cursor cloud agents, or built-in 
 
 ## Windows
 
-troy-pstack's owner runs Windows. Claude Code's `Bash` tool there is Git Bash, so the `.sh` helpers and the `statechart` launcher run through it. Write paths with forward slashes in `Bash`. A script with a `#!/usr/bin/env bun` line needs Bun on `PATH`. When Bun is missing, say so and do the step by hand instead.
+tstack's owner runs Windows. Claude Code's `Bash` tool there is Git Bash, so the `.sh` helpers and the `statechart` launcher run through it. Write paths with forward slashes in `Bash`. A script with a `#!/usr/bin/env bun` line needs Bun on `PATH`. When Bun is missing, say so and do the step by hand instead.

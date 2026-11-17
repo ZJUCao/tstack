@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import checksteps, repo as git, rulebrief, summary
+from . import PLUGIN_PREFIX, checksteps, repo as git, rulebrief, summary
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -400,7 +400,7 @@ def _read_first(repo, task: str, item: str | None, features: list, folder: str |
 
 def _agent(role: str, config) -> dict:
     """The Agent call's parameters: model and effort only when [roles] at HEAD sets them."""
-    agent = {"subagent_type": f"troy-pstack:troy-{role}"}
+    agent = {"subagent_type": f"{PLUGIN_PREFIX}troy-{role}"}
     agent.update(config.roles.get(role, {}))
     return agent
 

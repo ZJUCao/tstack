@@ -13,8 +13,8 @@ A bug gets a test that reproduces it, then a fix. A requirement change goes thro
 Describe the bug, or name its GitHub issue:
 
 ```text
-/troy-pstack:troy-mode bug: count_words("") raises PermissionError instead of FileNotFoundError
-/troy-pstack:troy-mode fix #12
+/tstack:troy-mode bug: count_words("") raises PermissionError instead of FileNotFoundError
+/tstack:troy-mode fix #12
 ```
 
 For a description, troy-mode opens a GitHub issue labeled `bug`. The issue's number gives the bug's ID: issue 12 is `B12`. Then ([requirements section 5.3](../requirements.md#53-bug-fix)):
@@ -44,7 +44,7 @@ PR B is [#15](https://github.com/ZJUCao/troy-mode-trial/pull/15).
 Say what should change:
 
 ```text
-/troy-pstack:troy-mode change: a word needs at least one letter or digit
+/tstack:troy-mode change: a word needs at least one letter or digit
 ```
 
 1. **The requirements.** The Product Manager updates `docs/requirements.md` and its mirror on `troy-mode/change-<slug>`, and opens `[docs] Change the requirements: <summary>`. You approve it, as you approved the requirements ([section 2.3](02-start.md#23-the-requirements)). Nothing else changes before you do.
@@ -68,9 +68,9 @@ When an accepted feature changes, some of its tests become wrong. The new featur
 Questions and investigations open no PR:
 
 ```text
-/troy-pstack:troy-mode why does count_words read the whole file at once?
-/troy-pstack:troy-mode how does the release test find the version tests?
-/troy-pstack:troy-mode try a streaming version of count_words
+/tstack:troy-mode why does count_words read the whole file at once?
+/tstack:troy-mode how does the release test find the version tests?
+/tstack:troy-mode try a streaming version of count_words
 ```
 
 troy-mode answers here, following pstack's `how` or `why` skill when it fits, and starts no role. An experiment runs on a throwaway branch `troy-mode/try-<slug>` made from `origin/main`, or in a scratch folder. It is never pushed and never becomes a PR. Code worth keeping goes through a requirement change and the feature loop ([requirements section 5.9](../requirements.md#59-work-outside-the-pipeline)).

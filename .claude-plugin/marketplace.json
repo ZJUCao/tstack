@@ -1,14 +1,14 @@
 {
-  "name": "troy-pstack",
+  "name": "tstack",
   "owner": {
     "name": "Troy"
   },
-  "description": "Troy's personal Claude Code plugins. Currently one: troy-pstack.",
+  "description": "Troy's personal Claude Code plugins. Currently one: tstack.",
   "plugins": [
     {
-      "name": "troy-pstack",
+      "name": "tstack",
       "source": "./",
-      "description": "Troy's Claude Code fork of Lauren Tan's pstack 0.15.36: verification-first engineering skills, principles, and subagent workflows, plus troy-mode, Troy's own workflow from requirements to released versions."
+      "description": "tstack, Troy's own stack for Claude Code. Most of its skills, principles, playbooks, and subagent workflows come from Lauren Tan's pstack 0.15.36, used under its MIT license. troy-mode, the workflow from requirements to released versions, is Troy's own work. Not affiliated with or endorsed by Lauren Tan or Cursor."
     }
   ]
 }

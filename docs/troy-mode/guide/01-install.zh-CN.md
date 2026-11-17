@@ -8,7 +8,7 @@
 | 日期 | 2026-11-16 |
 | 事实来源 | 英文版 [`01-install.md`](01-install.md)。本文件是中文镜像。 |
 
-troy-mode 包含在 troy-pstack 插件里。插件只需安装一次，每个项目给一项权限；只有默认的模型不合适时，才需要自己选。
+troy-mode 包含在 tstack 插件里。插件只需安装一次，每个项目给一项权限；只有默认的模型不合适时，才需要自己选。
 
 ## 1.1 你的电脑需要什么
 
@@ -30,35 +30,48 @@ troy-mode 包含在 troy-pstack 插件里。插件只需安装一次，每个项
 - **找不到 Python。** 在 troy-mode 项目里，hook 会停下并报 “troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON”。把 `TROY_MODE_PYTHON` 设为一个 Python 3.11 或更新版本即可。
 - **C/C++ 项目**的 CMake、Ninja 和 clang 工具来自它的 mamba 环境。编译器来自环境之外：在你的电脑上，是 PATH 里的 MSYS2 GCC（[C/C++ 语言包的 README](../../../troy-mode/lang/cpp/README.zh-CN.md)）。功能循环目前还不能用于 C/C++：测试 PR 要在 `CMakeLists.txt` 里登记它的测试，而这个文件算作依赖文件，所以在那里 troy-mode 会撤销测试工程师的每次运行。第一个 C/C++ 项目之前，要先对 troy-mode 做一个小修复（[F11 设计第 3.3 节](../design/F11-pilot.zh-CN.md#33-cc-和-f07-修复)）。
 
-## 1.2 安装 troy-pstack
+## 1.2 安装 tstack
 
-troy-pstack 的文件夹既是插件，也是只含这一个插件的插件市场。用 Claude Code 的命令行安装它。桌面应用的 Code 标签页不提供 `/plugin` 对话框，而在你的电脑上，PowerShell 的 PATH 里也没有 `claude`：桌面应用自带的命令行是 `%LOCALAPPDATA%\Claude-Data\` 下的 `claude.exe`，所在文件夹以应用的版本命名，应用更新后会变。在 PowerShell 里：
+tstack 的文件夹既是插件，也是只含这一个插件的插件市场。用 Claude Code 的命令行安装它。桌面应用的 Code 标签页不提供 `/plugin` 对话框，而在你的电脑上，PowerShell 的 PATH 里也没有 `claude`：桌面应用自带的命令行是 `%LOCALAPPDATA%\Claude-Data\` 下的 `claude.exe`，所在文件夹以应用的版本命名，应用更新后会变。在 PowerShell 里：
 
 ```powershell
 $claude = (Get-ChildItem "$env:LOCALAPPDATA\Claude-Data\*\claude-code\*\*\claude.exe" | Sort-Object LastWriteTime | Select-Object -Last 1).FullName
-& $claude plugin marketplace add D:/Troy/Projects/troy-pstack
-& $claude plugin install troy-pstack@troy-pstack
+& $claude plugin marketplace add D:/Troy/Projects/tstack
+& $claude plugin install tstack@tstack
 ```
 
-第一行找到最新的自带命令行；每开一个新的 PowerShell 窗口都要再运行一次。在命令行自己的交互会话里，`/plugin marketplace add D:/Troy/Projects/troy-pstack` 和 `/plugin install troy-pstack@troy-pstack` 效果相同。然后重启 Claude Code。
+第一行找到最新的自带命令行；每开一个新的 PowerShell 窗口都要再运行一次。在命令行自己的交互会话里，`/plugin marketplace add D:/Troy/Projects/tstack` 和 `/plugin install tstack@tstack` 效果相同。然后重启 Claude Code。
 
-Claude Code 会在插件的技能和代理名前面加上插件名。所以你输入的是 `/troy-pstack:troy-mode` 和 `/troy-pstack:troy-init`，各个角色是代理 `troy-pstack:troy-architect`、`troy-pstack:troy-interface-designer`、`troy-pstack:troy-test-manager`、`troy-pstack:troy-developer`、`troy-pstack:troy-test-engineer` 和 `troy-pstack:troy-code-reviewer`。
+Claude Code 会在插件的技能和代理名前面加上插件名。所以你输入的是 `/tstack:troy-mode` 和 `/tstack:troy-init`，各个角色是代理 `tstack:troy-architect`、`tstack:troy-interface-designer`、`tstack:troy-test-manager`、`tstack:troy-developer`、`tstack:troy-test-engineer` 和 `tstack:troy-code-reviewer`。
 
-要确认 troy-mode 已经装上，开一个新会话：`/troy-pstack:troy-mode` 和 `/troy-pstack:troy-init` 会出现在 Claude Code 提供的命令里（[F11 设计第 2 节](../design/F11-pilot.zh-CN.md#2-前提条件)）。要看已安装的版本，运行 `& $claude plugin list`：`troy-pstack@troy-pstack` 一项的 `Version:` 行就是。插件版本必须是 0.2.0 或更新：这是第一个为使用而写了 troy-mode 文档的版本。
+要确认 troy-mode 已经装上，开一个新会话：`/tstack:troy-mode` 和 `/tstack:troy-init` 会出现在 Claude Code 提供的命令里（[F11 设计第 2 节](../design/F11-pilot.zh-CN.md#2-前提条件)）。要看已安装的版本，运行 `& $claude plugin list`：`tstack@tstack` 一项的 `Version:` 行就是。插件版本必须是 0.2.0 或更新：这是第一个为使用而写了 troy-mode 文档的版本。
 
 ## 1.3 插件出新版本后更新
 
-Claude Code 安装插件时会复制一份，只有插件的版本升高时才更新这份副本（[F10 设计第 6 节](../design/F10-docs.zh-CN.md#6-插件版本d89)）。插件市场是指向 troy-pstack 主检出 `D:\Troy\Projects\troy-pstack` 的 `directory` 来源，所以更新只能找到这个文件夹的 `main` 上的版本。某个 troy-pstack PR 升了版本之后，在 PowerShell 里运行下面的命令（`$claude` 见第 1.2 节）：
+只有插件的版本升高时，Claude Code 才会接收插件的新版本（[F10 设计第 6 节](../design/F10-docs.zh-CN.md#6-插件版本d89)）。插件市场是指向 tstack 主检出 `D:\Troy\Projects\tstack` 的 `directory` 来源，所以更新只能找到这个文件夹的 `main` 上的版本。来自 `directory` 插件市场的插件也直接从这个文件夹本身运行，而不是从副本运行：Claude Code 在 `~/.claude/plugins/cache/` 下留了一份副本，记录里写的也是它，但每个会话的技能和 hook 都从这个文件夹的工作区运行（[F19 设计第 3 节](../design/F19-rename.zh-CN.md#3-探测)，2026-11-16 在 F19 的试运行里又核实了一次）。某个 tstack PR 升了版本之后，在 PowerShell 里运行下面的命令（`$claude` 见第 1.2 节）：
 
 ```powershell
-git -C D:\Troy\Projects\troy-pstack pull --ff-only
-& $claude plugin marketplace update troy-pstack
-& $claude plugin update troy-pstack@troy-pstack
+git -C D:\Troy\Projects\tstack pull --ff-only
+& $claude plugin marketplace update tstack
+& $claude plugin update tstack@tstack
 ```
 
-拉取要求这个检出在 `main` 上，并且没有它自己的改动。试点期间它曾落后五个提交，拉取之前更新一直找不到新版本。更新会保留旧的副本，所以已经在运行的会话继续用旧的。在自然的停顿点重启 Claude Code，比如某个 PR 刚合并之后。
+拉取要求这个检出在 `main` 上，并且没有它自己的改动。试点期间它曾落后五个提交，拉取之前更新一直找不到新版本。拉取会改变已经在运行的会话所运行的内容，从它们 hook 的下一次调用开始。所以要在没有会话工作的自然停顿点拉取，比如某个 PR 刚合并之后，拉取之后马上重启 Claude Code。
 
-已经初始化过的项目保留着自己的一份 troy-check、模板和工作流。要把它带到新版本，在项目里输入 `/troy-pstack:troy-mode 升级 troy-mode`（[参考：较旧的副本](08-reference.zh-CN.md#86-常见问题)）。
+已经初始化过的项目保留着自己的一份 troy-check、模板和工作流。要把它带到新版本，在项目里输入 `/tstack:troy-mode 升级 troy-mode`（[参考：较旧的副本](08-reference.zh-CN.md#86-常见问题)）。
+
+**从 troy-pstack 换到 tstack。** 插件到 0.5.0 版为止叫 troy-pstack，从 0.6.0 起叫 tstack，放在自己的文件夹 `D:\Troy\Projects\tstack` 里，它是改名后的仓库 `ZJUCao/tstack` 的克隆（[F19 设计第 7 节](../design/F19-rename.zh-CN.md#7-troy-的迁移d194)列出了每一步，包括仓库和 mamba 环境）。只换一次，在没有会话工作的时候换。先卸载 troy-pstack，再安装 tstack：两个都开着时，每个插件的 hook 都会拒绝另一个插件的角色写文件（[第 8.6 节](08-reference.zh-CN.md#86-常见问题)）。在 PowerShell 里运行（`$claude` 见第 1.2 节）：
+
+```powershell
+& $claude plugin uninstall troy-pstack@troy-pstack   # the old name, before tstack
+& $claude plugin marketplace remove troy-pstack      # the old name, before tstack
+& $claude plugin marketplace add D:\Troy\Projects\tstack
+& $claude plugin install tstack@tstack
+& $claude plugin list
+& $claude plugin marketplace list
+```
+
+`plugin list` 必须显示已启用的 `tstack@tstack`，`marketplace list` 必须显示 `tstack`；两者都不能再出现 troy-pstack。如果 `~/.claude/settings.json` 的 `extraKnownMarketplaces` 或 `enabledPlugins` 下还有 troy-pstack 的键，删掉它，保留 tstack 的键。然后退出桌面应用，再重新打开。在 troy-mode 项目里开一个新会话，`/tstack:troy-mode status` 能运行，Claude Code 也不再提供任何 `/troy-pstack:` 命令。之后每个项目在自然的停顿点用 `/tstack:troy-mode 升级 troy-mode` 换过来，和任何新版本一样。在那之前，项目用 tstack 照常工作，`status` 会说它的 troy-check 和插件里的不同。
 
 ## 1.4 合并权限
 
@@ -85,12 +98,12 @@ troy-mode 在自己的权限范围内合并自己的 PR（R18）。Claude Code �
 | 角色 | 运行方式 | 模型 |
 | --- | --- | --- |
 | 产品经理 | 主会话 | 会话的模型 |
-| 架构师 | `troy-pstack:troy-architect` | opus |
-| 接口设计师 | `troy-pstack:troy-interface-designer` | opus |
-| 测试经理 | `troy-pstack:troy-test-manager` | opus |
-| 开发工程师 | `troy-pstack:troy-developer` | sonnet |
-| 测试工程师 | `troy-pstack:troy-test-engineer` | sonnet |
-| 代码审查员 | `troy-pstack:troy-code-reviewer` | opus |
+| 架构师 | `tstack:troy-architect` | opus |
+| 接口设计师 | `tstack:troy-interface-designer` | opus |
+| 测试经理 | `tstack:troy-test-manager` | opus |
+| 开发工程师 | `tstack:troy-developer` | sonnet |
+| 测试工程师 | `tstack:troy-test-engineer` | sonnet |
+| 代码审查员 | `tstack:troy-code-reviewer` | opus |
 
 每个角色都用会话的 effort 运行。要在某个项目里改一个角色，在项目的 `.troy-mode/config.toml` 里加一个 `[roles.<role>]` 表（[F07 设计第 3.2 节](../design/F07-entry-skill.zh-CN.md#32-模型和-effortf04-d32)）。比如让开发工程师用 opus、high effort 运行：
 

@@ -1,6 +1,6 @@
 """troy-check's own helpers, so troy-init reads patterns and headers exactly as it does.
 
-troy-check sits next to the engine in troy-pstack, in troy-mode/checks/.
+troy-check sits next to the engine in tstack, in troy-mode/checks/.
 """
 
 import sys

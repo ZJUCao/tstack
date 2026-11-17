@@ -13,7 +13,7 @@
 ## 6.1 为这个项目加一条规则
 
 ```text
-/troy-pstack:troy-mode 加一条规则：异常信息里不用 f-string
+/tstack:troy-mode 加一条规则：异常信息里不用 f-string
 ```
 
 如果请求没有说明这条规则是给这个项目，还是给所有 troy-mode 项目，troy-mode 只问你这一个问题，并推荐“这个项目”。然后：
@@ -66,8 +66,8 @@ Troy，规则 P01 的提案写好了，等你批准。批准之前我没有写�
 ## 6.2 修改或废止规则
 
 ```text
-/troy-pstack:troy-mode 修改 P01：用 % 拼出来的信息也要管
-/troy-pstack:troy-mode 废止 P02
+/tstack:troy-mode 修改 P01：用 % 拼出来的信息也要管
+/tstack:troy-mode 废止 P02
 ```
 
 - **修改**走同样的步骤，以 `[rules] Change P01, <summary>` 合入。这一行保留它的起始日期，它的配置和基线在同一个 PR 里修改。
@@ -78,7 +78,7 @@ Troy，规则 P01 的提案写好了，等你批准。批准之前我没有写�
 永远不要改 R 行：troy-init 的升级会替换 R 行。在 troy-check 的配置允许调整的地方，比如 R03 的规模上限、R11 的覆盖率下限或 R19 的署名模式，把调整当作一条项目规则来请求：
 
 ```text
-/troy-pstack:troy-mode 在这个项目里，R03 的上限是 800 行
+/tstack:troy-mode 在这个项目里，R03 的上限是 800 行
 ```
 
 一行 P 规则记下这项调整，例如“In this project, R03's limit is 800 changed lines.”，同一个规则 PR 修改 `.troy-mode/config.toml`。对 R 规则的其他任何改动，都是适用于所有项目的规则（第 6.4 节）。
@@ -86,14 +86,14 @@ Troy，规则 P01 的提案写好了，等你批准。批准之前我没有写�
 ## 6.4 提议一条适用于所有项目的规则
 
 ```text
-/troy-pstack:troy-mode 所有项目的一条规则：合并的源码里不能有 TODO 注释
+/tstack:troy-mode 所有项目的一条规则：合并的源码里不能有 TODO 注释
 ```
 
-适用于所有 troy-mode 项目的规则放在 troy-pstack 里，随新的插件版本发布。所以这个流程既不改项目，也不改 troy-pstack（[F09 设计 D83](../design/F09-rule-change.zh-CN.md#12-需要-troy-决定的事项)）：
+适用于所有 troy-mode 项目的规则放在 tstack 里，随新的插件版本发布。所以这个流程既不改项目，也不改 tstack（[F09 设计 D83](../design/F09-rule-change.zh-CN.md#12-需要-troy-决定的事项)）：
 
-1. 架构师像对项目规则那样提出执行方式，写明 troy-pstack 里要改的文件，并说明升级带来这条规则时，现有项目的代码会不会违反它。
-2. troy-mode 把提案发给你，并问你是否在 troy-pstack 里开一个 issue。
-3. **只有你同意时**，它才在 troy-pstack 里开 issue `Rule proposal: <summary>`。开 issue 会触及项目之外，所以它总是先问。你不同意，它就什么都不开。
-4. troy-pstack 按它自己的流程做出这条规则（[第 9 节](09-changing-troy-mode.zh-CN.md)），项目通过升级拿到它。
+1. 架构师像对项目规则那样提出执行方式，写明 tstack 里要改的文件，并说明升级带来这条规则时，现有项目的代码会不会违反它。
+2. troy-mode 把提案发给你，并问你是否在 tstack 里开一个 issue。
+3. **只有你同意时**，它才在 tstack 里开 issue `Rule proposal: <summary>`。开 issue 会触及项目之外，所以它总是先问。你不同意，它就什么都不开。
+4. tstack 按它自己的流程做出这条规则（[第 9 节](09-changing-troy-mode.zh-CN.md)），项目通过升级拿到它。
 
 试运行里，R22（不能有 TODO 注释）的提案被拒绝了，没有开 issue。

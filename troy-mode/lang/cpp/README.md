@@ -82,7 +82,7 @@ The job checks out the PR with its full history and asks `git ls-files` whether 
 
 ## 6. Sample project
 
-[`troy-mode/samples/cpp`](../../samples/cpp) holds textstats in C++, with the same F01 as the Python sample plus one case for a file that cannot be read. troy-pstack's workflow `troy-cpp-sample.yml` builds it with [`build_sample.py`](../../dev/build_sample.py), through `troy-init`'s own setup and language step, and runs the steps of section 5 on its design PR, which has no code yet and skips the code steps, its tests PR, and its implementation PR. `troy-mode/dev/tests/test_cpp_pack.py` checks that the sample's workflow runs the same steps as `workflow-job.yml`. To build the sample yourself:
+[`troy-mode/samples/cpp`](../../samples/cpp) holds textstats in C++, with the same F01 as the Python sample plus one case for a file that cannot be read. tstack's workflow `troy-cpp-sample.yml` builds it with [`build_sample.py`](../../dev/build_sample.py), through `troy-init`'s own setup and language step, and runs the steps of section 5 on its design PR, which has no code yet and skips the code steps, its tests PR, and its implementation PR. `troy-mode/dev/tests/test_cpp_pack.py` checks that the sample's workflow runs the same steps as `workflow-job.yml`. To build the sample yourself:
 
 ```text
 python troy-mode/dev/build_sample.py build cpp --pr impl --out <empty folder>

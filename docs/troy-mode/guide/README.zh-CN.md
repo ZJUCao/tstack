@@ -8,9 +8,9 @@
 | 日期 | 2026-11-16 |
 | 事实来源 | 英文版 [`README.md`](README.md)。本文件是中文镜像。 |
 
-> **troy-mode 是 Troy 自己的作品。** 它由 Troy 设计，在这个分支里实现。它不属于 Lauren Tan 的 pstack，Lauren Tan 和 Cursor 没有审阅或认可过它。它原样复用 `how`、`why`、`interrogate`、`correct` 等 pstack 技能，也不改变 `poteto-mode` 的行为。它和 troy-pstack 的其余部分一样，采用 MIT 许可证。
+> **troy-mode 是 Troy 自己的作品。** 它由 Troy 设计，在这个分支里实现。它不属于 Lauren Tan 的 pstack，Lauren Tan 和 Cursor 没有审阅或认可过它。它原样复用 `how`、`why`、`interrogate`、`correct` 等 pstack 技能，也不改变 `poteto-mode` 的行为。它和 tstack 的其余部分一样，采用 MIT 许可证。
 
-troy-mode 的组成部分是：技能 `troy-mode` 和 `troy-init`、六个 `troy-*` 代理、`hooks/hooks.json` 里的 hook、`troy-mode/` 下的所有文件，以及 `docs/troy-mode/` 里的文档。troy-pstack 的其余部分是移植到 Claude Code 的 Lauren Tan 的 pstack：其他几乎每个技能、playbook、代理和指南页面，比如 `poteto-mode` 和 `docs/guide/` 里的指南，都是她的作品，按 MIT 许可证使用（[README：致谢和许可证](../../../README.md#credit-and-license)）。
+troy-mode 的组成部分是：技能 `troy-mode` 和 `troy-init`、六个 `troy-*` 代理、`hooks/hooks.json` 里的 hook、`troy-mode/` 下的所有文件，以及 `docs/troy-mode/` 里的文档。tstack 的其余部分是移植到 Claude Code 的 Lauren Tan 的 pstack：其他几乎每个技能、playbook、代理和指南页面，比如 `poteto-mode` 和 `docs/guide/` 里的指南，都是她的作品，按 MIT 许可证使用（[README：致谢和许可证](../../../README.md#credit-and-license)）。
 
 ## troy-mode 是什么
 
@@ -18,10 +18,10 @@ troy-mode 让一个软件项目经过一条固定的角色流水线，从需求�
 
 ## 只需记住的一件事
 
-输入 `/troy-pstack:troy-mode`，再用你自己的话说出你想做的事：
+输入 `/tstack:troy-mode`，再用你自己的话说出你想做的事：
 
 ```text
-/troy-pstack:troy-mode 下一个功能
+/tstack:troy-mode 下一个功能
 ```
 
 troy-mode 判断请求属于哪个流程，运行各个角色，开 PR 并合并，只在需要你的地方停下来：你的批准、在你自己设备上的测试，或者升级上报。它用你的语言和你交流。它写进项目的所有内容都用英文，文档另附中文镜像。
@@ -36,7 +36,7 @@ troy-mode 判断请求属于哪个流程，运行各个角色，开 PR 并合并
 
 | 页面 | 内容 |
 | --- | --- |
-| [1. 安装](01-install.zh-CN.md) | 你的电脑需要什么，安装和更新 troy-pstack，合并权限，以及每个角色的模型 |
+| [1. 安装](01-install.zh-CN.md) | 你的电脑需要什么，安装和更新 tstack，合并权限，以及每个角色的模型 |
 | [2. 开始一个项目](02-start.zh-CN.md) | 初始化、需求文档、架构、语言步骤，以及已经有代码的项目 |
 | [3. 做功能](03-features.zh-CN.md) | 功能循环：六个 PR、你的批准、审查和旁支 PR |
 | [4. Bug 和变更](04-bugs-and-changes.zh-CN.md) | 修 bug、修改需求，以及不开 PR 的问题 |
@@ -44,7 +44,7 @@ troy-mode 判断请求属于哪个流程，运行各个角色，开 PR 并合并
 | [6. 规则](06-rules.zh-CN.md) | 新增、修改和废止规则，以及提议一条适用于所有项目的规则 |
 | [7. 你在哪些地方参与](07-taking-part.zh-CN.md) | 等你处理的步骤、升级上报、troy-mode 自己做的事、状态标签，以及在新会话里接着做 |
 | [8. 参考](08-reference.zh-CN.md) | 每种请求、PR 标题、评论标题、文件、配置项和规则，以及常见问题的解决办法 |
-| [9. 修改 troy-mode](09-changing-troy-mode.zh-CN.md) | 在 troy-pstack 里修改 troy-mode 本身 |
+| [9. 修改 troy-mode](09-changing-troy-mode.zh-CN.md) | 在 tstack 里修改 troy-mode 本身 |
 
 ## 细节在哪里
 

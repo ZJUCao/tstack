@@ -1,4 +1,4 @@
-"""Tests for check_links.py, the link check for troy-pstack's troy-mode documents.
+"""Tests for check_links.py, the link check for tstack's troy-mode documents.
 
 Each test builds a small git repository, adds Markdown files to the index,
 and runs the script as a subprocess. Exit code 0 means every link resolves,
@@ -41,7 +41,7 @@ C_MD = md(
 R_MD = md("# R", "", "## Notes", "", "## Notes", "", "### Notes")
 
 P_MD = md(
-    "# F10 design: troy-pstack's documentation",
+    "# F10 design: tstack's plug-in documentation",
     "",
     "## 7.2 Feature list",
     "",
@@ -340,7 +340,7 @@ class AnchorTests(LinkTestCase):
 
     def test_heading_punctuation_removed_passes(self):
         """Punctuation is removed, spaces become -, and closing hashes are dropped."""
-        a = md("# A", "", "[1](p.md#f10-design-troy-pstacks-documentation)",
+        a = md("# A", "", "[1](p.md#f10-design-tstacks-plug-in-documentation)",
                "[2](p.md#72-feature-list)", "[3](p.md#qa)", "[4](p.md#a---b)",
                "[5](p.md#whats-new-v20)", "[6](p.md#snake_case-and-kebab-case)",
                "[7](p.md#closing-hashes)", "[8](p.md#indented-heading)")

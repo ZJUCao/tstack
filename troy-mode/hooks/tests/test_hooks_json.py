@@ -11,6 +11,10 @@ UserPromptExpansion: one group whose matcher, applied with Python's re.search
 because Claude Code tests a matcher unanchored, matches every name
 test_mode_guard.py refuses and none it lets through. The F13 planted bugs
 these tests catch are listed in test_mode_guard.py.
+
+F19 (design 5.2 and 11.1) renames the plugin to tstack: the SubagentStart and
+SubagentStop matchers become ^tstack:troy-, the Read if rule
+Read(//**/tstack/**), and the UserPromptExpansion matcher stays.
 """
 
 import json
@@ -23,10 +27,13 @@ import unittest
 from pathlib import Path
 
 from hook_helpers import (
-    DEV, HOOKS_JSON, MAIN, NEUTRAL, REPO, SCRATCH, HookRun, HookTestCase, Project, hook_env,
-    hook_input, write_call,
+    DEV, HOOKS_JSON, MAIN, NEUTRAL, OLD_PREFIX, REPO, ROLE_NAMES, SCRATCH, HookRun, HookTestCase,
+    Project, hook_env, hook_input, write_call,
 )
 from test_mode_guard import LET_THROUGH, REFUSED
+
+# The plugin's name before tstack, in any spelling and case (F19 design 11.2).
+OLD_NAME = re.compile(r"troy[-_ ]?pstack", re.IGNORECASE)
 
 # Design section 3 (version 1.1): (event, matcher, has the if rule). The trial
 # of design 13.3 showed that the if rule filters only Read, so Glob|Grep has
@@ -36,17 +43,17 @@ GUARD_EVENT = "UserPromptExpansion"
 GUARD_MATCHER = "^([^:]+:)?(poteto-mode|no-comments)$"
 EXPECTED = (
     ("SessionStart", None, False),
-    ("SubagentStart", "^troy-pstack:troy-", False),
+    ("SubagentStart", "^tstack:troy-", False),
     ("PreToolUse", "Bash|PowerShell|Edit|Write|NotebookEdit|Skill", False),
     ("PreToolUse", "Read", True),
     ("PreToolUse", "Glob|Grep", False),
     ("PostToolUse", "Bash|PowerShell|Skill", False),
-    ("SubagentStop", "^troy-pstack:troy-", False),
+    ("SubagentStop", "^tstack:troy-", False),
     (GUARD_EVENT, GUARD_MATCHER, False),
 )
 SCOPE_TOOLS = {"Bash", "PowerShell", "Edit", "Write", "NotebookEdit", "Skill"}
 READ_TOOLS = {"Read", "Glob", "Grep"}
-IF_RULE = "Read(//**/troy-pstack/**)"
+IF_RULE = "Read(//**/tstack/**)"
 PLUGIN_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^\s\"']+)")
 
 
@@ -248,6 +255,36 @@ class HooksJsonTests(unittest.TestCase):
             with self.subTest(let_through=name):
                 self.assertIsNone(matcher.search(name), f"{matcher.pattern} matches {name!r}")
 
+    def test_subagent_matchers_match_only_tstack_roles(self):
+        """F19 5.2: re.search with each Subagent matcher hits every tstack: role, no old name.
+
+        Planted bug caught: one SubagentStart or SubagentStop matcher left on
+        the old prefix (F19 11.3), which skips the renamed roles silently.
+        """
+        roles = [f"tstack:troy-{name}" for name in ROLE_NAMES]
+        others = [OLD_PREFIX + f"troy-{name}" for name in ROLE_NAMES] + [
+            "xtstack:troy-developer", "my-tstack:troy-test-engineer", "general-purpose"]
+        for event in ("SubagentStart", "SubagentStop"):
+            groups = self.data["hooks"].get(event, [])
+            self.assertEqual(1, len(groups), f"{event}: one group")
+            matcher = re.compile(groups[0].get("matcher") or "")
+            for name in roles:
+                with self.subTest(event=event, role=name):
+                    self.assertIsNotNone(matcher.search(name), f"{matcher.pattern} misses {name}")
+            for name in others:
+                with self.subTest(event=event, other=name):
+                    self.assertIsNone(matcher.search(name), f"{matcher.pattern} matches {name}")
+
+    def test_no_entry_names_the_old_plugin(self):
+        """F19 5.2: no matcher, if rule, or command in hooks.json names the plugin before tstack.
+
+        Planted bugs caught: a Subagent matcher or the Read if rule left on the
+        old name (F19 11.3).
+        """
+        text = HOOKS_JSON.read_text(encoding="utf-8")
+        found = [line.strip() for line in text.splitlines() if OLD_NAME.search(line)]
+        self.assertEqual([], found, "hooks.json still names the old plugin")
+
     def test_description_names_f05_and_f13(self):
         """The top-level description names F13 next to F05 (F13 7.1)."""
         description = self.data.get("description", "")
@@ -255,7 +292,7 @@ class HooksJsonTests(unittest.TestCase):
         self.assertRegex(description, r"\bF13\b")
 
     def test_commands_name_existing_scripts(self):
-        """Every ${CLAUDE_PLUGIN_ROOT}/<path> in a command exists in troy-pstack."""
+        """Every ${CLAUDE_PLUGIN_ROOT}/<path> in a command exists in tstack."""
         for event, group in self.groups():
             command = group["hooks"][0]["command"]
             paths = PLUGIN_PATH.findall(command)
@@ -328,16 +365,28 @@ class HooksJsonRunTests(HookTestCase):
                           prompt=f"/{name} {args}")
 
     def test_user_prompt_expansion_command_refuses_in_troy_mode(self):
-        """F13: the hooks.json command blocks troy-pstack:poteto-mode with JSON and exit code 0.
+        """F13: the hooks.json command blocks tstack:poteto-mode with JSON and exit code 0.
 
         Planted bug caught: exit code 2 in place of JSON (F13 11.2).
         """
-        payload = self.expansion(self.troy, "troy-pstack:poteto-mode")
+        payload = self.expansion(self.troy, "tstack:poteto-mode")
         out = self.run_command(GUARD_EVENT, payload, self.troy.root)
-        self.assert_blocked(out, "troy-mode: /troy-pstack:poteto-mode is off here. ",
-                            "troy-mode：这里停用 /troy-pstack:poteto-mode。",
-                            " /troy-pstack:troy-mode ")
+        self.assert_blocked(out, "troy-mode: /tstack:poteto-mode is off here. ",
+                            "troy-mode：这里停用 /tstack:poteto-mode。",
+                            " /tstack:troy-mode ")
         self.assertEqual({"decision", "reason"}, set(out.data()), out.describe())
+        self.assertEqual("", out.stderr.strip(), out.describe())
+
+    def test_user_prompt_expansion_command_refuses_the_old_prefix_too(self):
+        """F19 11.1: the old-prefix poteto-mode is blocked too, and pointed to /tstack:troy-mode.
+
+        The matcher is unchanged (F19 5.2), so the command still reaches the
+        hook, and the message shows the name as typed.
+        """
+        name = OLD_PREFIX + "poteto-mode"  # the old name with tstack's message below
+        out = self.run_command(GUARD_EVENT, self.expansion(self.troy, name), self.troy.root)
+        self.assert_blocked(out, f"troy-mode: /{name} is off here. ", " Type /tstack:troy-mode ",
+                            "请改用 /tstack:troy-mode 加上你的请求。")
         self.assertEqual("", out.stderr.strip(), out.describe())
 
     def test_user_prompt_expansion_command_is_silent_outside_troy_mode(self):
@@ -345,21 +394,21 @@ class HooksJsonRunTests(HookTestCase):
 
         Planted bug caught: the gate skipped (F13 11.2).
         """
-        payload = self.expansion(self.plain, "troy-pstack:poteto-mode")
+        payload = self.expansion(self.plain, "tstack:poteto-mode")
         self.assert_silent(self.run_command(GUARD_EVENT, payload, self.plain.root))
 
     def test_user_prompt_expansion_command_lets_troy_mode_through(self):
-        """Pair: troy-pstack:troy-mode in the troy-mode project exits 0 and prints nothing."""
-        payload = self.expansion(self.troy, "troy-pstack:troy-mode", "status")
+        """Pair: tstack:troy-mode in the troy-mode project exits 0 and prints nothing."""
+        payload = self.expansion(self.troy, "tstack:troy-mode", "status")
         self.assert_silent(self.run_command(GUARD_EVENT, payload, self.troy.root))
 
     def test_user_prompt_expansion_without_python_blocks_in_troy_mode_only(self):
         """F13 7.2: with no interpreter, exit 2 in a troy-mode project, 0 and nothing elsewhere."""
-        troy = self.run_command(GUARD_EVENT, self.expansion(self.troy, "troy-pstack:no-comments"),
+        troy = self.run_command(GUARD_EVENT, self.expansion(self.troy, "tstack:no-comments"),
                                 self.troy.root, with_python=False)
         self.assertEqual(2, troy.code, troy.describe())
         plain = self.run_command(GUARD_EVENT,
-                                 self.expansion(self.plain, "troy-pstack:no-comments"),
+                                 self.expansion(self.plain, "tstack:no-comments"),
                                  self.plain.root, with_python=False)
         self.assertEqual(0, plain.code, plain.describe())
         self.assertEqual("", plain.stdout.strip(), plain.describe())

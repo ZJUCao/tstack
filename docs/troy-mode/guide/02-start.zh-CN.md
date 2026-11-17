@@ -15,12 +15,12 @@
 开始之前，先给项目加上合并权限（[第 1.4 节](01-install.zh-CN.md#14-合并权限)）。然后在项目的文件夹里打开一个新的 Claude Code 会话，新的或已有的文件夹都可以。在桌面应用里，选这个文件夹本身：试点整个版本都在那里运行，而在项目的 git worktree 里开的会话还没试过。这个项目的每个 troy-mode 请求都在这样的会话里输入，不要输在别的项目的会话里。然后输入你想做的东西：
 
 ```text
-/troy-pstack:troy-mode 开始一个项目：一个统计文本文件里单词数的命令行工具
+/tstack:troy-mode 开始一个项目：一个统计文本文件里单词数的命令行工具
 ```
 
 在没有 `.troy-mode/` 的文件夹里，troy-mode 会回答问题，但什么都不改。对其他任何请求，它会问你一次，要不要把这个文件夹变成 troy-mode 项目。然后它按顺序运行这四步，在需要你的地方停下来。已经做过其中几步的项目，会从第一个缺少的步骤接着做。
 
-只想运行初始化这一步时，输入 `/troy-pstack:troy-init`。它把文件夹变成 troy-mode 项目，然后停下（[troy-init 技能](../../../skills/troy-init/SKILL.md)）。
+只想运行初始化这一步时，输入 `/tstack:troy-init`。它把文件夹变成 troy-mode 项目，然后停下（[troy-init 技能](../../../skills/troy-init/SKILL.md)）。
 
 ## 2.2 初始化
 

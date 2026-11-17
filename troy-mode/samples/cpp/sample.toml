@@ -1,4 +1,4 @@
-# textstats in C++: the sample project that troy-pstack's CI takes through
+# textstats in C++: the sample project that tstack's CI takes through
 # the C/C++ pack (F03 design 10). troy-mode/dev/build_sample.py builds it the
 # same way as the Python sample; see troy-mode/samples/python/sample.toml.
 

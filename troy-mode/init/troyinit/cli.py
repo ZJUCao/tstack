@@ -158,7 +158,7 @@ def run(args: argparse.Namespace, plugin_root: Path) -> int:
 
     Args:
         args: Parsed options.
-        plugin_root: The troy-pstack folder to copy from.
+        plugin_root: The tstack folder to copy from.
 
     Returns:
         0 when done, 1 when stopped before changing anything.
@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None, plugin_root: Path | None = None) -> int:
 
     Args:
         argv: Command-line arguments without the program name.
-        plugin_root: The troy-pstack folder to copy from. Default: the one
+        plugin_root: The tstack folder to copy from. Default: the one
             that holds this engine.
 
     Returns:

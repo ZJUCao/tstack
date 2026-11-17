@@ -149,7 +149,8 @@ def _copy_ignore(top: Path):
     return ignore
 
 
-def make_plugin(hooks: bool = True, version: Optional[str] = None, crlf: bool = False) -> Path:
+def make_plugin(hooks: bool = True, version: Optional[str] = None, crlf: bool = False,
+                name: Optional[str] = None) -> Path:
     """Copies the parts of the plugin the engine reads into a new folder.
 
     Args:
@@ -157,11 +158,13 @@ def make_plugin(hooks: bool = True, version: Optional[str] = None, crlf: bool = 
         version: A version to write into plugin.json, or None to keep it.
         crlf: Whether to turn the checks' and templates' line endings into
             CRLF, as a Windows checkout with core.autocrlf would.
+        name: A plugin name to write into plugin.json, or None to keep it
+            (F19: troy-init reads the name as it reads the version).
 
     Returns:
-        The fake plugin's root. It is not a git checkout.
+        The fake plugin's root, a folder named tstack. It is not a git checkout.
     """
-    root = new_dir("plugin") / "troy-pstack"
+    root = new_dir("plugin") / "tstack"
     (root / ".claude-plugin").mkdir(parents=True)
     shutil.copyfile(PLUGIN_ROOT / ".claude-plugin/plugin.json", root / ".claude-plugin/plugin.json")
     for rel in ("troy-mode/init", "troy-mode/checks", "troy-mode/templates", "troy-mode/lang"):
@@ -172,11 +175,13 @@ def make_plugin(hooks: bool = True, version: Optional[str] = None, crlf: bool = 
     shutil.rmtree(hooks_dir, ignore_errors=True)
     if hooks:
         hooks_dir.mkdir(parents=True)
-        for name in HOOK_NAMES:
-            (hooks_dir / name).write_bytes(HOOK_TEXT)
-            (hooks_dir / name).chmod(0o755)
+        for hook in HOOK_NAMES:
+            (hooks_dir / hook).write_bytes(HOOK_TEXT)
+            (hooks_dir / hook).chmod(0o755)
     if version:
         set_version(root, version)
+    if name is not None:
+        set_name(root, name)
     if crlf:
         for folder in ("troy-mode/checks", "troy-mode/templates"):
             for path in (root / folder).rglob("*"):
@@ -201,6 +206,18 @@ def set_version(plugin: Path, version: str) -> None:
     """Writes a new version into a plugin's plugin.json."""
     data = json.loads(read_text(plugin, ".claude-plugin/plugin.json"))
     data["version"] = version
+    write_text(plugin, ".claude-plugin/plugin.json", json.dumps(data, indent=2) + "\n")
+
+
+def plugin_name(plugin: Path) -> str:
+    """The name in a plugin's plugin.json."""
+    return json.loads(read_text(plugin, ".claude-plugin/plugin.json"))["name"]
+
+
+def set_name(plugin: Path, name: object) -> None:
+    """Writes a new name into a plugin's plugin.json (any JSON value, for the F19 tests)."""
+    data = json.loads(read_text(plugin, ".claude-plugin/plugin.json"))
+    data["name"] = name
     write_text(plugin, ".claude-plugin/plugin.json", json.dumps(data, indent=2) + "\n")
 
 

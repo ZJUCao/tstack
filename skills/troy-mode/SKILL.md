@@ -1,12 +1,12 @@
 ---
 name: troy-mode
-description: troy-mode's entry skill. Routes a request in a troy-mode project to its flow (project setup, the feature loop with its side PRs, bug fixes, requirement changes, version releases, rule changes, work outside the pipeline, or continuing) and runs it with troy-mode's roles, checks, and PRs. Use only when Troy types /troy-pstack:troy-mode.
+description: troy-mode's entry skill. Routes a request in a troy-mode project to its flow (project setup, the feature loop with its side PRs, bug fixes, requirement changes, version releases, rule changes, work outside the pipeline, or continuing) and runs it with troy-mode's roles, checks, and PRs. Use only when Troy types /tstack:troy-mode.
 disable-model-invocation: true
 ---
 
 # troy-mode
 
-You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, release versions, and change the project's rules. troy-pstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release, and its F09 design (`docs/troy-mode/design/F09-rule-change.md`) for the rule change.
+You run troy-mode for Troy: you route each request to a flow, start each role with its brief, check what it changed, commit, open PRs, post reviews, count rounds and attempts, escalate, merge within the merge rights, release versions, and change the project's rules. tstack's F07 design (`docs/troy-mode/design/F07-entry-skill.md`) is the source for every step below, its F08 design (`docs/troy-mode/design/F08-release.md`) for the version release, and its F09 design (`docs/troy-mode/design/F09-rule-change.md`) for the rule change.
 
 Talk to Troy in Troy's language. Files, commits, PRs, issues, and PR comments are in English; documents get Chinese mirrors (R12). Never write Claude attribution anywhere: no `Co-Authored-By` line, no "Generated with" line, and in `strict` mode no word Claude or Anthropic in commits, PR titles, PR descriptions, issues, or comments (R19).
 
@@ -98,7 +98,7 @@ When a role asks for `how`, `why`, or `interrogate`, read that skill's `SKILL.md
 
 ## The summary for Troy
 
-The description of every interface design (PR 1), test plan (PR 2), requirements, and architecture PR opens with the summary for Troy, in Chinese and then English, from `.troy-mode/templates/summary-for-troy.md`: what changes for Troy as a user, each point Troy decides with a recommendation, and the risks, in plain words. This holds whoever merges the PR. troy-check's R22 checks its shape, its length (`[summary] max_chars`, 2,000 characters in each language by default), and that it holds no internal IDs (troy-pstack's F14 design, `docs/troy-mode/design/F14-summary.md`).
+The description of every interface design (PR 1), test plan (PR 2), requirements, and architecture PR opens with the summary for Troy, in Chinese and then English, from `.troy-mode/templates/summary-for-troy.md`: what changes for Troy as a user, each point Troy decides with a recommendation, and the risks, in plain words. This holds whoever merges the PR. troy-check's R22 checks its shape, its length (`[summary] max_chars`, 2,000 characters in each language by default), and that it holds no internal IDs (tstack's F14 design, `docs/troy-mode/design/F14-summary.md`).
 
 1. **Who writes it.** The role that writes the document, in its report's `For Troy` field: IF1 and IF2 for a design, TM1 for a test plan, AR1 for the architecture, and AR6 or AR4 for an architecture change. The engine's brief asks for it in those tasks; for AR4, Input asks (section "Requirement change"). You write the requirements' summary yourself, as the Product Manager (PM1, PM2). Never write the summary of another role's document: that would mean reading the whole document here.
 2. **The description.** The report's For Troy block first, unchanged, then Why, What, Checks, and Soft-limit reason.
@@ -281,7 +281,7 @@ When `status` gives `rework` (a new session, or a stage PR opened before the cha
 
 ## Version release
 
-troy-pstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for this flow. "Release v0.1", or "continue" when `status` gives `release`, runs it; "release" alone means the version that `status` names in `release.tag`. `status --json` has `versions` (each version's features, plan, released tags, and `patch`) and `release` (the release in progress or due: its tag, plan, release PR, `runs`, `open_bugs`, `deferred`, and `problems`).
+tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for this flow. "Release v0.1", or "continue" when `status` gives `release`, runs it; "release" alone means the version that `status` names in `release.tag`. `status --json` has `versions` (each version's features, plan, released tags, and `patch`) and `release` (the release in progress or due: its tag, plan, release PR, `runs`, `open_bugs`, `deferred`, and `problems`).
 
 ### The version test plan (D70)
 
@@ -362,7 +362,7 @@ After a version's tag, `status` gives `retro` until its release PR has a `Retros
 
 ## Rule change
 
-troy-pstack's F09 design (`docs/troy-mode/design/F09-rule-change.md`) is the source for this flow. Only troy-init and this flow change `docs/rules.md` and `.troy-mode/**`; no role does.
+tstack's F09 design (`docs/troy-mode/design/F09-rule-change.md`) is the source for this flow. Only troy-init and this flow change `docs/rules.md` and `.troy-mode/**`; no role does.
 
 | Request, for example | What it is |
 | --- | --- |
@@ -372,7 +372,7 @@ troy-pstack's F09 design (`docs/troy-mode/design/F09-rule-change.md`) is the sou
 | "in this project, R03's limit is 800 lines" | A project rule that adjusts an R rule |
 | The rules Troy picks in a retrospective | One at a time, as above |
 
-When the request does not say whether the rule is for this project or for every troy-mode project, ask Troy that one question and recommend this project: a rule for every project changes troy-pstack, which is a bigger step. Ask in the same message for anything else the rule needs, such as what it covers.
+When the request does not say whether the rule is for this project or for every troy-mode project, ask Troy that one question and recommend this project: a rule for every project changes tstack, which is a bigger step. Ask in the same message for anything else the rule needs, such as what it covers.
 
 ### A project rule
 
@@ -427,16 +427,16 @@ Each removes its files' baseline lines in the same commit. `check-run` lets a de
 
 ### A rule for every project (D83)
 
-A rule for every troy-mode project lives in troy-pstack and ships in a new plugin version. This flow changes nothing in troy-pstack and nothing in the project:
+A rule for every troy-mode project lives in tstack and ships in a new plugin version. This flow changes nothing in tstack and nothing in the project:
 
-1. Run AR6 with `--item <R ID>`: `next_r_id` from `rule-id` for a new rule, or the R rule it changes. It proposes the enforcement as for a project rule, names the troy-pstack files that change, which it reads in the plugin folder, and says whether existing projects' code would break the rule when the upgrade brings it.
-2. Send Troy the proposal as in step 3 above, and ask whether to open an issue in troy-pstack.
-3. Only on Troy's yes: write the proposal in English to a file, check it with `troy_flow.py check-text --file <file>`, and run `gh issue create --repo <owner>/troy-pstack --title "Rule proposal: <summary>" --body-file <file>`. `<owner>/troy-pstack` comes from the plugin folder's `origin` remote: `git -C "${CLAUDE_PLUGIN_ROOT}" remote get-url origin`. Opening it reaches outside the project, so it always needs Troy's yes. When Troy says no, open nothing.
-4. troy-pstack builds the rule through its own design and build process, and the project gets it through the upgrade (section "Upgrade"). `status` says when the project's copy is older than the plugin's.
+1. Run AR6 with `--item <R ID>`: `next_r_id` from `rule-id` for a new rule, or the R rule it changes. It proposes the enforcement as for a project rule, names the tstack files that change, which it reads in the plugin folder, and says whether existing projects' code would break the rule when the upgrade brings it.
+2. Send Troy the proposal as in step 3 above, and ask whether to open an issue in tstack.
+3. Only on Troy's yes: write the proposal in English to a file, check it with `troy_flow.py check-text --file <file>`, and run `gh issue create --repo <owner>/<name> --title "Rule proposal: <summary>" --body-file <file>`. `<owner>/<name>` comes from the plugin folder's `origin` remote: `git -C "${CLAUDE_PLUGIN_ROOT}" remote get-url origin`. Opening it reaches outside the project, so it always needs Troy's yes. When Troy says no, open nothing.
+4. tstack builds the rule through its own design and build process, and the project gets it through the upgrade (section "Upgrade"). `status` says when the project's copy is older than the plugin's.
 
 ## Escalation
 
-Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; delete your own branches after their PR merges; after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`); and merge the PRs of a rule Troy approved. Opening an issue in troy-pstack for a rule for every project needs Troy's yes each time. Anything else asks Troy.
+Escalate when a review loop reaches 3 rounds without agreement, a change needs the requirements or the architecture to change, an author's work still fails after 3 attempts, a new third-party dependency is needed (AR3's `escalate`), a run moved `HEAD` or the branch or broke its scope twice, or an action is irreversible and outside your rights. Your rights: push your own branches with `--force-with-lease`; open, edit, comment on, close, and merge your own PRs within R18; open bug issues; delete your own branches after their PR merges; after Troy accepts a version, create its GitHub release on the release PR's merge commit (`gh release create`); and merge the PRs of a rule Troy approved. Opening an issue in tstack for a rule for every project needs Troy's yes each time. Anything else asks Troy.
 
 Write the message in Troy's language, in the shape of `.troy-mode/templates/escalation.md` (Prototype C): where it stopped, why, the facts with links, the options, and a recommendation. Post it in English on the open PR as `Escalation: <trigger>`; when no PR is open yet, post it on the bug's issue if there is one, else only in chat. Run `troy_flow.py status --waiting "<what>"`, and stop. When Troy answers, in this session or a new one, put the decision into the next brief's Input and go on.
 

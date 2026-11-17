@@ -6,9 +6,9 @@
 | Date | 2026-11-16 |
 | Source of truth | This English file. [`README.zh-CN.md`](README.zh-CN.md) is the Chinese mirror. |
 
-> **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of troy-pstack.
+> **troy-mode is Troy's own work.** Troy designed it and built it in this fork. It is not part of Lauren Tan's pstack, and Lauren Tan and Cursor have not reviewed or endorsed it. It reuses pstack skills such as `how`, `why`, `interrogate`, and `correct` without changing them, and it does not change how `poteto-mode` behaves. It is under the same MIT License as the rest of tstack.
 
-troy-mode's parts are the skills `troy-mode` and `troy-init`, the six `troy-*` agents, the hooks in `hooks/hooks.json`, everything under `troy-mode/`, and the documents in `docs/troy-mode/`. The rest of troy-pstack is Lauren Tan's pstack, ported to Claude Code: almost every other skill, playbook, agent, and guide page, such as `poteto-mode` and the guide in `docs/guide/`, is her work, used under the MIT License ([README: credit and license](../../../README.md#credit-and-license)).
+troy-mode's parts are the skills `troy-mode` and `troy-init`, the six `troy-*` agents, the hooks in `hooks/hooks.json`, everything under `troy-mode/`, and the documents in `docs/troy-mode/`. The rest of tstack is Lauren Tan's pstack, ported to Claude Code: almost every other skill, playbook, agent, and guide page, such as `poteto-mode` and the guide in `docs/guide/`, is her work, used under the MIT License ([README: credit and license](../../../README.md#credit-and-license)).
 
 ## What troy-mode is
 
@@ -16,10 +16,10 @@ troy-mode takes a software project from requirements to a released version throu
 
 ## The one thing to remember
 
-Type `/troy-pstack:troy-mode` and what you want, in your own words:
+Type `/tstack:troy-mode` and what you want, in your own words:
 
 ```text
-/troy-pstack:troy-mode next feature
+/tstack:troy-mode next feature
 ```
 
 troy-mode works out which flow the request belongs to, runs the roles, opens and merges the PRs, and stops only where it needs you: an approval, a test on your own devices, or an escalation. It talks to you in your language. Everything it writes into the project is in English, with Chinese mirrors for the documents.
@@ -34,7 +34,7 @@ Read them in this order the first time.
 
 | Page | What it covers |
 | --- | --- |
-| [1. Install](01-install.md) | What your PC needs, installing and updating troy-pstack, the merge permission, and each role's model |
+| [1. Install](01-install.md) | What your PC needs, installing and updating tstack, the merge permission, and each role's model |
 | [2. Start a project](02-start.md) | Setup, the requirements, the architecture, the language step, and a project that already has code |
 | [3. Build features](03-features.md) | The feature loop: the six PRs, your approvals, reviews, and side PRs |
 | [4. Bugs and changes](04-bugs-and-changes.md) | Fixing a bug, changing a requirement, and questions that open no PR |
@@ -42,7 +42,7 @@ Read them in this order the first time.
 | [6. Rules](06-rules.md) | Adding, changing, and retiring a rule, and proposing one for every project |
 | [7. Where you take part](07-taking-part.md) | The steps that wait for you, escalations, what troy-mode does alone, status labels, and continuing in a new session |
 | [8. Reference](08-reference.md) | Every request, PR title, comment heading, file, config key, and rule, and fixes for common problems |
-| [9. Changing troy-mode](09-changing-troy-mode.md) | Work on troy-mode itself in troy-pstack |
+| [9. Changing troy-mode](09-changing-troy-mode.md) | Work on troy-mode itself in tstack |
 
 ## Where the details live
 
