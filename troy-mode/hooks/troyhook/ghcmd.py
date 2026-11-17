@@ -1,6 +1,8 @@
 """GitHub CLI commands: the read-only list for subagents, R19, and R21 (design 7.3, 8.2)."""
 
-from .lexer import Word
+import re
+
+from .lexer import Op, Redirect, Word
 from .paths import to_native
 from .scopes import MAIN
 from .shell import Parsed, SimpleCommand
@@ -15,6 +17,25 @@ GH_READ = {
     "auth": frozenset({"status"}),
 }
 _GH_ANY = frozenset({"search", "status", "help", "version"})
+
+_TITLE, _BODY = ("--title", "-t"), ("--body", "-b")
+_BODY_FILE, _NOTES_FILE = ("--body-file", "-F"), ("--notes-file", "-F")
+# The gh commands that post text, with the options that hold it and the
+# options that name a file holding it (design 8.2, D200). "gh api" is apart.
+POSTING = {
+    ("pr", "create"): ((_TITLE, _BODY), (_BODY_FILE,)),
+    ("pr", "edit"): ((_TITLE, _BODY), (_BODY_FILE,)),
+    ("issue", "create"): ((_TITLE, _BODY), (_BODY_FILE,)),
+    ("issue", "edit"): ((_TITLE, _BODY), (_BODY_FILE,)),
+    ("pr", "comment"): ((_BODY,), (_BODY_FILE,)),
+    ("issue", "comment"): ((_BODY,), (_BODY_FILE,)),
+    ("pr", "review"): ((_BODY,), (_BODY_FILE,)),
+    ("pr", "merge"): ((("--subject", "-t"), _BODY), (_BODY_FILE,)),
+    ("release", "create"): ((_TITLE, ("--notes", "-n")), (_NOTES_FILE,)),
+    ("release", "edit"): ((_TITLE, ("--notes", "-n")), (_NOTES_FILE,)),
+}
+_HIDDEN = ("--editor", "-e", "--web", "-w")
+_ABSOLUTE = re.compile(r"^(?:[/\\~]|[A-Za-z]:)")
 
 
 def _split_gh(values: list[str]) -> tuple[str | None, str | None, list[str]]:
@@ -66,12 +87,19 @@ def gh_read_only(group: str | None, sub: str | None, rest: list[str]) -> bool:
     return sub in GH_READ.get(group, ())
 
 
+def gh_posts(group: str | None, sub: str | None, rest: list[str]) -> bool:
+    """Tells whether a gh command posts text to GitHub (design 8.2, D200)."""
+    if group == "api":
+        return not _gh_api_reads(rest)
+    return (group, sub) in POSTING
+
+
 def _option_values(words: list[Word], long: str, short: str) -> list[Word]:
     """Collects the values of one option in its "--x v", "--x=v", "-x v", and "-xv" forms."""
     found = []
     for i, word in enumerate(words):
         value = word.value
-        if value in (long, short) and i + 1 < len(words):
+        if (value == long or (short and value == short)) and i + 1 < len(words):
             found.append(words[i + 1])
         elif value.startswith(long + "="):
             found.append(Word(value[len(long) + 1:], word.raw, word.literal))
@@ -88,22 +116,112 @@ def _from_main(ctx, words: list[Word]) -> bool:
     return ctx.project.branch() == "main"
 
 
-def _pr_text(ctx, cmd: SimpleCommand, parsed: Parsed) -> str:
-    """Gathers a PR's title and description from the command, its heredocs, and --body-file."""
-    parts = []
-    for long, short in (("--title", "-t"), ("--body", "-b")):
-        for word in _option_values(cmd.words, long, short):
-            parts += [word.value, word.raw]
+class _Unreadable(Exception):
+    """Text a posting command would send that the hook cannot read (fail closed, D200)."""
+
+
+def _heredoc_cat(tokens: list) -> bool:
+    """Tells whether a command substitution only prints its heredocs: "cat <<'EOF' ...".
+
+    The heredoc bodies are checked with the rest of the call's heredocs.
+    """
+    if not tokens or not isinstance(tokens[0], Word) or tokens[0].value != "cat":
+        return False
+    after_heredoc = False
+    for token in tokens[1:]:
+        if isinstance(token, Redirect):
+            if token.text not in ("<<", "<<-"):
+                return False
+            after_heredoc = True
+        elif isinstance(token, Word):
+            if not after_heredoc:
+                return False
+            after_heredoc = False
+        elif isinstance(token, Op) and token.text.strip():
+            return False
+    return True
+
+
+def _text_of(word: Word) -> list[str]:
+    """Gives an option's text, refusing a variable or a substitution the hook cannot see."""
+    if not word.literal and not (word.subs and all(_heredoc_cat(sub) for sub in word.subs)):
+        raise _Unreadable(f"the text {word.raw!r} holds a variable or a command the hook "
+                          "cannot see")
+    return [word.value, word.raw]
+
+
+def _file_text(ctx, cmd: SimpleCommand, parsed: Parsed, word: Word) -> str:
+    """Reads a named body, notes, or input file as it is when the call starts."""
+    if word.value == "-":
+        if not parsed.heredocs:
+            raise _Unreadable("it reads the text from a pipe (\"-\") with no heredoc in the call")
+        return ""
+    if not word.literal or not word.value:
+        raise _Unreadable(f"the file {word.raw!r} is named by a variable the hook cannot read")
+    if cmd.cwd is None and not _ABSOLUTE.match(word.value):
+        raise _Unreadable("a file is named relative to a folder the hook cannot follow")
+    try:
+        with open(to_native(word.value, cmd.cwd or ctx.cwd), encoding="utf-8",
+                  errors="replace") as handle:
+            return handle.read()
+    except OSError:
+        raise _Unreadable("a named file is missing or unreadable") from None
+
+
+def _api_parts(words: list[Word]) -> tuple[list[Word], list[Word]]:
+    """Splits "gh api"'s fields into text and named files: -f, -F key=@file, --input."""
+    texts, files = [], []
+    for long, short in (("--raw-field", "-f"), ("--field", "-F")):
+        for word in _option_values(words, long, short):
+            key, sep, value = word.value.partition("=")
+            if short == "-F" and sep and value.startswith("@"):
+                files.append(Word(value[1:], word.raw, word.literal))
+            else:
+                texts.append(word)
+    files += _option_values(words, "--input", "")  # no short form
+    return texts, files
+
+
+def _posted_text(ctx, cmd: SimpleCommand, parsed: Parsed, group: str, sub: str | None) -> str:
+    """Gathers the text a posting command sends: option values, heredocs, and files (D200)."""
+    if group == "api":
+        texts, files = _api_parts(cmd.words)
+    else:
+        if any(word.value in _HIDDEN or word.value.startswith(("--editor=", "--web="))
+               for word in cmd.words):
+            raise _Unreadable("--editor and --web write the text where the hook cannot see it")
+        text_options, file_options = POSTING[(group, sub)]
+        texts = [word for long, short in text_options
+                 for word in _option_values(cmd.words, long, short)]
+        files = [word for long, short in file_options
+                 for word in _option_values(cmd.words, long, short)]
+    parts = [part for word in texts for part in _text_of(word)]
     parts += parsed.heredocs
-    for word in _option_values(cmd.words, "--body-file", "-F"):
-        if word.value != "-":
-            try:
-                path = to_native(word.value, cmd.cwd or ctx.cwd)
-                with open(path, encoding="utf-8", errors="replace") as handle:
-                    parts.append(handle.read())
-            except OSError:
-                continue
+    parts += [_file_text(ctx, cmd, parsed, word) for word in files]
     return "\n".join(parts)
+
+
+def _check_posting(ctx, cmd: SimpleCommand, parsed: Parsed, group: str, sub: str | None,
+                   label: str) -> Refusal | None:
+    """Checks the text a main-session gh command posts for R19 (design 8.2, D200)."""
+    try:
+        text = _posted_text(ctx, cmd, parsed, group, sub)
+    except _Unreadable as exc:
+        return Refusal("attribution", f"R19: `{label}` posts text the hook cannot check: {exc}. "
+                       "Write the text to a file in an earlier call, check it with "
+                       "`troy_flow.py check-text --file <file>`, and pass the file by name "
+                       "(F05 D200).", label)
+    from troycheck.attribution import find_attribution  # noqa: PLC0415  (slow to import)
+
+    mode = ctx.config().attribution_mode
+    lines = find_attribution(text, mode)
+    if not lines:
+        return None
+    rows = text.splitlines()
+    snippet = rows[lines[0] - 1].strip()[:80] if 0 < lines[0] <= len(rows) else ""
+    return Refusal("attribution", f"R19: the text `{label}` would post fails the attribution "
+                   f"check ([attribution] mode {mode}) at {snippet!r}. Reword it, check it with "
+                   "`troy_flow.py check-text`, and post it in a later call (F05 D200).", label)
 
 
 def check_gh(ctx, cmd: SimpleCommand, parsed: Parsed) -> Refusal | None:
@@ -115,18 +233,9 @@ def check_gh(ctx, cmd: SimpleCommand, parsed: Parsed) -> Refusal | None:
             return None
         return Refusal("gh", f"`{label}` changes GitHub or is not on the read-only list for "
                        f"subagents. {RULE_6}", label)
-    if group != "pr" or sub not in ("create", "edit"):
+    if not gh_posts(group, sub, rest):
         return None
-    if sub == "create" and _from_main(ctx, cmd.words):
+    if (group, sub) == ("pr", "create") and _from_main(ctx, cmd.words):
         return Refusal("pr-from-main", "R21: never open a PR from main. Create a branch, "
                        "commit there, push it, and open the PR from it.", label)
-    from troycheck.attribution import find_attribution  # noqa: PLC0415  (slow to import)
-
-    mode = ctx.config().attribution_mode
-    text = _pr_text(ctx, cmd, parsed)
-    lines = find_attribution(text, mode)
-    if lines:
-        snippet = text.splitlines()[lines[0] - 1].strip()[:80] if text.splitlines() else ""
-        return Refusal("attribution", f"R19: the PR title or description carries Claude "
-                       f"attribution ([attribution] mode {mode}): {snippet!r}. Remove it.", label)
-    return None
+    return _check_posting(ctx, cmd, parsed, group, sub, label)

@@ -3,7 +3,7 @@
 import json
 import re
 
-from .ghcmd import gh_read_only, check_gh
+from .ghcmd import check_gh, gh_posts, gh_read_only
 from .gitcmd import ALWAYS, check_git
 from .scopes import MAIN
 from .shell import parse, program
@@ -29,18 +29,33 @@ def _first_word(text: str, skip_values: tuple[str, ...]) -> tuple[str | None, li
     return None, []
 
 
+def _gh_in_text(text: str, wanted, api_target: bool) -> str | None:
+    """Finds a gh command in rough text for which wanted(group, sub, rest) holds.
+
+    The name it gives keeps "gh api"'s endpoint only when api_target is true.
+    """
+    for match in _GH_IN_TEXT.finditer(text):
+        group, rest = _first_word(match.group(1), ("-R", "--repo"))
+        sub = next((token for token in rest if not token.startswith("-")), None)
+        if group and wanted(group, sub, rest):
+            shown = sub if api_target or group != "api" else None
+            return " ".join(part for part in ("gh", group, shown) if part)
+    return None
+
+
+def post_in_text(text: str) -> str | None:
+    """Finds a gh command that posts text to GitHub in rough command text (D200)."""
+    return _gh_in_text(text, gh_posts, api_target=False)
+
+
 def _write_in_text(text: str) -> str | None:
     """Finds a git or gh write in text that could not be split (design 7.1)."""
     for match in _GIT_IN_TEXT.finditer(text):
         sub, _ = _first_word(match.group(1), ("-C", "-c", "--git-dir", "--work-tree"))
         if sub and sub not in ALWAYS:
             return "git " + sub
-    for match in _GH_IN_TEXT.finditer(text):
-        group, rest = _first_word(match.group(1), ("-R", "--repo"))
-        sub = next((token for token in rest if not token.startswith("-")), None)
-        if group and not gh_read_only(group, sub, rest):
-            return " ".join(part for part in ("gh", group, sub) if part)
-    return None
+    return _gh_in_text(text, lambda group, sub, rest: not gh_read_only(group, sub, rest),
+                       api_target=True)
 
 
 def _check_unparsed(ctx, text: str, error: str) -> Refusal | None:
@@ -52,6 +67,12 @@ def _check_unparsed(ctx, text: str, error: str) -> Refusal | None:
         if re.search(r"\bgit\b[^\n]*--no-verify", text):
             return Refusal("no-verify", "The command uses --no-verify and could not be split "
                            f"({error}). Run git without it (F05 8.2).", "git")
+        posting = post_in_text(text)
+        if posting:
+            return Refusal("unparsed", f"The command could not be split ({error}), and its text "
+                           f"holds `{posting}`, which posts text to GitHub that the hook must "
+                           "check first (R19, F05 D200). Write the command so that its quotes "
+                           "balance.", posting)
         return None
     found = _write_in_text(text)
     if found is None:

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F05 in [requirements 1.15](../requirements.md#72-feature-list) |
-| Version | 1.1 |
-| Date | 2026-11-07 |
-| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. |
+| Version | 1.2 |
+| Date | 2026-11-17 |
+| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. |
 | Source of truth | This English file. [`F05-hooks.zh-CN.md`](F05-hooks.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -16,7 +16,7 @@ F05 makes the rules that a role or Claude could break by mistake fail at the mom
    - keep each role inside its write scope (F04 design D31), with the Developer's edits to tests (R08) as one case;
    - keep every other subagent read-only;
    - allow roles only read-only git and GitHub commands, and only the skills they need;
-   - stop Claude from skipping the git hooks, from opening a PR from `main` (R21), and from opening a PR whose title or description carries attribution (R19);
+   - stop Claude from skipping the git hooks, from opening a PR from `main` (R21), and from posting a PR, comment, review, issue, or release note whose text carries attribution (R19, D200);
    - let roles read the plugin's own files without a permission rule.
 2. **Git hooks**, shipped in troy-check's folder, which troy-init copies into each project. They refuse a commit that breaks R19, a commit on `main`, and a push to `main` (R21), whoever runs git.
 3. **A local log** of every block, which F07 reads after each role run.
@@ -195,7 +195,28 @@ For every caller in a troy-mode project, the main session included, the `PreTool
 - `-c core.hooksPath=...` before any git subcommand, and `git config` that sets or unsets `core.hooksPath`.
 - `git commit`, `git merge`, and `git push` while `core.hooksPath` is not `.troy-mode/checks/git-hooks` or the hook files are missing. The reason says how to turn them on.
 - `gh pr create` from `main`: with `--head main` or `-H main`, or with no `--head` while the current branch is `main` (R21).
-- `gh pr create` and `gh pr edit` whose command text, or whose `--body-file`, fails troy-check's attribution rules in the project's `[attribution] mode` (R19). This catches the "Generated with Claude Code" line before the PR exists, not only in CI.
+For the main session, the same hook checks the text of every `gh` command that posts text to GitHub, before it runs (R19, D200). Subagents stay refused for every `gh` write (section 7.3).
+
+| Commands | Text it reads |
+| --- | --- |
+| `gh pr create`, `gh pr edit`, `gh issue create`, `gh issue edit` | `--title`/`-t`, `--body`/`-b`, `--body-file`/`-F` |
+| `gh pr comment`, `gh issue comment`, `gh pr review` | `--body`/`-b`, `--body-file`/`-F` |
+| `gh pr merge` | `--subject`/`-t`, `--body`/`-b`, `--body-file`/`-F` |
+| `gh release create`, `gh release edit` | `--title`/`-t`, `--notes`/`-n`, `--notes-file`/`-F` |
+| `gh api` with a method other than `GET`, or with fields | The values of `-f`/`--raw-field` and `-F`/`--field`, the file named by `-F key=@file`, and the `--input` file |
+
+- **What is checked.** Each option takes its `--x v`, `--x=v`, `-x v`, and `-xv` forms. The text is the option values, every heredoc in the call, and the contents of each named file, read relative to the folder the command runs in. `troycheck.attribution.find_attribution` checks it in the project's `[attribution] mode` as committed at `HEAD`, as `check-text` does. A `gh` command with no text to post, such as `gh pr merge --rebase` or `gh pr review --approve`, passes. A command for another repository (`--repo`) is checked the same way.
+- **The refusal.** Rule `attribution`. The reason names R19, the command, and the first line that fails. The log line holds the command name, such as `gh pr comment`, and never the text or a file's path (section 10).
+- **Fail closed.** The hook also refuses, with rule `attribution`, a posting command:
+  - whose body, notes, or input file is missing or unreadable, or is named by a word the hook cannot resolve (an unknown variable, or a relative path after a `cd` it cannot follow);
+  - with `--body-file -`, `--notes-file -`, `--input -`, or `-F key=@-` and no heredoc in the call, because a pipe is text the hook cannot see;
+  - with `--editor`/`-e` or `--web`/`-w`, because the text is then written where the hook cannot see it;
+  - whose text option holds an unknown variable or a command substitution other than `cat` of a heredoc, such as `--body "$(cat c.md)"`, because the hook cannot see that text either.
+
+  A main-session call that cannot be split and whose text holds a posting `gh` command is refused with rule `unparsed` (section 7.1). An error while checking a posting command refuses it with rule `error` (section 10).
+- **Never paths.** The hook never scans file paths or the whole command line: a scratchpad path can itself hold a word that strict mode refuses, and scanning paths would refuse every post from it.
+- **Known limit.** A file is checked as it is when the call starts. A call that rewrites the body file and posts it in the same line is checked against the old text, or refused when the file does not exist yet. The troy-mode skill says to write the file in an earlier call. The hook does not tie a heredoc to the command it feeds, so a pipe into `--body-file -` passes when the same call holds another heredoc, which is checked. `gh api` with `-X GET` and fields counts as a post, as the table says.
+- This catches the "Generated with Claude Code" line before the PR exists, and the #92 shape, where a comment was posted after a failed `check-text`, before GitHub holds the text and its edit history.
 
 ## 9. Plugin files (D45)
 
@@ -210,7 +231,7 @@ A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call 
 
 ## 10. Errors, speed, and the log
 
-**Errors (D39).** Any error inside `troy_hook.py`, such as an unreadable config or a git failure, is caught. For a role or another subagent, the call is refused with the error. For the main session, the hook prints a notice on stderr and exits with code 1, which Claude Code treats as a non-blocking error, so the main session can still repair the project. When no Python 3.11 or newer exists, the call is blocked in a troy-mode project and let through elsewhere: the `hooks.json` command tests `$CLAUDE_PROJECT_DIR/.troy-mode` with a shell builtin and exits with code 2 or 0 when the interpreter is missing, and `troy_hook.py` checks the version before it imports anything else. `onFailure: "block"` is not used, because it would also block calls outside troy-mode projects.
+**Errors (D39).** Any error inside `troy_hook.py`, such as an unreadable config or a git failure, is caught. For a role or another subagent, the call is refused with the error. For the main session, the hook prints a notice on stderr and exits with code 1, which Claude Code treats as a non-blocking error, so the main session can still repair the project. One exception (D200): an error while checking a `gh` command that posts text (section 8.2), such as an invalid config, refuses the main session's call with rule `error`, because text posted to GitHub keeps its edit history. Every other main-session call still only warns. When no Python 3.11 or newer exists, the call is blocked in a troy-mode project and let through elsewhere: the `hooks.json` command tests `$CLAUDE_PROJECT_DIR/.troy-mode` with a shell builtin and exits with code 2 or 0 when the interpreter is missing, and `troy_hook.py` checks the version before it imports anything else. `onFailure: "block"` is not used, because it would also block calls outside troy-mode projects.
 
 **Speed.** Measured on Troy's PC on 2026-11-06: Python starts in 40 to 65 ms, bash in about 25 ms, and a git command takes 40 to 50 ms.
 
@@ -233,7 +254,8 @@ All are under the 200 ms target of requirements section 8. The hooks keep the co
 | F05 row: marker-folder gate | Section 4, the gate |
 | F05 row and F04 D31: each role's write scope, R08 among them | Sections 5 and 6 |
 | F05 row and F04 D31: no git or GitHub writes by roles | Section 7 |
-| F05 row: commits that break R19 | Section 8.1 (`commit-msg`) and 8.2 (PR title and description) |
+| F05 row: commits that break R19 | Section 8.1 (`commit-msg`) and 8.2 (PR titles and descriptions) |
+| Section 6, R19: PR comments and reviews, issues, and release notes, checked before they are posted (D200) | Section 8.2 (every `gh` command that posts text) and section 10 (an error refuses the post) |
 | F05 row: commits on `main` and pushes of `main` (R21) | Section 8.1 (`pre-commit`, `pre-merge-commit`, `pre-push`), and 8.2 for `gh pr create` |
 | Section 8, hooks exit at once outside troy-mode projects | Section 4, the gate, and section 9's `if` rule |
 | Section 8, speed under 200 ms per call | Section 10 |
@@ -268,6 +290,7 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Skills | `code-review` passes, with `--fix` or `--comment` it is refused, another skill is refused. The main session may run any skill. |
 | Changes | A Developer creates a test file through Bash: `PostToolUse` blocks and names it. After `git restore` or deleting it, nothing blocks. A file that was already changed and changes again is found by its hash. Changes inside the scope are not reported. `SubagentStop` blocks once and then lets the role stop. A missing start record is made at the first call. |
 | Guards | `--no-verify` and `commit -n` are refused, `push -n` passes. `-c core.hooksPath=` and `git config core.hooksPath` are refused. A commit while `core.hooksPath` is unset is refused. `gh pr create` on `main` and with `--head main` is refused, on a branch it passes. A PR body with "Generated with Claude Code" is refused. The word Claude in `trailers` mode passes. |
+| Posting guard (D200) | Each posting command of section 8.2, in its long, short, and `=` forms, refused with a bad title, body, notes, or file and passed with a clean one; a strict-mode word passes in `trailers` mode. The #92 shape, `check-text ... \| grep -q ok; gh pr comment ...`, refused. A heredoc on stdin checked. `--body-file -` from a pipe refused. A missing file refused. A clean file in a folder whose name is a strict-mode word passes. `gh api -X POST` with `-f`, `-F key=@file`, or `--input` refused with bad text, and a `GET` passes. `gh issue create --repo` for another repository checked. `--editor` and `--web` refused. `--body "$(cat <file>)"` refused, `--body "$(cat <<'EOF' ...)"` checked. An unsplittable posting call from the main session refused. A check error refuses a posting command and only warns for others. The log line holds the command name and no text. Subagents still get the `gh` refusal of section 7.3. |
 | Plugin files | A read inside `CLAUDE_PLUGIN_ROOT` in a troy-mode project gets `allow`. Outside it, or in another project, nothing is printed. |
 | Errors and log | An exception refuses a role's call and only warns for the main session. Each refusal writes one log line without the command text. |
 | SessionStart | Unset `core.hooksPath` is set. Another value is left and reported. Missing hook files are reported. Old records are removed. |
@@ -276,7 +299,7 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 
 ### 13.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. D200's change adds: `comment` missing from the posting table, `-F` not read, the path scanned instead of the contents, and a missing file allowed. The counts go in the PR description.
 
 ### 13.3 Trial on a sample project
 
@@ -323,7 +346,9 @@ D1 to D38 belong to the F01 to F04 designs, so F05 continues from D39.
 | D45 | How do roles read the plugin's own files, such as `technical-writing/SKILL.md`, in a session where nobody can approve a prompt? The F04 trial's IF1 failed on this. | A: a `PreToolUse` hook allows `Read`, `Glob`, and `Grep` inside `CLAUDE_PLUGIN_ROOT` in troy-mode projects, so troy-init writes no permission (section 9). B: troy-init writes `Read(<plugin folder>/**)` into the project's `.claude/settings.local.json`. C: Troy adds `Read(~/.claude/plugins/**)` to the user settings once. | A. The plugin's folder changes with every version, so a written rule goes stale, and `settings.local.json` is missing in every new worktree and clone. The hook reads the current folder each time and grants reads only. |
 | D46 | How is F05 checked, and when does its status move? | A: unit tests and planted bugs, plus a trial with probes on the Python sample before the PR opens (section 13). Status after merge: "Runs on a sample project". B: unit tests only, status "Written". | A. The trial settles the facts the documentation leaves open (the `Skill` input, `deny` in `acceptEdits` mode, the `if` rule for `Glob` and `Grep`) and measures the speed on Windows. It costs about eight role runs. |
 
-Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads.
+| D200 | How is text that the main session posts to GitHub checked? A review comment on `ZJUCao/recipe-menu#92` was posted although `check-text` had failed on it, and GitHub keeps the history of every edit. From tstack issue #65, the rule proposal of recipe-menu's v0.1.0 retrospective. D161 to D199 are kept for F17 to F19, so this decision takes D200. | The levels the Architect weighed in the issue: the project's architecture; lint, troy-check, or a `project-rules.yml` job in CI; a Review or Process row; or F05's `PreToolUse` `gh` guard. And whether to widen R19 or add a new R row. | F05's `gh` guard, Hard, and R19 widened to PR comments and reviews, issues, and release notes, with no new R row. The guard checks the text of every `gh` command that posts it, for the main session, with `check-text`'s function and mode, and fails closed on text it cannot read and on check errors (sections 8.2 and 10). The hook is the only level that runs before the text leaves the machine, for every caller. The other levels read the repository or run in CI after GitHub already holds the text and its edit history, and a Review row in effect exists: #92 shows it followed in form and failed in effect. Approved by Troy on 2026-11-16 with the Architect's recommendations (AR6: A2, B1, C). |
+
+Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads. Requirements 1.46 records D200: R19 in section 6 and the F05 row.
 
 ## 16. Change log
 
@@ -332,3 +357,4 @@ Requirements 1.15 records the approved change: the F05 row describes the hooks a
 | 0.1 | 2026-11-06 | First draft. |
 | 1.0 | 2026-11-06 | Approved by Troy with D39 to D46, every recommended answer. |
 | 1.1 | 2026-11-07 | Facts from the trial of section 13.3: the `if` rule filters only `Read`, so `Glob` and `Grep` get their own entry without it (sections 3, 9, and 10). Claude Code's own permissions refuse `Write` outside the project in a session nobody can approve, so roles make scratch copies with Bash (section 5.2). The trial's Test Manager named its scratch folder with a `mktemp -d` variable, so section 7.1 also follows variables set to a literal path or to `mktemp -d` earlier in the same command (sections 7.1 and 7.2). The `Skill` input fields (section 7.4). The measured medians (section 10). |
+| 1.2 | 2026-11-17 | D200, from tstack issue #65, approved by Troy on 2026-11-16: the main session's `gh` commands that post text are checked before they run, and fail closed (sections 1, 8.2, 10, 11, 13.1, 13.2, and 15). |

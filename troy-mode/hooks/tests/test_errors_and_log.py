@@ -1,7 +1,9 @@
-"""Errors and log group (F05 design section 10, D39, and 13.1).
+"""Errors and log group (F05 design section 10, D39, D200, and 13.1).
 
 An error inside the hook refuses a subagent's call and only warns for the
-main session. Every refusal and block appends one JSON line to
+main session, except while checking a main-session gh command that posts
+text, which is refused with rule error (D200). Every refusal and block
+appends one JSON line to
 ``<git dir>/troy-mode/hooks.log`` with the keys of contract section 4 and
 never the command text.
 """
@@ -9,14 +11,18 @@ never the command text.
 import unittest
 
 from hook_helpers import (
-    ATTRIBUTION_LINE, DEV, INVALID_CONFIG, LOG_DECISIONS, LOG_KEYS, LOG_RULES, LOG_TIME,
-    MAIN, SECRET, SESSION, HookTestCase, Project, bash_call, post_call, role, skill_call,
-    start_call, stop_call, unique, write_call,
+    ATTRIBUTION_LINE, DEV, ERROR_PREFIX, INVALID_CONFIG, LOG_DECISIONS, LOG_KEYS, LOG_RULES,
+    LOG_TIME, MAIN, SECRET, SESSION, HookTestCase, Project, bash_call, post_call, role,
+    skill_call, start_call, stop_call, unique, write_call,
 )
+
+# Main-session gh commands that post text the strict mode refuses (design 8.2).
+POSTING_WITH_CLAUDE = ("gh pr create --title 'Add x' --body 'Works with Claude.'",
+                       "gh pr comment 5 --body 'Works with Claude.'")
 
 
 class ErrorTests(HookTestCase):
-    """D39: an error refuses a subagent's call and warns the main session."""
+    """D39: an error refuses a subagent's call and warns the main session; D200: posts are refused."""
 
     @classmethod
     def setUpClass(cls):
@@ -40,19 +46,49 @@ class ErrorTests(HookTestCase):
         """Pair: the same write is silent in a project with a valid config."""
         self.assert_silent(write_call(self.valid, DEV, self.valid.path("src/pkg/app.py")).run())
 
-    def test_error_only_warns_the_main_session(self):
-        """With an invalid config, the main session's gh pr create warns: exit 1, stderr, no stdout.
+    def test_error_refuses_a_main_session_posting_command(self):
+        """With an invalid config, the main session's gh pr create and gh pr comment are refused.
 
-        The body holds the word Claude, so the hook needs the config's
+        Design 10's exception (D200): rule error in the log, a deny decision.
+        The texts hold the word Claude, so the hook needs the config's
         attribution mode to decide (design 8.2).
         """
-        command = "gh pr create --title 'Add x' --body 'Works with Claude.'"
-        self.assert_main_error(bash_call(self.broken, MAIN, command).run())
+        for command in POSTING_WITH_CLAUDE:
+            with self.subTest(command=command):
+                before = len(self.broken.log_lines())
+                out = bash_call(self.broken, MAIN, command).run()
+                self.assert_error_refusal(out, msg=command)
+                lines = self.broken.log_lines()[before:]
+                self.assertEqual(1, len(lines), f"expected one new log line: {lines}")
+                self.assertEqual(("error", "deny", None, "PreToolUse", "Bash"),
+                                 (lines[0]["rule"], lines[0]["decision"], lines[0]["agent_id"],
+                                  lines[0]["event"], lines[0]["tool"]))
 
     def test_same_main_session_call_is_decided_with_a_valid_config(self):
-        """Pair: with a valid strict config the same call is refused for R19, not an error."""
-        command = "gh pr create --title 'Add x' --body 'Works with Claude.'"
-        self.assert_denied(bash_call(self.valid, MAIN, command).run(), "R19")
+        """Pair: with a valid strict config the same calls are refused for R19, not an error."""
+        for command in POSTING_WITH_CLAUDE:
+            with self.subTest(command=command):
+                out = bash_call(self.valid, MAIN, command).run()
+                self.assert_denied(out, "R19", msg=command)
+                self.assertFalse(out.reason.startswith(ERROR_PREFIX), out.describe())
+
+    def test_error_does_not_refuse_other_main_session_calls(self):
+        """Pair: with the same invalid config, other main-session calls still only warn at most.
+
+        A commit message and a gh read are not posts, so the D200 exception
+        does not apply: the call is silent, or warns with exit 1 and a notice
+        on stderr (D39), and is never refused or logged.
+        """
+        before = len(self.broken.log_lines())
+        for command in ("git commit -m 'Works with Claude.'", "gh pr view 5 --json body",
+                        "gh api repos/o/r/issues/1/comments"):
+            with self.subTest(command=command):
+                out = bash_call(self.broken, MAIN, command).run()
+                if out.code == 0:
+                    self.assert_silent(out, msg=command)
+                else:
+                    self.assert_main_error(out, msg=command)
+        self.assertEqual(before, len(self.broken.log_lines()), self.broken.log_text())
 
 
 class LogTests(HookTestCase):

@@ -72,8 +72,8 @@ max_chars = 2000
 
 [attribution]
 # R19. "strict" also blocks any word Claude or Anthropic in commit messages,
-# PR titles, and PR descriptions. "trailers" blocks only attribution lines,
-# for a project about Claude.
+# PR titles and descriptions, PR comments and reviews, issues, and release
+# notes. "trailers" blocks only attribution lines, for a project about Claude.
 mode = "strict"
 
 # [roles.<role>]

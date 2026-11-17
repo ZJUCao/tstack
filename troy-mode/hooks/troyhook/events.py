@@ -248,11 +248,33 @@ HANDLERS = {
 _WARN_ONLY = ("SessionStart", "SubagentStart", "UserPromptExpansion")
 
 
+def _posting_call(ctx: Context) -> str | None:
+    """Names the gh command that posts text in a main-session shell call, if any (D200)."""
+    if ctx.event != "PreToolUse" or ctx.tool not in ("Bash", "PowerShell"):
+        return None
+    try:
+        from .commands import post_in_text  # noqa: PLC0415
+
+        return post_in_text(str(ctx.tool_input().get("command") or ""))
+    except Exception:  # noqa: BLE001  (the error rule must not fail itself)
+        return "gh"
+
+
 def _on_error(ctx: Context, exc: Exception) -> tuple[dict | None, int]:
-    """Applies D39: refuse a subagent's call, only warn for the main session."""
+    """Applies D39: refuse a subagent's call, only warn for the main session.
+
+    D200's exception: a main-session call that posts text to GitHub is refused,
+    because the hook could not check the text and GitHub keeps every edit.
+    """
     from .verdict import Refusal  # noqa: PLC0415
 
     message = f"troy-mode hook error: {type(exc).__name__}: {exc}"
+    posting = _posting_call(ctx) if ctx.caller.kind == MAIN else None
+    if posting:
+        return _deny(ctx, Refusal("error", message + f". `{posting}` posts text to GitHub that "
+                                  "the hook cannot check now, so the call is refused (F05 "
+                                  "D200). Fix the error, for example the config, and try "
+                                  "again.", posting)), 0
     if ctx.caller.kind == MAIN or ctx.event in _WARN_ONLY:
         sys.stderr.write(message + "\n")
         return None, 1

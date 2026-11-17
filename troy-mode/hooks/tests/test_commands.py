@@ -3,7 +3,8 @@
 A subagent may run only read-only git and gh commands, plus any git command
 except push in a scratch repository in the temp folder or the scratchpad.
 Each allowed command must be silent and each refused one refused, alone and
-inside the shell forms of design 7.1.
+inside the shell forms of design 7.1. For the main session, a call that cannot
+be split is refused only when it holds a posting gh command (design 8.2, D200).
 """
 
 import tempfile
@@ -11,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from hook_helpers import (
-    CR, DEV, EXPLORE, FOO, GP, HOOK_TEMP, IS_WINDOWS, PAD, SCRATCH, SYSTEM_TEMP, TM,
+    CR, DEV, EXPLORE, FOO, GP, HOOK_TEMP, IS_WINDOWS, MAIN, PAD, SCRATCH, SYSTEM_TEMP, TM,
     HookTestCase, Project, bash_call, git_bash_form, q, remove_tree, run_many, scratch_repo,
     start_call,
 )
@@ -289,6 +290,19 @@ UNBALANCED_REFUSED = (
     'gh pr comment 1 --body "half',
 )
 
+# Design 8.2 and 7.1 (D200): main-session calls that cannot be split.
+MAIN_UNBALANCED_POSTING = (
+    'gh pr comment 1 --body "half',
+    'gh issue create --title "Add x',
+    "echo 'start; gh issue comment 3 --body ok",
+    'gh release create v1.0 --notes "half',
+)
+MAIN_UNBALANCED_OTHER = (
+    'gh pr view 1 --json "title',
+    "echo 'start; gh pr view 1",
+    'echo "Works with Claude',
+)
+
 
 class CommandTestCase(HookTestCase):
     """Runs tables of commands for one caller and checks each answer."""
@@ -403,6 +417,34 @@ class ShellFormTests(CommandTestCase):
         for command, out in zip(UNBALANCED_REFUSED, outs):
             with self.subTest(command=command):
                 self.assert_denied(out)
+
+
+class MainSessionUnparsedTests(HookTestCase):
+    """D200: a main-session call that cannot be split is refused when it holds a posting gh command."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Builds one strict project."""
+        cls.project = Project()
+        cls.addClassCleanup(cls.project.close)
+
+    def test_unbalanced_quote_around_a_posting_command_is_refused(self):
+        """gh pr comment, gh issue create, gh issue comment, or gh release create: rule unparsed."""
+        for command in MAIN_UNBALANCED_POSTING:
+            with self.subTest(command=command):
+                before = len(self.project.log_lines())
+                out = bash_call(self.project, MAIN, command).run()
+                self.assert_denied(out, msg=command)
+                lines = self.project.log_lines()[before:]
+                self.assertEqual(1, len(lines), f"expected one new log line: {lines}")
+                self.assertEqual(("unparsed", "deny", None),
+                                 (lines[0]["rule"], lines[0]["decision"], lines[0]["agent_id"]))
+
+    def test_unbalanced_quote_without_a_posting_command_passes(self):
+        """Pair: an unbalanced quote around gh pr view, or around plain text, is silent."""
+        for command in MAIN_UNBALANCED_OTHER:
+            with self.subTest(command=command):
+                self.assert_silent(bash_call(self.project, MAIN, command).run(), msg=command)
 
 
 class OtherCallerCommandTests(CommandTestCase):
