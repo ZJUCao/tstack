@@ -10,12 +10,14 @@ or creates a real environment.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shutil
 import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Optional, Sequence
+from unittest import mock
 
 from init_helpers import (
     CONFIG, PLUGIN_ROOT, PROJECT, RECORD, WORKFLOW, Outcome, Project, lf, new_dir, owned_files,
@@ -276,6 +278,32 @@ def git_only_path() -> str:
     return os.path.dirname(found)
 
 
+# uv's cache folder in the system temp folder when UV_CACHE_DIR is unset (D213).
+UV_CACHE_NAME = "troy-mode-uv-cache"
+
+
+def temp_env(folder: Path) -> dict:
+    """Variables that make tempfile.gettempdir() return the folder in a child process.
+
+    gettempdir() takes the first of TMPDIR, TEMP, and TMP that names a
+    writable folder, on every OS, so all three point at it.
+    """
+    return {"TMPDIR": str(folder), "TEMP": str(folder), "TMP": str(folder)}
+
+
+@contextlib.contextmanager
+def without_env(*names: str):
+    """Removes variables from this process's environment for the block, then puts them back.
+
+    The helpers' base_env copies os.environ, so a variable the machine sets
+    reaches the engine unless it is removed here.
+    """
+    with mock.patch.dict(os.environ):
+        for name in names:
+            os.environ.pop(name, None)
+        yield
+
+
 # ------------------------------------------------------------------ fake mamba
 
 _FAKE_SOURCE = r'''
@@ -312,6 +340,7 @@ def main():
     args = sys.argv[1:]
     settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
     entry = {"argv": args, "cwd": os.getcwd(), "uv_link_mode": os.environ.get("UV_LINK_MODE"),
+             "uv_cache_dir": os.environ.get("UV_CACHE_DIR"),
              "marker": os.environ.get("FAKE_MAMBA_MARKER"),
              "present": [name for name in WATCHED if Path(name).is_file()]}
     with LOG.open("a", encoding="utf-8") as handle:
@@ -373,7 +402,8 @@ class FakeMamba:
     def calls(self) -> list:
         """Every recorded call, in order.
 
-        Each is a dict with argv, cwd, uv_link_mode, marker (the variable
+        Each is a dict with argv, cwd, uv_link_mode, uv_cache_dir (the
+        variable UV_CACHE_DIR, None when absent), marker (the variable
         FAKE_MAMBA_MARKER), and present (which of environment.yml,
         pyproject.toml, and requirements-tools.in existed in cwd).
         """

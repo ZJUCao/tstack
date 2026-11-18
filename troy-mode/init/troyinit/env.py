@@ -2,7 +2,8 @@
 
 On Troy's PC the language step follows the pack README's setup: create the
 series environment with mamba when it is missing, compile the lock with the
-environment's uv from every member's manifest, and install the lock.
+environment's uv from every member's manifest, and install the lock. uv gets
+a cache folder it can write when UV_CACHE_DIR is not set (D213).
 """
 
 import json
@@ -10,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,6 +19,7 @@ from .errors import InitError
 from .packs import Pack
 
 _OUTPUT_LINES = 40
+UV_CACHE_FOLDER = "troy-mode-uv-cache"
 
 
 @dataclass
@@ -70,9 +73,26 @@ def find_mamba(option: str | None) -> str | None:
     return exe if exe and Path(exe).is_file() else None
 
 
+def uv_cache_dir() -> str | None:
+    """The cache folder uv gets when UV_CACHE_DIR is not set (design 5.4, D213).
+
+    Returns:
+        troy-mode-uv-cache in the system temp folder, or None when UV_CACHE_DIR
+        holds a value, which then passes on unchanged. An empty value counts as
+        not set.
+    """
+    if os.environ.get("UV_CACHE_DIR"):
+        return None
+    return str(Path(tempfile.gettempdir()) / UV_CACHE_FOLDER)
+
+
 def _env_vars() -> dict[str, str]:
-    """The environment for mamba and uv: uv copies files (design 5.4)."""
-    return {**os.environ, "UV_LINK_MODE": "copy"}
+    """The environment for mamba and uv: uv copies files and has a cache it can write."""
+    env = {**os.environ, "UV_LINK_MODE": "copy"}
+    cache = uv_cache_dir()
+    if cache:
+        env["UV_CACHE_DIR"] = cache
+    return env
 
 
 def _run(command: list[str], cwd: Path) -> str:

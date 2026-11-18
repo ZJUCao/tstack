@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Version | 0.2 |
-| Date | 2026-11-17 |
+| Date | 2026-11-18 |
 | Source of truth | This English file. [`01-install.zh-CN.md`](01-install.zh-CN.md) is the Chinese mirror. |
 
 troy-mode ships inside the tstack plugin. You install the plugin once, give each project one permission, and choose models only if the defaults do not suit you.
@@ -16,7 +16,7 @@ troy-mode ships inside the tstack plugin. You install the plugin once, give each
 | Git for Windows, with Git Bash | troy-mode runs its engines, git, and gh through the Bash tool, which is Git Bash on Windows. |
 | `gh`, signed in to your GitHub account | troy-mode opens PRs, comments on them, and merges them with `gh`. `gh auth status` must pass. |
 | Python 3.11 or newer | troy-mode's engines and hooks use only the standard library. They run `python` on Windows and `python3` elsewhere, or the program in `TROY_MODE_PYTHON` when you set it. |
-| Miniforge, for Python projects | The language step creates the project's environment with mamba. The environment holds Python 3.13 and uv, and uv installs every package from the project's lock. troy-mode never creates a `.venv` ([requirements section 8](../requirements.md#8-non-functional-requirements)). |
+| Miniforge, for Python projects | The language step creates the project's environment with mamba. The environment holds Python 3.13 and uv, and uv installs every package from the project's lock. troy-mode never creates a `.venv` ([requirements section 8](../requirements.md#8-non-functional-requirements)). When `UV_CACHE_DIR` is not set, the language step gives uv a cache folder in your temp folder, because the desktop app's sandbox blocks uv's default one ([F06 design D213](../design/F06-troy-init.md#13-decisions-for-troy)). |
 
 - **mamba.** troy-init looks for mamba on the PATH, then in `MAMBA_EXE`, and troy-mode can pass the language step `--mamba` with its path ([troy-init skill](../../../skills/troy-init/SKILL.md)). The checks troy-mode runs in the feature loop look only on the PATH and in `MAMBA_EXE` ([F07 design section 6.1](../design/F07-entry-skill.md#61-the-brief)). On your PC mamba is not on Git Bash's PATH, so set `MAMBA_EXE` to `D:\miniforge3\Library\bin\mamba.exe` as a user environment variable. Then quit the desktop app completely, including its icon in the taskbar's notification area, and start it again: the app and its sessions keep the variables they started with. In PowerShell:
 

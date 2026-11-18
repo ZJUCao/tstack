@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.4 |
-| Date | 2026-11-09 |
-| Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. |
+| Version | 1.5 |
+| Date | 2026-11-18 |
+| Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. Version 1.5 adds D213, which Troy approved on 2026-11-18 as tstack issue #48. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -197,8 +197,10 @@ The step stops when `pyproject.toml` already holds a table that the pack's table
 On Troy's PC, the language step follows the pack README's setup:
 
 1. It creates the series environment with `mamba env create -f environment.yml` when it does not exist. mamba comes from `--mamba`, the PATH, or `$MAMBA_EXE`.
-2. It compiles the lock with that environment's uv, from the manifests of every member of the series, and writes it into this project. uv runs with `UV_LINK_MODE=copy`.
+2. It compiles the lock with that environment's uv, from the manifests of every member of the series, and writes it into this project. uv runs with `UV_LINK_MODE=copy`, and with the cache folder of the next paragraph.
 3. It installs the lock into the environment.
+
+**uv's cache folder (D213).** uv's default cache can be closed to the step: in the desktop app's sandbox, the pilot's first lock compile failed because uv could not write it (tstack issue #48). So when `UV_CACHE_DIR` is not set, or is empty, every mamba and uv command of this section runs with `UV_CACHE_DIR` set to the folder `troy-mode-uv-cache` in the system temp folder, the folder that Python's `tempfile.gettempdir()` returns. uv creates the folder when it is missing. A value that is already set is passed on unchanged. F07's `troy_flow.py series` (F07 design 8.7, D66), which plans the series lock with this section's functions, follows the same rule: when `UV_CACHE_DIR` is not set, or is empty, in the engine's environment, both its commands start with `UV_LINK_MODE=copy UV_CACHE_DIR=<folder>`, with the folder quoted for the shell; when it has one, they start with `UV_LINK_MODE=copy` alone, and the shell that runs them passes the value on. The pack's checks in F07's feature loop also call uv, and keep uv's default cache until a later change.
 
 The steps that need code, `uv pip install -e . --no-deps` and `cmake --preset coverage`, wait for the first mock: F07 puts them into DV1's brief. Other members of the series get the new lock in their own PRs (F03 design 8.1). `--no-env` skips this section.
 
@@ -300,13 +302,13 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Preconditions | Each condition of sections 4.1 and 5.1 stops the step with exit code 1 and changes nothing: no `origin/main`, on `main`, already set up, an existing file, an architecture below 1.0 on `origin/main`, a second pack. `--replace` lets one named file through. |
 | Its own PRs pass | The setup files are committed on a branch, and `troy-check pr` with the setup title passes R01, R02, R12, R19, and R20. The language step's files, committed on top with the setup commit as the merge base, pass R02. So do the upgrade's. |
 | Language step | Python and C/C++ files. Tables appended to an existing `pyproject.toml`, or a new one created. A table that already exists stops the step. A `CMakeLists.txt` without the include stops it. The `[lang]` table is filled and a filled one stops the step. Existing tests are listed as legacy. The workflow gets the pack's job under `jobs:`. |
-| Environment | With a fake `mamba` on the PATH that records its arguments: the environment is created only when missing, the lock is compiled from every member's manifest, and `--env-prefix` and `--no-env` work. No test uses the network. |
+| Environment | With a fake `mamba` on the PATH that records its arguments: the environment is created only when missing, the lock is compiled from every member's manifest, and `--env-prefix` and `--no-env` work. uv's cache folder (D213): every call gets `troy-mode-uv-cache` in the temp folder when `UV_CACHE_DIR` is unset or empty, and a value already set unchanged; `series` puts the folder in both commands only when the variable is unset or empty. No test uses the network. |
 | Upgrade | An unchanged owned file is replaced, and an edited one stops the step. A new template is created. R rows are replaced, P rows and "Since" dates are kept, and the version rises in both languages. The config is never changed. |
 | Skill | `SKILL.md`'s front matter has `name: troy-init` and `disable-model-invocation: true`. Its text names the three steps and the PR flow's steps. |
 
 ### 11.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: an existing file overwritten, a marker left in the rules table, mirrors with different versions, one pack's pattern missing from the config, the `[lang]` table not filled, existing tests not listed, the architecture approval not checked, git hooks without the executable bit, a P row dropped by upgrade, an edited owned file replaced by upgrade, and the pack's job not added. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: an existing file overwritten, a marker left in the rules table, mirrors with different versions, one pack's pattern missing from the config, the `[lang]` table not filled, existing tests not listed, the architecture approval not checked, git hooks without the executable bit, a P row dropped by upgrade, an edited owned file replaced by upgrade, and the pack's job not added. D213's change adds: a value already set overridden, the folder missing from `series`' install command, and a folder outside the temp folder. The counts go in the PR description.
 
 ### 11.3 Sample projects in CI
 
@@ -364,6 +366,7 @@ F05 ends at D46, so F06 continues from D47.
 | D54 | How much does upgrade change? F02 D8 says that rerunning troy-init in a `[rules]` PR upgrades a project. | A: replace troy-mode's own files when nobody edited them, and stop on edited ones. Bring the R rows of the rules table up to date and keep the P rows. Only report differences in the config and the build files (section 6). B: replace everything troy-init ever wrote, edits included. C: leave upgrade to the rule change flow (F09). | A. Upgrades are mechanical where troy-mode owns the file, and never silently undo a project's own choices. |
 | D55 | How does F06 land? Q10 says one PR per feature, with F03 as the exception. | A: two PRs (section 11.5): setup and upgrade first, then the language step with the F03 pack changes and `build_sample.py`. B: one PR. | A. The second PR changes F03's CI jobs and the sample workflows, and is easier to review without the first. This adds F06 to Q10's exceptions. |
 | D56 | How is F06 tried out, and when does its status move? | A: tests and planted bugs, the sample projects in CI, and a trial on a private scratch repository `ZJUCao/troy-mode-trial`, which troy-init creates and later trials reuse (section 11.4). Status after part 2: "Runs on a sample project". B: the same, but the trial uses a local bare `origin`, so no PR or CI really runs. Status "Written" until F07 uses troy-init. | A. Only a real GitHub repository shows that the first PR runs its own workflow, that the checks pass, and that the merge works. It creates one private repository on Troy's account and uses a few Actions minutes. |
+| D213 | Which cache folder does uv get when `UV_CACHE_DIR` is not set? In the desktop app's sandbox, the pilot's first lock compile failed because uv could not write its default cache, and passed when troy-mode ran the step again with the cache in the session's temporary folder. From tstack issue #48. Its ID comes from the range D213 to D218 kept for this batch of pilot fixes. | A: the folder `troy-mode-uv-cache` in the system temp folder, as Python's `tempfile.gettempdir()` finds it. B: a folder under the project's git dir, such as `<git dir>/troy-mode/uv-cache`. Both only when `UV_CACHE_DIR` is not set, for the language step and `series` (section 5.4). C, not taken by Troy: only a guide note that says to set `UV_CACHE_DIR`. | A. `gettempdir()` takes the first of `TMPDIR`, `TEMP`, `TMP`, and the platform's usual folders in which it can create a file, so the folder is writable when the step starts, and a sandbox that points these variables at its own folder is followed. uv moves files by renaming them, and Windows cannot rename a file to another drive: that was the pilot's error ("cannot move the file to a different disk drive"), and the cache in the temporary folder fixed it. A folder under the git dir sits on the project's drive, which on Troy's PC is D:, while the temporary folder is on C:. It would also put a cache of hundreds of megabytes inside the project, and an emptied temp folder costs only a new download. Troy approved setting the variable when it is not set on 2026-11-18 (issue #48), and left the folder to this design. |
 
 Requirements 1.16 records the approved changes:
 
@@ -381,3 +384,4 @@ Requirements 1.16 records the approved changes:
 | 1.2 | 2026-11-07 | Section 3.2: `lang` also takes `--project-name`, which the option table already gives the build files. Found while building part 2. Sections 3.1 and 7: the language step and upgrade create their branch before the dry run, because every step stops on `main`. Found by the trial of 11.4, where the dry runs of both steps stopped on `main`. |
 | 1.3 | 2026-11-07 | Section 7, step 8: detach before the merge and end with `git fetch origin`, in place of `git switch main` and `git pull --ff-only`, so troy-init also works in a worktree, where `main` is often checked out elsewhere. The skill's upgrade with nothing to change detaches the same way before it deletes its branch. From F07 design section 12. |
 | 1.4 | 2026-11-09 | Section 4.2: a file troy-init edits in place keeps its line endings, and only the files it creates get LF. Upgrade also reads a rules table with CRLF line endings, as a Windows checkout with `core.autocrlf` has it. Found by F09's trial, where upgrade left the R rows alone on such a checkout because it found no version in the table's header. |
+| 1.5 | 2026-11-18 | D213, from tstack issue #48, approved by Troy on 2026-11-18: when `UV_CACHE_DIR` is not set, the language step and `series` give uv the cache folder `troy-mode-uv-cache` in the system temp folder (sections 5.4, 11.1, 11.2, and 13). |
