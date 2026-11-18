@@ -84,14 +84,31 @@ def _line_time(line: str) -> float:
         return 0.0
 
 
-def clean(project: Project) -> None:
-    """Removes role records and log lines older than a day (design section 3)."""
-    cutoff = time.time() - DAY
+def clean(project: Project, log_days: int | None) -> None:
+    """Removes role records older than a day and log lines older than log_days days.
+
+    Args:
+        project: The troy-mode project.
+        log_days: [hooks] log_days from the config at HEAD (design section 10,
+            D219), or None when that config is not valid: every line then stays.
+    """
+    now = time.time()
+    _remove_old_records(project, now - DAY)
+    if log_days is not None:
+        _remove_old_lines(project, now - log_days * DAY)
+
+
+def _remove_old_records(project: Project, cutoff: float) -> None:
+    """Removes the role records last changed before the cutoff."""
     agents = os.path.join(project.state_dir(), "agents")
     for name in os.listdir(agents) if os.path.isdir(agents) else []:
         full = os.path.join(agents, name)
         if os.path.isfile(full) and os.path.getmtime(full) < cutoff:
             os.remove(full)
+
+
+def _remove_old_lines(project: Project, cutoff: float) -> None:
+    """Removes the log lines written before the cutoff, and lines with no readable time."""
     path = log_path(project)
     if not os.path.isfile(path):
         return

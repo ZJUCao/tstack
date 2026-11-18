@@ -120,13 +120,14 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `[roles.<role>]` | `model`、`effort` | 一个角色在这个项目里的模型和 effort（[第 1.5 节](01-install.zh-CN.md#15-模型和-effort)）。 |
 | `[flow]` | `troy_approves_first` | 顺序里排在最前面的多少个功能的 PR 1 和 PR 2 由你批准。默认 3；0 表示一个都没有。 |
 | `[summary]` | `max_chars` | R22：设计、测试计划、需求和架构 PR 开头给你的摘要，每种语言最多多少个字符。默认 2000。 |
+| `[hooks]` | `log_days` | `hooks.log` 保留日志行的天数。每次会话开始时删除更早的行，版本回顾按整个版本读取它们，所以要大于你最长的版本。默认 30（[F05 设计 D219](../design/F05-hooks.zh-CN.md#10-错误速度和日志)）。 |
 
 ## 8.6 常见问题
 
 | 问题 | 怎么办 |
 | --- | --- |
 | **合并、修改提交或强推被权限拒绝了。** troy-mode 停下来，说出了要加的权限。自动模式把 `gh pr merge` 当作未经审查的合并拒绝，或把 `git commit --amend --no-edit`、`git push --force-with-lease` 当作 “Git Destructive” 拒绝。 | 把[第 1.4 节](01-install.zh-CN.md#14-合并权限)的三项加进项目的 `.claude/settings.local.json` 的 `allow` 列表，然后输入 `/tstack:troy-mode 继续`。troy-mode 从不绕过拒绝。 |
-| **hook 挡住了一个角色。** | 通常什么都不用做。troy-mode 的 hook 让每个角色留在自己的写入范围之内，并把每次拦截记进 `<git dir>/troy-mode/hooks.log`，日志里没有命令行，也没有文件内容，而且只保留最近一天的行（[issue #66](https://github.com/ZJUCao/troy-pstack/issues/66)）。troy-mode 会在报告里点出这次运行的日志行。角色在范围之外改的文件会被撤销，角色再运行一次。同一个阶段里第二次发生时，troy-mode 升级上报（[F05 设计第 10 节](../design/F05-hooks.zh-CN.md#10-错误速度和日志)、[F07 设计第 7 节](../design/F07-entry-skill.zh-CN.md#7-每次运行之后的检查d59)）。 |
+| **hook 挡住了一个角色。** | 通常什么都不用做。troy-mode 的 hook 让每个角色留在自己的写入范围之内，并把每次拦截记进 `<git dir>/troy-mode/hooks.log`，日志里没有命令行，也没有文件内容，按 `[hooks] log_days` 天保留日志行，默认 30 天（[第 8.5 节](#85-配置项)），所以版本回顾能看到整个版本。troy-mode 会在报告里点出这次运行的日志行。角色在范围之外改的文件会被撤销，角色再运行一次。同一个阶段里第二次发生时，troy-mode 升级上报（[F05 设计第 10 节](../design/F05-hooks.zh-CN.md#10-错误速度和日志)、[F07 设计第 7 节](../design/F07-entry-skill.zh-CN.md#7-每次运行之后的检查d59)）。 |
 | **刚改名为 tstack 之后，每个角色写文件都因超出范围被拒绝。** | troy-pstack 还装着或还启用着，它的 hook 把 tstack 的角色当作未知的子代理。卸载它，然后重启 Claude Code（[第 1.3 节](01-install.zh-CN.md#13-插件出新版本后更新)）。 |
 | **`/poteto-mode` 或 `/no-comments` 被拒绝了。** 一个 hook 说这个命令在本项目里停用。 | 改用 `/tstack:troy-mode <请求>`；想试 poteto-mode，就用一个不是 troy-mode 项目的文件夹（[F13 设计第 5 节](../design/F13-mode-guard.zh-CN.md#5-拒绝不留例外d123)）。 |
 | **测试只在一个平台上运行。** 本地的 `troy-check code` 失败，只是因为有个测试在你的电脑上跳过了，比如只在 Linux 上运行的测试。 | 什么都不用做。troy-mode 把本地检查算作通过，在 PR 的 Checks 一节把这个用例列为“skipped here, checked by CI”，并只按 CI 的结果合并，CI 通过就证明这个测试运行过。测试方案必须写明这个用例为什么只在一个平台上运行（[F07 设计 D69](../design/F07-entry-skill.zh-CN.md#16-需要-troy-决定的事项)）。 |

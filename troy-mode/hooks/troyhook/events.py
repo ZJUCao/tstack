@@ -201,12 +201,24 @@ def subagent_stop(ctx: Context) -> dict | None:
 
 
 def session_start(ctx: Context) -> dict | None:
-    """SessionStart: cleans old files and turns on the git hooks in a fresh clone (8.1)."""
+    """SessionStart: cleans old files and turns on the git hooks in a fresh clone (8.1).
+
+    An invalid config keeps every log line and still lets the git hooks be
+    turned on, with a notice (design section 10, D219).
+    """
+    from troycheck.config import CONFIG_PATH, ConfigError  # noqa: PLC0415
+
     from . import gitstate, log  # noqa: PLC0415
 
-    log.clean(ctx.project)
-    value = gitstate.hooks_path(ctx.project)
     notes = []
+    try:
+        log_days = ctx.config().hooks_log_days
+    except ConfigError as exc:
+        log_days = None
+        notes.append(f"troy-mode did not clean hooks.log: the committed {CONFIG_PATH} is not "
+                     f"valid ({exc}). Fix the config (F05 design D219).")
+    log.clean(ctx.project, log_days)
+    value = gitstate.hooks_path(ctx.project)
     if value is None and os.path.isdir(ctx.project.hooks_dir()):
         gitstate.set_hooks_path(ctx.project)
         notes.append(f"troy-mode turned on its git hooks: core.hooksPath was unset and is now "

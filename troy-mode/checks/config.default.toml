@@ -70,6 +70,13 @@ legacy = []
 # architecture PR. A Chinese character and a letter each count as one.
 max_chars = 2000
 
+[hooks]
+# How many days the hooks' log, <git dir>/troy-mode/hooks.log, keeps its
+# lines. Each session start removes older lines. The retrospective after a
+# version's tag reads them, so keep it above your longest version. A whole
+# number of 1 or more. The hooks read it from HEAD.
+log_days = 30
+
 [attribution]
 # R19. "strict" also blocks any word Claude or Anthropic in commit messages,
 # PR titles and descriptions, PR comments and reviews, issues, and release

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F05 in [requirements 1.15](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-17 |
-| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. |
+| Version | 1.3 |
+| Date | 2026-11-18 |
+| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. Version 1.3 adds D219, which Troy approved on 2026-11-18 as tstack issue #66. |
 | Source of truth | This English file. [`F05-hooks.zh-CN.md`](F05-hooks.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -19,7 +19,7 @@ F05 makes the rules that a role or Claude could break by mistake fail at the mom
    - stop Claude from skipping the git hooks, from opening a PR from `main` (R21), and from posting a PR, comment, review, issue, or release note whose text carries attribution (R19, D200);
    - let roles read the plugin's own files without a permission rule.
 2. **Git hooks**, shipped in troy-check's folder, which troy-init copies into each project. They refuse a commit that breaks R19, a commit on `main`, and a push to `main` (R21), whoever runs git.
-3. **A local log** of every block, which F07 reads after each role run.
+3. **A local log** of every block, which F07 reads after each role run and F08's retrospective reads for a whole version (D219).
 
 Every hook exits at once outside troy-mode projects (requirements section 8).
 
@@ -58,7 +58,7 @@ troy-mode/
 
 | Event | Matcher | What it does |
 | --- | --- | --- |
-| `SessionStart` | All | Turns on the project's git hooks when `core.hooksPath` is unset (section 8.1). Removes role records and log lines older than a day. |
+| `SessionStart` | All | Turns on the project's git hooks when `core.hooksPath` is unset (section 8.1). Removes role records older than a day, and log lines older than `[hooks] log_days` days, 30 by default (section 10, D219). |
 | `SubagentStart` | `^troy-pstack:troy-` | Records the role's starting state for change detection (section 6). |
 | `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | Checks file paths against the write scope (section 5), git, GitHub, and skill commands (section 7), and the R19 and R21 guards (section 8.2). |
 | `PreToolUse` | `Read`, with `"if": "Read(//**/troy-pstack/**)"` | Allows reads of the plugin's own files (section 9). |
@@ -231,7 +231,7 @@ A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call 
 
 ## 10. Errors, speed, and the log
 
-**Errors (D39).** Any error inside `troy_hook.py`, such as an unreadable config or a git failure, is caught. For a role or another subagent, the call is refused with the error. For the main session, the hook prints a notice on stderr and exits with code 1, which Claude Code treats as a non-blocking error, so the main session can still repair the project. One exception (D200): an error while checking a `gh` command that posts text (section 8.2), such as an invalid config, refuses the main session's call with rule `error`, because text posted to GitHub keeps its edit history. Every other main-session call still only warns. When no Python 3.11 or newer exists, the call is blocked in a troy-mode project and let through elsewhere: the `hooks.json` command tests `$CLAUDE_PROJECT_DIR/.troy-mode` with a shell builtin and exits with code 2 or 0 when the interpreter is missing, and `troy_hook.py` checks the version before it imports anything else. `onFailure: "block"` is not used, because it would also block calls outside troy-mode projects.
+**Errors (D39).** Any error inside `troy_hook.py`, such as an unreadable config or a git failure, is caught. For a role or another subagent, the call is refused with the error. For the main session, the hook prints a notice on stderr and exits with code 1, which Claude Code treats as a non-blocking error, so the main session can still repair the project. One exception (D200): an error while checking a `gh` command that posts text (section 8.2), such as an invalid config, refuses the main session's call with rule `error`, because text posted to GitHub keeps its edit history. Every other main-session call still only warns. `SessionStart` does not treat an invalid config as an error: it keeps every log line, turns on the git hooks, and exits with code 0 (D219, the log paragraph below). When no Python 3.11 or newer exists, the call is blocked in a troy-mode project and let through elsewhere: the `hooks.json` command tests `$CLAUDE_PROJECT_DIR/.troy-mode` with a shell builtin and exits with code 2 or 0 when the interpreter is missing, and `troy_hook.py` checks the version before it imports anything else. `onFailure: "block"` is not used, because it would also block calls outside troy-mode projects.
 
 **Speed.** Measured on Troy's PC on 2026-11-06: Python starts in 40 to 65 ms, bash in about 25 ms, and a git command takes 40 to 50 ms.
 
@@ -246,6 +246,21 @@ A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call 
 All are under the 200 ms target of requirements section 8. The hooks keep the config's text in the git folder, keyed by `HEAD`'s commit ID, so most calls read it without a git process. The trial measured every hook kind 20 times: the medians are 74 to 151 ms (the F05 PR has the table).
 
 **Log.** Every refusal and block appends one JSON line to `<git dir>/troy-mode/hooks.log`: time, session, agent ID, agent type, event, tool, rule, the paths or git subcommand, and the decision. It never holds a command line or file content, so a secret typed in a command cannot reach it. The git folder is never committed. F07 reads the log after each role run (section 12).
+
+**How long the log keeps its lines (D219).** F08's retrospective (`retro --tag`, F08 section 7) counts the log lines since the previous version's tag, and a version can take many days: six in the pilot. So `SessionStart` keeps log lines for a number of days set in the project config:
+
+```toml
+[hooks]
+log_days = 30   # how many days hooks.log keeps its lines
+```
+
+- **The value.** `[hooks] log_days` in `.troy-mode/config.toml`, read as committed at `HEAD` (section 5.2), like every other config read of the hooks. It is a whole number of 1 or more, and 30 when the key, the table, or the file is missing. `[hooks]` has no other key.
+- **A bad value.** A `log_days` of 0, below 0, `true` or `false`, a decimal, or a string is a config error, and so is an unknown key in `[hooks]`. troy-check stops with exit code 2, as for any other config error (F02 section 7), and a role's hook call is refused (section 10, D39).
+- **Which lines go.** At each `SessionStart`, a line whose `time` lies more than `log_days` times 24 hours before now is removed. A line exactly `log_days` days old stays. A line whose time cannot be read is removed, as before. The other lines stay, in their order.
+- **Role records.** The records of section 6 are still removed when their file is more than one day old, whatever `log_days` says.
+- **A config that is not valid.** `SessionStart` then removes no log line, still removes the old role records, still turns on the git hooks (section 8.1), and exits with code 0. Its `additionalContext` says that the committed config is not valid and that `hooks.log` was not cleaned. So a broken config never costs a log line and never stops the git hooks from being turned on.
+
+A version that takes longer than `log_days` loses its earliest lines from the retrospective; the project then raises `log_days` in a `[rules]` PR. The log holds one short line per refusal and no text (above), so 30 days of it stays small.
 
 ## 11. How F05 maps to the requirements
 
@@ -294,12 +309,13 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Plugin files | A read inside `CLAUDE_PLUGIN_ROOT` in a troy-mode project gets `allow`. Outside it, or in another project, nothing is printed. |
 | Errors and log | An exception refuses a role's call and only warns for the main session. Each refusal writes one log line without the command text. |
 | SessionStart | Unset `core.hooksPath` is set. Another value is left and reported. Missing hook files are reported. Old records are removed. |
+| Log days (D219) | With no `[hooks]` table, a line 29 days old stays and one 31 days old is removed. With `log_days = 7`, a line an hour under 7 days old stays and one an hour over is removed; with `log_days = 1`, a line 2 days old is removed. A role record 2 days old is removed whatever `log_days` says, and one an hour old stays. An unreadable line is removed. Kept lines keep their order. An uncommitted edit of `log_days` is not read. `log_days` of 0, -1, `true`, 1.5, `"30"`, and an unknown `[hooks]` key are config errors for troy-check; 1 and 365 parse. With an invalid committed config, `SessionStart` exits 0, removes no log line, removes the old record, sets an unset `core.hooksPath`, and prints `additionalContext`. `config.default.toml` sets `log_days = 30`. |
 | `hooks.json` | It parses. Its events, matchers, and timeouts are those of section 3, and its commands name existing scripts. |
 | Git hooks | Real commits in a temporary repository with `core.hooksPath` set: a commit on `main` is refused, a good commit on a branch passes, an attribution trailer is refused, a wrong `--author` email is refused, a merge commit on `main` is refused. `pre-push` is run directly with lines on stdin: updating or deleting `refs/heads/main` is refused, a branch or a tag passes. No test runs `git push` to a `main` branch, not even in a scratch repository. |
 
 ### 13.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. D200's change adds: `comment` missing from the posting table, `-F` not read, the path scanned instead of the contents, and a missing file allowed. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. D200's change adds: `comment` missing from the posting table, `-F` not read, the path scanned instead of the contents, and a missing file allowed. D219's change adds: the cutoff one day off, the default ignored (a day kept), role records kept for `log_days`, a `log_days` of 0 accepted, the config read from the working tree, and an invalid config stopping `SessionStart` before it turns on the git hooks. The counts go in the PR description.
 
 ### 13.3 Trial on a sample project
 
@@ -345,10 +361,10 @@ D1 to D38 belong to the F01 to F04 designs, so F05 continues from D39.
 | D44 | How are R19 and R21 enforced for commits and pushes? Reading a commit message out of a shell command is unreliable. | A: git hooks in troy-check's folder (`commit-msg`, `pre-commit`, `pre-merge-commit`, `pre-push`), turned on by `core.hooksPath`, which troy-init sets and `SessionStart` repairs in a fresh clone. Claude Code hooks refuse `--no-verify` and `core.hooksPath` changes, and check `gh pr create` and `gh pr edit` for R19 and R21 (section 8). B: Claude Code hooks only, reading messages and branches out of the commands. | A. Git hands its hooks the exact message, author, and pushed refs, so nothing is guessed. They also cover Troy's own terminal commits in a troy-mode project, which R21 asks for. Troy can still skip them with `--no-verify`, and Claude cannot. |
 | D45 | How do roles read the plugin's own files, such as `technical-writing/SKILL.md`, in a session where nobody can approve a prompt? The F04 trial's IF1 failed on this. | A: a `PreToolUse` hook allows `Read`, `Glob`, and `Grep` inside `CLAUDE_PLUGIN_ROOT` in troy-mode projects, so troy-init writes no permission (section 9). B: troy-init writes `Read(<plugin folder>/**)` into the project's `.claude/settings.local.json`. C: Troy adds `Read(~/.claude/plugins/**)` to the user settings once. | A. The plugin's folder changes with every version, so a written rule goes stale, and `settings.local.json` is missing in every new worktree and clone. The hook reads the current folder each time and grants reads only. |
 | D46 | How is F05 checked, and when does its status move? | A: unit tests and planted bugs, plus a trial with probes on the Python sample before the PR opens (section 13). Status after merge: "Runs on a sample project". B: unit tests only, status "Written". | A. The trial settles the facts the documentation leaves open (the `Skill` input, `deny` in `acceptEdits` mode, the `if` rule for `Glob` and `Grep`) and measures the speed on Windows. It costs about eight role runs. |
-
 | D200 | How is text that the main session posts to GitHub checked? A review comment on `ZJUCao/recipe-menu#92` was posted although `check-text` had failed on it, and GitHub keeps the history of every edit. From tstack issue #65, the rule proposal of recipe-menu's v0.1.0 retrospective. D161 to D199 are kept for F17 to F19, so this decision takes D200. | The levels the Architect weighed in the issue: the project's architecture; lint, troy-check, or a `project-rules.yml` job in CI; a Review or Process row; or F05's `PreToolUse` `gh` guard. And whether to widen R19 or add a new R row. | F05's `gh` guard, Hard, and R19 widened to PR comments and reviews, issues, and release notes, with no new R row. The guard checks the text of every `gh` command that posts it, for the main session, with `check-text`'s function and mode, and fails closed on text it cannot read and on check errors (sections 8.2 and 10). The hook is the only level that runs before the text leaves the machine, for every caller. The other levels read the repository or run in CI after GitHub already holds the text and its edit history, and a Review row in effect exists: #92 shows it followed in form and failed in effect. Approved by Troy on 2026-11-16 with the Architect's recommendations (AR6: A2, B1, C). |
+| D219 | How long does `hooks.log` keep its lines? F08's retrospective and F11's report count hook blocks over a whole version, which took six days in the pilot, while `SessionStart` removed log lines older than a day. So the v0.1.0 retrospective of `ZJUCao/recipe-menu` could see at most the last day's lines, and a block that repeated across the version could not reach a rule proposal. From tstack issue #66. This batch gives F05 D219 to D222. | A: keep the lines for a number of days set in the config, `[hooks] log_days`, 30 by default, and keep removing role records after a day. B: keep the lines until the next version's tag. C: `check-run` copies each role run's log lines into the flow state, which `retro` reads. | A. The hook needs no tags or flow state, so `SessionStart` stays one file read and one config read. 30 days covers the pilot's six-day version with room to spare, and a project with longer versions raises the number. B would make the hook read tags and F08's release state. C would change F07's and F08's state, and would leave out the main session's blocks, which no role run holds. Role records stay at one day, because a record only matters while its role runs. A bad value is a config error, and an invalid config keeps every line (section 10). Approved by Troy on 2026-11-18 with the recommendation. |
 
-Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads. Requirements 1.46 records D200: R19 in section 6 and the F05 row.
+Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads. Requirements 1.46 records D200: R19 in section 6 and the F05 row. D219 changes no requirement text: the F05 row says that a local log records each block, which still holds, and only its status names issue #66.
 
 ## 16. Change log
 
@@ -358,3 +374,4 @@ Requirements 1.15 records the approved change: the F05 row describes the hooks a
 | 1.0 | 2026-11-06 | Approved by Troy with D39 to D46, every recommended answer. |
 | 1.1 | 2026-11-07 | Facts from the trial of section 13.3: the `if` rule filters only `Read`, so `Glob` and `Grep` get their own entry without it (sections 3, 9, and 10). Claude Code's own permissions refuse `Write` outside the project in a session nobody can approve, so roles make scratch copies with Bash (section 5.2). The trial's Test Manager named its scratch folder with a `mktemp -d` variable, so section 7.1 also follows variables set to a literal path or to `mktemp -d` earlier in the same command (sections 7.1 and 7.2). The `Skill` input fields (section 7.4). The measured medians (section 10). |
 | 1.2 | 2026-11-17 | D200, from tstack issue #65, approved by Troy on 2026-11-16: the main session's `gh` commands that post text are checked before they run, and fail closed (sections 1, 8.2, 10, 11, 13.1, 13.2, and 15). |
+| 1.3 | 2026-11-18 | D219, from tstack issue #66, approved by Troy on 2026-11-18: `hooks.log` keeps its lines for `[hooks] log_days` days, 30 by default, and role records are still removed after a day (sections 1, 3, 10, 13.1, 13.2, and 15). Section 15's table no longer breaks before D200. |
