@@ -151,12 +151,14 @@ class PluginVersionTests(unittest.TestCase):
     """F15's build raises the plugin's minor version (design 12, D149)."""
 
     def test_version_is_the_next_minor(self):
-        """``0.x.0`` with x at least 7: F19 took 0.6.0 before F15."""
+        """``0.x.y`` with x at least 7: F19 took 0.6.0 before F15; a later fix raises the patch
+        (F10 D89)."""
         version = json.loads(read(REPO / ".claude-plugin" / "plugin.json"))["version"]
         match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
         self.assertIsNotNone(match, version)
         major, minor, patch = (int(part) for part in match.groups())
-        self.assertEqual((major, patch), (0, 0), version)
+        self.assertEqual(major, 0, version)
+        self.assertGreaterEqual(patch, 0, version)
         self.assertGreaterEqual(minor, 7, version)
 
 

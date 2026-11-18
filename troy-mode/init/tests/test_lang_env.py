@@ -1,8 +1,16 @@
-"""Environment group (F06 design 5.4, D51): mamba, the series environment, and the lock.
+"""Environment group (F06 design 5.4, D51, D213): mamba, the series environment, and the lock.
 
-A fake mamba records every call (its arguments, working folder, and
-UV_LINK_MODE) and writes the lock that `uv pip compile -o` names. No test
-runs the real mamba, uses the network, or creates an environment.
+A fake mamba records every call (its arguments, working folder,
+UV_LINK_MODE, and UV_CACHE_DIR) and writes the lock that `uv pip compile -o`
+names. No test runs the real mamba, uses the network, or creates an
+environment.
+
+Planted bugs of design 11.2 (D213) caught here: "a value already set
+overridden": ``EnvUvCacheDirTest.test_uv_cache_set_is_passed_on_unchanged``;
+"a folder outside the temp folder":
+``EnvUvCacheDirTest.test_uv_cache_unset_gives_every_call_the_temp_folder`` and
+``test_uv_cache_empty_is_treated_as_unset``, which also catch the folder
+missing from one kind of call.
 """
 
 import os
@@ -11,9 +19,9 @@ import unittest
 
 from init_helpers import PROJECT, InitCase, changed_paths, new_dir, shared_plugin
 from lang_helpers import (
-    FAKE_LOCK, LIST_ARGS, LOCKS, FakeMamba, compile_args, create_args, env_list, git_only_path,
-    install_args, lang_actions, lang_project, lang_stage, masked, run_lang, same_path,
-    shared_lang_project,
+    FAKE_LOCK, LIST_ARGS, LOCKS, UV_CACHE_NAME, FakeMamba, compile_args, create_args, env_list,
+    git_only_path, install_args, lang_actions, lang_project, lang_stage, masked, run_lang,
+    same_path, shared_lang_project, temp_env, without_env,
 )
 
 PY_LOCK = LOCKS["python"]
@@ -230,6 +238,74 @@ class EnvSeriesTest(EnvCase):
         self.assertEqual(python["series"][-1], ".")
         self.assertEqual(len(python["series"]), 3)
         self.assertEqual((cpp["series"], cpp["name"]), ([".", "../core"], "series-env"))
+
+
+class EnvUvCacheDirTest(EnvCase):
+    """uv's cache folder (design 5.4, D213): troy-mode-uv-cache in the temp folder when unset."""
+
+    KINDS = ["list", "create", "compile", "install"]
+
+    @classmethod
+    def setUpClass(cls):
+        """Runs lang python three times, with UV_CACHE_DIR unset, set, and empty.
+
+        The machine's UV_CACHE_DIR is removed for every run. Each run points
+        the engine's temp folder at a new scratch folder, so the expected
+        cache folder is known, and env list does not show the environment,
+        so every kind of call (list, create, compile, install) is made.
+        """
+        cls.plugin = shared_plugin(hooks=True)
+        cls.fake = FakeMamba(envs=env_list("other"))
+        cls.user_cache = str(new_dir("user-cache") / "uv")
+        cls.runs = {}
+        for case, value in (("unset", None), ("set", cls.user_cache), ("empty", "")):
+            temp = new_dir("temp")
+            env = {**cls.fake.path_env(), **temp_env(temp)}
+            if value is not None:
+                env["UV_CACHE_DIR"] = value
+            cls.fake.clear()
+            with without_env("UV_CACHE_DIR"):
+                out = run_lang(shared_lang_project(cls.plugin), cls.plugin, "python",
+                               no_env=False, env_extra=env)
+            cls.runs[case] = (out, cls.fake.calls(), temp / UV_CACHE_NAME)
+
+    def calls_of(self, case: str) -> list:
+        """The calls of one run, which must exit 0 and make each kind of call once, in order."""
+        out, calls, _ = self.runs[case]
+        self.report_of(out, 0)
+        self.assertEqual([call["argv"] for call in calls],
+                         [LIST_ARGS, create_args(NAMED),
+                          compile_args("python", NAMED, ["pyproject.toml"]),
+                          install_args("python", NAMED)])
+        return calls
+
+    def assert_temp_folder(self, case: str) -> None:
+        """Every call gets UV_CACHE_DIR = <run's temp folder>/troy-mode-uv-cache and copy."""
+        folder = self.runs[case][2]
+        for kind, call in zip(self.KINDS, self.calls_of(case)):
+            with self.subTest(kind=kind):
+                value = call["uv_cache_dir"]
+                self.assertTrue(value, f"{kind} ran with UV_CACHE_DIR = {value!r}")
+                self.assertTrue(os.path.isabs(value), value)
+                self.assertTrue(same_path(value, folder), f"{value} is not {folder}")
+                self.assertEqual(call["uv_link_mode"], "copy")
+
+    def test_uv_cache_unset_gives_every_call_the_temp_folder(self):
+        """Planted bug "a folder outside the temp folder": with UV_CACHE_DIR unset, env list,
+        create, compile, and install all get troy-mode-uv-cache in gettempdir()'s folder."""
+        self.assert_temp_folder("unset")
+
+    def test_uv_cache_empty_is_treated_as_unset(self):
+        """An empty UV_CACHE_DIR counts as unset: every call gets the temp folder's cache."""
+        self.assert_temp_folder("empty")
+
+    def test_uv_cache_set_is_passed_on_unchanged(self):
+        """Planted bug "a value already set overridden": every call gets the user's value as is,
+        with UV_LINK_MODE=copy still set."""
+        for kind, call in zip(self.KINDS, self.calls_of("set")):
+            with self.subTest(kind=kind):
+                self.assertEqual(call["uv_cache_dir"], self.user_cache)
+                self.assertEqual(call["uv_link_mode"], "copy")
 
 
 class EnvNoEnvTest(EnvCase):

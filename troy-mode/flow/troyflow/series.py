@@ -3,13 +3,14 @@
 F07 compiles the lock from every member's manifest with troy-init's functions
 (F06 design 5.4), installs it in the shared environment, and runs each member's
 tests there (F03 design 8.1). This module only plans: the skill runs the
-commands, and the engine writes nothing.
+commands, and the engine writes nothing. uv gets troy-init's cache folder when
+UV_CACHE_DIR is not set (F06 design 5.4, D213).
 """
 
 import shlex
 from pathlib import Path
 
-from troyinit.env import manifests
+from troyinit.env import manifests, uv_cache_dir
 from troyinit.errors import InitError
 from troyinit.packs import get_pack
 
@@ -74,9 +75,11 @@ def run_series(args) -> tuple[dict, int]:
     series = list(config.lang.get("series") or ["."])
     sources = " ".join(shlex.quote(m) for m in manifests(pack, series))
     options = " ".join(shlex.quote(o) for o in pack.compile_args)
+    cache = uv_cache_dir()
+    env = "UV_LINK_MODE=copy" + (f" UV_CACHE_DIR={shlex.quote(cache)}" if cache else "")
     report.update(lang=name, lock=pack.lock, commands=[
-        f"UV_LINK_MODE=copy {run} uv pip compile {sources} {options} -o {pack.lock}",
-        f"UV_LINK_MODE=copy {run} uv pip install -r {pack.lock}",
+        f"{env} {run} uv pip compile {sources} {options} -o {pack.lock}",
+        f"{env} {run} uv pip install -r {pack.lock}",
     ])
     own = _read_lf(repo.root / pack.lock)
     for member in series:

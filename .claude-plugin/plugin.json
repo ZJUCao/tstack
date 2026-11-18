@@ -1,6 +1,6 @@
 {
   "name": "tstack",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "tstack, Troy's own stack for Claude Code. Most of its skills, principles, playbooks, and subagent workflows come from Lauren Tan's pstack 0.15.36, used under its MIT license. troy-mode, the workflow from requirements to released versions, is Troy's own work. Not affiliated with or endorsed by Lauren Tan or Cursor.",
   "author": {
     "name": "Troy"

@@ -1,11 +1,11 @@
 # 1. 安装
 
-> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.2（2026-11-17）。两者如有出入，以英文版为准。
+> 本文件是 [`01-install.md`](01-install.md) 的中文镜像，同步自英文版 0.2（2026-11-18）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 版本 | 0.2 |
-| 日期 | 2026-11-17 |
+| 日期 | 2026-11-18 |
 | 事实来源 | 英文版 [`01-install.md`](01-install.md)。本文件是中文镜像。 |
 
 troy-mode 包含在 tstack 插件里。插件只需安装一次，每个项目给一项权限；只有默认的模型不合适时，才需要自己选。
@@ -18,7 +18,7 @@ troy-mode 包含在 tstack 插件里。插件只需安装一次，每个项目�
 | Git for Windows，带 Git Bash | troy-mode 通过 Bash 工具运行它的引擎、git 和 gh，而 Bash 工具在 Windows 上就是 Git Bash。 |
 | `gh`，已登录你的 GitHub 账号 | troy-mode 用 `gh` 开 PR、在 PR 上评论、合并 PR。`gh auth status` 必须通过。 |
 | Python 3.11 或更新版本 | troy-mode 的引擎和 hook 只用标准库。它们在 Windows 上运行 `python`，在其他系统上运行 `python3`；你设置了 `TROY_MODE_PYTHON` 时，运行它指定的程序。 |
-| Miniforge，用于 Python 项目 | 语言步骤用 mamba 创建项目的环境。环境里有 Python 3.13 和 uv，uv 按项目的锁文件安装每个包。troy-mode 从不创建 `.venv`（[需求文档第 8 节](../requirements.zh-CN.md#8-非功能需求)）。 |
+| Miniforge，用于 Python 项目 | 语言步骤用 mamba 创建项目的环境。环境里有 Python 3.13 和 uv，uv 按项目的锁文件安装每个包。troy-mode 从不创建 `.venv`（[需求文档第 8 节](../requirements.zh-CN.md#8-非功能需求)）。`UV_CACHE_DIR` 没有设置时，语言步骤把你的临时文件夹里的一个文件夹给 uv 作缓存，因为桌面应用的沙箱挡住了 uv 默认的缓存文件夹（[F06 设计 D213](../design/F06-troy-init.zh-CN.md#13-需要-troy-决定的事项)）。 |
 
 - **mamba。** troy-init 先在 PATH 里找 mamba，再看 `MAMBA_EXE`；troy-mode 也可以用 `--mamba` 把它的路径传给语言步骤（[troy-init 技能](../../../skills/troy-init/SKILL.md)）。troy-mode 在功能循环里运行的检查只在 PATH 里和 `MAMBA_EXE` 里找（[F07 设计第 6.1 节](../design/F07-entry-skill.zh-CN.md#61-任务简报)）。在你的电脑上，mamba 不在 Git Bash 的 PATH 里，所以要把 `MAMBA_EXE` 设为用户环境变量，值为 `D:\miniforge3\Library\bin\mamba.exe`。然后彻底退出桌面应用，包括任务栏通知区域里的图标，再重新打开：应用和它的会话只认启动时就有的环境变量。在 PowerShell 里：
 
