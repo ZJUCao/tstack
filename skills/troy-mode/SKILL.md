@@ -35,6 +35,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py issues [--device-test-scenarios <ID>,<ID>...]` | Works out each progress issue and device-test checklist from the state and compares it with GitHub: the `labels` to create, and the `actions` (`create`, `edit`, `close`, `reopen`, `close-duplicate`), each with its body file under the git folder and its exact `gh` command. It changes nothing (section "Issues for Troy"). |
 | `troy_flow.py check-text --file <path>` | Checks a PR comment, description, review, issue, or release notes for attribution in the project's `[attribution] mode`. Read its exit code, never its output (section "Text for GitHub"). It also fails a file of more than 65,536 characters, which GitHub would refuse. |
 | `troy_flow.py check-skips --report <file> --junit <file>` | Reads `troy-check code`'s JSON report and the JUnit file: exit 0 when nothing failed but tests skipped on this platform, with those cases in `ci_only` (D69). |
+| `troy_flow.py wait-checks --pr <number> --sha <sha>` | Waits until every CI check of the PR's head `<sha>` has registered and finished: `result` `passed` (exit 0), `failed` (with the failed checks and their `runs`), `pending` (the time ran out first, about 9 minutes; run it again), `other-head`, or `closed` (D204). |
 | `troy_flow.py series` | After a dependency change Troy accepted: the `commands` that compile and install the series lock, each member's `tests`, and the members whose lock is now `stale` (D66). It runs nothing. |
 | `troy_flow.py release-test --version <version> --junit <file>... [--real-run <file>]` | The release test's report from the version test plan and the JUnit files: each scenario's result, the failed tests, Troy's scenarios, and the `comment` to post, headed `Release test, run <n>: passed` or `failed`. With `--real-run`, the JSON report of `real-run --all` adds a "Real run" part, and a mismatch fails the run. Exit 1 when anything failed. |
 | `troy_flow.py accept-version --tag <tag> --notes-file <file> [--date <YYYY-MM-DD>]` | Records Troy's acceptance in the version test plan and its mirror: the acceptance row, the next major version, the status, and a change-log row. Exit 1, and nothing changed, when either file has no change-log table (D201). |
@@ -212,16 +213,21 @@ On issues, troy-mode's comments use the headings of section "Issues for Troy". E
 
 ### Merging
 
-Merge a PR only when every review of the stage ended in `approved`, the local checks passed on the pushed commit (or `check-skips` left only `ci_only` cases), `gh pr checks <number> --watch`, run once, ends with every check passing, and the merge rights allow it (`merged_by` is `f07`). Right after a push, GitHub may not have registered the workflow yet, and `gh pr checks` then says that no checks are reported: run it again; that is still the same wait. Then:
+Merge a PR only when every review of the stage ended in `approved`, the local checks passed on the pushed commit (or `check-skips` left only `ci_only` cases), `wait-checks` reports `passed` for the commit you pushed, and the merge rights allow it (`merged_by` is `f07`). Then:
 
-1. `git switch --detach`
-2. `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, with the full commit ID you pushed
-3. `git fetch origin --prune`
-4. `troy_flow.py status --write-progress`, then the issue sync (section "Issues for Troy")
+1. `troy_flow.py wait-checks --pr <number> --sha <sha>`, with the full commit ID you pushed (`git rev-parse HEAD`). Read its exit code and `result` (D204):
+   - `passed` (exit 0): go on.
+   - `pending`: the time ran out first. Run it again; that is still the same wait. Right after a push GitHub may not have registered the workflow yet, and `wait-checks` waits for that too. If a second run still says "No check has reported", stop and tell Troy.
+   - `failed`: a failing check (below).
+   - `other-head` or `closed`: the PR's head is not the commit you pushed, or the PR is no longer open. Stop and find out why before anything else.
+2. `git switch --detach`
+3. `gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>`, with the same full commit ID
+4. `git fetch origin --prune`
+5. `troy_flow.py status --write-progress`, then the issue sync (section "Issues for Troy")
 
-Detach first, so that `gh` does not try to check out `main` before it deletes the branch.
+Run each step as its own command, and the merge only after you have read the wait's exit code: never chain the merge after the wait with `;` (or in any other way on one command line). In the pilot, `gh pr checks --watch; gh pr merge ...` merged a PR before its checks had reported (ZJUCao/recipe-menu#47). Detach first, so that `gh` does not try to check out `main` before it deletes the branch.
 
-- **A failing check.** Give the author the failing log (`gh run view <run ID> --log-failed`) as Input; the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, stop and tell Troy.
+- **A failing check.** Give the author the failing log (`gh run view <run ID> --log-failed`, for each ID in `wait-checks`' `runs`) as Input; the run counts as an attempt. When the failure lies outside the author's files, such as in the workflow or on the runner, stop and tell Troy.
 - **A refused merge.** If the agent's permissions refuse `gh pr merge`, stop and tell Troy which permission to add. Never work around a refusal.
 
 **Troy's approval (D61).** When `merged_by` is `troy` (PR 1 and PR 2 of the first `troy_approves_first` features, the requirements, the architecture, and a requirement change), post `Waiting for Troy: approve this PR` with its one line, run `troy_flow.py status --waiting "<what>"`, send Troy the summary for Troy with the PR's link (section "The summary for Troy"), and stop. Troy replies in chat, in a comment or a "Comment" review on the PR, or merges on GitHub. A comment counts as a reply in chat (F15 D145): "全按推荐", "all as recommended", or "approved" approves the PR, and picking another option asks for changes. `status` ends the wait and lists it in `troy_comments`; the description's What then says that Troy approved in a comment.

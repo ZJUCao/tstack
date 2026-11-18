@@ -1,4 +1,7 @@
-"""Command-line interface: options, the commands, and the report (F07, F08, F09 3.1, F12 5.1)."""
+"""Command-line interface: options, the commands, and the report (F07, F08, F09 3.1, F12 5.1).
+
+F07 D204 adds wait-checks, the wait for a pushed head's CI checks before a merge.
+"""
 
 import argparse
 import json
@@ -7,7 +10,7 @@ import sys
 from troycheck.gitio import GitError
 
 from . import acceptversion, approve, brief, issuesync, realreport, realrun, releasetest, \
-    retro, rulerow, runs, series, skips, status, textcheck
+    retro, rulerow, runs, series, skips, status, textcheck, waitchecks
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -28,6 +31,17 @@ def _positive(text: str) -> int:
     return int(text)
 
 
+def _seconds(text: str) -> float:
+    """Parses a time option: a number of seconds, 0 or more."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number of seconds") from None
+    if not value >= 0 or value == float("inf"):
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number of seconds, 0 or more")
+    return value
+
+
 def _common(parser: argparse.ArgumentParser) -> None:
     """Adds --repo and --json."""
     parser.add_argument("--repo", help="the project folder (default: the current folder)")
@@ -35,7 +49,7 @@ def _common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Builds the parser for F07's eight commands, F08's four, F09's two, and F12's one."""
+    """Builds the parser for F07's nine commands, F08's four, F09's two, and F12's one."""
     parser = _Parser(prog="troy_flow.py", description="troy-mode's flow engine.")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
@@ -86,12 +100,18 @@ def build_parser() -> argparse.ArgumentParser:
     which.add_argument("--item", help="the feature being accepted")
     which.add_argument("--all", action="store_true", help="every accepted feature (release)")
     cmd.add_argument("--keep", action="store_true", help="keep the scratch folder")
+    cmd = sub.add_parser("wait-checks", help="wait for every CI check of a PR's head (D204)")
+    cmd.add_argument("--pr", required=True, help="the PR number")
+    cmd.add_argument("--sha", required=True, help="the full commit ID that was pushed")
+    cmd.add_argument("--timeout", type=_seconds, help="seconds to wait at most (540)")
+    cmd.add_argument("--interval", type=_seconds, help="seconds between reads (15)")
+    cmd.add_argument("--settle", type=_seconds, help="seconds a pass must hold (30)")
     cmd = sub.add_parser("issues", help="the changes to troy-mode's issues (F15)")
     cmd.add_argument("--device-test-scenarios",
                      help="a patch release's scenarios for its checklist, separated by commas")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro", "rule-id", "rule-row", "real-run", "issues"):
+                 "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks"):
         _common(sub.choices[name])
     return parser
 
@@ -116,6 +136,8 @@ def _text(report: dict) -> str:
             lines.append(f"label     {report['label']}: {report['label_reason']}")
         if report.get("files"):
             lines.append(f"report    {report['files']['md']}")
+    if report["command"] == "wait-checks":
+        lines.append(f"result    {report['result']}")
     if report["command"] == "issues":
         lines += [f"label     {item['command']}" for item in report.get("labels", [])]
         lines += [f"action    {item['command']}" for item in report.get("actions", [])]
@@ -143,7 +165,8 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "accept-version": acceptversion.run_accept_version,
             "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
             "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
-            "real-run": realrun.run_real_run, "issues": issuesync.run_issues}
+            "real-run": realrun.run_real_run, "issues": issuesync.run_issues,
+            "wait-checks": waitchecks.run_wait_checks}
 
 
 def main(argv: list[str]) -> int:

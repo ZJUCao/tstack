@@ -9,14 +9,16 @@ SKILL = PLUGIN_ROOT / "skills/troy-mode/SKILL.md"
 ENGINE_PATH = "${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py"
 PM_PATH = "${CLAUDE_PLUGIN_ROOT}/troy-mode/roles/product-manager.md"
 COMMANDS = ("status", "brief", "snapshot", "check-run", "approve", "check-text", "check-skips",
-            "series")
+            "series", "wait-checks")
 FLOWS = ("Project setup", "Feature loop", "Bug fix", "Requirement change",
          "Work outside the pipeline", "Continue", "Upgrade", "Version release", "Rule change")
 STAGE_TITLES = ("[<ID> 1/6 design] <name>", "[<ID> 2/6 test-plan] <name>",
                 "[<ID> 3/6 mock] <name>", "[<ID> 4/6 tests] <name>", "[<ID> 5/6 impl] <name>",
                 "[<ID> 6/6 accept] <name>")
-GIT_TEXTS = ("git switch --detach", "gh pr merge <number> --rebase --delete-branch "
-             "--match-head-commit", "gh pr checks <number> --watch", "git fetch origin")
+WAIT_TEXT = "troy_flow.py wait-checks --pr <number> --sha <sha>"
+MERGE_TEXT = "gh pr merge <number> --rebase --delete-branch --match-head-commit <sha>"
+OLD_WAIT_TEXT = "gh pr checks <number> --watch"
+GIT_TEXTS = ("git switch --detach", MERGE_TEXT, WAIT_TEXT, "git fetch origin")
 PART2_TITLES = ("[B<n> A/B test] <summary>", "[B<n> B/B fix] <summary>",
                 "[<ID> test-fix] <summary>", "[docs] Change the requirements: <summary>")
 PART2_TEXTS = ("Fixes #<n>", "gh issue create", "--label bug", "gh pr close",
@@ -90,7 +92,8 @@ class EntrySkillTests(unittest.TestCase):
                 self.assertIn(title, self.body)
 
     def test_names_the_merge_steps(self):
-        """Detach, merge with the head check, watch the checks, and fetch (design 8.6)."""
+        """Detach, merge with the head check, wait for the checks with ``wait-checks`` (D204),
+        and fetch (design 8.6)."""
         for text in GIT_TEXTS:
             with self.subTest(text=text):
                 self.assertIn(text, self.body)
@@ -301,6 +304,90 @@ class VersionReachTests(unittest.TestCase):
         self.assertRegex(bullet, r"(?i)\bends before\b[^.]*\brelease\b")
         self.assertRegex(bullet, r"(?i)own request|request of its own")
         self.assertIn('"release v0.1"', bullet)
+
+
+def section(body: str, heading: str) -> str:
+    """The text from a heading line up to the next heading of the same level or higher.
+
+    Args:
+        body: The skill's text after the front matter.
+        heading: The whole heading line, such as ``### Merging``.
+
+    Returns:
+        The section, its heading included, or "" when the heading is missing.
+    """
+    level = len(heading) - len(heading.lstrip("#"))
+    lines = body.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.strip() == heading), None)
+    if start is None:
+        return ""
+    fenced = False
+    for end in range(start + 1, len(lines)):
+        line = lines[end]
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+        marks = len(line) - len(line.lstrip("#"))
+        if not fenced and 0 < marks <= level and line[marks:marks + 1] == " ":
+            return "\n".join(lines[start:end])
+    return "\n".join(lines[start:])
+
+
+def sentences(text: str) -> list:
+    """The text's sentences, split after ``.``, ``!``, or ``?`` and at line breaks."""
+    return [part for line in text.split("\n") for part in re.split(r"(?<=[.!?])\s+", line)
+            if part.strip()]
+
+
+class WaitChecksSkillTests(unittest.TestCase):
+    """D204 (F07 design 3.1, 8.6, and 16), tstack issue #68: the merge waits with ``wait-checks``.
+
+    In the pilot, ``gh pr checks --watch`` said that no checks were reported, and the merge
+    chained after it with ``;`` ran anyway. The skill's merge step now waits with the engine's
+    ``wait-checks`` and runs the merge as its own command after reading the wait's exit code.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Cuts the Merging and engine sections out of SKILL.md; empty when missing."""
+        text = SKILL.read_bytes().decode("utf-8") if SKILL.is_file() else ""
+        cls.body = split_skill(text)[1]
+        cls.merging = section(cls.body, "### Merging")
+        cls.engine = section(cls.body, "## The engine")
+
+    def test_merging_names_the_wait(self):
+        """The Merging section names ``troy_flow.py wait-checks --pr <number> --sha <sha>``."""
+        self.assertIn(WAIT_TEXT, self.merging)
+
+    def test_merging_names_the_merge_with_the_pushed_head(self):
+        """The Merging section names ``gh pr merge <number> --rebase --delete-branch
+        --match-head-commit <sha>``."""
+        self.assertIn(MERGE_TEXT, self.merging)
+
+    def test_merging_no_longer_watches_gh_pr_checks(self):
+        """The Merging section no longer names ``gh pr checks <number> --watch``."""
+        self.assertNotEqual(self.merging, "")
+        self.assertNotIn(OLD_WAIT_TEXT, self.merging)
+
+    def test_merge_is_never_chained_with_a_semicolon(self):
+        """A sentence of the Merging section says the merge never runs chained after the
+        wait with ``;``: it names the merge, ``chain``, ``never``, and `` `;` ``."""
+        found = [s for s in sentences(self.merging)
+                 if "`;`" in s and re.search(r"(?i)\bchain", s) and re.search(r"(?i)\bnever\b", s)
+                 and re.search(r"(?i)\bmerge", s)]
+        self.assertTrue(found, self.merging)
+
+    def test_no_command_chains_the_wait_and_the_merge(self):
+        """No code span of the skill runs ``wait-checks`` and ``gh pr merge`` on one line."""
+        self.assertNotEqual(self.body, "")
+        spans = re.findall(r"`([^`\n]+)`", self.body)
+        chained = [s for s in spans if "wait-checks" in s and "gh pr merge" in s]
+        self.assertEqual(chained, [])
+
+    def test_engine_table_has_a_wait_checks_row(self):
+        """The table of "## The engine" has one row that starts ``| `troy_flow.py wait-checks``."""
+        rows = [line for line in self.engine.split("\n")
+                if line.startswith("| `troy_flow.py wait-checks")]
+        self.assertEqual(len(rows), 1, self.engine)
 
 
 if __name__ == "__main__":
