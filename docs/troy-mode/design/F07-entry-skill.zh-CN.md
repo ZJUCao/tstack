@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.8（2026-11-18）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.9（2026-11-18）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.8 |
+| 版本 | 1.9 |
 | 日期 | 2026-11-18 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准。 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -58,6 +58,8 @@ python troy_flow.py approve    --doc <path> [--date <YYYY-MM-DD>] [common option
 python troy_flow.py check-text --file <path> [common options]
 python troy_flow.py check-skips --report <troy-check JSON> --junit <path>... [common options]
 python troy_flow.py series     [common options]
+python troy_flow.py wait-checks --pr <number> --sha <commit> [--timeout <s>] [--interval <s>]
+                               [--settle <s>] [common options]
 
 common options: [--repo <path>] [--json]
 ```
@@ -72,6 +74,7 @@ common options: [--repo <path>] [--json]
 | `check-text` | 按项目的 `[attribution] mode`，用 troy-check 的署名规则检查一条 PR 评论（R19）。 |
 | `check-skips` | 读取 `troy-check code` 的 JSON 报告和 JUnit 文件，判断失败是否只是在本平台跳过的测试（第 8.6 节，D69）。 |
 | `series` | 接受的依赖改动之后，规划系列锁文件：编译和安装它的命令、每个成员的测试，以及锁文件因此过期的成员（第 8.7 节，D66）。命令由技能运行。 |
+| `wait-checks` | 等到 PR 的头提交 `--sha` 的每项 CI 检查都已登记并结束，然后报告是否全部通过（第 8.6 节，D204）。它只读 GitHub。 |
 
 - 引擎读取 git，并通过只读的 `gh` 调用读取 GitHub。它只写进度文件、`approve` 改动的文件头字段，以及它在 `<git dir>/troy-mode/flow/` 里的记录。它从不提交、推送或写 GitHub。这些由技能来做（F04 D29）。
 - 退出码和 F06 设计 3.3 相同：0 表示完成；1 表示有问题让这一步停下，报告会说明是什么问题；2 表示引擎无法运行。
@@ -254,10 +257,17 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 
 - 这个阶段的每个审查都以 `approved` 结束；
 - 推送的 commit 通过了本地检查，或者只在本平台跳过的测试上失败（D69，见下）；
-- 运行一次 `gh pr checks <n> --watch`，结束时每项检查都通过。刚推送之后，GitHub 可能还没登记工作流，这时命令会说没有检查；再运行一次仍算同一次等待（试运行中发现）；
+- 用 F07 推送的完整提交 ID 运行 `wait-checks --pr <n> --sha <sha>`（D204），结果是 `passed`：这个头提交的每项检查都已登记并结束，并且每项都通过；
 - 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。其他 PR 都由 F07 合并。
 
-然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin --prune` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。每次 fetch 都带 prune：PR 合入之后，同一个分支名可能再用一次，比如更新测试方案时的 `troy-mode/v0.1-test-plan`，而过时的 `origin/<branch>` 会让 `git push --force-with-lease` 拒绝新分支（F08 试运行时发现）。
+然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin --prune` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。每次 fetch 都带 prune：PR 合入之后，同一个分支名可能再用一次，比如更新测试方案时的 `troy-mode/v0.1-test-plan`，而过时的 `origin/<branch>` 会让 `git push --force-with-lease` 拒绝新分支（F08 试运行时发现）。这些命令各自单独运行，在 F07 读过等待的退出码之后：合并永远不和等待写在同一行命令里，不管是用 `;` 还是别的方式连起来（D204）。
+
+**等检查（D204）。** `wait-checks` 每隔 `--interval` 秒（15）读一次 `gh pr view <n> --json headRefOid,state,statusCheckRollup`，看这几件事：
+- **头提交。** PR 的头提交还是别的提交时，继续等，因为刚推送后 GitHub 可能还没更新。PR 已合并或已关闭时，以 `closed` 结束。
+- **还没有检查。** 刚推送后 GitHub 可能还没登记工作流，汇总是空的。这仍然是在等，绝不算通过（试点的 ZJUCao/recipe-menu#47）。
+- **检查。** 头提交的每个 check run 和提交状态。同一个头提交上一个工作流运行了不止一次时，比如 `gh pr edit` 改了 PR 说明之后，每项检查只算最新的那次运行：还没开始的那次（没有 `startedAt`，或者是 gh 的零时间 `0001-01-01T00:00:00Z`），否则是最晚开始的那次。check run 的结论是 `SUCCESS`、`NEUTRAL` 或 `SKIPPED` 时算通过；状态是 `SUCCESS` 时算通过。还在排队或运行的算未完成；其他的都算失败。
+- **稳定。** `passed` 要求两次读取都看到每项检查已结束并通过，两次至少相隔 `--settle` 秒（30），而且检查相同，这样稍晚登记的工作流不会漏掉。
+- **结果。** `passed` 的退出码是 0。其他每个结果的退出码都是 1，并带一条问题：每项检查都结束、但有一项失败时是 `failed`，失败的检查在 `failed` 里，它们的运行 ID 在 `runs` 里，用于 `gh run view <id> --log-failed`；`--timeout`（540 秒，在一次 Bash 调用最多的十分钟以内）先到时是 `pending`，一项检查都没报告时写 "No check has reported"；头提交仍是别的提交时是 `other-head`；还有 `closed`。遇到 `pending`，F07 再运行一次，这仍是同一次等待；第二次运行仍然没有检查时，F07 停下并告诉 Troy。失败的 gh 调用在下一次读取时重试；连续失败三次时退出码为 2。
 
 - **只在另一个平台上运行的测试（D69）。** 测试方案的某个用例可能只在一个平台上运行，比如试运行里的 F01-T17（不可读的文件），它在 Linux 上运行，在 Windows 上跳过。troy-check 把跳过的测试既不算失败（R09），也不算通过（R10），所以 Troy 电脑上的本地 `troy-check code` 不通过，而 CI 在 Ubuntu 上运行了这个测试。`check-skips` 说明本地的失败只有这类跳过的测试时，本地检查算作通过：不记尝试，PR 说明的 Checks 一节把这些用例列为只由 CI 检查，F07 按 CI 的结果合并，CI 通过就证明这些测试运行过。测试方案必须写明这个用例为什么只在一个平台上运行，由 TM2 和 CR1 检查。产出方的任务简报也这样说明，所以产出方会报告这个跳过，而不是因它失败。
 - **CI 检查失败。** 产出方拿到失败的日志（`gh run view --log-failed`）作为 Input，这次运行记一次尝试。失败不在产出方的文件上时，比如在工作流里或在运行器上，F07 停下并告诉 Troy。
@@ -403,10 +413,11 @@ F07 不给项目的工作流添加步骤。它的测试在 troy-pstack 的 `troy
 | troy-check | 接受 `[roles]` 和 `[flow]`。拒绝未知的角色、未知的键、错误的 effort 值和负数。`--worktree` 能看到新文件、跳过被忽略的文件、结果和真实 commit 相同，而且索引、ref 和工作区都保持原样。 |
 | 技能 | front matter 有 `name: troy-mode` 和 `disable-model-invocation: true`。它点到第 4 节的每个流程、每个引擎命令，以及第 8.1 节的阶段标题。它的路由把点名一个版本的请求，比如 "Start v0.1"，交给这个版本剩下的功能，不包括发布（D203）。 |
 | 第 2 部分 | 从 commit 标题和开着的 PR 读出 bug，以及作为下一步的 PR B。旁支 PR 排在阶段 PR 前面。阶段的重做，以及需要 AR4 的返工。跳过的 mock。Troy 合并的变更 PR，以及记录它的批准。每个第二部分任务的任务简报，按阶段、bug 步骤和标题。`check-skips` 在只有跳过的测试失败、以及有其他失败时的结果。`series` 的命令和过期的成员。 |
+| 等检查（D204） | 起初没有检查，之后通过；稍晚登记的第二个工作流；一项失败，在每项检查都结束后才报告，带上运行 ID；同一项检查较早的失败运行和较新的通过运行；提交状态；`SKIPPED` 和 `NEUTRAL`；别的头提交；已合并的 PR；超时；gh 失败一次和三次。技能的合并步骤写出 `wait-checks`，永远不用 `;` 把合并接在后面。 |
 
 ### 14.2 埋 bug
 
-代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。数量写进 PR 说明。
+代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。D204 加上：没有检查算作通过、未完成的检查算作已结束、不比较头提交、算上一项检查较早的运行、不等稳定、把 `SKIPPED` 算作失败、忽略提交状态、还有检查没结束就报告失败、忽略超时，以及一次 gh 调用失败就结束等待。数量写进 PR 说明。
 
 ### 14.3 试运行（D68）
 
@@ -470,6 +481,7 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | D201 | 试点中（ZJUCao/recipe-menu#2），中文需求文档把修改记录一节写成 `变更记录`，而不是模板里的 `修改记录`。`approve` 在那里找不到修改记录表格，只在英文文件里加了批准的那一行，并以退出码 0 结束，只给了一条说明。这一对文件里任何一个缺少修改记录表格时，`approve`、`accept-version`（F08）和 `rule-row`（F09）该怎么做？来自 tstack issue #46。D70 到 D200 属于后来的设计，所以这个决定用 D201。 | A：以退出码 1 结束，两个文件都不改；问题里写出是哪个文件，以及查找的标题。B：保留说明，以退出码 0 结束。C：A，另外由 R12 或 R20 检查文档每种语言的章节标题是否和模板一致。 | A，Troy 已于 2026-11-18 批准。这样批准要么在两种语言里都记下，要么都不记。`rule-row` 原本就拒绝这样的一对文件（F09 设计第 3.3 节）；现在它的问题也写出查找的标题。C 的标题检查不属于这个决定。需求不用改：需求文档 3.3 已经说了批准要记进修改记录。 |
 | D202 | 试点中（ZJUCao/recipe-menu#3），对架构运行 `approve` 只改了它的文件头和修改记录。它的决策记录表，以及七条 ADR 每条的状态一节，在两种语言里都仍写着 "Proposed"。产品经理自己去改，被 `check-run` 拒绝了，因为架构不在它的范围里，于是 AR1 又运行了一次，只为改这些字。来自 tstack issue #47。 | A：`approve --doc docs/architecture.md` 同时把架构列出的 ADR 的状态在两种语言里都改为已接受，架构自己的状态单元格也一起改。B：架构和 ADR 模板只在文件头里保存状态，这样只用 `approve` 就够了。 | A，Troy 已于 2026-11-18 批准。每次批准带 ADR 的架构都能省一次架构师运行，而且文件头里的状态字本来就由引擎负责。B 要改 F01 的模板，而 F16 的角色考试正在衡量这些模板。只改仍处于提议状态的 ADR；已接受和已取代的不动。功能设计里提出的 ADR 不在范围内。需求不用改。 |
 | D203 | 试点中，Troy 输入了 "Start v0.1"。troy-mode 把 F01 做完六个 PR，然后停下，说 "Next is F02"，之后 Troy 每个功能都要单独请求一次。路由表把 "the rest of v0.1" 列为做到这个版本每个功能的请求（D63），但 "Start v0.1" 也点名了一个版本。来自 tstack issue #52。 | A：点名一个版本的功能循环请求，做到这个版本剩下的功能。B：范围不变，在一个功能验收后的报告里说明怎样请求做完这个版本剩下的部分。 | A，Troy 已于 2026-11-18 批准。每个 PR 仍在今天的位置等 Troy 批准，变的只是请求的次数。范围在发布之前停下，发布仍是单独的请求。需求不用改：D63 写在本设计和技能里。 |
+| D204 | 试点中（ZJUCao/recipe-menu#47，2026-11-12），一个 PR 刚推送就合并了：`gh pr checks 47 --watch` 打印了 "no checks reported"，因为 GitHub 还没登记工作流，而用 `;` 接在后面的合并照样运行了。之后试点的主会话自己留了一个脚本，等推送的头提交的检查。来自 tstack issue #68。 | A：一个引擎命令 `wait-checks --pr <n> --sha <head>`，等到这个头提交的每项检查都已登记并结束，用退出码报告通过还是失败；合并步骤和 `gh pr merge --match-head-commit <head>` 一起用它，永远不用 `;` 把合并接在后面。B：技能的合并步骤用文字写出这次等待，并禁止连写。 | A，Troy 已于 2026-11-18 批准。退出码是检查，需求 5.8 更愿意用检查而不是指令。在 troy-mode 项目里等 CI 是 troy-mode 合并步骤的一部分。需求不用改：R18 已经说了检查通过后 troy-mode 才合并。 |
 
 需求文档 1.20 版记录了批准的改动：
 
@@ -493,3 +505,4 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | 1.6 | 2026-11-18 | D201，来自 tstack issue #46，Troy 已于 2026-11-18 批准：这一对文件里任何一个没有修改记录表格时，`approve`、`accept-version` 和 `rule-row` 以退出码 1 结束，什么都不改（第 8.6、14.1、14.2 和 16 节）。 |
 | 1.7 | 2026-11-18 | D202，来自 tstack issue #47，Troy 已于 2026-11-18 批准：批准架构时，同时在两种语言里接受它列出的、仍处于提议状态的 ADR，以及它们在架构表格里的状态单元格（第 3.1、8.6、14.1、14.2 和 16 节）。 |
 | 1.8 | 2026-11-18 | D203，来自 tstack issue #52，Troy 已于 2026-11-18 批准：点名一个版本的功能循环请求，比如 "Start v0.1"，做到这个版本剩下的功能，在发布之前停下（第 4、14.1 和 16 节）。 |
+| 1.9 | 2026-11-18 | D204，来自 tstack issue #68，Troy 已于 2026-11-18 批准：引擎的 `wait-checks` 等到推送的头提交的每项检查都已登记并结束，合并在它之后单独运行，永远不用 `;` 连起来（第 3.1、8.6、14.1、14.2 和 16 节）。 |

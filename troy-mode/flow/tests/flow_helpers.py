@@ -19,6 +19,10 @@ F15 (issues for Troy, F15 interface note section 1) adds the read calls
 ``pr view <n> --json comments,reviews``, ``issue list --state all``,
 ``pr list --state all``, ``label list``, and ``repo view`` to the fake gh,
 and two more ``next`` keys, ``issue`` and ``ideas``, null unless F15 names them.
+
+D204 (``wait-checks``, tstack issue #68) adds ``pr view <n> --json
+headRefOid,state,statusCheckRollup``, served from a list of answers per PR
+(``Fakes.serve``'s ``check_views``), and ``failing_call``, an answer that fails.
 """
 
 from __future__ import annotations
@@ -1335,6 +1339,28 @@ def matches(args, words):
     return all(option(args, pairs[i]) == pairs[i + 1] for i in range(0, len(pairs) - 1, 2))
 
 
+CHECK_FIELDS = {"headRefOid", "state", "statusCheckRollup"}
+
+
+def is_check_view(args, number):
+    """Whether a call is gh pr view <number> asking for a field of the checks view (D204)."""
+    fields = (option(args, "--json") or "").split(",")
+    return args[:3] == ["pr", "view", number] and bool(CHECK_FIELDS.intersection(fields))
+
+
+def check_view(args, views):
+    """Answers one checks view: the next answer in order, the last one once they run out."""
+    earlier = [json.loads(line)["argv"] for line in LOG.read_text(encoding="utf-8").splitlines()
+               if line.strip()]
+    index = sum(1 for argv in earlier if is_check_view(argv, args[2])) - 1
+    view = views[min(max(index, 0), len(views) - 1)]
+    if "fake_gh_fails" in view:
+        sys.stderr.write(view["fake_gh_fails"] + "\n")
+        return 1
+    fields = (option(args, "--json") or "").split(",")
+    return answer({name: view[name] for name in fields if name in view})
+
+
 def main():
     """Records the call, then answers as the data file says."""
     try:
@@ -1365,6 +1391,9 @@ def main():
         if state == "all":
             return answer(data.get("all_prs", []))
     elif args[:2] == ["pr", "view"] and len(args) > 2:
+        views = data.get("check_views", {}).get(args[2])
+        if views and is_check_view(args, args[2]):
+            return check_view(args, views)
         found = {"comments": data.get("comments", {}).get(args[2], []),
                  "reviews": data.get("reviews", {}).get(args[2], [])}
         fields = (option(args, "--json") or "comments").split(",")
@@ -1430,9 +1459,12 @@ class Fakes:
     ``gh issue view <n>`` (F08 note, section 1). For F15 (F15 interface note,
     section 1) it also serves ``gh pr view <n> --json comments,reviews`` (only
     the fields asked for), ``gh issue list --state all``, ``gh pr list --state
-    all``, ``gh label list``, and ``gh repo view``. Any other call, or every
-    call when it is set to fail, exits with a code other than 0. The fake
-    mamba always fails, and no engine command may run it.
+    all``, ``gh label list``, and ``gh repo view``. For D204 (``wait-checks``,
+    tstack issue #68) it serves ``gh pr view <n> --json
+    headRefOid,state,statusCheckRollup`` from a list of answers per PR, one
+    per call in order. Any other call, or every call when it is set to fail,
+    exits with a code other than 0. The fake mamba always fails, and no
+    engine command may run it.
 
     Attributes:
         folder: The folder that goes first on the PATH.
@@ -1478,7 +1510,8 @@ class Fakes:
               all_prs: Optional[Sequence[Mapping]] = None,
               labels: Sequence[str] = ("bug",), repo_url: str = REPO_URL,
               issues_enabled: bool = True,
-              fail_on: Sequence[tuple] = ()) -> None:
+              fail_on: Sequence[tuple] = (),
+              check_views: Optional[Mapping] = None) -> None:
         """Sets what the fake gh answers.
 
         Args:
@@ -1502,6 +1535,16 @@ class Fakes:
             fail_on: ``(words, message)`` pairs: a call whose first two words
                 are ``words[:2]`` and that has each option pair of
                 ``words[2:]`` fails, with the message on stderr.
+            check_views: PR number mapped to a list of answers for ``gh pr
+                view <n> --json headRefOid,state,statusCheckRollup`` (D204):
+                each a dict with ``headRefOid``, ``state``, and
+                ``statusCheckRollup`` (any of them may be left out), printed
+                with only the fields the call asks for. The calls take the
+                answers in order, counted from the call log, and the last
+                answer serves every call after the list runs out. An answer
+                made by ``failing_call`` makes that one call exit 1 with its
+                message on stderr. A ``pr view`` call that asks for none of
+                these fields, or for a PR not mapped here, is served as before.
         """
         views = {str(item["number"]): dict(item) for item in issues}
         views.update({str(k): dict(v) for k, v in (issue_views or {}).items()})
@@ -1525,7 +1568,9 @@ class Fakes:
                 "all_issues": list(all_issues), "all_prs": list(all_prs),
                 "labels": list(labels), "repo_url": repo_url, "issues_enabled": issues_enabled,
                 "fail_on": [{"argv": list(words), "message": message}
-                            for words, message in fail_on]}
+                            for words, message in fail_on],
+                "check_views": {str(k): [dict(view) for view in v]
+                                for k, v in (check_views or {}).items()}}
         write_file(self.folder, self._data.name, json.dumps(data, ensure_ascii=False))
 
     def gh_argvs(self) -> list:
@@ -1649,6 +1694,19 @@ def issue(number: int, title: str) -> dict:
             "url": f"https://github.com/{LOGIN}/{PROJECT}/issues/{number}"}
 
 
+def failing_call(message: str = "HTTP 502: Bad Gateway (https://api.github.com/graphql)"
+                 ) -> dict:
+    """An answer of ``Fakes.serve``'s ``check_views`` that makes that one gh call fail (D204).
+
+    Args:
+        message: What the failing call writes to stderr.
+
+    Returns:
+        The marker answer.
+    """
+    return {"fake_gh_fails": message}
+
+
 # ------------------------------------------------------------------ running
 
 @dataclass
@@ -1673,7 +1731,7 @@ class Outcome:
 
 
 def run_engine(args: Sequence, cwd: Path, fakes: Optional[Fakes] = None,
-               env_extra: Optional[Mapping[str, str]] = None) -> Outcome:
+               env_extra: Optional[Mapping[str, str]] = None, timeout: float = 180) -> Outcome:
     """Runs ``troy_flow.py`` with this Python and parses the report when ``--json`` is given.
 
     Args:
@@ -1682,6 +1740,7 @@ def run_engine(args: Sequence, cwd: Path, fakes: Optional[Fakes] = None,
         fakes: The fakes to put first on the PATH, or None for a fresh set
             whose gh fails on every call.
         env_extra: More environment variables.
+        timeout: The seconds the run may take before ``subprocess.TimeoutExpired``.
 
     Returns:
         The outcome.
@@ -1690,7 +1749,7 @@ def run_engine(args: Sequence, cwd: Path, fakes: Optional[Fakes] = None,
     fakes = fakes if fakes is not None else Fakes(fail=True)
     env = base_env({**fakes.path_env(), **(env_extra or {})})
     proc = subprocess.run([sys.executable, str(ENGINE), *args], cwd=str(cwd), env=env,
-                          capture_output=True, stdin=subprocess.DEVNULL, timeout=180,
+                          capture_output=True, stdin=subprocess.DEVNULL, timeout=timeout,
                           check=False)
     stdout = proc.stdout.decode("utf-8", "replace")
     report = None
