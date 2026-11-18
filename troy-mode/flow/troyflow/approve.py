@@ -2,7 +2,9 @@
 
 Three front matter lines change: version moves to the next major (F01 design
 section 4), updated becomes the date, and status says who approved it. The
-document's change log also gets a row for the new version (F08 D77).
+document's change log also gets a row for the new version (F08 D77). When
+either file of the pair has no change-log table, nothing changes and the
+command exits 1 (F07 D201), and so do accept-version and rule-row.
 """
 
 import datetime
@@ -19,6 +21,12 @@ STATUS = {"en": "Approved by Troy on {date}", "zh-CN": "Troy 已于 {date} 批�
 CHANGE = {"en": "Approved by Troy.", "zh-CN": "Troy 批准。"}
 _LINE = re.compile(r'^(?P<key>version|updated|status):(?P<space>[ \t]*)"(?P<value>.*)"'
                    r"(?P<end>[ \t]*\r?)$")
+
+
+def no_change_log(path: str) -> str:
+    """The problem for a file without a change-log table (F07 D201)."""
+    return (f'{path} has no change log table under a "Change log" or "修改记录" heading; '
+            "nothing was changed.")
 
 
 def check_date(text: str | None) -> str:
@@ -89,7 +97,8 @@ def run_approve(args) -> tuple[dict, int]:
 
     Returns:
         The report and the exit code: 1, and nothing changed, when a header
-        or the mirror is missing or the versions differ.
+        or the mirror is missing, the versions differ, or either file has no
+        change-log table (D201).
     """
     date = check_date(args.date)
     repo = git.need_repo(args.repo)
@@ -108,18 +117,17 @@ def run_approve(args) -> tuple[dict, int]:
         return report, 1
     old = versions.pop()
     new = next_major(old)
-    logged = []
+    texts = {}
     for path, (text, fields) in zip(pair, found):
         lang = fields["lang"] if fields["lang"] in STATUS else "en"
         status = STATUS[lang].format(date=date)
         updated = rewrite(text, {"version": new, "updated": date, "status": status})
-        with_row = add_change_log_row(updated, new, date, CHANGE[lang])
-        if with_row is None:
-            report["notes"].append(f"{path} has no change log table; no row was added.")
-        else:
-            updated = with_row
-            logged.append(path)
-        (repo.root / path).write_bytes(updated.encode("utf-8"))
+        texts[path] = add_change_log_row(updated, new, date, CHANGE[lang])
+    report["problems"] = [no_change_log(path) for path, text in texts.items() if text is None]
+    if report["problems"]:
+        return report, 1
+    for path, text in texts.items():
+        (repo.root / path).write_bytes(text.encode("utf-8"))
     report.update(ok=True, doc=pair[0], mirror=pair[1], version={"from": old, "to": new},
-                  updated=date, changed=list(pair), change_log=logged)
+                  updated=date, changed=list(pair), change_log=list(pair))
     return report, 0

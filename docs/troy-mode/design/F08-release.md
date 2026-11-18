@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. |
+| Version | 1.3 |
+| Date | 2026-11-18 |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -212,7 +212,7 @@ After a version's tag, F08 turns the problems that repeated during the version i
 
 F07's `approve` changes only header fields (F07 D61), so a document's change log skips the version that Troy's approval gives it. The trial repository's requirements show this: version 2.0, with change-log rows for 0.1, 1.1, and 1.2 only.
 
-F08 makes `approve` also add a row to the document's change log, in both languages: the new version, the date, and "Approved by Troy." (Chinese "Troy 批准。"). The row goes last in the table whose heading is the document's change log. A document without a change log gets no row. `accept-version` adds its row the same way, with "Accepted by Troy as v0.1.0." This changes requirements 3.3: troy-mode records an approval in the document's header and change log.
+F08 makes `approve` also add a row to the document's change log, in both languages: the new version, the date, and "Approved by Troy." (Chinese "Troy 批准。"). The row goes last in the table whose heading is the document's change log. When either file of the pair has no change-log table, `approve` changes neither file and exits 1 (F07 D201). `accept-version` adds its row the same way, with "Accepted by Troy as v0.1.0.", and refuses the same way, before it writes the acceptance row. This changes requirements 3.3: troy-mode records an approval in the document's header and change log.
 
 ## 9. Changes to earlier features
 
@@ -261,7 +261,7 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | --- | --- |
 | Status | `version-test-plan` before the first stage of a version without a plan, and again when the plan's feature list differs. `release` once every feature of the version is accepted. The release's steps `version-tests`, `release-pr`, and `release-test`, then `tag` and `retro`, in turn. No `version-tests` step when the plan has no scenario that Claude runs. The release PR after a bug's PRs. Waiting for Troy after a passing run. A patch allowed, and refused after a later version's implementation merged. |
 | Release test | Scenarios matched to tests by ID, with case, `-`, `_`, and `.` alike. A scenario run by Claude with no test fails. A failed regression test fails. A test skipped on this platform passes. Troy's scenarios listed with devices and steps. The comment's heading and run number. |
-| Accept and approve | `accept-version` writes the acceptance row, the next major, the status, and the change-log row in both languages. `approve` adds the change-log row in both languages, and none to a document without a change log. |
+| Accept and approve | `accept-version` writes the acceptance row, the next major, the status, and the change-log row in both languages. `approve` adds the change-log row in both languages. Both exit 1 and write nothing when either file has no change-log table (F07 D201). |
 | Notes and retro | `release-notes` writes exactly the tag's section. `retro` reads only the PRs since the previous tag, groups findings by rule and checklist item, counts across PRs, and tells Troy's comments apart. |
 | Briefs | TM7, TE5, and the version tests reviews: Read first, the title, and the release command in the checks for Python and C/C++. |
 | troy-check | The `[v0.1 tests]` title parses, and its kind may change tests and dependencies only. `version-tests/**` is in the tests class. R09 and R10 treat the kind as "any other kind". |
@@ -335,3 +335,4 @@ Requirements 1.24 records the approved changes:
 | 1.0 | 2026-11-08 | Approved by Troy with D70 to D78, every recommended answer. |
 | 1.1 | 2026-11-08 | Section 11.3 and D78: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |
 | 1.2 | 2026-11-08 | Details the build settled: `status`'s `versions` and `release`, `next.step`, version items in `brief`, and the deferral comment (section 3.1). Facts from the trial (section 11.3): Claude's scenarios must run on Troy's PC (section 4); the release test's comment passes R19 (section 5.5); a release request stops at a feature not accepted (section 5.2); `accept-version` runs outside PM4's snapshot (section 5.7); review findings start with their rule or checklist item (section 7); the Python pack's ruff exempts `version-tests/**`, and every fetch prunes (section 9). |
+| 1.3 | 2026-11-18 | F07 D201, from tstack issue #46, approved by Troy on 2026-11-18: `approve` and `accept-version` exit 1 and change nothing when either file of the pair has no change-log table (sections 8 and 11.1). |

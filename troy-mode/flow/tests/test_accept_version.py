@@ -4,11 +4,22 @@ Troy's acceptance in the version test plan and its mirror: the acceptance
 row, the next major version, the status, and the change-log row, written
 byte for byte in both languages.
 
-Planted bug of F08 design 11.2 caught here: "the acceptance row written in
-English only": ``AcceptVersionTests.test_accepts_in_both_languages``,
-``test_patch_adds_a_row_after_the_first``, and ``test_section_without_a_table_gets_one``.
+When the plan or its mirror has no change-log table, ``accept-version``
+exits 1 and changes neither file, before it writes the acceptance row
+(F07 D201, from tstack issue #46; F08 design 8): ``ChangeLogRefusalTests``.
+
+Planted bugs caught here:
+
+- F08 design 11.2, "the acceptance row written in English only":
+  ``AcceptVersionTests.test_accepts_in_both_languages``,
+  ``test_patch_adds_a_row_after_the_first``, and ``test_section_without_a_table_gets_one``.
+- F07 design 14.2 (D201), "the note with exit 0 kept", "the mirror written
+  before the English file's table is checked", and "the check made on the
+  English file only": ``ChangeLogRefusalTests.test_each_case_is_refused_and_nothing_is_written``,
+  through its English and its mirror cases.
 """
 
+import itertools
 import unittest
 from datetime import date
 
@@ -26,6 +37,10 @@ EN_FIRST = "| 0.1 | 2026-11-08 | First draft. |\n"
 ZH_FIRST = "| 0.1 | 2026-11-08 | 初稿。 |\n"
 EN_NONE_ROW = "| None | None | None |\n"
 ZH_NONE_ROW = "| 无 | 无 | 无 |\n"
+EN_LOG = "## 6. Change log\n"
+ZH_LOG = "## 6. 修改记录\n"
+# The two change-log headings a D201 problem names (interface note for #46).
+HEADINGS = ("Change log", "修改记录")
 
 
 def plan_pair(**kwargs) -> dict:
@@ -58,6 +73,46 @@ def swap(text: str, old: str, new: str) -> str:
     if text.count(old) != 1:
         raise AssertionError(f"{old!r} occurs {text.count(old)} times")
     return text.replace(old, new)
+
+
+def without_log_table(text: str, heading: str, line: str) -> str:
+    """The plan with its change log's table replaced by one line, its last section.
+
+    Args:
+        text: The plan or its mirror.
+        heading: The change log's heading line, ``EN_LOG`` or ``ZH_LOG``.
+        line: The line under the heading, ``None.`` or ``无。``.
+
+    Returns:
+        The text up to the heading, the heading, and the line.
+    """
+    if text.count(heading) != 1:
+        raise AssertionError(f"{heading!r} occurs {text.count(heading)} times")
+    return text.split(heading)[0] + heading + f"\n{line}\n"
+
+
+def accept_in_clone(files: dict) -> tuple:
+    """Writes the files into a new clone and runs ``accept-version`` for v0.1.0 there.
+
+    Args:
+        files: Paths mapped to text, or None to delete the path.
+
+    Returns:
+        ``(outcome, {path: bytes or False before}, {path: bytes or False after})``.
+    """
+    project = Project([base_step()])
+    for rel, text in files.items():
+        if text is None:
+            project.remove(rel)
+        else:
+            project.write(rel, text)
+    before = {rel: project.exists(rel) and project.read_bytes(rel) for rel in (EN, ZH)}
+    notes = project.tmp / "notes.txt"
+    notes.write_bytes(b"Fine.\n")
+    out = project.run("accept-version", "--tag", "v0.1.0", "--notes-file", str(notes),
+                      "--date", "2026-11-09")
+    after = {rel: project.exists(rel) and project.read_bytes(rel) for rel in (EN, ZH)}
+    return out, before, after
 
 
 class AcceptVersionTests(FlowCase):
@@ -209,24 +264,9 @@ class RefusalTests(FlowCase):
                                                       doc_version="0.2")},
             "no acceptance heading": {EN: no_heading, ZH: good[ZH]},
         }
-
-        def run(files):
-            """Writes the files into a new clone and runs accept-version there."""
-            project = Project([base_step()])
-            for rel, text in files.items():
-                if text is None:
-                    project.remove(rel)
-                else:
-                    project.write(rel, text)
-            before = {rel: project.exists(rel) and project.read_bytes(rel) for rel in (EN, ZH)}
-            notes = project.tmp / "notes.txt"
-            notes.write_bytes(b"Fine.\n")
-            out = project.run("accept-version", "--tag", "v0.1.0", "--notes-file", str(notes),
-                              "--date", "2026-11-09")
-            after = {rel: project.exists(rel) and project.read_bytes(rel) for rel in (EN, ZH)}
-            return out, before, after
         names = list(cases)
-        for name, (out, before, after) in zip(names, parallel(run, [cases[n] for n in names])):
+        for name, (out, before, after) in zip(names, parallel(accept_in_clone,
+                                                              [cases[n] for n in names])):
             with self.subTest(case=name):
                 report = self.report_of(out, 1, "accept-version")
                 self.assertNotEqual(report["problems"], [])
@@ -263,6 +303,76 @@ class RefusalTests(FlowCase):
         out = run_engine(["accept-version", "--tag", "v0.1.0", "--notes-file", str(good),
                           "--repo", plain, "--json"], SCRATCH, Fakes(fail=True))
         self.assert_exit(out, 2)
+
+
+class ChangeLogRefusalTests(FlowCase):
+    """D201 (tstack issue #46): the plan or its mirror without a change-log table.
+
+    ``accept-version`` exits 1 with ``ok`` false and one problem per file
+    that has no table, naming the file and both headings, and leaves both
+    files byte for byte as they were: no acceptance row, no header change,
+    and no change-log row, in either language.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Runs every case side by side, each in its own clone.
+
+        Each case maps to the files it writes and the paths that lack the table.
+        """
+        good = plan_pair()
+        en_none = without_log_table(good[EN], EN_LOG, "None.")
+        zh_none = without_log_table(good[ZH], ZH_LOG, "无。")
+        cls.cases = {
+            "control": ({EN: good[EN], ZH: good[ZH]}, []),
+            "mirror headed 变更记录": ({EN: good[EN], ZH: swap(good[ZH], ZH_LOG, "## 6. 变更记录\n")},
+                                   [ZH]),
+            "mirror without a table": ({EN: good[EN], ZH: zh_none}, [ZH]),
+            "English without a table": ({EN: en_none, ZH: good[ZH]}, [EN]),
+            "English headed Changes": ({EN: swap(good[EN], EN_LOG, "## 6. Changes\n"),
+                                        ZH: good[ZH]}, [EN]),
+            "neither with a table": ({EN: en_none, ZH: zh_none}, [EN, ZH]),
+        }
+        names = list(cls.cases)
+        cls.results = dict(zip(names, parallel(accept_in_clone,
+                                               [cls.cases[n][0] for n in names])))
+
+    def refused(self):
+        """The cases that must be refused, as ``(name, lacking paths, outcome, before, after)``."""
+        return [(name, lacking, *self.results[name])
+                for name, (_, lacking) in self.cases.items() if lacking]
+
+    def test_control_is_accepted(self):
+        """The same pair with both change-log tables: exit 0."""
+        self.report_of(self.results["control"][0], 0, "accept-version")
+
+    def test_each_case_is_refused_and_nothing_is_written(self):
+        """Every case: exit 1, ok false, and both files byte for byte unchanged, so neither
+        holds the acceptance row."""
+        self.test_control_is_accepted()
+        for name, _, out, before, after in self.refused():
+            with self.subTest(case=name):
+                self.report_of(out, 1, "accept-version")
+                self.assertEqual(after, before)
+                for rel in (EN, ZH):
+                    text = after[rel].decode("utf-8")
+                    self.assertNotIn("Accepted as v0.1.0", text, rel)
+                    self.assertNotIn("已验收为 v0.1.0", text, rel)
+
+    def test_problems_name_each_file_and_both_headings(self):
+        """One problem per file without the table; each holds its path, ``Change log``, and
+        ``修改记录``."""
+        for name, lacking, out, _, _ in self.refused():
+            with self.subTest(case=name):
+                problems = self.report_of(out, 1, "accept-version")["problems"]
+                self.assertEqual(len(problems), len(lacking), problems)
+                for problem in problems:
+                    self.assertIsInstance(problem, str, problems)
+                    for heading in HEADINGS:
+                        self.assertIn(heading, problem, problems)
+                self.assertTrue(any(all(path in problem for path, problem in zip(lacking, order))
+                                    for order in itertools.permutations(problems)),
+                                f"no problem per path {lacking}: {problems}")
 
 
 if __name__ == "__main__":

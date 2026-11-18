@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 from . import repo as git
-from .approve import STATUS, check_date, header_of, next_major, rewrite
+from .approve import STATUS, check_date, header_of, next_major, no_change_log, rewrite
 from .changelog import add_change_log_row
 from .errors import FlowError
 from .rulestate import RULES, RULES_ZH, read_rules
@@ -96,7 +96,7 @@ def _read_pair(root: Path) -> tuple[dict, list[str]]:
         if table is None or table.width != WIDTH:
             problems.append(f"{path} has no rules table with {WIDTH} columns.")
         if change_log_rows(lines) is None:
-            problems.append(f"{path} has no change log table.")
+            problems.append(no_change_log(path))
         found[lang] = {"path": path, "text": header[0], "version": header[1]["version"],
                        "lines": lines, "table": table}
     if not problems and found["en"]["version"] != found["zh-CN"]["version"]:
