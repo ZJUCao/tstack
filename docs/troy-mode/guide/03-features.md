@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.2 |
-| Date | 2026-11-17 |
+| Version | 0.3 |
+| Date | 2026-11-18 |
 | Source of truth | This English file. [`03-features.zh-CN.md`](03-features.zh-CN.md) is the Chinese mirror. |
 
 troy-mode builds features one at a time, in the topological order of the requirements. Each feature takes six PRs, merged in order, each with one commit that holds one stage's output ([requirements section 5.2](../requirements.md#52-feature-loop)). You approve the first two PRs of the first features. troy-mode merges everything else.
@@ -15,9 +15,9 @@ troy-mode builds features one at a time, in the topological order of the require
 | `/tstack:troy-mode next feature` | The next feature in the order |
 | `/tstack:troy-mode F04` | Feature F04 |
 | `/tstack:troy-mode F04 to F06` | F04, F05, and F06, in order |
-| `/tstack:troy-mode the rest of v0.1` | Every feature of v0.1 not yet accepted |
+| `/tstack:troy-mode Start v0.1` or `/tstack:troy-mode the rest of v0.1` | Every feature of v0.1 not yet accepted, in order |
 
-A request reaches one feature unless it names more, as the last two do. Then troy-mode reports and stops ([F07 design D63](../design/F07-entry-skill.md#16-decisions-for-troy)). Within that reach it goes from stage to stage by itself, and stops only where it needs you: an approval of yours, or an escalation. To build a whole version, use the last row's words. In the pilot, "Start v0.1" reached only F01, and each later feature needed its own request, such as "Start F02" or "开始做F09" ([issue #52](https://github.com/ZJUCao/troy-pstack/issues/52)).
+A request reaches one feature unless it names more, as the last two rows do: several features, or a version. A request that names a version reaches every feature of that version not yet accepted, and stops before the release, which you ask for with `release v0.1` ([F07 design D203](../design/F07-entry-skill.md#16-decisions-for-troy)). Then troy-mode reports and stops ([D63](../design/F07-entry-skill.md#16-decisions-for-troy)). Within that reach it goes from stage to stage and from feature to feature by itself, and stops only where it needs you: an approval of yours, or an escalation. After your approval it goes on. In the pilot, before D203, "Start v0.1" reached only F01, and each later feature needed its own request, such as "Start F02" or "开始做F09" ([issue #52](https://github.com/ZJUCao/tstack/issues/52)).
 
 What a feature takes: in the pilot, each of the 13 features of `ZJUCao/recipe-menu` took 3 to 16 hours from its design PR to its acceptance, while you approved its design and test plan. Each took 14 to 24 role runs and $45 to $103 at the API's list prices, most of it in the roles that run on opus and in the main session.
 
