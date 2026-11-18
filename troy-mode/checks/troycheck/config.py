@@ -32,6 +32,8 @@ EFFORTS = ("low", "medium", "high", "xhigh", "max")
 APPROVES_FIRST_DEFAULT = 3
 # R22: the most characters in each language of the summary for Troy (F14 design 3.3).
 SUMMARY_MAX_CHARS_DEFAULT = 2000
+# How many days hooks.log keeps its lines (F05 design D219).
+HOOKS_LOG_DAYS_DEFAULT = 30
 
 LIMIT_DEFAULTS = {
     "source_lines": 500,
@@ -51,6 +53,7 @@ _SCHEMA: dict[str, dict[str, type]] = {
     "lang": {"name": str, "source_roots": list, "include_dirs": list, "environment": str,
              "series": list},
     "summary": {"max_chars": int},
+    "hooks": {"log_days": int},
 }
 
 
@@ -78,6 +81,8 @@ class Config:
             features whose PR 1 and PR 2 Troy approves (F07 design D62).
         summary_max_chars: [summary] max_chars, R22's limit on each language
             of the summary for Troy (F14 design 3.3).
+        hooks_log_days: [hooks] log_days, how many days the hooks' log keeps
+            its lines (F05 design D219).
     """
 
     commit_email: str | None
@@ -91,6 +96,7 @@ class Config:
     roles: dict[str, dict[str, str]] = field(default_factory=dict)
     troy_approves_first: int = APPROVES_FIRST_DEFAULT
     summary_max_chars: int = SUMMARY_MAX_CHARS_DEFAULT
+    hooks_log_days: int = HOOKS_LOG_DAYS_DEFAULT
 
 
 def _check_value(section: str, key: str, value, expected: type) -> None:
@@ -193,4 +199,5 @@ def parse_config(text: str | None) -> Config:
         troy_approves_first=data.get("flow", {}).get("troy_approves_first",
                                                      APPROVES_FIRST_DEFAULT),
         summary_max_chars=data.get("summary", {}).get("max_chars", SUMMARY_MAX_CHARS_DEFAULT),
+        hooks_log_days=data.get("hooks", {}).get("log_days", HOOKS_LOG_DAYS_DEFAULT),
     )

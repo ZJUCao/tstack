@@ -1,9 +1,11 @@
 """SessionStart group (F05 design sections 3 and 8.1, and 13.1).
 
 SessionStart turns the project's git hooks on when core.hooksPath is unset,
-leaves another value and reports it, reports missing hook files, and removes
-role records and log lines older than a day (records by file time, log lines
-by their time field, contract section 4).
+leaves another value and reports it, reports missing hook files, removes role
+records older than a day (by file time, contract section 4), and removes log
+lines older than ``[hooks] log_days`` days, 30 by default (by their time
+field, D219). The log-days cases are in test_log_days.py; the log test here
+sets ``log_days = 1`` to keep its one-day ages.
 """
 
 import json
@@ -13,7 +15,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from hook_helpers import (
-    GIT_HOOK_NAMES, HOOKS_PATH, HookTestCase, Project, session_call, write_file,
+    GIT_HOOK_NAMES, HOOKS_PATH, HookTestCase, Project, make_config, session_call, write_file,
 )
 
 DAY = 24 * 60 * 60
@@ -72,7 +74,7 @@ class HooksPathTests(HookTestCase):
 
 
 class CleanupTests(HookTestCase):
-    """Design 3: records and log lines older than a day are removed."""
+    """Design 3: records older than a day, and log lines older than log_days days, go."""
 
     def test_old_records_are_removed_and_recent_ones_kept(self):
         """A record two days old is deleted; one an hour old stays."""
@@ -88,8 +90,8 @@ class CleanupTests(HookTestCase):
         self.assertTrue(recent.exists(), "a recent record was removed")
 
     def test_old_log_lines_are_removed_and_recent_ones_kept(self):
-        """Log lines older than a day go; a line an hour old and one from now stay, in order."""
-        project = Project()
+        """With log_days = 1, lines older than a day go; an hour old and now stay, in order."""
+        project = Project(config=make_config(extra="[hooks]\nlog_days = 1\n"))
         self.addCleanup(project.close)
         lines = [log_line(3 * DAY, "agent-oldest"), log_line(DAY + 600, "agent-old"),
                  log_line(3600, "agent-recent"), log_line(0, "agent-now")]
