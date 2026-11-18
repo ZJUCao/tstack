@@ -214,5 +214,94 @@ class VersionReleaseSkillTests(unittest.TestCase):
         self.assertNotIn("not built", text.lower())
 
 
+def routing_section(body: str) -> str:
+    """The text of ``## Routing`` up to the next ``## `` heading, or "" when it is missing."""
+    lines = body.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.strip() == "## Routing"), None)
+    if start is None:
+        return ""
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+               len(lines))
+    return "\n".join(lines[start:end])
+
+
+class VersionReachTests(unittest.TestCase):
+    """D203 (F07 design 4 and 16), tstack issue #52: "Start v0.1" reaches the whole version.
+
+    A feature-loop request that names a version reaches that version's remaining features; the
+    reach ends before the release, which stays its own request.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Cuts the Routing section out of SKILL.md; empty when the file or section is missing."""
+        text = SKILL.read_bytes().decode("utf-8") if SKILL.is_file() else ""
+        body = split_skill(text)[1]
+        cls.section = routing_section(body)
+        cls.rows = routing_rows(body)
+        cls.bullets = [line for line in cls.section.split("\n") if line.startswith("- **How far")]
+
+    def row_cell(self, flow: str) -> str:
+        """The request cell of the routing row whose flow cell is exactly ``flow``."""
+        cells = [row[0] for row in self.rows if len(row) == 2 and row[1] == flow]
+        self.assertEqual(len(cells), 1, f"one {flow} row expected, got {cells}")
+        return cells[0]
+
+    def how_far(self) -> str:
+        """The one ``- **How far`` bullet of the Routing section."""
+        self.assertEqual(len(self.bullets), 1, self.bullets)
+        return self.bullets[0]
+
+    def test_feature_loop_row_lists_start_v01(self):
+        """The Feature loop row's request cell lists "Start v0.1", with the double quotes."""
+        self.assertIn('"Start v0.1"', self.row_cell("Feature loop"))
+
+    def test_feature_loop_row_keeps_its_examples(self):
+        """The Feature loop row still lists "next feature", "F04", "F04 to F06", and the rest."""
+        cell = self.row_cell("Feature loop")
+        for example in ('"next feature"', '"F04"', '"F04 to F06"', '"the rest of v0.1"'):
+            with self.subTest(example=example):
+                self.assertIn(example, cell)
+
+    def test_start_v01_is_only_in_the_feature_loop_row(self):
+        """No other routing row claims "Start v0.1"."""
+        others = [row[0] for row in self.rows if len(row) == 2 and row[1] != "Feature loop"]
+        self.assertTrue(others)
+        for cell in others:
+            self.assertNotIn('"Start v0.1"', cell)
+
+    def test_version_release_row_keeps_release_v01(self):
+        """The Version release row's request cell still lists "release v0.1"."""
+        self.assertIn('"release v0.1"', self.row_cell("Version release"))
+
+    def test_how_far_names_d203_and_d63(self):
+        """The How far bullet names D203 and still D63."""
+        bullet = self.how_far()
+        self.assertRegex(bullet, r"\bD203\b")
+        self.assertRegex(bullet, r"\bD63\b")
+
+    def test_how_far_says_a_named_version_reaches_not_yet_accepted_features(self):
+        """The How far bullet says a request naming a version reaches the features not yet
+        accepted."""
+        bullet = self.how_far()
+        self.assertIn("not yet accepted", bullet)
+        self.assertIn("version", bullet)
+
+    def test_how_far_says_approvals_still_stop_the_loop(self):
+        """The How far bullet says Troy's approvals still stop the loop and that it goes on
+        after Troy approves."""
+        bullet = self.how_far()
+        self.assertRegex(bullet, r"(?i)approvals?\b.*\bstops?\b|\bstops?\b.*approvals?\b")
+        self.assertRegex(bullet, r"(?i)\bafter Troy approves, (go|goes) on\b")
+
+    def test_how_far_ends_the_reach_before_the_release(self):
+        """The How far bullet says the reach ends before the release and names "release v0.1"
+        as its own request."""
+        bullet = self.how_far()
+        self.assertRegex(bullet, r"(?i)\bends before\b[^.]*\brelease\b")
+        self.assertRegex(bullet, r"(?i)own request|request of its own")
+        self.assertIn('"release v0.1"', bullet)
+
+
 if __name__ == "__main__":
     unittest.main()

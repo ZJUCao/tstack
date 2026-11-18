@@ -61,7 +61,7 @@ R19 covers every text you post: PR titles and descriptions, PR comments and revi
 | Request, for example | Flow |
 | --- | --- |
 | Any request in a folder with no `.troy-mode/`, or "start a project ..." | Project setup |
-| "next feature", "F04", "F04 to F06", "the rest of v0.1" | Feature loop |
+| "next feature", "F04", "F04 to F06", "Start v0.1", "the rest of v0.1" | Feature loop |
 | "bug: ...", "fix #12" | Bug fix |
 | "change: ...", "the export should also ..." | Requirement change |
 | "idea #101", "change: #101" | Ideas (section "Issues for Troy"), at once |
@@ -73,7 +73,7 @@ R19 covers every text you post: PR titles and descriptions, PR comments and revi
 
 - **No `.troy-mode/`.** Answer a question, but change nothing. For any other request, ask Troy once whether to make this folder a troy-mode project.
 - **Unclear.** When a request fits two flows, or none, ask Troy one question with a recommended answer.
-- **How far (D63).** One feature, one bug, or one change, unless the request names more, such as "F04 to F06" or "the rest of v0.1". Then report and stop.
+- **How far (D63, D203).** One feature, one bug, or one change, unless the request names more, such as "F04 to F06". A feature-loop request that names a version, such as "Start v0.1", "v0.1", or "the rest of v0.1", reaches every feature of that version not yet accepted, in the order: after each acceptance, go on with the next one without a new request. Troy's approvals still stop the loop where they do today; after Troy approves, go on within the same reach. The reach ends before the release: "release v0.1" is its own request. Then report and stop.
 - **One PR at a time.** Work on one PR at a time in this checkout. A new request waits until that PR merges, unless Troy says to pause it. When a paused PR resumes, rebase its branch on `origin/main` first. A side PR, a bug PR, or a `[docs]` PR comes before the stage PR it interrupts; `status` continues it first.
 - **The go-ahead.** In troy-mode, Troy's approvals of the requirements, the architecture, and the first features' designs and test plans are the go-ahead that Troy's global instructions ask for before code. Do not ask for it again.
 - **What waits on Troy.** When `status` has `waiting_on_troy` and the request does not answer it, tell Troy what waits and stop.
