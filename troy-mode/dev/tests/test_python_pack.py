@@ -3,14 +3,25 @@
 The pack's files are checked against the design. The sample's CI workflow
 is checked against the pack's CI job, so the sample runs the same steps a
 project runs. build_sample.py runs as a subprocess, as CI runs it.
+
+D214 planted bugs (F03 design 8.2) caught here: docs/ missing from the
+pack's [tool.ruff] extend-exclude, a bare docs in its place, .troy-mode
+dropped, or the list moved to exclude, which replaces ruff's defaults
+(PackFileTests.test_ruff_leaves_out_troy_mode_and_docs, and in the built
+sample BuildSampleTests.test_built_sample_ruff_leaves_out_docs_and_the_design_example);
+the sample design's example formatted, so its CI no longer shows that ruff
+leaves docs/ out (SampleDesignTests.test_sample_design_has_an_example_ruff_would_format).
 """
 
+import ast
+import io
 import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import tokenize
 import tomllib
 import unittest
 from pathlib import Path
@@ -25,6 +36,39 @@ SAMPLE = TROY_MODE / "samples" / "python"
 SAMPLE_WORKFLOW = WORKFLOWS / "troy-python-sample.yml"
 DESIGN_TITLE = "[F01 1/6 design] Count words in a text"
 SETUP_TITLE = "[docs] Set up textstats with troy-mode"
+DESIGN_PATH = "docs/features/F01-word-counts/design.md"
+SAMPLE_DESIGN = SAMPLE / "stages" / "1-design" / DESIGN_PATH
+# D214 (F03 design 8.2): what the pack's ruff leaves out. docs/ with its slash
+# is relative to the project root; a bare docs would also leave out src/<pkg>/docs.
+RUFF_EXCLUDES = [".troy-mode", "docs/"]
+_PYTHON_BLOCK = re.compile(r"(?ms)^```python[ \t]*\n(.*?)^```[ \t]*$")
+_ANY_BLOCK = re.compile(r"(?ms)^```.*?^```[ \t]*$")
+
+
+def python_blocks(text: str) -> list[str]:
+    """The code of each fenced ```python block of a Markdown text."""
+    return _PYTHON_BLOCK.findall(text)
+
+
+def restyled_strings(code: str) -> list[str]:
+    """The string literals that ruff's default format turns into double quotes.
+
+    That is a literal in single quotes with no double quote in it, which ruff
+    rewrites with double quotes. f-strings are left out.
+    """
+    found = []
+    for token in tokenize.generate_tokens(io.StringIO(code).readline):
+        if token.type == tokenize.STRING:
+            body = token.string.lstrip("rRbBuU")
+            if body.startswith("'") and '"' not in body:
+                found.append(token.string)
+    return found
+
+
+def ruff_excludes(pyproject: str) -> tuple[list[str], bool]:
+    """A pyproject.toml's [tool.ruff] extend-exclude, sorted, and whether it sets exclude."""
+    ruff = tomllib.loads(pyproject).get("tool", {}).get("ruff", {})
+    return sorted(ruff.get("extend-exclude", [])), "exclude" in ruff
 
 
 class PackFileTests(unittest.TestCase):
@@ -69,6 +113,15 @@ class PackFileTests(unittest.TestCase):
         self.assertEqual(["tests"], tool["pytest"]["ini_options"]["testpaths"])
         self.assertEqual("-ra --strict-markers", tool["pytest"]["ini_options"]["addopts"])
         self.assertEqual({"branch": True, "source": ["src"]}, tool["coverage"]["run"])
+
+    def test_ruff_leaves_out_troy_mode_and_docs(self) -> None:
+        """D214: [tool.ruff] extend-exclude is exactly .troy-mode and docs/, and exclude is unset.
+
+        D214 planted bugs caught: docs/ missing, a bare docs, .troy-mode dropped,
+        or the list moved to exclude, which would replace ruff's default excludes.
+        """
+        text = (PACK / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertEqual((sorted(RUFF_EXCLUDES), False), ruff_excludes(text))
 
     def test_new_project_file_holds_build_system_project_and_wheel(self) -> None:
         """pyproject-project.toml has hatchling, the name, 0.1.0, Python 3.13, and the package."""
@@ -256,6 +309,45 @@ class SampleSettingsTests(unittest.TestCase):
                         .is_file())
 
 
+class SampleDesignTests(unittest.TestCase):
+    """The sample's design holds an example ruff would format, so CI shows D214 at work.
+
+    The tests and impl PRs of the sample run ruff check and ruff format --check
+    on a tree that holds this design; they pass only while ruff leaves docs/ out.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Reads the sample's design once."""
+        cls.text = SAMPLE_DESIGN.read_text(encoding="utf-8")
+
+    def test_sample_design_has_an_example_ruff_would_format(self) -> None:
+        """A ```python block of valid code holds a single-quoted string ruff turns into "...".
+
+        D214 planted bug caught: the example formatted (or dropped), so the
+        sample's CI would pass whether or not ruff leaves docs/ out.
+        """
+        blocks = python_blocks(self.text)
+        self.assertTrue(blocks, "the sample's design has no ```python block")
+        for code in blocks:
+            with self.subTest(code=code):
+                ast.parse(code)
+        restyled = [s for code in blocks for s in restyled_strings(code)]
+        self.assertTrue(restyled, "no string literal in the design's examples is single-quoted")
+
+    def test_sample_design_says_its_examples_are_not_format_checked(self) -> None:
+        """Outside its code blocks, the design says examples are not format-checked, naming D214."""
+        prose = _ANY_BLOCK.sub("", self.text)
+        self.assertIn("not format-checked", prose)
+        self.assertIn("D214", prose)
+
+    def test_sample_design_keeps_its_front_matter(self) -> None:
+        """The front matter is the one the sample's design had before D214."""
+        self.assertTrue(self.text.startswith(
+            '---\ntroy-doc: "F01-design"\nlang: "en"\nversion: "1.0"\nupdated: "2026-11-06"\n'
+            'status: "Sample."\n---\n'), self.text[:200])
+
+
 class BuildSampleTests(unittest.TestCase):
     """build_sample.py builds the repository a PR of the sample is checked in."""
 
@@ -377,6 +469,19 @@ class BuildSampleTests(unittest.TestCase):
         self.assertNotIn("{{", rules)
         self.assertNotIn("<!--", rules)
         self.assertEqual(pack_workflow("python"), self.show(".github/workflows/troy-mode.yml"))
+
+    def test_built_sample_ruff_leaves_out_docs_and_the_design_example(self) -> None:
+        """D214 end to end: the tests PR's pyproject.toml, which troy-init's functions append
+        to, leaves out docs/, where the design's unformatted example sits for CI's ruff.
+
+        D214 planted bugs caught: docs/ missing or bare, .troy-mode dropped, or exclude set.
+        """
+        self.root()
+        self.assertEqual((sorted(RUFF_EXCLUDES), False),
+                         ruff_excludes((self.repo / "pyproject.toml").read_text("utf-8")))
+        design = lf_bytes(git_bytes(self.repo, "show", f"pr:{DESIGN_PATH}")).decode("utf-8")
+        self.assertTrue([s for code in python_blocks(design) for s in restyled_strings(code)],
+                        "the tests PR's design has no example that ruff format would change")
 
     def test_first_commit_keeps_the_sample_lock(self) -> None:
         """The sample's own committed lock is the one in the first commit."""

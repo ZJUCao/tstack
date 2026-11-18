@@ -4,6 +4,12 @@ Each class sets up a project whose origin/main holds an approved
 architecture, makes the setup commit, and runs `lang ... --no-env` once; the
 tests only read the result. The environment and the lock are tested in
 test_lang_env.py, and the preconditions in test_lang_preconditions.py.
+
+D214 planted bugs (F03 design 8.2) caught here, in a created and in an
+appended pyproject.toml: docs/ missing from [tool.ruff] extend-exclude, a
+bare docs, .troy-mode dropped, or the list moved to exclude
+(PythonLangTest.test_lang_created_pyproject_leaves_docs_out_of_ruff,
+PythonExistingFilesTest.test_lang_appended_tables_leave_docs_out_of_ruff).
 """
 
 import datetime
@@ -16,10 +22,10 @@ from init_helpers import (
 )
 from lang_helpers import (
     BUILD_FILES, CPP_COPIED, ENVIRONMENT_KEYS, GITIGNORE_LINES, INCLUDE_LINE, LANG_DATE,
-    LANG_REPORT_KEYS, LOCKS, TITLES, crlf_lang, expected_environment, expected_new_cmakelists,
-    expected_new_pyproject, expected_workflow, join_parts, lang_actions, lang_owned,
-    lang_project, lang_stage, lang_values, pack_text, parse_config_with_troy_check, run_lang,
-    shared_lang_project, split_lang_table,
+    LANG_REPORT_KEYS, LOCKS, RUFF_EXCLUDES, TITLES, crlf_lang, expected_environment,
+    expected_new_cmakelists, expected_new_pyproject, expected_workflow, join_parts, lang_actions,
+    lang_owned, lang_project, lang_stage, lang_values, pack_text, parse_config_with_troy_check,
+    ruff_excludes, run_lang, shared_lang_project, split_lang_table,
 )
 from rules_helpers import nonblank_lines as nonblank_lines_of
 
@@ -213,6 +219,16 @@ class PythonLangTest(LangRunCase):
             with self.subTest(tool=tool):
                 self.assertEqual(data["tool"][tool], settings)
 
+    def test_lang_created_pyproject_leaves_docs_out_of_ruff(self):
+        """D214: the created file's ruff extend-exclude is .troy-mode and docs/, with no exclude.
+
+        D214 planted bugs caught: docs/ missing, a bare docs, .troy-mode dropped,
+        or the list moved to exclude, which would replace ruff's default excludes.
+        """
+        self.report()
+        self.assertEqual(ruff_excludes(self.project.read("pyproject.toml")),
+                         (sorted(RUFF_EXCLUDES), False))
+
     def test_lang_adds_the_pack_job_to_the_workflow(self):
         """The workflow is F02's workflow, a blank line, and the pack's job."""
         self.report()
@@ -313,6 +329,16 @@ class PythonExistingFilesTest(LangRunCase):
         self.assertEqual(data["tool"]["hatch"], own["tool"]["hatch"])
         fragment = tomllib.loads(pack_text(self.plugin, "python", "pyproject.toml"))
         self.assertEqual(data["tool"]["ruff"], fragment["tool"]["ruff"])
+
+    def test_lang_appended_tables_leave_docs_out_of_ruff(self):
+        """D214: after the append, ruff's extend-exclude is .troy-mode and docs/, with no exclude.
+
+        D214 planted bugs caught: docs/ missing, a bare docs, .troy-mode dropped,
+        or the list moved to exclude, which would replace ruff's default excludes.
+        """
+        self.assertEqual(self.actions_of(self.report())["pyproject.toml"], "append")
+        self.assertEqual(ruff_excludes(self.project.read("pyproject.toml")),
+                         (sorted(RUFF_EXCLUDES), False))
 
     def test_lang_lists_existing_tests_as_legacy(self):
         """Tracked and untracked tests matching the pack's patterns are legacy, sorted."""

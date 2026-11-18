@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 1.1 |
-| Date | 2026-11-07 |
+| Version | 1.2 |
+| Date | 2026-11-18 |
 | Source of truth | This English file. [`README.zh-CN.md`](README.zh-CN.md) is the Chinese mirror. |
 
 The Python pack makes troy-check's language rules run in a Python project: R04 to R07 on the code, and R09 to R11 on the test run. `troy-init` (F06) copies it into a project. [The F03 design](../../../docs/troy-mode/design/F03-language-packs.md), section 8, records why each choice was made.
@@ -54,7 +54,7 @@ Run them in the activated environment, or as `mamba run -n <environment> <comman
 
 ## 4. Tool settings
 
-- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in tstack. It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests, and the version tests in `version-tests/`, may use `assert` and need no annotations.
+- **ruff** uses troy-voice's rule set plus the `D` rules with the Google convention, which check docstrings (R05). It skips `.troy-mode`, because troy-check is checked in tstack, and `docs/`, because ruff also formats the python code blocks in Markdown files and a design's examples are not the project's code (F03 design D214). It ignores RUF001, so strings may hold Chinese punctuation. RUF002 and RUF003 stay on, because R05 keeps Chinese out of docstrings and comments anyway. Tests, and the version tests in `version-tests/`, may use `assert` and need no annotations.
 - **mypy** checks `src` in strict mode.
 - **pytest** finds tests in `tests/` and runs with `-ra --strict-markers`. It leaves out the version tests in `version-tests/`, which run only in the release test (F08 design 5.3). Their names start with their scenario ID, for example `test_v0_1_s01_counts_words_and_lines`.
 - **coverage** measures lines and branches in `src`.

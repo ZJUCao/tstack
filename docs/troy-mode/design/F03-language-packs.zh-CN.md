@@ -1,13 +1,13 @@
 # F03 设计：语言包
 
-> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.5（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F03-language-packs.md`](F03-language-packs.md) 的中文镜像，同步自英文版 1.6（2026-11-18）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.6](../requirements.zh-CN.md#72-功能列表) 中的 F03 |
-| 版本 | 1.5 |
-| 日期 | 2026-11-08 |
-| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。1.2 版记录 F06 已批准设计带来的修改（D49、D50）。 |
+| 版本 | 1.6 |
+| 日期 | 2026-11-18 |
+| 状态 | Troy 已于 2026-11-05 批准，含 D15 到 D24。1.1 版加入 Troy 于 2026-11-06 决定的 D25 和 D26。1.2 版记录 F06 已批准设计带来的修改（D49、D50）。1.6 版加入 D214，由 Troy 于 2026-11-18 作为 tstack issue #51 批准。 |
 | 事实来源 | 英文版 [`F03-language-packs.md`](F03-language-packs.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -214,10 +214,14 @@ uv pip install -e . --no-deps
 
 `pyproject.toml` 片段增加一个 `dev` 可选依赖组，包含 ruff、mypy、pytest 和 coverage，并配置它们：
 
-- **ruff** 使用 troy-voice 的规则集，外加 `D` 规则并设 `convention = "google"`，用来检查 docstring 的格式（R05）。它也检查代码格式。
+- **ruff** 使用 troy-voice 的规则集，外加 `D` 规则并设 `convention = "google"`，用来检查 docstring 的格式（R05）。它也检查代码格式。它不检查 `.troy-mode/`（其中的 troy-check 在 tstack 里检查）和 `docs/`（D214）：ruff 也会格式化 Markdown 文件里的 python 代码块，而功能设计里的示例不是项目的代码。`docs/` 带斜杠，相对于项目根目录，所以 `src/` 下名为 `docs` 的包文件夹仍然受检查。
 - **mypy** 以严格模式运行，和 troy-voice 一样。
 - **pytest** 在 `tests/` 里找测试，`addopts = "-ra --strict-markers"`。
 - **coverage** 统计分支：`branch = true`，`source = ["src"]`。
+
+D214 之前设置好的项目保留旧的 `extend-exclude`，因为 troy-init 的升级从不修改追加进 `pyproject.toml` 的表（F06 设计 D54）。升级报告把 `tool.ruff.extend-exclude` 列为与插件语言包不同的设置，由 Troy 把新值放进一个 `[rules]` PR，和其他语言包设置一样。
+
+Python 示例项目的设计里有一个 `ruff format` 会改动的代码示例，所以每个带代码的 PR 上，示例项目的 CI 任务都会显示 ruff 不检查 `docs/`。
 
 ### 8.3 命令
 
@@ -355,6 +359,7 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2
 | D24 | R 规则之外的 Python 工具。 | 语言包沿用 troy-voice 的默认做法：范围很广的 ruff 规则集、ruff 的格式检查，以及严格模式的 mypy。项目可以通过规则变更流程去掉它们。 |
 | D25 | GoogleTest 从哪里来。第 9.2 节原本把它放进 mamba 环境，但 conda-forge 在 Windows 上的 GoogleTest 是 MSVC 编译的，MSYS2 GCC 链接不了，这一点已在 Troy 的电脑上实测。 | `cmake/troy.cmake` 用 CMake 的 FetchContent 下载 GoogleTest 1.18.0 的发布包，校验 SHA256，再用项目自己的编译器编译。CI 和 Troy 的电脑用同一个版本。Troy 于 2026-11-06 选定这个方案，没有选各平台的包管理器，也没有选在本机改用 MSVC。 |
 | D26 | troy-pstack 自己的测试从哪里拿到 lizard（C/C++ 适配器需要它）。之前这些测试用系统 Python 跑。 | troy-pstack 自成一个系列，有自己的环境 `troy-pstack`，由 `troy-mode/dev/environment.yml` 创建，lizard 和 gcovr 按 `troy-mode/dev/requirements-dev.lock` 安装。环境里也有 C/C++ 工具，所以 C++ 示例能在 Troy 的电脑上跑。CI 安装同一份锁文件。Troy 于 2026-11-06 选定。 |
+| D214 | Python 语言包的 ruff 检查和格式化哪些文件？ruff 也会格式化 Markdown 文件里的 python 代码块，所以示例过宽或用了另一种引号的设计 PR 在 CI 的 `ruff format --check` 上失败，而没有 shell 的界面设计师无法运行它。试点中，F01 需要一个附带的 PR，F08 的设计两次没通过 CI，F09 的界面设计师浪费了一次尝试。来自 tstack issue #51。它的编号取自为这批试点修复保留的 D213 到 D218。 | A：语言包 `[tool.ruff]` 的 `extend-exclude` 加上 `docs/`，ruff 不再检查或格式化项目 `docs/` 文件夹下的任何文件（第 8.2 节）。B，Troy 没有采用：入口技能在推送之前对设计 PR 的文档运行语言包的格式检查。C，Troy 没有采用：界面设计师的指令写明代码示例的格式规则。 | A。设计里的示例展示接口，并不运行；代码本身仍然经过 lint、格式检查，以及 R04 到 R07 和测试的检查。改动只是语言包里的一项，不加新步骤，也不加新的角色文字。带斜杠的 `docs/` 相对于项目根目录，ruff 0.17.4 在一个临时项目上证实了这一点：不带斜杠的 `docs` 还会漏掉 `src/` 下名为 `docs` 的包文件夹。已有项目通过升级报告和一个 `[rules]` PR 拿到它（第 8.2 节）。Troy 于 2026-11-18 批准（issue #51）。 |
 
 需求文档 1.6 记录了批准后的修改：
 
@@ -376,3 +381,4 @@ Troy 已于 2026-11-05 批准全部十项提议，其中 D20 修改过一次。2
 | 1.3 | 2026-11-07 | 第 3 节：`troy-check code --worktree` 把工作区当作已提交来检查，供不能提交的作者使用。来自 F07 设计第 12 节（D60）。 |
 | 1.4 | 2026-11-08 | 来自 F08 设计第 9 节：`[v0.1 tests]` PR 对 R09 和 R10 来说是“其他任何类型”（第 4.2 节）。版本测试放在 `version-tests/` 里，pytest 的 `testpaths` 不包含它；Python 语言包的 ruff 对它们用和测试一样的豁免（F08 试运行时发现）。C/C++ 语言包的 `cmake/troy.cmake` 加了 `troy_add_version_test`：只有那一次配置设了 `TROY_VERSION_TESTS=ON` 时才构建版本测试，并给它们打上 `version` 标签。两个 README 都写了发布命令。 |
 | 1.5 | 2026-11-08 | 来自 F09 设计第 8 节：项目规则的测试清理 PR `[P01 test-fix] ...` 对 R09 和 R10 来说是“其他任何类型”（第 4.2 节），R10 不为它找功能的测试方案。 |
+| 1.6 | 2026-11-18 | D214，来自 tstack issue #51，由 Troy 于 2026-11-18 批准：Python 语言包的 ruff 不检查 `docs/`，所以设计里的代码示例不再在 CI 里做格式检查。已有项目通过升级报告拿到它，Python 示例项目的设计在 CI 里展示这一点（第 8.2 和 12 节）。 |
