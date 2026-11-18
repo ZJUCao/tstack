@@ -16,6 +16,21 @@ Planted bugs of F09 design 10.2 caught here:
 - "Since changed on a changed rule": ``WriteTests.test_change_keeps_since``.
 - "the version raised by a minor step instead of to the next major":
   ``VersionTests.test_next_major_version``.
+
+F07 D201 (tstack issue #46) writes down that ``rule-row`` refuses, and writes
+nothing, when either file has no change-log table, and makes its problem
+name that file and both headings, ``Change log`` and ``修改记录``. Its planted
+bugs of F07 design 14.2 are caught by ``RefusalTests``:
+
+- "the note with exit 0 kept": the cases "no English change log table",
+  "no change log table", and "Chinese change log heading renamed" of
+  ``test_each_reason_is_refused_and_nothing_is_written``.
+- "the mirror written before the English file's table is checked": its case
+  "no English change log table".
+- "the check made on the English file only": its cases "no change log table"
+  and "Chinese change log heading renamed".
+- A problem without the file or the headings:
+  ``test_change_log_problem_names_the_file_and_both_headings``.
 """
 
 import datetime
@@ -41,6 +56,8 @@ CHANGE_P02 = rule_data(P02_NEW.rule, P02_NEW.rule_zh, "Soft", "软", P02_NEW.by,
                        "修改 P02，Troy 批准。" + TOUCHED_ZH)
 RETIRE_P03 = {"change": {"en": "Retired P03, approved by Troy.", "zh-CN": "停用 P03，Troy 批准。"}}
 _ORIGIN = [rules_step()]
+# The two change-log headings a D201 problem names (interface note for #46).
+HEADINGS = ("Change log", "修改记录")
 
 
 def approved(rules, log, version: str, **kwargs) -> dict:
@@ -314,6 +331,13 @@ def five_columns(text: str) -> str:
     return "\n".join(out)
 
 
+def swap(text: str, old: str, new: str) -> str:
+    """Replaces a part that occurs exactly once."""
+    if text.count(old) != 1:
+        raise AssertionError(f"{old!r} occurs {text.count(old)} times")
+    return text.replace(old, new)
+
+
 class RefusalTests(FlowCase):
     """Exit 1: ok false, a problem per reason, and both files unchanged (note section 4)."""
 
@@ -325,6 +349,8 @@ class RefusalTests(FlowCase):
         no_log_zh = zh.split("## 3. 修改记录")[0] + "## 3. 修改记录\n\n无。\n"
         no_table_en = en.split("## 2. Rules")[0] + "## 2. Rules\n\nNone yet.\n\n" + \
             "## 3. Change log" + en.split("## 3. Change log")[1]
+        no_log_en = en.split("## 3. Change log")[0] + "## 3. Change log\n\nNone.\n"
+        renamed_log_zh = swap(zh, "## 3. 修改记录\n", "## 3. 变更记录\n")
         cls.cases = {
             "English file missing": {"id": "P04", "data": rule_data(), "files": {RULES: None}},
             "mirror missing": {"id": "P04", "data": rule_data(), "files": {RULES_ZH: None}},
@@ -337,6 +363,10 @@ class RefusalTests(FlowCase):
                              "files": {RULES_ZH: five_columns(zh)}},
             "no change log table": {"id": "P04", "data": rule_data(),
                                     "files": {RULES_ZH: no_log_zh}},
+            "no English change log table": {"id": "P04", "data": rule_data(),
+                                            "files": {RULES: no_log_en}},
+            "Chinese change log heading renamed": {"id": "P04", "data": rule_data(),
+                                                   "files": {RULES_ZH: renamed_log_zh}},
             "empty cell": {"id": "P04", "data": rule_data(rule="   ")},
             "line break": {"id": "P04", "data": rule_data(by_zh="Lint\n（ruff E722）")},
             "carriage return": {"id": "P04", "data": rule_data(rule_zh="不写裸\rexcept。")},
@@ -395,6 +425,21 @@ class RefusalTests(FlowCase):
         """A type that is not allowed and a change that does not name the ID: two problems."""
         report = self.report_of(self.results["two reasons"][0], 1, "rule-row")
         self.assertGreaterEqual(len(report["problems"]), 2, report["problems"])
+
+    def test_change_log_problem_names_the_file_and_both_headings(self):
+        """D201: a file without a change-log table (English with ``None.``, the mirror with
+        ``无。``, the mirror headed ``变更记录``) is refused with both files unchanged, and a
+        problem holds that file's path, ``Change log``, and ``修改记录``."""
+        for name, path in (("no English change log table", RULES),
+                           ("no change log table", RULES_ZH),
+                           ("Chinese change log heading renamed", RULES_ZH)):
+            with self.subTest(case=name):
+                out, before, after, _ = self.results[name]
+                problems = self.report_of(out, 1, "rule-row")["problems"]
+                self.assertEqual(after, before)
+                self.assertTrue(any(isinstance(problem, str) and path in problem
+                                    and all(heading in problem for heading in HEADINGS)
+                                    for problem in problems), problems)
 
     def test_next_id_after_a_retired_one_is_written(self):
         """After a retired P04, P05 is the next free ID: added after the retired row."""

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F09 in [requirements 1.25](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-08, with D79 to D85. Version 1.1 records Troy's standing permission for trials (section 10.3). Version 1.2 records the details the build settled (section 3.3) and the trial's facts (section 10.3). |
+| Version | 1.3 |
+| Date | 2026-11-18 |
+| Status | Approved by Troy on 2026-11-08, with D79 to D85. Version 1.1 records Troy's standing permission for trials (section 10.3). Version 1.2 records the details the build settled (section 3.3) and the trial's facts (section 10.3). Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. |
 | Source of truth | This English file. [`F09-rule-change.zh-CN.md`](F09-rule-change.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -73,7 +73,7 @@ The rule state lives in git and on GitHub (F07 D58):
 ### 3.3 Details the build settled
 
 - **The rules table** is the first table with a row whose ID is an R or a P ID. A P ID is `P` and two or three digits. The next free ID is one more than the highest P number, retired rows included. A retired row's Rule cell starts with "Retired on <date>." in English and "已于 <date> 停用。" in Chinese; its Enforced by cell becomes "None" and "无".
-- **`--rule-file`** is `{"rule": {"en": ..., "zh-CN": ...}, "type": {...}, "enforced_by": {...}, "change": {...}}`; with `--retire` only `change` is needed. The type is Hard, Soft, Review, or Process, with the Chinese 硬, 软, 审查, or 流程. `rule-row` refuses, and writes nothing, when a cell is empty, holds a line break, or holds a `|` without a `\`; when the change-log text does not name the ID; when a new ID is not the next free one; when the row is retired; and when the two files' versions differ.
+- **`--rule-file`** is `{"rule": {"en": ..., "zh-CN": ...}, "type": {...}, "enforced_by": {...}, "change": {...}}`; with `--retire` only `change` is needed. The type is Hard, Soft, Review, or Process, with the Chinese 硬, 软, 审查, or 流程. `rule-row` refuses, and writes nothing, when a cell is empty, holds a line break, or holds a `|` without a `\`; when the change-log text does not name the ID; when a new ID is not the next free one; when the row is retired; when the two files' versions differ; and when either file has no change-log table under a "Change log" or "修改记录" heading (F07 D201).
 - **A baseline line** is any line holding `baseline:` and a P ID, in a file of the `config` or `dependencies` class on `origin/main`, except Markdown files and troy-mode's copies under `.troy-mode/` other than its config. `check-run` reads a dependency change through `git diff` against the snapshot's head, so the checkout's line-ending conversion does not count as a change.
 - **Troy's choice** is read from the newest change-log row whose text names the rule's ID as a word.
 - **`rule-id`** also gives the next R ID (`next_r_id`), for a rule for every project. **`status`** gives the P rules, with their choice and baseline lines, in a new report key `rules`. `cleanup` names the rule in `next.item`, the lowest P number first, and comes after `release` and before `ask-approvals`. An open `[refactor] Apply P01 to ...`, `[P01 test-fix] ...`, or `[docs] Change the architecture for P01` PR is continued with DV5, TE6, or AR6.
@@ -301,3 +301,4 @@ Requirements 1.25 records the approved changes:
 | 1.0 | 2026-11-08 | Approved by Troy with D79 to D85, every recommended answer. |
 | 1.1 | 2026-11-08 | Section 10.3 and D85: the trial runs under Troy's standing permission for troy-mode trials on `ZJUCao/troy-mode-trial`, which Troy added on 2026-11-08, in place of a yes in chat. A process change of Troy's, not a requirement change. |
 | 1.2 | 2026-11-08 | Section 3.3: the details the build settled: the rules table and its IDs, the rule file, baseline lines, how `status` and `brief` treat rules, and the next R ID. Section 10.3: what the trial ran and the three gaps it found, now fixed. |
+| 1.3 | 2026-11-18 | F07 D201, from tstack issue #46, approved by Troy on 2026-11-18: `rule-row`'s refusal when either file has no change-log table, which the build already had, is now written down, and its problem names the headings looked for (section 3.3). |

@@ -1,5 +1,11 @@
 """Approve and text group (F07 design 8.4, 8.6, 14.1): ``approve`` and ``check-text``.
 
+Since D201 (F07 design 16, tstack issue #46), ``approve`` refuses a pair in
+which either file has no change-log table, so the requirements pair here
+holds a change log in both languages, and an approval also adds its row
+there (F08 D77). ``test_approve_change_log`` tests the row and the refusal
+in detail.
+
 Planted bug of design 14.2 caught here: "``approve`` raising only the English
 file": ``ApproveTests.test_approve_raises_both_languages``,
 ``test_approve_from_the_mirror``, and ``test_next_major_from_a_minor_version``.
@@ -18,35 +24,48 @@ ZH = "docs/requirements.zh-CN.md"
 EN_STATUS = 'status: "Draft. In review."'
 ZH_STATUS = 'status: "草稿，审查中。"'
 UPDATED = 'updated: "2026-11-01"'
+EN_LOG_ROW = "| 0.1 | 2026-11-01 | First draft. |\n"
+ZH_LOG_ROW = "| 0.1 | 2026-11-01 | 初稿。 |\n"
 
 
-def pair(version: str = "0.3", zh_version=None) -> dict:
+def pair(version: str = "0.3", zh_version=None, zh_log: bool = True) -> dict:
     """The requirements and their mirror, each with a body that repeats the header lines.
 
     The body holds the same ``version``, ``updated``, and ``status`` lines in
-    a fenced block, so only the front matter's lines may change.
+    a fenced block, so only the front matter's lines may change, and then a
+    change log with one row (D201: ``approve`` needs one in both files).
 
     Args:
         version: The English version.
         zh_version: The Chinese version, or None for the same.
+        zh_log: Whether the mirror has its change log.
 
     Returns:
         Paths mapped to text.
     """
     sample = f'```yaml\nversion: "{version}"\n{UPDATED}\n{EN_STATUS}\n```\n'
     en = (front_matter("requirements", "en", version, "requirements.zh-CN.md")
-          + "# wordcount requirements\n\nA header looks like this:\n\n" + sample)
+          + "# wordcount requirements\n\nA header looks like this:\n\n" + sample
+          + "\n## 2. Change log\n\n| Version | Date | Change |\n| --- | --- | --- |\n"
+          + EN_LOG_ROW)
     zh = (front_matter("requirements", "zh-CN", zh_version or version, "requirements.md")
           + "# wordcount 需求\n\n文件头的样子：\n\n" + sample)
+    if zh_log:
+        zh += "\n## 2. 修改记录\n\n| 版本 | 日期 | 修改 |\n| --- | --- | --- |\n" + ZH_LOG_ROW
     return {EN: en, ZH: zh}
 
 
 def approved(text: str, old_version: str, new_version: str, day: str, chinese: bool) -> str:
-    """The text with only the first version, updated, and status lines changed."""
+    """The text with only the first version, updated, and status lines changed, and the
+    change log's row "Approved by Troy." (``Troy 批准。``) after its last row (F08 D77)."""
     status = f'status: "Troy 已于 {day} 批准"' if chinese else f'status: "Approved by Troy on {day}"'
     text = text.replace(f'version: "{old_version}"', f'version: "{new_version}"', 1)
     text = text.replace(UPDATED, f'updated: "{day}"', 1)
-    return text.replace(ZH_STATUS if chinese else EN_STATUS, status, 1)
+    text = text.replace(ZH_STATUS if chinese else EN_STATUS, status, 1)
+    last, change = (ZH_LOG_ROW, "Troy 批准。") if chinese else (EN_LOG_ROW, "Approved by Troy.")
+    if text.count(last) != 1:
+        raise AssertionError(f"{last!r} occurs {text.count(last)} times")
+    return text.replace(last, last + f"| {new_version} | {day} | {change} |\n")
 
 
 class ApproveTests(FlowCase):
@@ -123,23 +142,25 @@ class ApproveTests(FlowCase):
         files = {en: design_text(F01, "0.2"), zh: design_text(F01, "0.2", "zh-CN")}
         self.write(files)
         report = self.report_of(self.approve(en, "--date", "2026-11-07"))
-        en_row = "| 0.1 | 2026-11-01 | First draft. |\n"
-        zh_row = "| 0.1 | 2026-11-01 | 初稿。 |\n"
         self.assertEqual(self.project.read(en), approved(files[en], "0.2", "1.0", "2026-11-07",
-                                                         False).replace(
-            en_row, en_row + "| 1.0 | 2026-11-07 | Approved by Troy. |\n"))
+                                                         False))
+        self.assertIn("| 0.1 | 2026-11-01 | First draft. |\n"
+                      "| 1.0 | 2026-11-07 | Approved by Troy. |\n", self.project.read(en))
         self.assertEqual(self.project.read(zh), approved(files[zh], "0.2", "1.0", "2026-11-07",
-                                                         True).replace(
-            zh_row, zh_row + "| 1.0 | 2026-11-07 | Troy 批准。 |\n"))
+                                                         True))
+        self.assertIn("| 0.1 | 2026-11-01 | 初稿。 |\n| 1.0 | 2026-11-07 | Troy 批准。 |\n",
+                      self.project.read(zh))
         self.assertEqual(sorted(report["changed"]), sorted([en, zh]))
         self.assertEqual(sorted(report["change_log"]), sorted([en, zh]))
 
     def test_refusals_change_nothing(self):
-        """Different versions, a missing mirror, no front matter, or no file: exit 1, no change."""
+        """Different versions, a missing mirror, no front matter, a mirror without a change-log
+        table (D201), or no file: exit 1, no change."""
         cases = {
             "versions differ": pair("0.3", "0.2"),
             "mirror missing": {EN: pair("0.3")[EN], ZH: None},
             "no front matter": {EN: "# Notes\n\nNo header.\n", ZH: pair("0.3")[ZH]},
+            "mirror without a change log": pair("0.3", zh_log=False),
         }
         for label, files in cases.items():
             with self.subTest(case=label):

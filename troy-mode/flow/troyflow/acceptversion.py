@@ -9,7 +9,7 @@ CHANGELOG.md on origin/main for the GitHub release.
 from pathlib import Path
 
 from . import repo as git
-from .approve import check_date, header_of, next_major, pair_of, rewrite
+from .approve import check_date, header_of, next_major, no_change_log, pair_of, rewrite
 from .changelog import add_change_log_row, escape, release_section, table_row
 from .errors import FlowError
 from .repo import MAIN
@@ -94,7 +94,8 @@ def run_accept_version(args) -> tuple[dict, int]:
 
     Returns:
         The report and the exit code: 1, and nothing changed, when a file,
-        its header, or its acceptance record is missing, or the versions differ.
+        its header, its acceptance record, or its change-log table is missing
+        (F07 D201), or the versions differ.
     """
     tag = check_tag(args.tag)
     date = check_date(args.date)
@@ -122,14 +123,15 @@ def run_accept_version(args) -> tuple[dict, int]:
         cells = [date, RESULT[lang].format(tag=tag), notes or NONE[lang]]
         updated = add_acceptance_row(text, cells, lang)
         if updated is None:
-            report["problems"] = [f"{path} has no acceptance record section."]
-            return report, 1
+            report["problems"].append(f"{path} has no acceptance record section.")
+            continue
         updated = rewrite(updated, {"version": new, "updated": date,
                                     "status": STATUS[lang].format(date=date)})
-        logged = add_change_log_row(updated, new, date, CHANGE[lang].format(tag=tag))
-        if logged is None:
-            report["notes"].append(f"{path} has no change log table; no row was added.")
-        texts[path] = logged or updated
+        texts[path] = add_change_log_row(updated, new, date, CHANGE[lang].format(tag=tag))
+        if texts[path] is None:
+            report["problems"].append(no_change_log(path))
+    if report["problems"]:
+        return report, 1
     for path, text in texts.items():
         (repo.root / path).write_bytes(text.encode("utf-8"))
     report.update(ok=True, plan=pair[0], mirror=pair[1], version={"from": old, "to": new},

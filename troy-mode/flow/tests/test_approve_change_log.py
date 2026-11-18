@@ -1,14 +1,36 @@
-"""approve's change-log row (F08 design 8, D77, 11.1; interface note section 7).
+"""approve's change-log row (F08 design 8, D77, 11.1; interface note section 7; F07 D201).
 
 ``approve`` changes the header as in F07 and adds one row to each file's
 change log: the new version, the date, and "Approved by Troy." or
-"Troy 批准。". A file without a change log gets no row.
+"Troy 批准。".
 
-Planted bug of F08 design 11.2 caught here: "``approve`` without the
-change-log row": ``ChangeLogRowTests.test_row_in_both_languages`` and
-``test_row_goes_into_the_change_log_table_only``.
+When either file of the pair has no change-log table, ``approve`` exits 1
+and changes neither file (F07 design 8.6 and 16, D201, from tstack issue
+#46): ``MissingChangeLogTests``. Before D201 it added the row to the file
+that had a table and exited 0 with a note, so the pilot's approval was
+recorded in English only: its mirror headed the change log ``变更记录``,
+not ``修改记录``.
+
+Planted bugs caught here:
+
+- F08 design 11.2, "``approve`` without the change-log row":
+  ``ChangeLogRowTests.test_row_in_both_languages`` and
+  ``test_row_goes_into_the_change_log_table_only``.
+- F07 design 14.2 (D201), "the note with exit 0 kept": every test of
+  ``MissingChangeLogTests``.
+- D201, "the mirror written before the English file's table is checked":
+  ``MissingChangeLogTests.test_english_without_a_change_log_is_refused``,
+  ``test_english_heading_with_none_and_no_table_is_refused``,
+  ``test_neither_file_with_a_change_log_is_refused``, and
+  ``test_the_file_with_a_table_is_not_written``.
+- D201, "the check made on the English file only":
+  ``MissingChangeLogTests.test_mirror_with_another_heading_is_refused``,
+  ``test_mirror_without_a_change_log_is_refused``,
+  ``test_mirror_heading_with_none_and_no_table_is_refused``, and
+  ``test_the_file_with_a_table_is_not_written``.
 """
 
+import itertools
 import unittest
 
 from flow_helpers import FlowCase, Project, base_step, crlf, front_matter
@@ -20,6 +42,8 @@ EN_LAST = "| 1.2 | 2026-11-05 | Fixed a typo. |\n"
 ZH_LAST = "| 1.2 | 2026-11-05 | 修正笔误。 |\n"
 EN_ROW = f"| 2.0 | {DAY} | Approved by Troy. |\n"
 ZH_ROW = f"| 2.0 | {DAY} | Troy 批准。 |\n"
+# The two change-log headings a D201 problem names (interface note for #46).
+HEADINGS = ("Change log", "修改记录")
 
 
 def english(log_heading: str = "## 14. Change log", log: bool = True) -> str:
@@ -81,6 +105,35 @@ def cells(line: str) -> list:
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
 
 
+def swap(text: str, old: str, new: str) -> str:
+    """Replaces a part that occurs exactly once."""
+    if text.count(old) != 1:
+        raise AssertionError(f"{old!r} occurs {text.count(old)} times")
+    return text.replace(old, new)
+
+
+def assert_problems_name(case: FlowCase, problems: list, paths: list) -> None:
+    """Asserts one problem per file without a change-log table (D201).
+
+    Each problem is a string that names both headings, ``Change log`` and
+    ``修改记录``, and the problems match the paths one to one, each holding
+    its file's path as ``docs/...``.
+
+    Args:
+        case: The running test.
+        problems: The report's problems.
+        paths: The paths of the files that have no change-log table.
+    """
+    case.assertEqual(len(problems), len(paths), problems)
+    for problem in problems:
+        case.assertIsInstance(problem, str, problems)
+        for heading in HEADINGS:
+            case.assertIn(heading, problem, problems)
+    case.assertTrue(any(all(path in problem for path, problem in zip(paths, order))
+                        for order in itertools.permutations(problems)),
+                    f"no problem per path {paths}: {problems}")
+
+
 class ChangeLogRowTests(FlowCase):
     """One row in each change log, after its last row (note section 7)."""
 
@@ -122,33 +175,6 @@ class ChangeLogRowTests(FlowCase):
         self.assertEqual(self.project.read(EN),
                          approved(en, False).replace(EN_LAST, EN_LAST + EN_ROW))
 
-    def test_document_without_a_change_log_gets_no_row(self):
-        """No change log in either file: only the header changes, and a note says so."""
-        en, zh = english(log=False), chinese(log=False)
-        report = self.report_of(self.approve(en, zh))
-        self.assertEqual(self.project.read(EN), approved(en, False))
-        self.assertEqual(self.project.read(ZH), approved(zh, True))
-        self.assertEqual(report["change_log"], [])
-        self.assertNotEqual(report["notes"], [])
-
-    def test_only_the_file_with_a_change_log_gets_a_row(self):
-        """The English file has a change log and the mirror none: one row, in English."""
-        en, zh = english(), chinese(log=False)
-        report = self.report_of(self.approve(en, zh))
-        self.assertEqual(self.project.read(EN),
-                         approved(en, False).replace(EN_LAST, EN_LAST + EN_ROW))
-        self.assertEqual(self.project.read(ZH), approved(zh, True))
-        self.assertEqual(report["change_log"], [EN])
-
-    def test_heading_without_a_table_gets_no_row(self):
-        """``## 14. Change log`` followed by ``None.`` and the next section: no row."""
-        en = english(log=False).replace("## 15. Glossary", "## 14. Change log\n\nNone.\n\n"
-                                                           "## 15. Glossary")
-        zh = chinese()
-        report = self.report_of(self.approve(en, zh))
-        self.assertEqual(self.project.read(EN), approved(en, False))
-        self.assertEqual(report["change_log"], [ZH])
-
     def test_wider_table_gets_empty_cells_between(self):
         """A table with an Author column: the version first, the date second, the text last."""
         en = english().replace("| Version | Date | Change |\n| --- | --- | --- |\n| 0.1",
@@ -171,6 +197,104 @@ class ChangeLogRowTests(FlowCase):
         self.report_of(self.approve(en, chinese(), en_bytes=crlf(en)))
         self.assertEqual(self.project.read_bytes(EN),
                          crlf(approved(en, False).replace(EN_LAST, EN_LAST + EN_ROW)))
+
+
+class MissingChangeLogTests(FlowCase):
+    """D201 (tstack issue #46): either file without a change-log table refuses the approval.
+
+    ``approve`` exits 1 with ``ok`` false and one problem per file that has
+    no table, naming the file and both headings, and leaves both files byte
+    for byte as they were: no header change and no row, in either language.
+    """
+
+    def setUp(self):
+        """A fresh clone for each test, since a wrong approve writes files."""
+        self.project = Project([base_step()])
+
+    def write_and_approve(self, en: str, zh: str):
+        """Writes both files and runs ``approve`` on them.
+
+        Args:
+            en: The English file's text.
+            zh: The mirror's text.
+
+        Returns:
+            ``(outcome, {path: bytes before the run}, {path: bytes after it})``.
+        """
+        self.project.write(EN, en)
+        self.project.write(ZH, zh)
+        before = {rel: self.project.read_bytes(rel) for rel in (EN, ZH)}
+        out = self.project.run("approve", "--doc", EN, "--date", DAY)
+        after = {rel: self.project.read_bytes(rel) for rel in (EN, ZH)}
+        return out, before, after
+
+    def refused(self, en: str, zh: str, lacking: list) -> dict:
+        """Asserts that ``approve`` refuses the pair and writes neither file.
+
+        Args:
+            en: The English file's text.
+            zh: The mirror's text.
+            lacking: The paths of the files that have no change-log table.
+
+        Returns:
+            The report.
+        """
+        out, before, after = self.write_and_approve(en, zh)
+        report = self.report_of(out, 1, "approve")
+        for rel in (EN, ZH):
+            self.assertEqual(after[rel], before[rel], f"{rel} changed")
+        assert_problems_name(self, report["problems"], lacking)
+        return report
+
+    def test_mirror_with_another_heading_is_refused(self):
+        """The pilot's case: the mirror heads its change log ``## 14. 变更记录``, not
+        ``修改记录``, so it has no change-log table; one problem, for the mirror."""
+        zh = swap(chinese(), "## 14. 修改记录", "## 14. 变更记录")
+        self.refused(english(), zh, [ZH])
+
+    def test_mirror_without_a_change_log_is_refused(self):
+        """The English file has a change log and the mirror none: one problem, for the mirror,
+        and no row in English (before D201 the English file got the row)."""
+        self.refused(english(), chinese(log=False), [ZH])
+
+    def test_mirror_heading_with_none_and_no_table_is_refused(self):
+        """The mirror's ``## 14. 修改记录`` holds ``无。`` and no table: one problem, for it."""
+        zh = swap(chinese(log=False), "## 15. 术语", "## 14. 修改记录\n\n无。\n\n## 15. 术语")
+        self.refused(english(), zh, [ZH])
+
+    def test_english_without_a_change_log_is_refused(self):
+        """Only a fenced example change log in English, a real one in the mirror: one problem,
+        for the English file, and no row in the mirror."""
+        self.refused(english(log=False), chinese(), [EN])
+
+    def test_english_heading_with_none_and_no_table_is_refused(self):
+        """``## 14. Change log`` followed by ``None.`` and the next section: one problem, for
+        the English file (before D201 only the mirror got the row)."""
+        en = swap(english(log=False), "## 15. Glossary",
+                  "## 14. Change log\n\nNone.\n\n## 15. Glossary")
+        self.refused(en, chinese(), [EN])
+
+    def test_neither_file_with_a_change_log_is_refused(self):
+        """No change log in either file: two problems, one naming each file, and no header
+        change (before D201 the header changed and a note said so)."""
+        self.refused(english(log=False), chinese(log=False), [EN, ZH])
+
+    def test_the_file_with_a_table_is_not_written(self):
+        """When only its partner lacks the table, the file that has one keeps version 1.2 and
+        gets no row: the English file when the mirror is bad, the mirror when English is."""
+        cases = {
+            "mirror bad": (english(), swap(chinese(), "## 14. 修改记录", "## 14. 变更记录"), EN,
+                           "Approved by Troy"),
+            "English bad": (english(log=False), chinese(), ZH, "Troy 批准"),
+        }
+        for name, (en, zh, good, approval) in cases.items():
+            with self.subTest(case=name):
+                out, before, after = self.write_and_approve(en, zh)
+                self.assert_exit(out, 1)
+                self.assertEqual(after[good], before[good], f"{good} changed")
+                text = after[good].decode("utf-8")
+                self.assertIn('version: "1.2"', text)
+                self.assertNotIn(approval, text)
 
 
 if __name__ == "__main__":
