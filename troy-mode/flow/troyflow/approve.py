@@ -4,7 +4,8 @@ Three front matter lines change: version moves to the next major (F01 design
 section 4), updated becomes the date, and status says who approved it. The
 document's change log also gets a row for the new version (F08 D77). When
 either file of the pair has no change-log table, nothing changes and the
-command exits 1 (F07 D201), and so do accept-version and rule-row.
+command exits 1 (F07 D201), and so do accept-version and rule-row. Approving
+the architecture also accepts the proposed ADRs it lists (F07 D202).
 """
 
 import datetime
@@ -13,7 +14,7 @@ from pathlib import Path
 
 from troycheck.frontmatter import parse_header, version_key
 
-from . import repo as git
+from . import adrs, repo as git
 from .changelog import add_change_log_row
 from .errors import FlowError
 
@@ -97,8 +98,8 @@ def run_approve(args) -> tuple[dict, int]:
 
     Returns:
         The report and the exit code: 1, and nothing changed, when a header
-        or the mirror is missing, the versions differ, or either file has no
-        change-log table (D201).
+        or the mirror is missing, the versions differ, either file has no
+        change-log table (D201), or a listed ADR lacks a file (D202).
     """
     date = check_date(args.date)
     repo = git.need_repo(args.repo)
@@ -124,10 +125,63 @@ def run_approve(args) -> tuple[dict, int]:
         updated = rewrite(text, {"version": new, "updated": date, "status": status})
         texts[path] = add_change_log_row(updated, new, date, CHANGE[lang])
     report["problems"] = [no_change_log(path) for path, text in texts.items() if text is None]
+    accepted, adr_texts = [], {}
+    if found[0][1].get("troy-doc") == adrs.ARCHITECTURE:
+        accepted, adr_texts, problems = _accept_adrs(repo.root, [f[0] for f in found], date)
+        report["problems"] += problems
     if report["problems"]:
         return report, 1
+    for path, (text, fields) in zip(pair, found):
+        if accepted:
+            lang = fields["lang"] if fields["lang"] in STATUS else "en"
+            texts[path] = adrs.accept_rows(texts[path], lang, set(accepted))
+    texts.update(adr_texts)
     for path, text in texts.items():
         (repo.root / path).write_bytes(text.encode("utf-8"))
     report.update(ok=True, doc=pair[0], mirror=pair[1], version={"from": old, "to": new},
-                  updated=date, changed=list(pair), change_log=list(pair))
+                  updated=date, changed=list(texts), change_log=list(pair), adrs=accepted)
     return report, 0
+
+
+def _accept_adrs(root: Path, architecture: list[str], date: str
+                 ) -> tuple[list[str], dict[str, str], list[str]]:
+    """Accepts the proposed ADRs that the architecture lists, in both languages (D202).
+
+    Args:
+        root: The project folder.
+        architecture: The architecture's English text and its mirror's.
+        date: The approval's date.
+
+    Returns:
+        The accepted IDs in ID order, the new text of each of their files
+        (English, then mirror), and the problems that stop the approval.
+    """
+    ids = sorted({adr for text in architecture for adr in adrs.listed_ids(text)})
+    accepted, texts, problems = [], {}, []
+    for adr in ids:
+        english = adrs.adr_files(root, adr)
+        if len(english) != 1:
+            problems.append(f"{adr} is listed in the architecture, but docs/adr/ has "
+                            f"{'no' if not english else 'more than one'} English file for it.")
+            continue
+        pair = pair_of(root, english[0])
+        found = [header_of(root / p) for p in pair] if pair else []
+        if not pair or any(f is None for f in found):
+            problems.append(f"{adr}: {english[0]} or its mirror is missing or has no troy-doc "
+                            "header with lang and version.")
+            continue
+        versions = {f[1]["version"] for f in found}
+        if len(versions) != 1:
+            problems.append(f"{adr}: {pair[0]} and {pair[1]} have different versions: "
+                            f"{', '.join(sorted(versions))}.")
+            continue
+        langs = [f[1]["lang"] if f[1]["lang"] in STATUS else "en" for f in found]
+        if not any(adrs.is_proposed(f[0], lang) for f, lang in zip(found, langs)):
+            continue
+        new = next_major(versions.pop())
+        for path, (text, _), lang in zip(pair, found, langs):
+            text = adrs.accept_status(text, lang, date)
+            texts[path] = rewrite(text, {"version": new, "updated": date,
+                                         "status": STATUS[lang].format(date=date)})
+        accepted.append(adr)
+    return accepted, texts, problems
