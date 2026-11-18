@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F03 in [requirements 1.6](../requirements.md#72-feature-list) |
-| Version | 1.5 |
-| Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. Version 1.2 records the changes of F06's approved design (D49, D50). |
+| Version | 1.6 |
+| Date | 2026-11-18 |
+| Status | Approved by Troy on 2026-11-05, with D15 to D24. Version 1.1 adds D25 and D26, which Troy chose on 2026-11-06. Version 1.2 records the changes of F06's approved design (D49, D50). Version 1.6 adds D214, which Troy approved on 2026-11-18 as tstack issue #51. |
 | Source of truth | This English file. [`F03-language-packs.zh-CN.md`](F03-language-packs.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -212,10 +212,14 @@ uv pip install -e . --no-deps
 
 The `pyproject.toml` fragment adds a `dev` extra with ruff, mypy, pytest, and coverage, and configures them:
 
-- **ruff** lints with troy-voice's rule set plus the `D` rules, with `convention = "google"`, which checks docstring format (R05). It also checks formatting.
+- **ruff** lints with troy-voice's rule set plus the `D` rules, with `convention = "google"`, which checks docstring format (R05). It also checks formatting. It leaves out `.troy-mode/`, whose troy-check is checked in tstack, and `docs/` (D214): ruff also formats the python code blocks in Markdown files, and the examples in a feature's design are not the project's code. `docs/`, with its slash, is relative to the project root, so a package folder named `docs` under `src/` is still checked.
 - **mypy** runs in strict mode, as in troy-voice.
 - **pytest** finds tests in `tests/`, with `addopts = "-ra --strict-markers"`.
 - **coverage** measures branches: `branch = true`, `source = ["src"]`.
+
+A project set up before D214 keeps its old `extend-exclude`, because troy-init's upgrade never changes the appended `pyproject.toml` tables (F06 design D54). Its upgrade report lists `tool.ruff.extend-exclude` among the settings that differ from the plugin's pack, and Troy takes the new value into a `[rules]` PR, as for every other pack setting.
+
+The Python sample's design holds a code example that `ruff format` would change, so the sample's CI job shows on every PR with code that ruff leaves `docs/` out.
 
 ### 8.3 Commands
 
@@ -353,6 +357,7 @@ Troy approved all ten proposals on 2026-11-05, D20 after one revision. During pa
 | D24 | Python tools beyond the R rules. | The pack carries troy-voice's defaults: the broad ruff rule set, ruff's format check, and mypy in strict mode. A project can drop them through the rule change flow. |
 | D25 | Where GoogleTest comes from. Section 9.2 put it in the mamba environment, but conda-forge's GoogleTest for Windows is built with MSVC, and MSYS2 GCC cannot link it. This was tried on Troy's PC. | `cmake/troy.cmake` downloads the GoogleTest 1.18.0 release archive with CMake's FetchContent, checks its SHA256, and builds it with the project's own compiler. CI and Troy's PC use the same version. Troy chose this on 2026-11-06, over the platforms' package managers and over MSVC on Troy's PC. |
 | D26 | Where troy-pstack's own tests get lizard, which the C/C++ adapter needs. They used to run with the system Python. | troy-pstack is a series of one with its own environment, `troy-pstack`, created from `troy-mode/dev/environment.yml`, with lizard and gcovr from `troy-mode/dev/requirements-dev.lock`. The environment also holds the C/C++ tools, so the C++ sample runs on Troy's PC. CI installs the same lock. Troy chose this on 2026-11-06. |
+| D214 | Which files does the Python pack's ruff check and format? ruff also formats the python code blocks in Markdown files, so CI's `ruff format --check` failed design PRs whose examples were too wide or used the other quote style, and the Interface Designer, who has no shell, could not run it. In the pilot, F01 needed a side PR, F08's design failed CI twice, and F09's Interface Designer lost an attempt. From tstack issue #51. Its ID comes from the range D213 to D218 kept for this batch of pilot fixes. | A: the pack's `[tool.ruff]` `extend-exclude` adds `docs/`, so ruff neither lints nor formats any file under the project's `docs/` folder (section 8.2). B, not taken by Troy: the entry skill runs the pack's format check on a design PR's documents before the push. C, not taken by Troy: the Interface Designer's instructions give the format rules for code examples. | A. A design's examples show interfaces and do not run; the code itself is still linted, formatted, and checked by R04 to R07 and the tests. It is one entry in the pack, with no new step and no new role text. `docs/` with its slash is relative to the project root, as ruff 0.17.4 showed on a scratch project: a bare `docs` would also leave out a package folder named `docs` under `src/`. Existing projects take it through upgrade's report and a `[rules]` PR (section 8.2). Approved by Troy on 2026-11-18 (issue #51). |
 
 Requirements 1.6 records the approved changes:
 
@@ -374,3 +379,4 @@ The architecture template's section 3 guidance changes with requirements 1.6 (D1
 | 1.3 | 2026-11-07 | Section 3: `troy-check code --worktree` checks the working tree as if it were committed, for authors who cannot commit. From F07 design section 12 (D60). |
 | 1.4 | 2026-11-08 | From F08 design section 9: a `[v0.1 tests]` PR is "any other kind" for R09 and R10 (section 4.2). Version tests live in `version-tests/`, which pytest's `testpaths` leaves out, and the Python pack's ruff gives them the tests' exemptions (found in F08's trial). The C/C++ pack's `cmake/troy.cmake` gains `troy_add_version_test`, which builds a version test only when the configure run sets `TROY_VERSION_TESTS=ON` and labels its tests `version`. Both READMEs give the release command. |
 | 1.5 | 2026-11-08 | From F09 design section 8: a project rule's test cleanup PR, `[P01 test-fix] ...`, is "any other kind" for R09 and R10 (section 4.2), and R10 looks for no feature test plan for it. |
+| 1.6 | 2026-11-18 | D214, from tstack issue #51, approved by Troy on 2026-11-18: the Python pack's ruff leaves out `docs/`, so design code examples are no longer format-checked in CI. Existing projects take it through upgrade's report, and the Python sample's design shows it in CI (sections 8.2 and 12). |

@@ -16,7 +16,8 @@ line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
 # troy-check is checked in tstack, not in the project.
-extend-exclude = [".troy-mode"]
+# A design's code examples are not the project's code (F03 design D214).
+extend-exclude = [".troy-mode", "docs/"]
 
 [tool.ruff.lint]
 select = [

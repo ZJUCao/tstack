@@ -1,11 +1,11 @@
 # troy-mode Python 语言包
 
-> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.1（2026-11-07）。两者如有出入，以英文版为准。
+> 本文件是 [`README.md`](README.md) 的中文镜像，同步自英文版 1.2（2026-11-18）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 1.1 |
-| 日期 | 2026-11-07 |
+| 版本 | 1.2 |
+| 日期 | 2026-11-18 |
 | 事实来源 | 英文版 [`README.md`](README.md)。本文件是中文镜像。 |
 
 Python 语言包让 troy-check 的语言相关规则在 Python 项目里运行：R04 到 R07 检查代码，R09 到 R11 检查测试结果。`troy-init`（F06）把它复制到项目里。[F03 设计](../../../docs/troy-mode/design/F03-language-packs.zh-CN.md)第 8 节记录了每个选择的理由。
@@ -56,7 +56,7 @@ uv pip install -e . --no-deps
 
 ## 4. 工具设置
 
-- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 tstack 里检查。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试和 `version-tests/` 里的版本测试可以用 `assert`，也不需要类型标注。
+- **ruff** 沿用 troy-voice 的规则集，再加上 Google 风格的 `D` 规则，用来检查 docstring（R05）。它跳过 `.troy-mode`，因为 troy-check 在 tstack 里检查；它也跳过 `docs/`，因为 ruff 也会格式化 Markdown 文件里的 python 代码块，而设计里的示例不是项目的代码（F03 设计 D214）。它忽略 RUF001，所以字符串里可以有中文标点。RUF002 和 RUF003 保持开启，因为 R05 本来就不允许 docstring 和注释里出现中文。测试和 `version-tests/` 里的版本测试可以用 `assert`，也不需要类型标注。
 - **mypy** 用严格模式检查 `src`。
 - **pytest** 在 `tests/` 里找测试，参数是 `-ra --strict-markers`。它不收集 `version-tests/` 里的版本测试，那些只在发布测试里运行（F08 设计第 5.3 节）。版本测试的名字以场景编号开头，比如 `test_v0_1_s01_counts_words_and_lines`。
 - **coverage** 统计 `src` 里的行覆盖和分支覆盖。

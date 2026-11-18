@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import sys
+import tomllib
 from pathlib import Path
 from typing import Iterable, Mapping, Optional, Sequence
 from unittest import mock
@@ -57,6 +58,9 @@ LANG_REPORT_KEYS = ("language", "legacy", "environment")
 ENVIRONMENT_KEYS = ("name", "prefix", "series", "lock", "skipped", "exists", "commands")
 FAKE_LOCK = "# A lock written by the tests' fake mamba.\nruff==0.8.0\n"
 OWN_TEXT = "# Our own file\n\nWritten before the language step.\n"
+# F03 design D214: what the Python pack's ruff leaves out. docs/ with its slash
+# is relative to the project root; a bare docs would also leave out src/<pkg>/docs.
+RUFF_EXCLUDES = [".troy-mode", "docs/"]
 
 
 def architecture(version: str = "1.0") -> dict:
@@ -119,6 +123,12 @@ def expected_new_pyproject(plugin: Path, name: str = PROJECT,
     first = fill(pack_text(plugin, "python", "pyproject-project.toml"),
                  {"project-name": name, "package": package})
     return join_parts(first, pack_text(plugin, "python", "pyproject.toml"))
+
+
+def ruff_excludes(pyproject: str) -> tuple:
+    """A pyproject.toml's [tool.ruff] extend-exclude, sorted, and whether it sets exclude."""
+    ruff = tomllib.loads(pyproject).get("tool", {}).get("ruff", {})
+    return sorted(ruff.get("extend-exclude", [])), "exclude" in ruff
 
 
 def expected_new_cmakelists(plugin: Path, name: str = PROJECT) -> str:

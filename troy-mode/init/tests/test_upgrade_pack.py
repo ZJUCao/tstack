@@ -2,8 +2,14 @@
 
 Each project is set up and given its language step with one plugin version,
 both commits made, and then upgraded on its own branch.
+
+D214 planted bugs (F03 design 8.2) caught here, for a project whose language
+step ran before D214 (UpgradeBeforeD214Test): the plugin's pack without
+docs/, so upgrade has nothing to report; upgrade not reporting the
+list-valued tool.ruff.extend-exclude; and upgrade editing pyproject.toml.
 """
 
+import re
 import tomllib
 import unittest
 from pathlib import Path
@@ -13,12 +19,17 @@ from init_helpers import (
     replace_in, set_version, sha256_lf, shared_plugin, write_text,
 )
 from lang_helpers import (
-    LANG_DATE, expected_workflow, lang_done, lang_owned, pack_text, reset_project,
+    LANG_DATE, RUFF_EXCLUDES, expected_workflow, lang_done, lang_owned, pack_text, reset_project,
+    ruff_excludes,
 )
 from rules_helpers import NEW_VERSION
 
 LOCAL_NOTE = "# A setting this project added by hand.\n"
 VERSION_LINE = "# Version 0.2.0.\n"
+PYTHON_PYPROJECT = "troy-mode/lang/python/pyproject.toml"
+BEFORE_D214 = 'extend-exclude = [".troy-mode"]'
+RUFF_KEY = "tool.ruff.extend-exclude"
+_EXTEND_EXCLUDE = re.compile(r"(?ms)^extend-exclude[ \t]*=[ \t]*\[.*?\]")
 
 
 def append_to(plugin: Path, rel: str, text: str) -> None:
@@ -57,6 +68,37 @@ def next_python_plugin() -> Path:
     replace_in(plugin, "troy-mode/lang/python/config.toml", 'source_roots = ["src"]',
                'source_roots = ["src", "lib"]')
     return plugin
+
+
+def before_d214_plugin() -> Path:
+    """Version 0.1.0 as it was before D214: the Python pack's ruff leaves out .troy-mode only.
+
+    Only the pack's extend-exclude line is rewritten, so every other setting
+    is the plugin's own.
+    """
+    plugin = make_plugin(hooks=True, version="0.1.0")
+    text = read_text(plugin, PYTHON_PYPROJECT)
+    found = len(_EXTEND_EXCLUDE.findall(text))
+    if found != 1:
+        raise AssertionError(f"{PYTHON_PYPROJECT} sets extend-exclude {found} times, not once")
+    write_text(plugin, PYTHON_PYPROJECT, _EXTEND_EXCLUDE.sub(lambda _: BEFORE_D214, text))
+    return plugin
+
+
+def d214_plugin() -> Path:
+    """The plugin under test, as the next version, with its own Python pack unchanged."""
+    plugin = make_plugin(hooks=True)
+    set_version(plugin, NEW_VERSION)
+    return plugin
+
+
+def leaf_keys(data: dict, prefix: str = "") -> list:
+    """Every leaf of a TOML table as a dotted key, as upgrade's report names them."""
+    keys = []
+    for key, value in data.items():
+        dotted = f"{prefix}{key}"
+        keys += leaf_keys(value, dotted + ".") if isinstance(value, dict) else [dotted]
+    return keys
 
 
 def upgraded(old: Path, new: Path, lang: str, *extra: str) -> tuple:
@@ -193,6 +235,54 @@ class UpgradePythonPackTest(InitCase):
         self.assertEqual(record["steps"]["lang"], LANG_DATE)
         self.assertEqual(record["files"][WORKFLOW], sha256_lf(self.project.read_bytes(WORKFLOW)))
         self.assertEqual(sorted(record["files"]), sorted(lang_owned(self.plugin, "python")))
+
+
+class UpgradeBeforeD214Test(InitCase):
+    """A Python project set up before D214, upgraded to the plugin under test (F03 design 8.2).
+
+    Upgrade never changes the appended pyproject.toml tables (F06 design D54),
+    so the project keeps its old extend-exclude and is told to take the new one.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Adds the pack with the pre-D214 0.1.0 and upgrades to the plugin under test once."""
+        cls.old = before_d214_plugin()
+        cls.plugin = d214_plugin()
+        cls.project, cls.before, cls.out = upgraded(cls.old, cls.plugin, "python")
+
+    def test_upgrade_names_the_ruff_exclude_list_for_pyproject(self):
+        """pyproject.toml is the one difference, and its message names tool.ruff.extend-exclude.
+
+        D214 planted bugs caught: the plugin's pack without docs/, and upgrade
+        not reporting a list-valued key. No other key of the pack is named.
+        """
+        report = self.report_of(self.out, 0)
+        self.assertEqual(ruff_excludes(self.before.files["pyproject.toml"].decode("utf-8")),
+                         ([".troy-mode"], False), "the premise: the project predates D214")
+        messages = {item["path"]: item["message"] for item in report["differences"]}
+        self.assertEqual(sorted(messages), ["pyproject.toml"], report["differences"])
+        self.assertIn(RUFF_KEY, messages["pyproject.toml"])
+        fragment = tomllib.loads(pack_text(self.plugin, "python", "pyproject.toml"))
+        for key in leaf_keys(fragment):
+            if key != RUFF_KEY:
+                with self.subTest(key=key):
+                    self.assertNotIn(key, messages["pyproject.toml"])
+
+    def test_upgrade_leaves_the_old_pyproject_byte_for_byte(self):
+        """pyproject.toml keeps every byte and its old list, and is neither staged nor changed.
+
+        D214 planted bug caught: upgrade editing pyproject.toml to take the new list.
+        """
+        report = self.report_of(self.out, 0)
+        self.assertEqual(ruff_excludes(pack_text(self.plugin, "python", "pyproject.toml")),
+                         (sorted(RUFF_EXCLUDES), False), "the premise: the plugin has D214's list")
+        self.assertEqual(self.project.read_bytes("pyproject.toml"),
+                         self.before.files["pyproject.toml"])
+        self.assertEqual(ruff_excludes(self.project.read("pyproject.toml")),
+                         ([".troy-mode"], False))
+        self.assertNotIn("pyproject.toml", report["stage"])
+        self.assertNotIn("pyproject.toml", self.project.status_paths())
 
 
 class UpgradePackConflictTest(InitCase):
