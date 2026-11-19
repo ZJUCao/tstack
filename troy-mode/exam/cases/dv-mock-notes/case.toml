@@ -1,5 +1,7 @@
 id = "dv-mock-notes"
-version = 2
+version = 3
+# The pass anchor is the pilot's round 2 (3e53e685) with each mock note that shared a paragraph
+# with the full behavior moved to a paragraph of its own (F16 design 14.6, version 3).
 role = "developer"
 task = "DV1"
 item = "F05"

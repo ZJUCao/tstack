@@ -45,10 +45,10 @@ index 0000000..68e2a6c
 +]
 diff --git a/src/recipe_menu/app/_arguments.py b/src/recipe_menu/app/_arguments.py
 new file mode 100644
-index 0000000..9728a67
+index 0000000..3b94853
 --- /dev/null
 +++ b/src/recipe_menu/app/_arguments.py
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,47 @@
 +"""What the command line gives a command."""
 +
 +from dataclasses import dataclass
@@ -81,7 +81,9 @@ index 0000000..9728a67
 +    def option(self, name: str) -> str | None:
 +        """Gives the value of an option.
 +
-+        The mock raises ``NotImplementedError``. The implementation gives the value by the rule
++        The mock raises ``NotImplementedError``.
++
++        The implementation gives the value by the rule
 +        below.
 +
 +        Args:
@@ -96,10 +98,10 @@ index 0000000..9728a67
 +        raise NotImplementedError
 diff --git a/src/recipe_menu/app/_command.py b/src/recipe_menu/app/_command.py
 new file mode 100644
-index 0000000..b6cb77e
+index 0000000..c36439b
 --- /dev/null
 +++ b/src/recipe_menu/app/_command.py
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,114 @@
 +"""The description of one command."""
 +
 +from collections.abc import Callable
@@ -198,7 +200,9 @@ index 0000000..b6cb77e
 +    def usage(self) -> BiText:
 +        """Gives the command's usage, as the help and the usage errors show it.
 +
-+        The mock raises ``NotImplementedError``. The implementation gives the usage by the rule
++        The mock raises ``NotImplementedError``.
++
++        The implementation gives the usage by the rule
 +        below.
 +
 +        Returns:
@@ -257,10 +261,10 @@ index 0000000..6163abd
 +    today: date
 diff --git a/src/recipe_menu/app/_problems.py b/src/recipe_menu/app/_problems.py
 new file mode 100644
-index 0000000..616e544
+index 0000000..bc50f2d
 --- /dev/null
 +++ b/src/recipe_menu/app/_problems.py
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,72 @@
 +"""Showing the problems of a data file, and stopping a command at the first error."""
 +
 +from collections.abc import Iterable
@@ -273,7 +277,9 @@ index 0000000..616e544
 +def problem_lines(problem: Problem, lang: Lang) -> tuple[str, str]:
 +    r"""Gives the two lines of a problem, in the layout of the prototypes, with no indent.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rules below.
 +
 +    Args:
 +        problem: The problem to show.
@@ -294,7 +300,9 @@ index 0000000..616e544
 +def first_error(problems: Iterable[Problem]) -> Problem | None:
 +    """Finds the first error among the problems of a reader.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rule below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rule below.
 +
 +    Args:
 +        problems: The problems that a reader gave, in its order.
@@ -311,7 +319,9 @@ index 0000000..616e544
 +def stop_at_error(context: Context, error: Problem) -> int:
 +    """Ends a command at the first error in a data file.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rules below.
 +
 +    Args:
 +        context: The language and the error stream.
@@ -329,10 +339,10 @@ index 0000000..616e544
 +    raise NotImplementedError
 diff --git a/src/recipe_menu/app/_usage_error.py b/src/recipe_menu/app/_usage_error.py
 new file mode 100644
-index 0000000..b38129b
+index 0000000..dc57782
 --- /dev/null
 +++ b/src/recipe_menu/app/_usage_error.py
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,90 @@
 +"""The error of a wrong command line or argument value."""
 +
 +from recipe_menu.lang import Lang
@@ -381,7 +391,9 @@ index 0000000..b38129b
 +    ) -> None:
 +        """Makes a usage error.
 +
-+        The mock raises ``NotImplementedError``. The implementation sets ``message``, ``hint``,
++        The mock raises ``NotImplementedError``.
++
++        The implementation sets ``message``, ``hint``,
 +        and ``values``, and checks them as the class says.
 +
 +        Args:
@@ -405,7 +417,9 @@ index 0000000..b38129b
 +    def text(self, lang: Lang) -> str:
 +        """Gives the message in a language.
 +
-+        The mock raises ``NotImplementedError``. The implementation gives the text by the rule
++        The mock raises ``NotImplementedError``.
++
++        The implementation gives the text by the rule
 +        below.
 +
 +        Args:
@@ -462,10 +476,10 @@ index 0000000..5a6575b
 +COMMANDS: Final[tuple[Command, ...]] = ()
 diff --git a/src/recipe_menu/cli/_main.py b/src/recipe_menu/cli/_main.py
 new file mode 100644
-index 0000000..23363e7
+index 0000000..7d86d77
 --- /dev/null
 +++ b/src/recipe_menu/cli/_main.py
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,134 @@
 +"""The entry point of the ``recipe-menu`` command."""
 +
 +from collections.abc import Mapping, Sequence
@@ -488,7 +502,9 @@ index 0000000..23363e7
 +) -> int:
 +    r"""Runs the ``recipe-menu`` command line and gives its exit code.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rules below.
 +
 +    It reads the outside world, runs the command line, and gives the exit code. The console
 +    script and ``python -m recipe_menu`` pass the code to ``sys.exit``. Tests call it with fixed
@@ -746,10 +762,10 @@ index ee07789..42965c7 100644
      "read_toml",
 diff --git a/src/recipe_menu/datafile/_servings.py b/src/recipe_menu/datafile/_servings.py
 new file mode 100644
-index 0000000..5a2d364
+index 0000000..b29bc0e
 --- /dev/null
 +++ b/src/recipe_menu/datafile/_servings.py
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,38 @@
 +"""The one rule for a servings number in a data file."""
 +
 +from typing import Final
@@ -764,7 +780,9 @@ index 0000000..5a2d364
 +def read_servings(value: object, place: BiText, report: Report) -> int | None:
 +    """Reads a servings number: an integer from 1 to 100.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rules below.
 +
 +    Args:
 +        value: A servings value as ``read_toml`` gives it, such as ``2`` or ``"2"``. The caller
@@ -834,10 +852,10 @@ index 0000000..ce94220
 +__all__ = ["Meal", "Settings", "read_settings"]
 diff --git a/src/recipe_menu/settings/_meal.py b/src/recipe_menu/settings/_meal.py
 new file mode 100644
-index 0000000..020b684
+index 0000000..2af2386
 --- /dev/null
 +++ b/src/recipe_menu/settings/_meal.py
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,62 @@
 +"""The meals of a day."""
 +
 +from enum import StrEnum
@@ -868,7 +886,9 @@ index 0000000..020b684
 +    def label(self) -> BiText:
 +        """Gives the meal's name inside a sentence or a place.
 +
-+        The mock raises ``NotImplementedError``. The implementation gives the name by the rule
++        The mock raises ``NotImplementedError``.
++
++        The implementation gives the name by the rule
 +        below.
 +
 +        Returns:
@@ -885,7 +905,9 @@ index 0000000..020b684
 +    def heading(self) -> BiText:
 +        """Gives the meal's name at the top of a column.
 +
-+        The mock raises ``NotImplementedError``. The implementation gives the name by the rule
++        The mock raises ``NotImplementedError``.
++
++        The implementation gives the name by the rule
 +        below.
 +
 +        Returns:
@@ -898,10 +920,10 @@ index 0000000..020b684
 +        raise NotImplementedError
 diff --git a/src/recipe_menu/settings/_read.py b/src/recipe_menu/settings/_read.py
 new file mode 100644
-index 0000000..bf5f610
+index 0000000..fc38bb9
 --- /dev/null
 +++ b/src/recipe_menu/settings/_read.py
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,62 @@
 +"""The reader of ``settings.toml``."""
 +
 +from recipe_menu.datafile import DataFolder, Problem
@@ -911,7 +933,9 @@ index 0000000..bf5f610
 +def read_settings(folder: DataFolder) -> tuple[Settings | None, tuple[Problem, ...]]:
 +    """Reads ``settings.toml`` into a ``Settings``, and reports each problem with its place.
 +
-+    The mock raises ``NotImplementedError``. The implementation follows the rules below.
++    The mock raises ``NotImplementedError``.
++
++    The implementation follows the rules below.
 +
 +    Every key is optional. A missing key gives no problem and has its default: no language,
 +    lunch and dinner, and 2 servings. The file itself is required. No check gives a warning, and

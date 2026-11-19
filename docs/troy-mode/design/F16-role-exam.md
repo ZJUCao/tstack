@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-19 |
+| Version | 1.3 |
+| Date | 2026-11-20 |
 | Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
 
@@ -607,6 +607,61 @@ The trial ran on Troy's PC with the bundled CLI 2.1.325, two runs at a time, on 
 - The exam section shows "0 of 5" in the Base column for a case proved on its anchors only; it should show "-".
 - A run cut by a usage limit keeps its cost but not its result.
 
+### 14.7 Steps 2 and 3 again (2026-11-19 to 2026-11-20)
+
+The follow-up PR ran steps 2 and 3 again after the build merged, on the same PC, CLI, and environment as section 14.6.
+
+It first built dv-mock-notes version 3. Its pass anchor is the pilot's round 2 (`3e53e685`), with each of its 12 mock notes that shared a paragraph with the full behavior moved to a paragraph of its own, by script. The rubric is unchanged. Step 2's base is the follow-up's own commit, at instruction hash `8f76d12a5545`.
+
+| Exam | What | Result | Cost |
+| --- | --- | --- | --- |
+| 2026-11-19-6 | `prove dv-mock-notes --anchors` | Passed: both judge passes graded the anchors right. | $1.02 |
+| 2026-11-19-7 | Step 2, with troy-pstack#63's sentences without "The mock keeps the values as given" | Failed: base 1 of 5, head 0 of 5, "not fixed". | $10.18 |
+| 2026-11-19-8 | Step 2, with a sentence for a sort added to the same text | Failed: base 1 of 8, head 4 of 7, "not fixed". | $11.02 |
+| 2026-11-19-9 | Step 3, with the improved branch as the base and the harm of section 14.3 on top of it, dv-mock-notes only | Passed, "not worse": base 4 of 5, head 3 of 5. | $10.16 |
+| 2026-11-19-10 | Step 3 with a stronger harm, in the brief's DV1 text too | Open: base 4 of 5, head 0 of 5 in the first round. The guard stopped the second round, so the engine's "worse" is not the rule's (below). | $10.65 |
+
+The five exams cost $43.03 in all; Troy had approved about $53.
+
+**What step 2 showed.**
+
+1. **troy-pstack#63's sentences without that clause have no sentence for a sort.** Their only constructor note is "The mock leaves out the constructor's checks."
+   - Three head runs still wrote that `Arguments` sorts its pairs, with no note.
+   - Two made that sentence true with a `__post_init__` that sorts, which fails the must check `mock_bodies_only_raise`.
+2. **With "The mock leaves out the constructor's checks and sort." added,** the first five head runs passed 3 of 5, so the target rule of section 7.2 asked for five more runs of each version.
+   - The budget guard stopped that second round at 1.5 times the estimate of $5.34, which had counted only the first round's head runs.
+   - By then the head had passed 4 of 7 against the base's 1 of 8. The rule needs 8 of 10, which 4 of 7 can no longer reach, so the result "not fixed" would have been the same.
+   - Of the three head runs that failed, one left a check in `UsageError`'s class doc comment with no note. One wrote a `UsageError.__init__` that does more than raise.
+   - In the third, the judge failed a true sentence: an enum's own `ValueError`, which the mock has. A base run of exam 2026-11-19-7 had the same kind of sentence, and the judge passed it there.
+3. **Every judge pass graded both anchors right,** with the head runs in the same pass. Version 3's anchor removed the cause of section 14.6's scale effect.
+
+So the exam measured the planted improvement, 1 of 8 against 4 of 7, and its target rule refused to call it a fix. No planted text that passes 8 of 10 has been written.
+
+**Why step 3 did not run as section 14.3 says.** dv-mock-notes' base on `main` passes 1 of 8. The not-worse rule of section 7.2 passes any head when the base passes 1 of 5 or fewer, so a planted harm cannot make this case fail on `main`. On 2026-11-19 Troy chose to run step 3 with the improved branch of step 2 as the base and a harm on top of it as the head, for dv-mock-notes only.
+
+**What step 3 showed with the harm of section 14.3** (exam 2026-11-19-9).
+
+- **The improved base passed 4 of 5, and the harmed head 3 of 5,** which the not-worse rule passes in the first round.
+- **The planted harm barely changed what the role wrote.** The agent file's DV1 step 2 said "Implement each body as the design describes it." But the brief still asks for the mock and gives notes for bodies that only raise, so 3 of 5 head runs still wrote bodies that only raise. Two head runs wrote a `UsageError.__init__` that does more than raise, against one base run.
+- **The judge graded both anchors right.**
+- Troy had allowed one hand edit for this exam: if the guard stopped the second round, raise the exam's estimate in its `state.json` from $8.92 to $11.33, which moves the guard from $13.38 to $17. The first round settled the case, so no edit was made.
+
+**What step 3 showed with a stronger harm** (exam 2026-11-19-10). Troy chose one more step 3, with a harm that also changes the brief. Its DV1 text says to write the interfaces with their full bodies, with no `NotImplementedError` and no mock note, and the agent file's DV1 step 2 says "Implement each body as the design describes it." The base is again the improved branch; its five runs were reused from exam 2026-11-19-9.
+
+- **First round: base 4 of 5, head 0 of 5.** Every head run implemented the bodies and failed the must check `mock_bodies_only_raise`. The judge also failed criterion 1 in each, for a sort or a check stated as fact.
+- **The harmed runs cost more:** about $1.25 each, against about $0.75 for the improved branch's. One was cut by the usage limit and ran again, which lost $0.91.
+- **The judge's first pass misgraded the anchors.** It failed the pass anchor on criterion 2, reading the Raises entry "NotImplementedError: Always, in the mock." as a note in the same paragraph as "The implementation never raises for bad data." Its second pass graded both anchors right, so the case counted (section 6.2).
+- **The guard stopped the second round before it began.** The not-worse rule sends 4 of 5 against 0 of 5 to a second round. Because the base runs were reused, the estimate was only $5.58, so the guard stopped new runs at $8.37, and the first round had cost $10.65. The engine then recorded "worse", since too few runs counted. That is the guard's verdict, not the rule's. To pass, the head would have to pass at least 2 more of the next 5 runs than the base, and every harmed run has failed a must check.
+
+**Step 3 with the stronger harm is open.** On 2026-11-20 Troy chose to spend no more on the trial, so the case was not resumed: no hand edit was made, and the second round never ran. The first round is strong evidence that the exam catches a real harm: the improved base passed 4 of 5, and every harmed run failed a must check. But the not-worse rule gave no verdict, and the engine's "worse" comes from the guard.
+
+**What the trial shows so far.** The exam proved all twelve cases on their anchors (section 14.6). It measured a planted improvement, but below its target rule's bar. It did not see a planted harm that barely changed what the role wrote, and it saw a stronger harm without a verdict from its rule. So section 14.4's first row is not met: the trial has not yet shown, by the exam's own rules, that the exam tells a better version from a worse one.
+
+**Follow-ups, not fixed here.**
+
+- **An estimate that counts the not-worse rule's second round,** and a target's, including when the base runs are reused, so that the guard does not stop a comparison the rule has asked for. The guard stopped exams 2026-11-19-8 and 2026-11-19-10. With base runs reused, the estimate is even smaller, while a harmed head can cost more than the base. This is a change to the engine.
+- **Criterion 1 of dv-mock-notes** could say that a sentence true of the mock as written passes, such as an enum's own `ValueError`. Criterion 2 could say that a Raises entry is not a paragraph of the description. Both are case changes, for the next PR that changes this case.
+
 ## 15. How F16 maps to the requirements
 
 | Requirement | Where F16 covers it |
@@ -658,3 +713,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.0 | 2026-11-16 | Approved by Troy with D151 to D160, every recommended answer. D151 narrows the F16 requirement to the roles that run as subagents (requirements 1.42). |
 | 1.1 | 2026-11-18 | D152 refined by Troy ("按推荐"): U1, U2, U3, U6, and U7 are musts; U4 and U5 are notes until their hooks land (section 4.3). |
 | 1.2 | 2026-11-19 | Facts from the build and its trial: U3 reads line ends as git stores the files, and a last `END` line after the brief does not void a run (section 4.3); the trial's record (14.6). |
+| 1.3 | 2026-11-20 | Steps 2 and 3 of the trial, run again in the follow-up PR, and what they showed (14.7): the exam measured a planted improvement below its target rule's bar and did not see a weak planted harm. It saw a stronger harm in its first round, but the guard stopped the second round, so the rule gave no verdict. Section 14.4's first row is not met. dv-mock-notes is version 3, with a constructed pass anchor. |
