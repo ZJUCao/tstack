@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.3 |
+| Version | 1.4 |
 | Date | 2026-11-20 |
 | Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
@@ -519,7 +519,8 @@ It runs in the judge's folder of section 6.2, with no `--plugin-dir`. The verdic
 | troy-pstack#51, code examples in designs | If its fix is in the Interface Designer's instructions | if-example-format as the target, if-error-rules, ar-design-review |
 | troy-pstack#49, background runs | If its fix adds "stop every process you start" to `common.md` | All twelve, with U5 as the measure |
 | troy-pstack#67, notes for later features | If its fix adds the notes to the IF1 and DV2 briefs' Input | The cases whose Input changes |
-| troy-pstack issues #46, #47, #48, #52, #64, #65, #66, #68, #73, and #74 | The engine, the hooks, troy-init, or the guide, not role instructions | None. U4 watches troy-pstack#64's problem until its hook lands. |
+| troy-pstack#64, Python that reads its program from standard input | No role instruction, but the PR that lands its hook makes U4 a must (section 4.3), which changes the exam's own code in `troy-mode/exam/troyexam/`, part of the instruction set (section 9.1) | All twelve, on their anchors, as after any change to the harness (section 4.5) |
+| troy-pstack issues #46, #47, #48, #52, #65, #66, #68, #73, and #74 | The engine, the hooks, troy-init, or the guide, not role instructions | None |
 
 ## 14. How F16 is checked (D160)
 
@@ -567,7 +568,7 @@ The status updates are their own PRs.
 
 ### 14.5 When it is built
 
-The build starts after F19's build, which waits for this design PR (F19 design D199), so the build uses the new names. The instruction parts of the first customers (section 13), troy-pstack#63 and troy-pstack#75 first, wait for F16's build and become its first gated PRs. The trial's planted improvement uses troy-pstack#63's text on a scratch branch only, and that issue's real PR follows the build. The fixes that change no role instruction, such as troy-pstack#64 and troy-pstack#65, do not wait.
+The build starts after F19's build, which waits for this design PR (F19 design D199), so the build uses the new names. The instruction parts of the first customers (section 13), troy-pstack#63 and troy-pstack#75 first, wait for F16's build and become its first gated PRs. The trial's planted improvement uses troy-pstack#63's text on a scratch branch only, and that issue's real PR follows the build. The fixes that change no role instruction, such as troy-pstack#65, do not wait. troy-pstack#64 waits too, since its PR makes U4 a must in the exam's own code (section 13).
 
 ### 14.6 What the trial showed (2026-11-17 to 2026-11-19)
 
@@ -714,3 +715,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.1 | 2026-11-18 | D152 refined by Troy ("按推荐"): U1, U2, U3, U6, and U7 are musts; U4 and U5 are notes until their hooks land (section 4.3). |
 | 1.2 | 2026-11-19 | Facts from the build and its trial: U3 reads line ends as git stores the files, and a last `END` line after the brief does not void a run (section 4.3); the trial's record (14.6). |
 | 1.3 | 2026-11-20 | Steps 2 and 3 of the trial, run again in the follow-up PR, and what they showed (14.7): the exam measured a planted improvement below its target rule's bar and did not see a weak planted harm. It saw a stronger harm in its first round, but the guard stopped the second round, so the rule gave no verdict. Section 14.4's first row is not met. dv-mock-notes is version 3, with a constructed pass anchor. |
+| 1.4 | 2026-11-20 | troy-pstack#64 waits for F16: the PR that lands its hook makes U4 a must in the exam's own code, which is part of the instruction set (sections 13 and 14.5). Found while F16 was built. |
