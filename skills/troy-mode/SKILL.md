@@ -82,12 +82,13 @@ R19 covers every text you post: PR titles and descriptions, PR comments and revi
 ## Running a role
 
 1. **Brief.** `troy_flow.py brief --task <task> --item <ID> [--title <title>] [--round <n>] [--input-file <file>]`. Write Input (findings, an answer, failing checks, a ruling, Troy's decision or comments) to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/` first. Write files there, such as Input, `rule-row`'s rule file, and PR descriptions, through Bash, for example with a heredoc: the agent's file tools may refuse a path inside the git folder.
-2. **Snapshot.** `troy_flow.py snapshot --role <role>`. The tree must be clean: you commit after every writing run.
+2. **Snapshot.** `troy_flow.py snapshot --role <role>`. The tree must be clean: you commit after every writing run. A `running` problem means that an earlier role, or a command it left in the background, may still run: call `TaskStop` with each agent ID in `stop`, then take the snapshot again.
 3. **Agent call.** `subagent_type` from `agent`, the brief's `prompt` as the prompt, and `model` and `effort` only when `agent` has them.
-4. **Wait.** Wait for the role's report and do nothing else in the checkout meanwhile: F05's hooks blame every change during the run on the role. Roles that only read may run together, such as TM2 and CR1 on one test PR, under one snapshot with `--role test-manager --role code-reviewer`; nothing may change.
+4. **Wait.** Wait for the role's report and do nothing else in the checkout meanwhile: F05's hooks blame every change during the run on the role. Roles that only read may run together, such as TM2 and CR1 on one test PR, under one snapshot with `--role test-manager --role code-reviewer`; nothing may change. A notice that the role is waiting on its own background work changes nothing: its report is final, and step 5 ends that work.
 5. **Check.** `troy_flow.py check-run --run <run ID>`, with `--allow-dependency <path>` only for a dependency Troy accepted.
    - No problem: stage exactly the paths in `stage`.
    - `escalate` true (`HEAD` or the branch moved): escalate at once.
+   - A `running` problem: the role, or a command it left in the background, may still run. Call `TaskStop` with each agent ID in `stop`, then run `check-run` again. This counts no attempt and has no undo. Ending the role ends its commands; a `TaskStop` that fails because the agent already ended still clears its record. If a permission refuses `TaskStop`, tell Troy which agent to stop and wait.
    - A `scope`, `section`, or `dependency` problem: run every `undo` command, then run the role once more with Input that names the paths and the scope. A second problem in the same stage escalates.
    - Mention `hooks_log` lines in your report; they do not stop the flow.
 

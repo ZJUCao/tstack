@@ -1,5 +1,5 @@
 {
-  "description": "troy-mode hooks (F05 and F13): write scopes, read-only subagents, R19 and R21 guards, plugin reads, and the mode guard. Each exits at once outside troy-mode projects.",
+  "description": "troy-mode hooks (F05 and F13): write scopes, read-only subagents, R19, R21, and R23 guards, commands a role leaves running, plugin reads, and the mode guard. Each exits at once outside troy-mode projects.",
   "hooks": {
     "SessionStart": [
       {
@@ -28,7 +28,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|PowerShell|Edit|Write|NotebookEdit|Skill",
+        "matcher": "Bash|PowerShell|Edit|Write|NotebookEdit|Skill|TaskStop",
         "hooks": [
           {
             "type": "command",
@@ -83,6 +83,18 @@
             "type": "command",
             "shell": "bash",
             "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" SubagentStop",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "p=${TROY_MODE_PYTHON:-}; if [ -z \"$p\" ]; then case ${OSTYPE:-} in msys*|cygwin*) p=python;; *) p=python3;; esac; fi; if ! command -v \"$p\" >/dev/null 2>&1; then if [ -d \"$CLAUDE_PROJECT_DIR/.troy-mode\" ]; then echo 'troy-mode: no Python 3.11 or newer found; set TROY_MODE_PYTHON' >&2; exit 2; fi; exit 0; fi; exec \"$p\" -I \"${CLAUDE_PLUGIN_ROOT}/troy-mode/hooks/troy_hook.py\" SessionEnd",
             "timeout": 10
           }
         ]
