@@ -45,7 +45,8 @@ def _safe(subcommand: str | None) -> str | None:
     return " ".join(word if word in _KNOWN else "?" for word in subcommand.split()[:3])
 
 
-def write(ctx, rule: str, decision: str, paths=(), subcommand: str | None = None) -> None:
+def write(ctx, rule: str, decision: str, paths=(), subcommand: str | None = None,
+          tasks=None) -> None:
     """Appends one line for a refusal or block. A log that cannot be written is skipped.
 
     Args:
@@ -54,6 +55,8 @@ def write(ctx, rule: str, decision: str, paths=(), subcommand: str | None = None
         decision: "deny", "block", or "stop".
         paths: Paths for the "scope" and "changes" rules.
         subcommand: The program and subcommand words, for example "git commit".
+        tasks: For the "background" rule only, the task IDs a role left running
+            (design section 6.1). Never their command text.
     """
     entry = {
         "time": time.strftime(_FORMAT, time.gmtime()),
@@ -67,6 +70,8 @@ def write(ctx, rule: str, decision: str, paths=(), subcommand: str | None = None
         "subcommand": _safe(subcommand),
         "decision": decision,
     }
+    if tasks is not None:
+        entry["tasks"] = [str(task) for task in tasks]
     path = log_path(ctx.project)
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)

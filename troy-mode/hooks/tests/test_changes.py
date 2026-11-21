@@ -4,12 +4,16 @@ For roles, the hook compares the working tree with the role's starting state
 after each Bash, PowerShell, or Skill call and at SubagentStop. The tests
 make the changes themselves, as a role's Bash command would, and then send
 the PostToolUse or SubagentStop input. Each test gets its own repository.
+
+D231 (design 6.1, step 2): the hook no longer deletes a role's record when
+it lets the role stop. It sets ``stopped`` and keeps the record, so the
+tests that asserted the deletion now assert the kept, stopped record.
 """
 
 import unittest
 
 from hook_helpers import (
-    FOO, GP, MAIN, HookTestCase, Project, bash_call, post_call, role,
+    FOO, GP, LOG_TIME, MAIN, HookTestCase, Project, bash_call, post_call, role,
     start_call, stop_call, unique,
 )
 
@@ -35,6 +39,14 @@ class ChangeTestCase(HookTestCase):
     def post(self, caller=None, tool="Bash"):
         """Sends PostToolUse for a caller and returns the run."""
         return post_call(self.project, caller or self.dev, tool=tool).run()
+
+    def assert_stopped_record(self, caller=None):
+        """Asserts that the role's record is kept with ``stopped`` set (design 6.1, D231)."""
+        caller = caller or self.dev
+        record = self.project.read_record(caller.agent_id)
+        self.assertIsNotNone(record, f"the record of {caller.agent_id} was deleted at the stop")
+        self.assertRegex(record.get("stopped") or "", LOG_TIME,
+                         f"the stop did not set stopped: {record}")
 
 
 class PostToolUseTests(ChangeTestCase):
@@ -195,29 +207,30 @@ class SubagentStopTests(ChangeTestCase):
         self.assert_blocked(first, "tests/test_new.py", "delete")
         self.assertTrue(self.project.record_path(self.dev.agent_id).is_file(),
                         "the record must stay while the role keeps working")
+        record = self.project.read_record(self.dev.agent_id)
+        self.assertIsNone(record.get("stopped"), f"a blocked stop set stopped: {record}")
         second = stop_call(self.project, self.dev, active=True).run()
         self.assert_not_blocked(second)
-        self.assertFalse(self.project.record_path(self.dev.agent_id).exists(),
-                         "the record must be deleted when the role stops")
+        self.assert_stopped_record()
         self.assert_last_log(self.project, event="SubagentStop", rule="changes",
                              decision="stop", paths=["tests/test_new.py"],
                              agent_id=self.dev.agent_id)
 
     def test_stop_after_undoing_the_change_is_silent(self):
-        """After the role deletes the file, its stop is silent and the record is gone."""
+        """After the role deletes the file, its stop is silent and the record is kept, stopped."""
         self.start()
         self.project.write("tests/test_new.py", TEST_BODY)
         self.assert_blocked(stop_call(self.project, self.dev).run(), "tests/test_new.py")
         self.project.delete("tests/test_new.py")
         self.assert_silent(stop_call(self.project, self.dev, active=True).run())
-        self.assertFalse(self.project.record_path(self.dev.agent_id).exists())
+        self.assert_stopped_record()
 
     def test_stop_without_changes_is_silent(self):
-        """A role with only in-scope changes stops silently and its record is deleted."""
+        """A role with only in-scope changes stops silently; its record is kept, stopped."""
         self.start()
         self.project.write("src/pkg/app.py", "def run():\n    return 4\n")
         self.assert_silent(stop_call(self.project, self.dev).run())
-        self.assertFalse(self.project.record_path(self.dev.agent_id).exists())
+        self.assert_stopped_record()
 
 
 class StartRecordTests(ChangeTestCase):
@@ -242,13 +255,15 @@ class StartRecordTests(ChangeTestCase):
         self.assert_silent(self.post())
 
     def test_records_are_per_agent(self):
-        """Two roles get two records, and one role's stop deletes only its own."""
+        """Two roles get two records, and one role's stop marks only its own stopped."""
         engineer = role("test-engineer", unique("-"))
         self.start()
         self.start(engineer)
         self.assert_silent(stop_call(self.project, engineer).run())
-        self.assertFalse(self.project.record_path(engineer.agent_id).exists())
-        self.assertTrue(self.project.record_path(self.dev.agent_id).is_file())
+        self.assert_stopped_record(engineer)
+        record = self.project.read_record(self.dev.agent_id)
+        self.assertIsNotNone(record, "the other role's record is gone")
+        self.assertIsNone(record.get("stopped"), f"the other role's record was stopped: {record}")
 
 
 if __name__ == "__main__":

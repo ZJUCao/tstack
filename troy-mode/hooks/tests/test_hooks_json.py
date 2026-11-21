@@ -1,6 +1,6 @@
 """hooks.json group (F05 design sections 2, 3, and 10, and 13.1; contract section 8).
 
-hooks/hooks.json parses; its six events, matchers, and timeouts are those of
+hooks/hooks.json parses; its seven events, matchers, and timeouts are those of
 F05 design section 3 and F13 design 7.1; and its commands name existing
 scripts. The commands are also run in bash, where one is found, to check that
 they reach troy_hook.py, and that a missing Python blocks in a troy-mode
@@ -15,6 +15,10 @@ these tests catch are listed in test_mode_guard.py.
 F19 (design 5.2 and 11.1) renames the plugin to tstack: the SubagentStart and
 SubagentStop matchers become ^tstack:troy-, the Read if rule
 Read(//**/tstack/**), and the UserPromptExpansion matcher stays.
+
+D231 (F05 design 3 and 6.1, tstack issue #49) adds TaskStop to the scope
+entry's PreToolUse matcher and a seventh event, SessionEnd, with no matcher.
+test_background_work.HooksJsonTests checks the two entries on their own.
 """
 
 import json
@@ -44,14 +48,15 @@ GUARD_MATCHER = "^([^:]+:)?(poteto-mode|no-comments)$"
 EXPECTED = (
     ("SessionStart", None, False),
     ("SubagentStart", "^tstack:troy-", False),
-    ("PreToolUse", "Bash|PowerShell|Edit|Write|NotebookEdit|Skill", False),
+    ("PreToolUse", "Bash|PowerShell|Edit|Write|NotebookEdit|Skill|TaskStop", False),
     ("PreToolUse", "Read", True),
     ("PreToolUse", "Glob|Grep", False),
     ("PostToolUse", "Bash|PowerShell|Skill", False),
     ("SubagentStop", "^tstack:troy-", False),
+    ("SessionEnd", None, False),  # D231 (F05 design 3 and 6.1)
     (GUARD_EVENT, GUARD_MATCHER, False),
 )
-SCOPE_TOOLS = {"Bash", "PowerShell", "Edit", "Write", "NotebookEdit", "Skill"}
+SCOPE_TOOLS = {"Bash", "PowerShell", "Edit", "Write", "NotebookEdit", "Skill", "TaskStop"}
 READ_TOOLS = {"Read", "Glob", "Grep"}
 IF_RULE = "Read(//**/tstack/**)"
 PLUGIN_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^\s\"']+)")
@@ -118,12 +123,15 @@ class HooksJsonTests(unittest.TestCase):
         return result
 
     def test_events_are_those_of_design_section_3(self):
-        """Exactly the six events, one group each, and three for PreToolUse (F13 7.1 and 9)."""
+        """Exactly the seven events, one group each, and three for PreToolUse (F13 7.1 and 9).
+
+        SessionEnd is the seventh (F05 design 3, D231).
+        """
         counts = {event: len(groups) for event, groups in self.data["hooks"].items()}
-        self.assertEqual(6, len(counts), f"events: {sorted(counts)}")
+        self.assertEqual(7, len(counts), f"events: {sorted(counts)}")
         self.assertEqual({e for e, _, _ in EXPECTED}, set(counts))
         for event in ("SessionStart", "SubagentStart", "PostToolUse", "SubagentStop",
-                      GUARD_EVENT):
+                      "SessionEnd", GUARD_EVENT):
             self.assertEqual(1, counts[event], event)
         self.assertEqual(3, counts["PreToolUse"], "the scope, Read, and Glob|Grep entries")
 

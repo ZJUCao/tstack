@@ -1,66 +1,55 @@
 """Changes a role makes through the shell or a skill (design section 6, D41).
 
-A role's starting state is a snapshot of git status with content hashes. After
-each shell or skill call, and when the role stops, the hook takes the same
-snapshot and reports changed paths outside the role's write scope.
+A role's starting state is a snapshot of git status with content hashes, kept
+in its record (records.py). After each shell or skill call, and when the role
+stops, the hook takes the same snapshot and reports changed paths outside the
+role's write scope.
 """
 
-import json
-import os
-import re
-
-from . import gitstate
-from .project import Project
+from . import gitstate, records
 from .scopes import Caller, describe
 from .writes import allows
 
 
-def record_path(project: Project, agent_id: str) -> str:
-    """Returns the file that holds a role's starting state."""
-    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", agent_id)
-    return os.path.join(project.state_dir(), "agents", f"{safe}.json")
+def record_path(ctx) -> str:
+    """Returns the file that holds the calling role's record."""
+    return records.path_of(ctx.project.state_dir(), ctx.caller.agent_id)
 
 
-def write_record(project: Project, caller: Caller) -> dict:
-    """Records a role's starting state and returns the snapshot.
+def read_record(ctx) -> dict | None:
+    """Reads the calling role's record, or None when there is none.
+
+    Raises:
+        ValueError: The record is not a JSON object.
+    """
+    return records.read(record_path(ctx))
+
+
+def write_record(ctx) -> dict:
+    """Records the calling role's starting state and returns the record.
 
     Raises:
         GitError: git status fails.
         OSError: The record cannot be written.
     """
-    snap = gitstate.snapshot(project)
-    path = record_path(project, caller.agent_id)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="\n") as handle:
-        json.dump({"agent_type": caller.agent_type, "paths": snap}, handle)
-    return snap
+    record = records.fresh(ctx.caller.agent_id, ctx.caller.agent_type,
+                           ctx.data.get("session_id"), gitstate.snapshot(ctx.project))
+    records.save(record_path(ctx), record)
+    return record
 
 
-def ensure_record(project: Project, caller: Caller) -> None:
-    """Makes the role's record at its first call when SubagentStart made none."""
-    if not os.path.isfile(record_path(project, caller.agent_id)):
-        write_record(project, caller)
+def ensure_record(ctx) -> dict:
+    """Returns the role's record, made now when SubagentStart made none."""
+    return read_record(ctx) or write_record(ctx)
 
 
-def _read_record(project: Project, caller: Caller) -> dict | None:
-    """Reads a role's starting snapshot, or None when there is no record.
+def current_record(ctx) -> dict:
+    """Returns the role's record with every field of D231, for a change to save.
 
-    Raises:
-        ValueError: The record is not valid JSON.
+    An earlier plugin's record gains the fields as the record of a running role.
     """
-    try:
-        with open(record_path(project, caller.agent_id), encoding="utf-8") as handle:
-            return json.load(handle)["paths"]
-    except FileNotFoundError:
-        return None
-
-
-def delete_record(project: Project, caller: Caller) -> None:
-    """Deletes a role's record when the role stops."""
-    try:
-        os.remove(record_path(project, caller.agent_id))
-    except FileNotFoundError:
-        pass
+    return records.complete(ensure_record(ctx), ctx.caller.agent_id, ctx.caller.agent_type,
+                            ctx.data.get("session_id"))
 
 
 def _way_back(path: str, start: dict, now: dict) -> str:
@@ -85,17 +74,17 @@ def out_of_scope(ctx) -> list[tuple[str, str]]:
     Returns:
         Pairs of repository path and how to undo the change, sorted by path.
     """
-    project, caller = ctx.project, ctx.caller
-    start = _read_record(project, caller)
-    if start is None:
-        write_record(project, caller)
+    record = read_record(ctx)
+    if record is None:
+        write_record(ctx)
         return []
-    now = gitstate.snapshot(project)
+    start = record["paths"]
+    now = gitstate.snapshot(ctx.project)
     changed = sorted(p for p in set(start) | set(now)
                      if p not in start or p not in now or start[p][1] != now[p][1])
     if not changed:
         return []
-    paths, scope = ctx.config().paths, caller.scope()
+    paths, scope = ctx.config().paths, ctx.caller.scope()
     return [(p, _way_back(p, start, now)) for p in changed if not allows(scope, p, paths)[0]]
 
 

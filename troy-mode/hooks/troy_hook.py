@@ -3,7 +3,7 @@
 Usage:
     python troy_hook.py <Event>
 
-<Event> is SessionStart, SubagentStart, PreToolUse, PostToolUse,
+<Event> is SessionStart, SubagentStart, PreToolUse, PostToolUse, SessionEnd,
 SubagentStop, or UserPromptExpansion. The hook input is JSON on stdin. See
 docs/troy-mode/design/F05-hooks.md and F13-mode-guard.md in tstack.
 
