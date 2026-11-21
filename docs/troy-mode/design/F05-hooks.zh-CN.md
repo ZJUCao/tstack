@@ -1,13 +1,13 @@
 # F05 设计：hook
 
-> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.4（2026-11-20）。两者如有出入，以英文版为准。
+> 本文件是 [`F05-hooks.md`](F05-hooks.md) 的中文镜像，同步自英文版 1.5（2026-11-21）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.15](../requirements.zh-CN.md#72-功能列表) 中的 F05 |
-| 版本 | 1.4 |
-| 日期 | 2026-11-20 |
-| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46。1.1 版记录第 13.3 节试运行确认的事实。1.2 版加入 D200，即 Troy 于 2026-11-16 批准的 tstack issue #65。1.3 版加入 D219，即 Troy 于 2026-11-18 批准的 tstack issue #66。1.4 版加入 D223，即 Troy 于 2026-11-16 批准的 tstack issue #64。 |
+| 版本 | 1.5 |
+| 日期 | 2026-11-21 |
+| 状态 | Troy 已于 2026-11-06 批准，含 D39 到 D46。1.1 版记录第 13.3 节试运行确认的事实。1.2 版加入 D200，即 Troy 于 2026-11-16 批准的 tstack issue #65。1.3 版加入 D219，即 Troy 于 2026-11-18 批准的 tstack issue #66。1.4 版加入 D223，即 Troy 于 2026-11-16 批准的 tstack issue #64。1.5 版加入 D231、D232 和 D234，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.1 节）。 |
 | 事实来源 | 英文版 [`F05-hooks.md`](F05-hooks.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -20,6 +20,7 @@
    - 只允许角色运行只读的 git 和 GitHub 命令，以及它们需要的技能；
    - 阻止 Claude 跳过 git hook、从 `main` 开 PR（R21）、发出文字里带署名的 PR、评论、评审、issue 或发布说明（R19，D200）；
    - 阻止每个调用方运行从标准输入读取程序的 Python（R23，D223）；
+   - 不让角色留在后台运行的命令在角色报告之后修改工作区：把这样的命令记下来，让 F07 结束它，并拒绝已经停止的角色的每次调用（第 6.1 节，D231，D232）；
    - 让角色不需要权限规则就能读插件自己的文件。
 2. **git hook**，放在 troy-check 的文件夹里，由 troy-init 复制进每个项目。不论谁运行 git，它们都拒绝违反 R19 的提交、在 `main` 上的提交和推送到 `main`（R21）。
 3. **一份本地日志**，记录每次拦截。F07 在每次角色运行后读取它，F08 的回顾按整个版本读取它（D219）。
@@ -62,12 +63,13 @@ troy-mode/
 | 事件 | 匹配条件 | 做什么 |
 | --- | --- | --- |
 | `SessionStart` | 全部 | `core.hooksPath` 未设置时，打开项目的 git hook（第 8.1 节）。删除一天前的角色记录，以及 `[hooks] log_days` 天前的日志行，默认 30 天（第 10 节，D219）。 |
-| `SubagentStart` | `^troy-pstack:troy-` | 记录角色开始时的状态，供变更检测使用（第 6 节）。 |
-| `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | 用写入范围检查文件路径（第 5 节），检查 git、GitHub 和技能命令（第 7 节），R19 和 R21 的防护（第 8.2 节），以及 R23 的 Python 检查（第 8.3 节）。 |
+| `SubagentStart` | `^troy-pstack:troy-` | 记录角色开始时的状态，供变更检测使用（第 6 节）。已经停止的角色，它的记录保持原样（第 6.1 节）。 |
+| `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill\|TaskStop` | 用写入范围检查文件路径（第 5 节），检查 git、GitHub 和技能命令（第 7 节），R19 和 R21 的防护（第 8.2 节），以及 R23 的 Python 检查（第 8.3 节）。拒绝已经停止的角色的每次调用；主会话用 `TaskStop` 停止一个角色时，关闭它的记录（第 6.1 节）。 |
 | `PreToolUse` | `Read`，带 `"if": "Read(//**/troy-pstack/**)"` | 允许读取插件自己的文件（第 9 节）。 |
 | `PreToolUse` | `Glob\|Grep` | 允许搜索插件自己的文件（第 9 节）。 |
-| `PostToolUse` | `Bash\|PowerShell\|Skill` | 对角色：报告这次调用在写入范围之外做的改动（第 6 节）。 |
-| `SubagentStop` | `^troy-pstack:troy-` | 对角色：让角色继续工作，直到它撤销范围之外的改动，只拦一次（第 6 节）。 |
+| `PostToolUse` | `Bash\|PowerShell\|Skill` | 对角色：报告这次调用在写入范围之外做的改动（第 6 节），并记下被 Claude Code 转到后台的命令（第 6.1 节）。 |
+| `SubagentStop` | `^troy-pstack:troy-` | 对角色：让角色继续工作，直到它撤销范围之外的改动，只拦一次（第 6 节）。然后把角色标为已停止，并保留它留在后台运行的命令（第 6.1 节）。 |
+| `SessionEnd` | 全部 | 关闭正在结束的会话里各角色的记录（第 6.1 节）。 |
 
 - `SubagentStart` 和 `SubagentStop` 的匹配条件匹配的是 `agent_type`，是一个不锚定的正则表达式，所以模式以 `^` 开头。
 - 每一项都设置 `"timeout": 10`。Claude Code 的默认值是 600 秒，而 `PreToolUse` hook 超时后，调用会照常进行。
@@ -128,14 +130,85 @@ F04 的试运行表明，开发工程师和测试工程师大多通过 Bash 的 
 
 1. **开始。** 在 `SubagentStart` 时，hook 把角色开始时的状态记在 `<git dir>/troy-mode/agents/<agent_id>.json` 里：`git status --porcelain=v1 -z --untracked-files=all` 列出的每个路径，以及它内容的 SHA-256 哈希。如果这份记录不存在，就在角色第一次 `PreToolUse` 调用时生成。
 2. **每次 shell 或技能调用之后。** 在 `Bash`、`PowerShell` 和 `Skill` 的 `PostToolUse` 时，hook 再拍一次同样的快照。一个路径在列表里是新的、从列表里消失了，或者哈希不同，就算改动过。改动过的路径如果在角色范围之外（第 5 节），hook 就回答 `decision: "block"`，列出这些路径和恢复方法：已跟踪的文件用 `git restore -- <path>`，角色新建的文件就删掉。命令已经执行了，所以这是反馈，不是阻止。
-3. **结束时。** 在 `SubagentStop` 时，hook 再检查一次。如果还有范围之外的改动，并且 `stop_hook_active` 是 false，它就用同样的列表拦住这次停止，让角色撤销这些改动。如果 `stop_hook_active` 是 true，说明角色已经有过一次机会：hook 让它停止，把路径记进日志，由 F07 在运行后的检查中停下整个流程。最后它删除这份记录。
+3. **结束时。** 在 `SubagentStop` 时，hook 再检查一次。如果还有范围之外的改动，并且 `stop_hook_active` 是 false，它就用同样的列表拦住这次停止，让角色撤销这些改动。如果 `stop_hook_active` 是 true，说明角色已经有过一次机会：hook 让它停止，把路径记进日志，由 F07 在运行后的检查中停下整个流程。最后它把这份记录标为已停止并保留下来（第 6.1 节）。
 
 `Skill` 在 `PostToolUse` 的匹配条件里，是因为分叉的技能（比如 `/code-review`）工作时角色在等待。分叉自己的改动就会算在角色头上。
 
-- **前提。** 角色运行期间，没有别的东西修改工作区。F07 一次只运行一个写文件的角色，并等它结束（F04 第 9.2 节）。如果有别的东西写了文件，hook 会算在角色头上，这样出错的方向是安全的。
+- **前提。** 角色运行期间，没有别的东西修改工作区。F07 一次只运行一个写文件的角色，并等它结束（F04 第 9.2 节）。如果有别的东西写了文件，hook 会算在角色头上，这样出错的方向是安全的。试点中，早先一个角色留在后台运行的命令打破了这个前提。第 6.1 节守住它。
 - **其他子代理没有变更检测。** 它们可能在后台和主会话同时运行，主会话自己的修改就会被算到它们头上。它们只有每次调用之前的检查。
 - **看不到的。** Bash 在仓库外的写入，以及 `.git` 文件夹里的改动。
 - **代价。** 角色每次 shell 调用，一次 `git status` 加上改动文件的哈希：在 Troy 的电脑上，小项目大约 50 毫秒。
+
+### 6.1 角色留在后台运行的工作（D231，D232）
+
+**试点表明了什么。** tstack issue #49 说 `ZJUCao/recipe-menu#12` 的一次开发工程师运行在后台卡了 11.5 小时。它的会话记录表明，这次运行本身 3 分钟就结束了。它的一条命令，一个 `python -` heredoc，超过了 Bash 工具的 120 秒时限，Claude Code 没有停掉它，而是把它转到了后台。开发工程师想停掉它，但子代理没有 `TaskStop` 工具（"No such tool available"）。它报告之后，主会话继续往下走。11.5 小时后这条命令结束，在 F03 的测试工程师运行期间写入了它的旧修改，33 行重复代码，`check-run` 把这算到了测试工程师头上。2026-11-13 的两个 Python 进程也是这样来的：测试工程师的命令被转到后台，在报告之后约 40 分钟自己结束。
+
+在 `ZJUCao/recipe-menu` 的三份会话记录里，331 次角色运行中有 52 次有命令被转到后台，大多是因为 120 秒时限，其中 19 次在角色报告时命令还在运行。当前的 CLI 也还会这样。2026-11-21，用 Claude Code 2.1.328 时，一个测试经理卡住的命令在它报告后又运行了 2 小时。权限分类器拒绝了测试经理的 `taskkill`（"Destructive or Unwanted Actions"），主会话也没有停掉这个任务。命令结束时，Claude Code 唤醒了测试经理。F05 的 `SubagentStart` hook 重新记录了工作区，而这时工作区里已有正在运行的开发工程师的修改；到测试经理再次停止时，`SubagentStop` hook 让它对开发工程师的三个文件执行 `git restore`。测试经理拒绝了。
+
+**Claude Code 怎样做。** 依据试点的桌面应用会话记录，以及 2026-11-21 用自带 CLI 2.1.328 在嵌套 `claude -p` 会话里做的探测。探测在一个临时 git 项目里进行，用一个记录每次 hook 输入的插件和一个 haiku 工作代理，花费 $0.09。
+
+| 事实 | 依据 |
+| --- | --- |
+| 桌面应用里，Agent 工具没有 `run_in_background` 参数，每个角色都作为后台代理运行。用 `claude -p` 时有这个参数。 | `ZJUCao/recipe-menu` 会话记录里 331 次角色调用中有 327 次，CLI 2.1.317 到 2.1.328，返回"Async agent launched"；另外 4 次在记录里没有结果。探测 1。 |
+| 超过 Bash 工具时限的命令被转到后台，成为一个带 ID 的任务。这时 `PostToolUse` 输入里有 `tool_response.backgroundTaskId` 和 `timedOutAfterMs`。 | 探测 1 |
+| `SubagentStop` 和 `Stop` 的输入列出会话里正在运行的 `background_tasks`：`id`、`type`（`subagent` 或 `shell`）、`status`，以及 shell 的 `command`。它们不说明 shell 是哪个代理启动的。 | 探测 1 和 A |
+| 子代理给出最终回复之后，它的命令继续运行。命令结束时，Claude Code 唤醒这个子代理：`SubagentStart` 和 `SubagentStop` 以同一个 `agent_id` 再次触发。 | 探测 A；试点 2026-11-11 和 2026-11-21 |
+| 子代理只有在工具里有 `TaskStop` 时才能停掉自己的命令。这时，点名该任务的 `SubagentStop` 拦截会让它这样做。 | 探测 F 和 G；试点 2026-11-10 |
+| 主会话用命令的任务 ID 调用 `TaskStop`，会结束这条命令及其子进程，并唤醒子代理。用子代理的代理 ID 调用，会结束子代理和它的命令，不唤醒它。 | 探测 B 和 C |
+| 会话退出时，Claude Code 结束它的后台命令及其子进程。 | 探测 D |
+| 桌面应用会告诉主会话："This agent stopped with background work of its own still running. It may resume on its own when that work completes or reports"。 | 上面那 19 次角色运行的通知 |
+| 设置 `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` 后，Agent 工具在前台运行子代理，超过时限的命令被停掉（退出码 143），而不是转到后台。没有在桌面应用里试过。 | 探测 E |
+| 用 `claude -p` 时，后台命令 10 分钟后被停掉。桌面应用没有表现出这样的上限：有一条运行了 2 小时。 | 探测 1；试点 2026-11-21 |
+
+所以 issue 提出的第一种修法，让角色在前台运行，在 troy-mode 所在的桌面应用里做不到。现在的记录也分辨不出角色的工作是否还在运行。hook 在角色第一次停止时就删除它的记录，所以试点里遗留的命令根本没有记录。被用量上限或关闭的会话结束的角色，即使什么也没在运行，也会把记录保留一天。也不需要列出进程：Claude Code 把每条这样的命令当作任务来跟踪，并把它的 ID 交给 hook。
+
+**记录（D231）。** `<git dir>/troy-mode/agents/<agent_id>.json` 除了第 6 节的开始状态，还保存：
+
+| 字段 | 含义 |
+| --- | --- |
+| `session` | `SubagentStart` 的 `session_id`，也就是主会话的。 |
+| `started` | 记录生成的时间，UTC。 |
+| `stopped` | 角色最终停止的时间；运行期间为 null。 |
+| `background` | 角色被 Claude Code 转到后台、可能仍在运行的命令的任务 ID。 |
+
+只要 `stopped` 为 null，或者 `background` 里还有任务，记录就是**未关闭**的。没有这些字段的记录，由旧版插件写入，算作已关闭。
+
+**hook（D231）。**
+
+1. **命令转到后台。** 在角色 `Bash` 或 `PowerShell` 的 `PostToolUse` 时，hook 把 `tool_response.backgroundTaskId` 加进 `background`。带 `run_in_background` 的调用应该以同样方式报告它的任务；探测没有试过，由构建时的试运行核实（第 13.3 节）。hook 还用 `additionalContext` 告诉角色："troy-mode: this command now runs in the background as task <ID>. You cannot stop it, and the main session stops it after your report, so do not wait for its result. Say in your report what you could not check."
+2. **角色停止。** 当 `SubagentStop` 让角色停止时（第 6 节第 3 步），hook 设置 `stopped`，并且 `background` 里只保留输入的 `background_tasks` 列为正在运行的 shell 的任务。如果还剩任务，它写一行日志，规则为 `background`，决定为 `stop`，任务 ID 放在 `tasks` 里（第 10 节）。它不再删除记录。
+3. **主会话停止一个任务。** 在主会话 `TaskStop` 的 `PreToolUse` 时，如果 `task_id` 是某份记录的代理 ID，就关闭这份记录：hook 设置 `stopped`，清空 `background`。如果 `task_id` 在某份记录的 `background` 里，就把它从中删除。hook 什么也不输出，所以调用照常进行。因为 hook 在调用之前关闭记录，所以对一个已不在运行的任务调用 `TaskStop`，即使失败，也能清除过期的记录。
+4. **会话结束。** `SessionEnd` 关闭 `session` 等于正在结束的会话的每份记录，因为 Claude Code 退出时会结束会话的后台命令（探测 D）。
+5. **一天的上限。** `SessionStart` 仍然删除一天前的记录（第 10 节）。
+
+**已经停止的角色（D232）。** 当 Claude Code 唤醒一个记录已停止的角色时：
+
+- `SubagentStart` 让它的记录保持原样。
+- `PreToolUse` 以规则 `stopped` 拒绝它的每次调用（`Bash`、`PowerShell`、`Edit`、`Write`、`NotebookEdit` 和 `Skill`）："Your run has ended and your report was delivered. Do nothing more, and end your turn."
+- `SubagentStop` 不做变更检测，也从不拦截，只按输入更新 `background`。
+
+它的读取（`Read`、`Glob` 和 `Grep`）不被拒绝，因为它们不改动任何东西。troy-mode 从不给已停止的角色发新消息：修改是一次新的运行（F07 第 6.1 节）。
+
+**F07 的部分。** `check-run` 和 `snapshot` 读取这些记录（F07 第 7 节）。只要这次运行的角色有未关闭的记录，`check-run` 就拒绝；只要有任何未关闭的记录，`snapshot` 就拒绝。两者都列出代理 ID，入口技能用 `TaskStop` 逐一结束它们。探测 C 表明，这样会结束角色的命令而不唤醒角色。在角色考试里，`check-run` 在角色的会话退出之后才运行，那时 `SessionEnd` 已经关闭了它的记录，所以这个新问题永远不会改变 U2 的评分（F16 第 4.3 节）。
+
+**角色考试（F16）。** D231 每个选项改动 F16 指令集（F16 第 9.1 节）中的哪些文件，考试花多少钱。估算来自 `troy_exam.py` 自己的预算代码：`D:\Troy\troy-mode-work\cases\` 里记录的运行，没有记录的题用试点的中位数。没有运行任何考试。`main` 的指令哈希 `67c8098d051d` 没有记录过的基线运行，所以每次基线运行都要重新测。
+
+| 选项 | 改动的指令集文件 | 要跑的题 | 估算 |
+| --- | --- | --- | --- |
+| A | 入口技能的"Running a role"一节 | 无：没有一道题的 Input 改变，所以 `affected` 找不到受影响的题（F16 第 9.2 节） | $0 |
+| B | 同上。hook 和 `runs.py` 不在指令集里。 | 无 | $0 |
+| C | B，再加上有 Bash 的五个角色的代理文件，它们的 `tools` 加上 `TaskStop`。如果加一条共用规则"报告前停掉你启动的每条命令"，还要改每个代理文件都复制的 `common.md`。 | 这五个角色的十道题；改 `common.md` 时是全部十二道 | $188.93；改 `common.md` 时 $258.73。超过 $60，所以先要 Troy 同意（F16 第 10.2 节）。 |
+| D | 无：改的是 troy-init 的设置 | 无 | $0 |
+
+改动 U5（D233）会改 `troy-mode/exam/troyexam/`，之后要重新证明每道题的锚点：估算 $40.00。tstack issue #64 同类的证明花了 $11.46。Troy 选了 B，并让 U5 仍是记录项，所以构建的角色考试不跑任何题。
+
+**对其他功能的改动。** F07 的第 6.2 和 7 节，以及入口技能的"Running a role"一节（F07 设计 1.10 版）。F10 的指南：参考部分里"有文件被改了，但没有正在运行的角色在处理它"那一行，改为 `check-run` 的 `running` 问题。troy-init 和项目里的文件不变：hook 和记录属于插件和 git 文件夹。
+
+**不覆盖的。**
+
+- 离开 Claude Code 进程树的进程，比如通过 `start`、`Start-Process` 或 `setsid` 启动的。会话退出不会结束它，也没有记录提到它。F16 的 U5 在考试中报告这样的进程（F16 第 4.3 节，D233）。
+- 其他子代理的后台命令，比如 `/code-review` 的分叉。它们没有记录（第 4 节）。
+- 没有经过 `SessionEnd` 就结束的 Claude Code 进程，比如被强制结束的。它的记录保持未关闭，直到 `TaskStop` 或一天的上限把它清除。
 
 ## 7. 子代理的 git、GitHub 和技能（D43）
 
@@ -288,7 +361,7 @@ F04 的试运行表明，在没人能批准权限提示的会话里，角色读�
 
 都在需求文档第 8 节 200 毫秒的目标之内。hook 把配置的文本存在 git 文件夹里，以 `HEAD` 的提交 ID 为键，所以大多数调用不用启动 git 进程就能读到它。试运行把每类 hook 各测了 20 次：中位数在 74 到 151 毫秒之间（表格见 F05 的 PR）。
 
-**日志。** 每次拒绝和拦截都在 `<git dir>/troy-mode/hooks.log` 里追加一行 JSON：时间、会话、代理 ID、代理类型、事件、工具、规则、路径或 git 子命令、决定。它从不记录命令行或文件内容，所以命令里输入的机密不会进入日志。R23 的拒绝（第 8.3 节）规则是 `python-stdin`，没有子命令。git 文件夹永远不会被提交。F07 在每次角色运行后读取日志（第 12 节）。
+**日志。** 每次拒绝和拦截都在 `<git dir>/troy-mode/hooks.log` 里追加一行 JSON：时间、会话、代理 ID、代理类型、事件、工具、规则、路径或 git 子命令、决定。它从不记录命令行或文件内容，所以命令里输入的机密不会进入日志。R23 的拒绝（第 8.3 节）规则是 `python-stdin`，没有子命令。角色停止时还有命令在后台运行，会得到一行规则为 `background`、决定为 `stop` 的日志，任务 ID 放在 `tasks` 字段里，从不记录命令文本；已经停止的角色的调用以规则 `stopped` 拒绝（第 6.1 节）。git 文件夹永远不会被提交。F07 在每次角色运行后读取日志（第 12 节）。
 
 **日志保留多久（D219）。** F08 的回顾（`retro --tag`，F08 第 7 节）统计上一个版本标签以来的日志行，而一个版本可能持续很多天：试点里用了六天。所以 `SessionStart` 按项目配置里设定的天数保留日志行：
 
@@ -316,6 +389,7 @@ log_days = 30   # hooks.log 保留日志行的天数
 | 第 6 节 R19：PR 评论和评审、issue 以及发布说明在发出前检查（D200） | 第 8.2 节（每条发文字的 `gh` 命令）和第 10 节（出错时拒绝发出） |
 | F05 一行：在 `main` 上提交和推送 `main`（R21） | 第 8.1 节（`pre-commit`、`pre-merge-commit`、`pre-push`），以及第 8.2 节的 `gh pr create` |
 | 第 6 节 R23 和 F05 一行：Python 永远不从标准输入读取程序（D223） | 第 8.3 节，对每个调用方；`timeout` 和 `xargs` 见第 7.1 节 |
+| F05 一行，按 D231 和 D232 修改后：角色留在后台运行的命令，以及已经停止的角色 | 第 6.1 节 |
 | 第 8 节，hook 在 troy-mode 项目之外立即退出 | 第 4 节的门槛，以及第 9 节的 `if` 规则 |
 | 第 8 节，每次调用低于 200 毫秒 | 第 10 节 |
 | 第 8 节，隐私 | 日志不记录命令行（第 10 节） |
@@ -329,6 +403,7 @@ log_days = 30   # hooks.log 保留日志行的天数
 **F07。**
 
 - 它一次只运行一个写文件的角色，并等它结束，这样第 6 节才能把改动算到正确的角色头上。
+- 它在暂存这次运行的改动之前、在下一次运行之前，结束角色遗留的工作：只要角色的记录未关闭，`check-run` 和 `snapshot` 就拒绝，技能用 `TaskStop` 停掉每个列出的代理（第 6.1 节，D231）。
 - 每次运行后，它保留自己的 `git status` 检查（F04 第 9.2 节）作为最后防线，再加上检查 `HEAD` 和分支没有变，并读取 `hooks.log` 里这个角色的记录。角色留在范围之外的路径会停下整个流程。
 - 它在主会话里提交、推送、开 PR，所以第 8.1 节的 git hook 会检查它做的每一次提交和推送。
 - **troy-check code。** 它只读提交，而角色不能提交（第 7 节），所以开发工程师在 DV2 里运行 `troy-check code` 时，检查的是上一个提交，而不是它自己的工作。F04 的试运行表明了这一点。F07 要在提交后再运行它，或者让 troy-check 增加一种检查工作区的模式。这属于 F07 的设计。
@@ -351,6 +426,7 @@ log_days = 30   # hooks.log 保留日志行的天数
 | 防护 | `--no-verify` 和 `commit -n` 拒绝，`push -n` 通过。`-c core.hooksPath=` 和 `git config core.hooksPath` 拒绝。`core.hooksPath` 未设置时的提交拒绝。在 `main` 上和带 `--head main` 的 `gh pr create` 拒绝，在分支上通过。含有"Generated with Claude Code"的 PR 描述拒绝。`trailers` 模式下的 Claude 一词通过。 |
 | 发文字防护（D200） | 第 8.2 节的每条发文字命令，用长、短和 `=` 写法，标题、正文、发布说明或文件有问题时拒绝，干净时通过；strict 模式拒绝的词在 `trailers` 模式下通过。#92 那种 `check-text ... \| grep -q ok; gh pr comment ...` 拒绝。stdin 上的 heredoc 被检查。来自管道的 `--body-file -` 拒绝。文件不存在拒绝。文件夹名是 strict 模式拒绝的词、里面的干净文件通过。`gh api -X POST` 带 `-f`、`-F key=@file` 或 `--input` 且文字有问题时拒绝，`GET` 通过。发往另一个仓库的 `gh issue create --repo` 也检查。`--editor` 和 `--web` 拒绝。`--body "$(cat <file>)"` 拒绝，`--body "$(cat <<'EOF' ...)"` 被检查。主会话拆不开的发文字调用拒绝。检查出错时拒绝发文字的命令，其他命令只警告。日志行只有命令名，没有文字。子代理仍然得到第 7.3 节的 `gh` 拒绝。 |
 | 从标准输入读取的 Python（D223） | 第 8.3 节每种拒绝的形式（`python -`、`python3 -`、`python -- -`、`python -i x.py`、选项组里的 `-i`、没有脚本的 `python`、带值但没有脚本的 `-W` 和 `-X`，以及 `py -3.13 -`），对主会话、角色和其他子代理，也在 `&&`、`;`、`\|`、`$( )`、`bash -c`、`timeout`、`mamba run`、`uv run` 里，以及 PowerShell 的 `@'...'@ \| python -`。允许的：`python x.py < /dev/null`、`\| python -c "..."`、`python -m pytest`、`--version`、`py -0p`、`xargs python`，以及 heredoc 正文里作为文字的 `python -`。troy-mode 之外不输出。理由写出 R23、形式和改法，知道时还写出 scratchpad 和环境。日志行的规则是 `python-stdin`，决定是 `deny`，没有子命令，也没有命令文本。子代理的 `timeout 60 git push` 被拒绝。 |
+| 后台工作（D231、D232） | 角色 `Bash` 和 `PowerShell` 的 `PostToolUse` 带 `tool_response.backgroundTaskId` 时，把任务加进 `background`，并用点名该任务的 `additionalContext` 回答。没有它时，记录不变。主会话和其他子代理的调用不记录任何东西。让角色停止的 `SubagentStop` 设置 `stopped`，只保留 `background_tasks` 列为正在运行的 shell 的任务，并写一行带任务 ID、不含命令文本的 `background` 日志。没有正在运行的任务时不写日志。被拦截的停止什么也不设置。已停止代理的 `SubagentStart` 让记录保持原样。已停止角色的 `Bash`、`PowerShell`、`Edit`、`Write`、`NotebookEdit` 和 `Skill` 调用以规则 `stopped` 拒绝，它的读取通过，它的停止不做变更检测、也从不拦截，即使工作区里有另一个角色的改动（2026-11-21 的情形）。主会话的 `TaskStop` 用代理 ID 时关闭那份记录，用任务 ID 时删除那个任务，用未知 ID 时什么也不改，每种情况都不输出任何东西。子代理的 `TaskStop` 不关闭任何记录。`SessionEnd` 只关闭正在结束的会话的记录。没有新字段的记录算作已关闭。`hooks.json` 的 `PreToolUse` 匹配条件里有 `TaskStop`，并有一项 `SessionEnd`。 |
 | 插件文件 | troy-mode 项目里读取 `CLAUDE_PLUGIN_ROOT` 之内的文件得到 `allow`。之外的路径，或在别的项目里，什么也不输出。 |
 | 错误和日志 | 异常会拒绝角色的调用，对主会话只给警告。每次拒绝写一行不含命令文本的日志。 |
 | SessionStart | 未设置的 `core.hooksPath` 被设置。别的值保持不变并报告。hook 文件缺失会报告。旧记录被删除。 |
@@ -360,7 +436,7 @@ log_days = 30   # hooks.log 保留日志行的天数
 
 ### 13.2 埋 bug
 
-代码通过后，在临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：开发工程师的范围里有 `tests` 类别、角色模式不锚定、不检查忽略、临时文件夹判断接受 `/tmp-other`、允许的 git 命令里有 `commit`、临时仓库判断接受项目本身、`pre-push` 读本地 ref 而不是远程 ref、出异常时放行角色的调用、`SubagentStop` 从不拦截、忽略 `stop_hook_active`、从工作区读配置，以及在 `CLAUDE_PLUGIN_ROOT` 之外放行插件读取。D200 的改动再加上：发文字命令表里漏了 `comment`、不读 `-F`、扫描路径而不是内容，以及放行不存在的文件。D219 的改动再加上：截止时间差一天、忽略默认值（只保留一天）、角色记录保留 `log_days` 天、接受为 0 的 `log_days`、从工作区读配置，以及配置无效时 `SessionStart` 在打开 git hook 之前就停下。D223 的改动再加上：漏掉 `python3 -`、漏掉 `--` `-` 的写法、漏掉选项组里的 `-i`、`-W` 不跳过它的值、`py -3.13` 不跳过、不拆 `timeout`、`xargs` 不豁免、不检查主会话，以及日志行带上命令文本。数量写在 PR 描述里。
+代码通过后，在临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：开发工程师的范围里有 `tests` 类别、角色模式不锚定、不检查忽略、临时文件夹判断接受 `/tmp-other`、允许的 git 命令里有 `commit`、临时仓库判断接受项目本身、`pre-push` 读本地 ref 而不是远程 ref、出异常时放行角色的调用、`SubagentStop` 从不拦截、忽略 `stop_hook_active`、从工作区读配置，以及在 `CLAUDE_PLUGIN_ROOT` 之外放行插件读取。D200 的改动再加上：发文字命令表里漏了 `comment`、不读 `-F`、扫描路径而不是内容，以及放行不存在的文件。D219 的改动再加上：截止时间差一天、忽略默认值（只保留一天）、角色记录保留 `log_days` 天、接受为 0 的 `log_days`、从工作区读配置，以及配置无效时 `SessionStart` 在打开 git hook 之前就停下。D223 的改动再加上：漏掉 `python3 -`、漏掉 `--` `-` 的写法、漏掉选项组里的 `-i`、`-W` 不跳过它的值、`py -3.13` 不跳过、不拆 `timeout`、`xargs` 不豁免、不检查主会话，以及日志行带上命令文本。D231 和 D232 的改动再加上：漏掉 `PowerShell` 的 `backgroundTaskId`、记录主会话的命令、不读 `background_tasks` 就保留 `background`、被拦截的停止也设置 `stopped`、`SubagentStart` 覆盖已停止的记录、放过已停止角色的 `Bash`、对被唤醒角色的停止做变更检测、用代理 ID 调用 `TaskStop` 后记录仍未关闭、子代理的 `TaskStop` 关闭记录、`SessionEnd` 关闭别的会话的记录、没有新字段的记录算作未关闭，以及 `background` 日志行带上命令文本。数量写在 PR 描述里。
 
 ### 13.3 在示例项目上试运行
 
@@ -374,6 +450,15 @@ F05 的 PR 开出之前，hook 在嵌套的 `claude -p` 会话里运行，用的
 6. **速度。** 每种 hook 在 Troy 的电脑上各运行 20 次。中位数写进 PR 描述，必须低于 200 毫秒。
 
 试运行大约需要 8 次角色运行。示例副本不提交。
+
+**D231 和 D232（D234）。** 构建的 PR 开出之前，hook 和引擎在自带 CLI 的嵌套 `claude -p` 会话里运行，用的是 F03 Python 示例项目的一次性副本。tstack 通过 `--plugin-dir` 从 PR 分支加载，已安装的插件关闭，`BASH_DEFAULT_TIMEOUT_MS` 设为 5 秒，让角色的测试命令转到后台：
+
+1. 一次测试工程师运行在测试命令仍在运行时报告。`check-run` 给出带代理 ID 的 `running` 问题。主会话用这个 ID 调用 `TaskStop` 结束命令，之后 `check-run` 和 `snapshot` 都通过。
+2. 第二次运行里，命令在报告之后自己结束。被唤醒的角色的调用以规则 `stopped` 被拒绝，它的记录关闭。
+3. 第三个会话在命令运行时退出，`SessionEnd` 关闭记录。
+4. 角色带 `run_in_background` 的调用像超时的调用一样被记录，否则在同一个 PR 里更新设计。
+
+大约需要 4 次角色运行，不到 $5。有两件事只有桌面应用能表现出来：角色在等待自己后台工作的通知，以及自动模式是否放行主会话的 `TaskStop`。由第一次真实运行核实。
 
 ### 13.4 状态
 
@@ -409,8 +494,18 @@ D1 到 D38 属于 F01 到 F04 的设计，所以 F05 从 D39 开始。
 | D200 | 主会话发到 GitHub 的文字怎样检查？`ZJUCao/recipe-menu#92` 上的一条评审评论在 `check-text` 失败后仍被发出，而 GitHub 会保留每次编辑的历史。来自 tstack issue #65，即 recipe-menu v0.1.0 回顾提出的规则提案。D161 到 D199 留给 F17 到 F19，所以这个决定用 D200。 | 架构师在 issue 里权衡过的层级：项目的架构；lint、troy-check 或 CI 里的 `project-rules.yml` 任务；Review 或 Process 一行；或者 F05 的 `PreToolUse` `gh` 防护。以及是放宽 R19 还是新增一行 R 规则。 | F05 的 `gh` 防护，硬规则，并把 R19 放宽到 PR 评论和评审、issue 以及发布说明，不新增 R 规则。对主会话，防护用 `check-text` 的函数和模式检查每条发文字的 `gh` 命令的文字，读不到的文字和检查出错时都拒绝（第 8.2 节和第 10 节）。只有 hook 这一层在文字离开本机之前运行，而且对每个调用者都运行。其他层级读的是仓库，或者在 CI 里运行，那时 GitHub 已经保存了文字和编辑历史；Review 一行实际上已经存在，#92 说明它在形式上执行了，实际上没有起作用。Troy 于 2026-11-16 按架构师的推荐批准（AR6：A2、B1、C）。 |
 | D219 | `hooks.log` 保留多久？F08 的回顾和 F11 的报告按整个版本统计 hook 拦截，试点里一个版本用了六天，而 `SessionStart` 会删除一天前的日志行。所以 `ZJUCao/recipe-menu` 的 v0.1.0 回顾最多只看到最后一天的行，在整个版本里反复出现的拦截没法变成规则提案。来自 tstack issue #66。这一批给 F05 的编号是 D219 到 D222。 | A：按配置里设定的天数保留，即 `[hooks] log_days`，默认 30，角色记录仍在一天后删除。B：保留到下一个版本的标签。C：`check-run` 把每次角色运行的日志行复制进流程状态，由 `retro` 读取。 | A。hook 不需要标签或流程状态，所以 `SessionStart` 仍然只是读一个文件、读一次配置。30 天足够覆盖试点六天的版本，还有余量；版本更长的项目可以调大这个数。B 会让 hook 去读标签和 F08 的发布状态。C 会改动F07 和 F08 的状态，而且会漏掉主会话的拦截，因为它们不属于任何一次角色运行。角色记录仍是一天，因为记录只在它的角色运行时才有用。错误的值是配置错误，配置无效时保留每一行（第 10 节）。Troy 于 2026-11-18 按推荐批准。 |
 | D223 | 怎样拦住从标准输入读取程序的 Python？在 `ZJUCao/recipe-menu` 的两份会话记录里，代理或主会话这样运行了 168 次 Python，其中 39 次卡在 Python 的提示符上，直到 120 秒的时限。每份 brief 里的警告都没能防住。来自 tstack issue #64，即 recipe-menu v0.1.0 回顾的规则提案。这一批给 F05 的编号是 D223 到 D230。 | 架构师在 issue 里权衡过的层级：架构、lint、CI、troy-check 的上限或 `project-rules.yml`；权限的 deny 规则；或者 F05 的 `PreToolUse` hook，对每个调用方，再加一条新的 R 规则。以及拒绝多少：按回顾的字面意思，拒绝所有由 heredoc、管道或 `/dev/null` 提供输入的 Python；还是只拒绝程序来自标准输入的 Python。 | F05 的 hook，对每个调用方，加一条新的硬规则 R23，并采用较窄的理解：只拒绝 `python -`、`python -i`，以及没有脚本、`-c` 或 `-m` 的 Python，不管标准输入来自哪里（第 8.3 节）。命令不会在提交或 PR 里留下痕迹，所以架构、lint、CI 和 troy-check 都看不到它；deny 规则只匹配命令的前缀，会漏掉完整路径、`cd ... &&` 和包装命令，而大多数卡住的运行正是这些写法。hook 在每条命令启动前就看到它，这是 R08、R19 和 R21 已经在用的层级，而且它也检查主会话：在构建 F11 到 F13 的会话里，7 次超时有 2 次是主会话造成的。较窄的理解不会拒绝 257 次带脚本、`-c` 或 `-m`、从管道或 `/dev/null` 读取并正常结束的运行中的任何一次，其中 237 次是主会话读取 `troy_flow.py` 的输出。`timeout` 加入第 7.1 节的包装命令，这也让 git 和 `gh` 的检查能看到 `timeout 60 git push`。Troy 于 2026-11-16 按架构师的推荐批准（AR6：Q1 A、Q2 A、Q3 A），并采用较窄的理解。 |
+| D231 | 怎样不让角色留下仍在运行的命令在后来的运行中修改工作区？试点里，每一次都是角色的命令在 Bash 工具的 120 秒时限被 Claude Code 转到后台，在角色报告之后继续运行，而角色停不掉它。在桌面应用里，角色不能在前台运行（第 6.1 节）。issue 提出的候选是：角色在前台运行或在 `check-run` 之前停掉、某个角色还在运行时 `snapshot` 拒绝、角色停掉自己启动的每个进程。来自 tstack issue #49。这一批使用 D231 到 D240：D231、D232 和 D234 属于 F05，关于角色考试 U5 的 D233 属于 F16。 | A：只改入口技能。通知说某个角色在等待自己的后台工作时，主会话在 `check-run` 之前用 `TaskStop` 结束这个角色。B：A，再加一项检查。hook 记下角色每条转到后台的命令，并保留角色的记录，直到命令结束或被停掉。只要有未关闭的记录，`check-run` 和 `snapshot` 就拒绝，并列出要停掉的代理 ID（第 6.1 节，F07 第 7 节）。C：B，再让角色结束自己的命令：有 Bash 的五个角色得到 `TaskStop`，`SubagentStop` 让角色继续工作一次，直到它停掉这些命令。D：在 troy-mode 项目里关闭 Claude Code 的后台任务，由 troy-init 在一个设置文件里写入 `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`，这样超过时限的命令被停掉，每个角色都在前台运行。 | B。需求文档 5.8 更看重检查而不是指令。2026-11-21 主会话读到了通知，仍然让任务继续运行，所以只有 A 可能重演。B 用的是 Claude Code 自己交给 hook 的任务 ID，不需要列出进程（分类器在 Windows 上拒绝过），也不用猜命令是哪个代理启动的。过期记录唯一的出路也是同一个 `TaskStop`。它不改任何角色的指令，所以它的角色考试没有受影响的题，不花钱。C 能更早结束命令，但对没有这样做的角色，仍然需要主会话的检查；C 还要一场十道题、基线重测的角色考试，$188.93，却不多带来安全。D 没有在桌面应用里试过，会改变项目里的每个会话，包括 Troy 自己的，而且依赖 Claude Code 可能变化的一项设置。Troy 于 2026-11-21 按推荐批准（"全按推荐"）。 |
+| D232 | Claude Code 在角色报告之后，因为它留下的命令结束或被停掉而唤醒它时，hook 怎么处理？2026-11-21，`SubagentStart` hook 在开发工程师的修改还在工作区里时，给这样一个测试经理重新做了记录，随后 `SubagentStop` hook 让它对开发工程师的三个文件执行 `git restore`。来自 tstack issue #49。 | A：把这个角色当作已经结束。保留它已停止的记录，以规则 `stopped` 拒绝它可能改动东西的调用，在它停止时跳过变更检测（第 6.1 节）。B：保持现在的做法，重新记录并做变更检测。C：同 A，但连它的读取也拒绝。 | A。已停止角色的报告已经交付，troy-mode 也从不给它发新消息，所以它没有事可做。拒绝它的调用，就不会在另一个角色运行时改动工作区；跳过变更检测，hook 就不会把另一个角色的工作算到它头上。B 留着 2026-11-21 的隐患，一次 `git restore` 就会毁掉正在进行的工作。读取不改动任何东西，所以 C 只会多出拒绝。Troy 于 2026-11-21 按推荐批准（"全按推荐"）。 |
+| D234 | D231 和 D232 的改动怎样检查，状态什么时候前进？来自 tstack issue #49。 | A：由另一个代理按本设计写测试，埋 bug，再在 F03 Python 示例项目的副本上用嵌套 `claude -p` 会话试运行（第 13.3 节），大约 4 次角色运行，不到 $5。试运行后，F05 和 F07 的状态说这项改动"在示例项目上运行过"；一次真实运行结束过遗留的命令后，说"在真实项目上用过"。B：只写测试、埋 bug，真实运行之前状态为"已编写"。 | A。探测是在临时项目里用探测插件做的，不是 tstack 的 hook 加真实角色。试运行核实两者配合得上，也核实带 `run_in_background` 的调用像超时的命令一样报告它的任务。Troy 于 2026-11-21 按推荐批准（"全按推荐"）。 |
 
 需求文档 1.15 版记录了已批准的改动：F05 一行按第 4 到第 9 节的实际做法描述 hook，包括 git hook、只读的子代理、shell 调用后的检查，以及插件文件的读取。需求文档 1.46 版记录 D200：第 6 节的 R19 和 F05 一行。D219 不改需求文字：F05 一行说一份本地日志记录每次拦截，这仍然成立，只有它的状态提到了 issue #66。需求文档 1.50 版记录 D223：第 6 节新增的 R23，以及 F05 一行。
+
+需求文档 1.52 版在第 7.2 节的两行里记录 D231 和 D232：
+
+- F05 一行在关于 R23 的那句之后加上："They record each command that a role leaves running in the background, so that troy-mode ends it before the next run, and refuse every call of a role that has already stopped (D231, D232)."（中文镜像："它们记下角色留在后台运行的每条命令，让 troy-mode 在下一次运行之前结束它，并拒绝已经停止的角色的每次调用（D231、D232）。"）
+- F07 一行的"checks after each run that the role changed only files in its write scope (D31)"后面加上", and that nothing the role started still runs, which it then ends (F05 design D231)"（中文镜像：在"每次运行后检查角色只改了写入范围内的文件（D31）"后面加上"，并检查角色启动的东西都已不再运行，否则就结束它（F05 设计 D231）"）。
+
+R 行都不变：这项检查属于 troy-mode 自己在每次运行后的检查（F07 设计 D59），这也没有哪一条 R 行提到。D234 和 F16 的 D233 不改需求文字。
 
 ## 16. 修改记录
 
@@ -422,3 +517,4 @@ D1 到 D38 属于 F01 到 F04 的设计，所以 F05 从 D39 开始。
 | 1.2 | 2026-11-17 | D200，来自 Troy 于 2026-11-16 批准的 tstack issue #65：主会话向 GitHub 发文字的 `gh` 命令在运行前检查，读不到时拒绝（第 1、8.2、10、11、13.1、13.2 和 15 节）。 |
 | 1.3 | 2026-11-18 | D219，来自 Troy 于 2026-11-18 批准的 tstack issue #66：`hooks.log` 按 `[hooks] log_days` 天保留日志行，默认 30 天，角色记录仍在一天后删除（第 1、3、10、13.1、13.2 和 15 节）。第 15 节的表格在 D200 之前不再断开。 |
 | 1.4 | 2026-11-20 | D223，来自 Troy 于 2026-11-16 批准的 tstack issue #64：每个调用方从标准输入读取程序的 Python 都在启动前被拒绝，作为新规则 R23；`timeout` 加入第 7.1 节拆掉的包装命令，经过 `xargs` 的命令会被标记（第 1、3、7.1、8、8.3、10、11、13.1、13.2 和 15 节）。 |
+| 1.5 | 2026-11-21 | D231、D232 和 D234，来自 tstack issue #49，Troy 已于 2026-11-21 批准（"全按推荐"）：试点里遗留的工作是被 Claude Code 转到后台的角色命令，不是卡住的角色。hook 记下这样的命令，保留角色的记录直到它的工作结束，在主会话 `TaskStop` 时和 `SessionEnd` 时关闭记录，并拒绝已经停止的角色的每次调用。事实来自试点的会话记录和用 CLI 2.1.328 做的探测（第 1、3、6、6.1、10、11、12、13.1、13.2、13.3 和 15 节）。 |
