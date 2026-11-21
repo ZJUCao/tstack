@@ -58,10 +58,11 @@ from . import universal as _universal  # noqa: E402
 
 UNIVERSAL = ("U1", "U2", "U3", "U4", "U5", "U6", "U7")
 # The universal checks a run must pass; the others are reported as notes (design 4.3).
-UNIVERSAL_MUSTS = ("U1", "U2", "U3", "U6", "U7")
-# U4 and U5 are notes while the hooks that fix them are pending (tstack#64 and #49); each
-# becomes a must in the PR that lands its hook. Troy approved this on 2026-11-18.
-UNIVERSAL_NOTES = ("U4", "U5")
+UNIVERSAL_MUSTS = ("U1", "U2", "U3", "U4", "U6", "U7")
+# U5 is a note while the hook that fixes it is pending (tstack#49); it becomes a must in
+# the PR that lands its hook. U4 became one with tstack#64's hook, R23. Troy approved
+# this on 2026-11-18 (D152).
+UNIVERSAL_NOTES = ("U5",)
 _UNIVERSAL_CHECKS = {"U1": _universal.u1_report, "U2": _universal.u2_check_run,
                      "U3": _universal.u3_line_ends, "U4": _universal.u4_stdin_python,
                      "U5": _universal.u5_leftovers, "U6": _universal.u6_rules_read,
@@ -80,7 +81,7 @@ CHECKS: dict[str, Callable] = {
 
 
 def universal(ctx: RunContext) -> dict[str, CheckResult]:
-    """Runs U1 to U7; every one is a must."""
+    """Runs U1 to U7; UNIVERSAL_MUSTS names the musts."""
     return {name: _guarded(check, ctx) for name, check in _UNIVERSAL_CHECKS.items()}
 
 

@@ -6,7 +6,7 @@ helpers build that state on top of ``flow_helpers``' seed project:
 
 - ``rules_doc`` writes the rules table in the shape troy-init seeds from
   ``troy-mode/templates/rules.md``, template comments removed: front matter,
-  the six-column rules table with the real R01 to R22 rows of the template,
+  the six-column rules table with the real R01 to R23 rows of the template,
   the project's P rows, and the change log. The Chinese mirror follows the
   same rows with Chinese cells (interface note, section 1).
 - ``PYPROJECT_TEXT`` and ``WORKFLOW_TEXT`` hold baseline lines: P01's in
@@ -140,8 +140,8 @@ def added(rule_id: str, version: str, date: str, choice: Optional[str]) -> tuple
                    f"新增 {rule_id}，Troy 批准。{zh}")
 
 
-SEED_LOG = log_row("1.0", SEED_DATE, "Seeded with R01 to R22 from troy-mode.",
-                   "初始化，包含来自 troy-mode 的 R01 到 R22。")
+SEED_LOG = log_row("1.0", SEED_DATE, "Seeded with R01 to R23 from troy-mode.",
+                   "初始化，包含来自 troy-mode 的 R01 到 R23。")
 DEFAULT_LOG = (SEED_LOG, added("P01", "2.0", "2026-11-08", "cleanup"),
                added("P02", "3.0", "2026-11-08", "when-touched"),
                added("P03", "4.0", "2026-11-09", "when-touched"))
@@ -149,7 +149,7 @@ DEFAULT_LOG = (SEED_LOG, added("P01", "2.0", "2026-11-08", "cleanup"),
 
 @functools.lru_cache(maxsize=None)
 def r_rows(lang: str = "en") -> tuple:
-    """The R01 to R22 rows of the rules template, as troy-init seeds them.
+    """The R01 to R23 rows of the rules template, as troy-init seeds them.
 
     Args:
         lang: ``en`` or ``zh-CN``.
@@ -158,14 +158,14 @@ def r_rows(lang: str = "en") -> tuple:
         The rows, with ``{{init-date}}`` replaced by the seed date.
 
     Raises:
-        AssertionError: The template does not hold the 22 R rows.
+        AssertionError: The template does not hold the 23 R rows.
     """
     name = "rules.md" if lang == "en" else "rules.zh-CN.md"
     text = (TEMPLATES / name).read_bytes().decode("utf-8").replace("\r\n", "\n")
     rows = tuple(line.replace("{{init-date}}", SEED_DATE) for line in text.split("\n")
                  if re.match(r"^\| R\d{2} \|", line))
-    if [row[2:5] for row in rows] != [f"R{n:02d}" for n in range(1, 23)]:
-        raise AssertionError(f"troy-mode/templates/{name} does not hold the rows R01 to R22")
+    if [row[2:5] for row in rows] != [f"R{n:02d}" for n in range(1, 24)]:
+        raise AssertionError(f"troy-mode/templates/{name} does not hold the rows R01 to R23")
     return rows
 
 
@@ -184,7 +184,7 @@ def rules_doc(lang: str = "en", rules: Sequence[PRule] = DEFAULT_RULES,
         status: The front matter's status, or None for the seeded status
             when the log has one row and "Approved by Troy on <updated>"
             (``Troy 已于 <updated> 批准``) otherwise.
-        with_r_rows: Whether the table holds the template's R01 to R22.
+        with_r_rows: Whether the table holds the template's R01 to R23.
         section1_extra: Text appended to section 1, before ``## 2.``.
 
     Returns:

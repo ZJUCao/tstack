@@ -265,6 +265,8 @@ WRAPPERS = (
     ("after exec", "exec {c}"),
     ("after nohup", "nohup {c}"),
     ("after time", "time {c}"),
+    ("after timeout", "timeout 60 {c}"),  # D223: timeout is a wrapper
+    ("after timeout with options", "timeout -k 5 --signal=TERM 60 {c}"),
     ("after xargs", "echo HEAD | xargs {c}"),
     ("after cd into the project", "cd src && {c}"),
 )
@@ -276,7 +278,10 @@ HEREDOC_ALLOWED = (
     "cat > notes.txt <<'EOF'\ngit commit -m 'Add x'\ngh pr comment 1 --body ok\nEOF",
     "cat > notes.txt <<EOF\ngit push origin main\nEOF",
     "cat > notes.txt <<-EOF\n\tgit commit -m x\n\tEOF",
-    "python - <<'PY'\nprint('git commit -m x')\nPY\ngit status",
+    # A heredoc that feeds a script file, which is then run (13.1). Not
+    # python - <<'PY', which R23 refuses (design 8.3, D223).
+    "cat > build/heredoc_check.py <<'PY'\nprint('git commit -m x')\nPY\n"
+    "python build/heredoc_check.py\ngit status",
     "cat > tests/test_new.py <<'EOF'\ndef test_x():\n"
     "    assert \"git commit\" in \"git commit -m x\"\nEOF",
 )
@@ -386,7 +391,7 @@ class ShellFormTests(CommandTestCase):
     """Design 7.1: refused commands are found inside every shell form."""
 
     def test_refused_commands_inside_every_form(self):
-        """git commit, git push, and gh pr comment are refused in each form."""
+        """git commit, git push, and gh pr comment are refused in each form, timeout's included."""
         cases = [(name, template.replace("{c}", command), fragment)
                  for name, template in WRAPPERS for command, fragment in REFUSED_SAMPLES]
         outs = run_many([bash_call(self.project, DEV, c) for _, c, _ in cases])
@@ -404,7 +409,7 @@ class ShellFormTests(CommandTestCase):
                 self.assert_silent(out)
 
     def test_heredoc_bodies_are_not_commands(self):
-        """Text such as "git commit" inside a heredoc body passes."""
+        """Text such as "git commit" inside a heredoc body passes, also in a script then run."""
         self.check_allowed(HEREDOC_ALLOWED)
 
     def test_commands_around_a_heredoc_are_still_read(self):

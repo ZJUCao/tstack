@@ -137,7 +137,7 @@ ROWS = [
      ("DV5", "AR6", "TE3", "TE4", "DV2"), TEST_FIX),
     ("P02 test-fix", "rules", "P02", TEST_FIX_P02, ("TE6", "TM2"), ("DV5",), TEST_FIX_P02),
     ("R03, a row", "rules", "R03", None, ("AR6",), ("AR5", "DV5", "TE6", "CR1", "TM2"), None),
-    ("next R ID", "rules", "R23", None, ("AR6",), ("TM2", "AR5"), None),
+    ("next R ID", "rules", "R24", None, ("AR6",), ("TM2", "AR5"), None),
     ("P01 without a rules file", "norules", "P01", None, ("AR6",), ("DV5",), None),
 ]
 
@@ -254,7 +254,7 @@ class ReadFirstTests(FlowCase):
             "AR5 on P01 with a docs title": ("rules", "P01", DOCS_P01, "AR5"),
             "AR6 in C/C++": ("cpp", "P01", None, "AR6"),
             "AR6 on R03": ("rules", "R03", None, "AR6"),
-            "AR6 on R23": ("rules", "R23", None, "AR6"),
+            "AR6 on R24": ("rules", "R24", None, "AR6"),
             "DV5": ("rules", "P01", REFACTOR, "DV5"),
             "CR1 on the refactor": ("rules", "P01", REFACTOR, "CR1"),
             "AR5 on the refactor": ("rules", "P01", REFACTOR, "AR5"),
@@ -290,7 +290,7 @@ class ReadFirstTests(FlowCase):
 
     def test_r_id_reads_the_plugin_folder(self):
         """AR6 on an R ID: AR6's files, then four plugin paths, absolute with ``/``."""
-        for name in ("AR6 on R03", "AR6 on R23"):
+        for name in ("AR6 on R03", "AR6 on R24"):
             with self.subTest(case=name):
                 found = self.read_first(name)
                 self.assertEqual(found[:len(AR6_READ)], AR6_READ)

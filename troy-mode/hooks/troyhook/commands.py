@@ -1,10 +1,12 @@
-"""Checks of Bash, PowerShell, and Skill calls (design sections 7 and 8.2)."""
+"""Checks of Bash, PowerShell, and Skill calls (design sections 7, 8.2, and 8.3)."""
 
 import json
 import re
 
 from .ghcmd import check_gh, gh_posts, gh_read_only
 from .gitcmd import ALWAYS, check_git
+from .pycmd import RULE as PYTHON_RULE
+from .pycmd import check_python
 from .scopes import MAIN
 from .shell import parse, program
 from .verdict import RULE_6, Refusal
@@ -85,8 +87,8 @@ def _check_unparsed(ctx, text: str, error: str) -> Refusal | None:
 def check_command(ctx, text: str, powershell: bool) -> Refusal | None:
     """Checks a Bash or PowerShell command line for every caller.
 
-    Every refused git and gh command in the line is named in the reason. The
-    first one gives the log's rule and subcommand.
+    Every refused git, gh, and Python command in the line is named in the
+    reason. The first one gives the log's rule and subcommand.
     """
     parsed = parse(text, ctx.cwd, powershell)
     if parsed.error:
@@ -99,6 +101,9 @@ def check_command(ctx, text: str, powershell: bool) -> Refusal | None:
             refusal = check_git(ctx, cmd)
         elif name == "gh":
             refusal = check_gh(ctx, cmd, parsed)
+        elif not any(r.rule == PYTHON_RULE for r in refusals):
+            # R23's reason names the first Python command only (design 8.3).
+            refusal = check_python(ctx, cmd)
         if refusal and refusal.reason not in [r.reason for r in refusals]:
             refusals.append(refusal)
     if not refusals:

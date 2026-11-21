@@ -178,7 +178,8 @@ LOG_KEYS = frozenset({"time", "session", "agent_id", "agent_type", "event", "too
                       "paths", "subcommand", "decision"})
 LOG_RULES = frozenset({"scope", "changes", "git", "gh", "skill", "no-verify", "hooks-path",
                        "hooks-off", "pr-from-main", "attribution", "unparsed", "error",
-                       "gh-delete"})  # gh-delete: F15 interface note section 6
+                       "gh-delete",  # gh-delete: F15 interface note section 6
+                       "python-stdin"})  # python-stdin: F05 design 8.3 (D223)
 LOG_DECISIONS = frozenset({"deny", "block", "stop"})
 LOG_TIME = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 ERROR_PREFIX = "troy-mode hook error"

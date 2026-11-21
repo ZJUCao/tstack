@@ -6,7 +6,7 @@
 | Date | 2026-11-09 |
 | Source of truth | This English file. [`06-rules.zh-CN.md`](06-rules.zh-CN.md) is the Chinese mirror. |
 
-Every troy-mode project has a rules table, `docs/rules.md` and its mirror. Rows R01 to R22 are troy-mode's rules for every project. Rows P01, P02, and so on are the project's own. You add a project rule with one request and one answer. troy-mode writes and merges the rest ([F09 design](../design/F09-rule-change.md)).
+Every troy-mode project has a rules table, `docs/rules.md` and its mirror. Rows R01 to R23 are troy-mode's rules for every project. Rows P01, P02, and so on are the project's own. You add a project rule with one request and one answer. troy-mode writes and merges the rest ([F09 design](../design/F09-rule-change.md)).
 
 ## 6.1 Add a rule for this project
 

@@ -184,12 +184,12 @@ class RulesTemplateTests(unittest.TestCase):
         return [row for table in tables(read(TEMPLATES / name)) for row in table
                 if re.fullmatch(r"R\d{2}", row[0])]
 
-    def test_r_rows_are_r01_to_r22_in_order(self):
-        """Both templates hold the rows R01 to R22, in order."""
+    def test_r_rows_are_r01_to_r23_in_order(self):
+        """Both templates hold the rows R01 to R23, in order (R23 from tstack #64)."""
         for name, _ in self.CASES:
             with self.subTest(template=name):
                 self.assertEqual([row[0] for row in self.rows(name)],
-                                 [f"R{n:02d}" for n in range(1, 23)])
+                                 [f"R{n:02d}" for n in range(1, 24)])
 
     def test_r22_is_hard_and_enforced_by_ci(self):
         """R22's Type is Hard (硬) and its Enforced by is CI."""

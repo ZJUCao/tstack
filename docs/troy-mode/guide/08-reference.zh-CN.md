@@ -135,11 +135,12 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | **项目里的 troy-mode 比插件旧。** `status` 说项目的 troy-check 比插件的旧。`[roles]`、`[flow]` 和一些检查需要新的副本。 | 先更新插件（[第 1.3 节](01-install.zh-CN.md#13-插件出新版本后更新)）。然后输入 `/tstack:troy-mode 升级 troy-mode`。它会开出 `[rules] Upgrade troy-mode to <version>`：替换没人改过的 troy-mode 自有文件，把规则表的 R 行更新到最新，保留 P 行，然后合并。改过的文件会让它停下：troy-mode 问你是否替换。它从不改配置或构建文件；它会列出它们不同的地方，供你放进一个 `[rules]` PR。没有要升级的东西时，它不开 PR。 |
 | **找不到 Python。** hook 停下，提示“troy-mode: no Python 3.11 or newer found”。 | 把 `TROY_MODE_PYTHON` 设为一个 Python 3.11 或更新版本（[第 1.1 节](01-install.zh-CN.md#11-你的电脑需要什么)）。 |
 | **锁文件的编译或安装在桌面应用里失败了。** uv 说它无法把文件移到另一个磁盘驱动器，或者写不了它的缓存。 | 原因是应用的沙箱挡住了 uv 默认的缓存文件夹，不是你的电脑有问题。`UV_CACHE_DIR` 没有设置时，troy-init 的语言步骤和系列锁文件会把你的临时文件夹里的 `troy-mode-uv-cache` 文件夹给 uv 用，你设置过的值则保留不变（[F06 设计 D213](../design/F06-troy-init.zh-CN.md#13-需要-troy-决定的事项)）。功能循环里的检查还不会设置它：如果其中一项这样失败了，就让 troy-mode 把 `UV_CACHE_DIR` 设为那个文件夹，再运行一次（[issue #48](https://github.com/ZJUCao/troy-pstack/issues/48)）。 |
-| **一条命令一直不结束，或者角色报告之后还留着一个 `python.exe`。** | 用 `-` 作为脚本启动 Python，或者让它从 heredoc、管道或 `/dev/null` 读输入的命令，可能永远停在 Python 的提示符上；在 Windows 上，`python3` 还可能是 Microsoft Store 的占位程序，同样会一直等。这样的命令会碰到 shell 工具的时间上限，troy-mode 随后停掉它；试点中这发生了 39 次（[issue #64](https://github.com/ZJUCao/troy-pstack/issues/64)）。角色留下的、来自项目环境的 `python.exe`，可以在没有角色运行时在任务管理器里结束。 |
+| **hook 以 R23 拒绝了一条 Python 命令。** 理由说这条命令让 Python 从标准输入读取程序。 | 通常什么都不用做。从插件 0.9.0 起，troy-mode 的 hook 对主会话和每个角色都拒绝 `python -`、`python -i`，以及没有脚本、`-c` 或 `-m` 的 Python，因为这样的运行可能卡在 Python 的提示符上（[F05 设计第 8.3 节](../design/F05-hooks.zh-CN.md#83-从标准输入读取程序的-pythonr23d223)）。Claude 会把脚本写到 scratchpad 里的一个文件中，改为运行这个文件。带脚本、`-c` 或 `-m` 的 Python 仍然可以从管道或 `/dev/null` 读取。 |
+| **一条命令一直不结束，或者角色报告之后还留着一个 `python.exe`。** | 在 Windows 上，`python3` 可能是 Microsoft Store 的占位程序，会一直等下去。插件 0.9.0 之前，Python 从标准输入读取程序的命令也可能停在 Python 的提示符上：试点中这发生了 39 次（[issue #64](https://github.com/ZJUCao/troy-pstack/issues/64)），现在 hook 会拒绝它（R23，见上一行）。这样的命令会碰到 shell 工具的时间上限，troy-mode 随后停掉它。角色留下的、来自项目环境的 `python.exe`，可以在没有角色运行时在任务管理器里结束。 |
 | **一个文件被改了，而当前运行的角色并没在改它。** troy-mode 每次运行之后的检查怪错了角色。 | 一个之前在后台启动的角色运行很晚才结束，写下了它的旧改动；试点中，一次开发者运行晚了 11.5 小时，在测试工程师运行期间才结束。troy-mode 停下来，先问你再恢复这个文件（[issue #49](https://github.com/ZJUCao/troy-pstack/issues/49)）。如果这个改动不属于当前任何阶段，就回答“是”。 |
 | **CI 检查在产出方的文件之外失败了**，比如运行器上的下载错误，或者检出步骤里的 “Repository not found”。 | troy-mode 停下来告诉你；它自己不重新运行 CI。运行器上的下载错误通常在第二次运行时就能通过：你可以自己重新运行失败的任务，比如用 `gh run rerun <run ID> --failed`，然后输入“继续”。试点中，“Repository not found” 来自 GitHub 那边，下一次推送时就消失了。 |
 
-## 8.7 规则 R01 到 R22
+## 8.7 规则 R01 到 R23
 
 完整的规则文字在[规则模板](../../../troy-mode/templates/rules.zh-CN.md)里，每个项目都把它复制成 `docs/rules.md`；也在[需求文档第 6 节](../requirements.zh-CN.md#6-规则)里。硬规则不满足就不能合并，软规则要在 PR 描述里写明原因，审查由某个角色检查，流程由 troy-mode 自己遵守。
 
@@ -167,3 +168,4 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明 | 硬 |
 | R21 | 每个改动都通过从单独分支发起的 PR 进入 `main` | 硬 |
 | R22 | 设计、测试计划、需求和架构 PR 以给你的中英文摘要开头 | 硬 |
+| R23 | Python 永远不从标准输入读取程序：不用 `python -`、`python -i`，也不运行没有脚本的 Python | 硬 |
