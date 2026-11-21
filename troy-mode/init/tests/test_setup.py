@@ -219,12 +219,12 @@ class SetupWithHooksTest(InitCase):
                          if line.startswith("# ")) for path in RULES]
         self.assertEqual(headings, [f"# {PROJECT} rules", f"# {PROJECT} 规则"])
 
-    def test_setup_rules_rows_are_r01_to_r22_since_the_setup_date(self):
-        """Both tables hold R01 to R22, each with the setup date as Since."""
+    def test_setup_rules_rows_are_r01_to_r23_since_the_setup_date(self):
+        """Both tables hold R01 to R23, each with the setup date as Since."""
         for path in RULES:
             with self.subTest(path=path):
                 rows = rule_rows(self.project.read(path))
-                self.assertEqual([row[2:5] for row in rows], [f"R{n:02d}" for n in range(1, 23)])
+                self.assertEqual([row[2:5] for row in rows], [f"R{n:02d}" for n in range(1, 24)])
                 self.assertEqual({row_since(row) for row in rows}, {DATE})
 
     def test_setup_creates_gitignore_with_the_progress_line(self):

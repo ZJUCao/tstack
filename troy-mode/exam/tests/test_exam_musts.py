@@ -1,8 +1,9 @@
-"""Which universal checks are musts (F16 design 4.3, D152 as refined on 2026-11-18).
+"""Which universal checks are musts (F16 design 4.3 version 1.5, D152 as refined on 2026-11-18).
 
-U1, U2, U3, U6, and U7 are musts. U4 and U5 are notes while the hooks that fix
-them are pending (tstack#64 and #49): they are checked and reported on every
-run, but a run that fails only them still passes its checks by script.
+U1, U2, U3, U4, U6, and U7 are musts. U4 became one in the PR that lands
+tstack#64's hook, R23 (F05 design 8.3). U5 is a note while the hook that fixes
+it is pending (tstack#49): it is checked and reported on every run, but a run
+that fails only U5 still passes its checks by script.
 """
 
 import unittest
@@ -31,16 +32,22 @@ class UniversalMustsTests(unittest.TestCase):
     """The split of design 4.3 and what it does to a run's grade."""
 
     def test_the_musts_and_the_notes(self):
-        """Five musts, two notes, and together the seven universal checks."""
-        self.assertEqual(UNIVERSAL_MUSTS, ("U1", "U2", "U3", "U6", "U7"))
-        self.assertEqual(UNIVERSAL_NOTES, ("U4", "U5"))
+        """Six musts, U4 among them, one note, U5, and together the seven universal checks."""
+        self.assertEqual(UNIVERSAL_MUSTS, ("U1", "U2", "U3", "U4", "U6", "U7"))
+        self.assertEqual(UNIVERSAL_NOTES, ("U5",))
         self.assertEqual(sorted(UNIVERSAL_MUSTS + UNIVERSAL_NOTES), sorted(UNIVERSAL))
 
     def test_a_note_alone_does_not_fail_a_run(self):
-        """Failing U4, U5, or both leaves the run's checks by script passing."""
-        for failed in ({"U4": 1}, {"U5": 1}, {"U4": 1, "U5": 1}, {"extra": 1}):
+        """Failing U5, or a case check that is a note, leaves the run's checks by script passing."""
+        for failed in ({"U5": 1}, {"extra": 1}, {"U5": 1, "extra": 1}):
             with self.subTest(failed=sorted(failed)):
                 self.assertTrue(Exam._scripts_ok(CASE, record(**failed)))
+
+    def test_failing_only_u4_fails_a_run(self):
+        """U4 is a must since version 1.5: failing it, alone or with U5, fails the run by script."""
+        for failed in ({"U4": 1}, {"U4": 1, "U5": 1}, {"U4": 1, "extra": 1}):
+            with self.subTest(failed=sorted(failed)):
+                self.assertFalse(Exam._scripts_ok(CASE, record(**failed)))
 
     def test_a_must_fails_a_run(self):
         """Failing any universal must, or the case's must check, fails the run."""

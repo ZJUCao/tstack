@@ -10,20 +10,12 @@ from pathlib import Path
 
 from troyhook.ghcmd import _split_gh, gh_read_only
 from troyhook.gitcmd import parse_git, read_only
+from troyhook.pycmd import stdin_form
 from troyhook.shell import parse, program
 
 from ..transcript import same_path
 from . import CheckResult
 
-_PYTHON = re.compile(r"^(?:python(?:\d+(?:\.\d+)*)?|pythonw|py)$")
-_RUNNERS = {"mamba": {"-n", "-p", "--name", "--prefix", "--cwd", "-a", "--attach", "--label"},
-            "micromamba": {"-n", "-p", "--name", "--prefix", "--cwd", "-a", "--attach", "--label"},
-            "conda": {"-n", "-p", "--name", "--prefix", "--cwd"},
-            "uv": {"--with", "--python", "-p", "--directory", "--project", "--env-file",
-                   "--extra", "--group", "--package", "--index", "--with-requirements"}}
-_PY_VALUE = {"-X", "-W", "--check-hash-based-pycs"}
-_PY_ONLY_INFO = {"--version", "-V", "-VV", "--help", "-h", "-?", "--help-all", "--help-env",
-                 "--help-xoptions"}
 _CHANGE_TOOLS = ("Edit", "Write", "NotebookEdit", "MultiEdit")
 _READERS = {"cat", "head", "tail", "sed", "awk", "less", "more", "grep", "type", "bat", "nl"}
 _RAW_STDIN = re.compile(r"(?:^|[\s;|&(])(?:\S*[/\\])?(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?"
@@ -58,49 +50,16 @@ def _bash_commands(transcript) -> list[tuple[int, str]]:
             if call.name in ("Bash", "PowerShell")]
 
 
-def _unwrap_runner(values: list[str]) -> list[str]:
-    """Drops `mamba run ...`, `conda run ...`, and `uv run ...` with their options."""
-    while values and program(values[0]) in _RUNNERS and len(values) > 1 and values[1] == "run":
-        takes = _RUNNERS[program(values[0])]
-        i = 2
-        while i < len(values) and values[i].startswith("-"):
-            option = values[i].split("=", 1)[0]
-            i += 2 if option in takes and "=" not in values[i] else 1
-        values = values[i:]
-    return values
+def reads_stdin(command: str, powershell: bool = False) -> bool:
+    """Tells whether a command line runs Python that reads its program from standard input (U4).
 
-
-def _python_reads_stdin(args: list[str]) -> bool:
-    """Tells whether Python with these arguments reads its program from standard input."""
-    i = 0
-    while i < len(args):
-        arg = args[i]
-        if arg == "-":
-            return True
-        if arg in _PY_ONLY_INFO:
-            return False
-        if arg.startswith(("-c", "-m")) and not arg.startswith("--"):
-            return False
-        if arg in _PY_VALUE:
-            i += 2
-            continue
-        if arg.startswith("-"):
-            i += 1
-            continue
-        return False
-    return True
-
-
-def reads_stdin(command: str) -> bool:
-    """Tells whether a command line runs Python that reads its program from standard input (U4)."""
-    parsed = parse(command, None)
+    It reads each simple command with the hook's own R23 check (F05 design 8.3), so U4 and
+    the hook agree. A line that cannot be split falls back to a pattern.
+    """
+    parsed = parse(command, None, powershell)
     if parsed.error:
         return bool(_RAW_STDIN.search(command))
-    for cmd in parsed.commands:
-        values = _unwrap_runner([w.value for w in cmd.words])
-        if values and _PYTHON.match(program(values[0])) and _python_reads_stdin(values[1:]):
-            return True
-    return False
+    return any(stdin_form([w.value for w in cmd.words], cmd.xargs) for cmd in parsed.commands)
 
 
 def changes_git(command: str) -> list[str]:
@@ -205,12 +164,19 @@ def u3_line_ends(ctx) -> CheckResult:
 
 
 def u4_stdin_python(ctx) -> CheckResult:
-    """U4: no shell command ran Python that reads its program from standard input."""
-    for _, command in _bash_commands(ctx.transcript):
-        if reads_stdin(command):
+    """U4: no shell command that ran had Python read its program from standard input.
+
+    A call that a hook or a permission refused did not run, so it does not count (design 4.3).
+    """
+    calls = ctx.transcript.calls if ctx.transcript is not None else []
+    for call in calls:
+        if call.name not in ("Bash", "PowerShell") or call.denied:
+            continue
+        command = str(call.input.get("command", ""))
+        if reads_stdin(command, call.name == "PowerShell"):
             return CheckResult(False, f"Python read its program from standard input: "
                                       f"{command.splitlines()[0][:120]!r}")
-    return CheckResult(True, "no Python read its program from standard input")
+    return CheckResult(True, "no Python that ran read its program from standard input")
 
 
 def u5_leftovers(ctx) -> CheckResult:

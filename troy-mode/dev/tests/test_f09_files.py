@@ -158,11 +158,11 @@ class RulesTemplateTests(unittest.TestCase):
                     self.assertIn(word, comment)
 
     def test_r_rows_are_unchanged(self):
-        """Both templates hold the rows R01 to R22, in order (R22 from F14)."""
+        """Both templates hold the rows R01 to R23, in order (R22 from F14, R23 from tstack #64)."""
         for name in self.CASES:
             with self.subTest(template=name):
                 ids = re.findall(r"(?m)^\| (R\d{2}) \|", read(TEMPLATES / name))
-                self.assertEqual(ids, [f"R{n:02d}" for n in range(1, 23)])
+                self.assertEqual(ids, [f"R{n:02d}" for n in range(1, 24)])
 
 
 class TemplatesReadmeTests(unittest.TestCase):

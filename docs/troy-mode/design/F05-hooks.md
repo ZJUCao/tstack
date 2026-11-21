@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F05 in [requirements 1.15](../requirements.md#72-feature-list) |
-| Version | 1.3 |
-| Date | 2026-11-18 |
-| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. Version 1.3 adds D219, which Troy approved on 2026-11-18 as tstack issue #66. |
+| Version | 1.4 |
+| Date | 2026-11-20 |
+| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. Version 1.3 adds D219, which Troy approved on 2026-11-18 as tstack issue #66. Version 1.4 adds D223, which Troy approved on 2026-11-16 as tstack issue #64. |
 | Source of truth | This English file. [`F05-hooks.zh-CN.md`](F05-hooks.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -17,6 +17,7 @@ F05 makes the rules that a role or Claude could break by mistake fail at the mom
    - keep every other subagent read-only;
    - allow roles only read-only git and GitHub commands, and only the skills they need;
    - stop Claude from skipping the git hooks, from opening a PR from `main` (R21), and from posting a PR, comment, review, issue, or release note whose text carries attribution (R19, D200);
+   - stop every caller from running Python that reads its program from standard input (R23, D223);
    - let roles read the plugin's own files without a permission rule.
 2. **Git hooks**, shipped in troy-check's folder, which troy-init copies into each project. They refuse a commit that breaks R19, a commit on `main`, and a push to `main` (R21), whoever runs git.
 3. **A local log** of every block, which F07 reads after each role run and F08's retrospective reads for a whole version (D219).
@@ -60,7 +61,7 @@ troy-mode/
 | --- | --- | --- |
 | `SessionStart` | All | Turns on the project's git hooks when `core.hooksPath` is unset (section 8.1). Removes role records older than a day, and log lines older than `[hooks] log_days` days, 30 by default (section 10, D219). |
 | `SubagentStart` | `^troy-pstack:troy-` | Records the role's starting state for change detection (section 6). |
-| `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | Checks file paths against the write scope (section 5), git, GitHub, and skill commands (section 7), and the R19 and R21 guards (section 8.2). |
+| `PreToolUse` | `Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Skill` | Checks file paths against the write scope (section 5), git, GitHub, and skill commands (section 7), the R19 and R21 guards (section 8.2), and R23's Python check (section 8.3). |
 | `PreToolUse` | `Read`, with `"if": "Read(//**/troy-pstack/**)"` | Allows reads of the plugin's own files (section 9). |
 | `PreToolUse` | `Glob\|Grep` | Allows searches of the plugin's own files (section 9). |
 | `PostToolUse` | `Bash\|PowerShell\|Skill` | For roles: reports changes outside the write scope that the call made (section 6). |
@@ -142,7 +143,8 @@ For `Bash` and `PowerShell`, the hook splits the command into simple commands:
 
 - It splits at `;`, `&&`, `||`, `|`, `&`, line breaks, and parentheses, and reads `$(...)` and backticks as commands of their own.
 - It reads the string after `bash -c`, `sh -c`, and `eval` as a command.
-- It skips leading variable assignments and the wrappers `command`, `env`, `exec`, `nohup`, `time`, and `xargs`.
+- It skips leading variable assignments and the wrappers `command`, `env`, `exec`, `nohup`, `time`, `timeout`, and `xargs`, each with its options. `timeout` also drops its duration, the first word after its options. A command that came through `xargs` is marked as such, because `xargs` adds words to it (section 8.3).
+- Since `timeout` is a wrapper (D223), the checks of sections 7.2 and 8.2 see `timeout 60 git push` as `git push`. Before, `timeout` hid the git command from them.
 - It drops the body of every heredoc, so text such as "git commit" inside a file being written is not a command.
 - It remembers each `cd <literal path>` for the commands after it. A path may also come from a variable set earlier in the same command, to a literal path or to the folder `mktemp -d` makes. The F05 trial's Test Manager made its scratch copy with `DST=$(mktemp -d <temp folder>/name-XXXXXX)` and `cd "$DST"`. Any other variable is unknown, and a git command in an unknown folder counts as one in the project.
 - It reads `git`, `git.exe`, and paths ending in either the same way, and likewise `gh`.
@@ -171,7 +173,7 @@ A subagent may run `gh pr view`, `gh pr diff`, `gh pr list`, `gh pr checks`, `gh
 
 A subagent's `Skill` call is allowed only for `code-review` and `security-review` (with or without a plugin prefix), and only when its arguments hold neither `--fix` nor `--comment`. This enforces F04's D36: the Code Reviewer reviews and changes nothing. The input field names of `Skill` are not documented. The trial (section 13.3) showed them: `skill` holds the name, and `args` holds the arguments and is left out when there are none.
 
-## 8. R19 and R21 (D44)
+## 8. R19, R21, and R23 (D44, D223)
 
 ### 8.1 Git hooks
 
@@ -218,6 +220,45 @@ For the main session, the same hook checks the text of every `gh` command that p
 - **Known limit.** A file is checked as it is when the call starts. A call that rewrites the body file and posts it in the same line is checked against the old text, or refused when the file does not exist yet. The troy-mode skill says to write the file in an earlier call. The hook does not tie a heredoc to the command it feeds, so a pipe into `--body-file -` passes when the same call holds another heredoc, which is checked. `gh api` with `-X GET` and fields counts as a post, as the table says.
 - This catches the "Generated with Claude Code" line before the PR exists, and the #92 shape, where a comment was posted after a failed `check-text`, before GitHub holds the text and its edit history.
 
+### 8.3 Python that reads its program from standard input (R23, D223)
+
+For every caller in a troy-mode project, the main session included, the `PreToolUse` hook refuses a `Bash` or `PowerShell` command that runs Python with its program read from standard input. Such a run can hang at Python's interactive prompt until the shell tool's time limit. In `ZJUCao/recipe-menu`'s two session transcripts, 168 Python runs read their program from standard input and 39 of them hit the 120-second limit. Every such run fed by nothing or by `/dev/null` hung, and the warning in every brief did not prevent it (tstack issue #64).
+
+**The programs.** After the unwrapping of section 7.1, a simple command whose program is `python`, `python3`, `python3.N`, or `py`, with or without a path and `.exe`. The runners `mamba run`, `micromamba run`, `conda run`, `uv run`, and `pixi run` are removed first, with their options, and the program after them is checked. A program held in a variable that section 7.1 cannot resolve is not checked.
+
+**The arguments, read left to right:**
+
+| Argument | Result |
+| --- | --- |
+| `-`, or `--` followed by `-` | Refused, as `python -` |
+| `-i`, alone or in a flag group such as `-ui` | Refused, as `python -i` |
+| `-c` or `-m`, alone, in a flag group such as `-Bc`, or with its value attached such as `-mpytest` | Allowed |
+| `-W`, `-X`, or `--check-hash-based-pycs` | Skipped with its value: the rest of the word, such as `-Xutf8`, or else the next word |
+| `-V`, `--version`, `-h`, `-?`, or an option that starts with `--help` | Allowed |
+| Any other option | Skipped |
+| The first word that is not an option | The script: allowed |
+| Nothing of the above by the end | Refused, as `python` with no script, unless the command came through `xargs`, which adds its own words to it |
+
+- A flag group is read letter by letter, left to right, each letter as the option of that letter, and the letters after `c`, `m`, `W`, or `X` are that option's value. So `-ic` refuses, because `i` comes first, `-ci` allows, since it runs the program `i`, and `-VV` allows.
+- `--` ends the options: the word after it is the script. So `python -- x.py` allows, and `python --` alone refuses.
+- For `py`, the first argument may be the launcher's own. `-0`, `-0p`, `--list`, and `--list-paths` allow, and a version selector such as `-3`, `-3.13`, `-3.13-64`, or `-V:3.13` is skipped.
+- What feeds standard input does not matter: a heredoc, a pipe, `/dev/null`, a file, or nothing. The check is about where the program comes from, and it needs only the words, so a redirection the parser drops changes nothing. Python with a script file, `-c`, or `-m` may still read data from a pipe or `/dev/null`. None of the 257 such runs in the transcripts hung, and the main session reads `troy_flow.py`'s output that way, with `| python -X utf8 -c "..."`.
+- Text inside a heredoc body, such as `python -` in a file being written, is not a command (section 7.1).
+- A command that cannot be split (section 7.1) is not checked for R23.
+
+**The refusal.** Rule `python-stdin`, decision `deny`. The reason:
+
+```text
+R23: `python -` makes Python read its program from standard input, and such a run can hang at Python's interactive prompt. Write the script to a file in the scratchpad (<scratchpad folder>) and run that file with the project's Python (`[lang] environment` <name>), for example `python -X utf8 <file>`. Python with a script file, `-c`, or `-m` may still read data from a pipe or `/dev/null`.
+```
+
+- The form it names is `python -`, `python -i`, or `python` with no script, whatever the program's own name or path. A line with several such commands names the first one only. A refused git or `gh` command in the same line keeps its own reason, in the order of the line, and the first refusal gives the log line's rule.
+- The scratchpad's folder is named when the hook input gives `scratchpad_dir`, and the environment when the config at `HEAD` sets `[lang] environment`. Otherwise each part in parentheses is left out. A config that cannot be read only leaves out the environment: the command is still refused.
+- The log line holds the rule and the decision, no subcommand, and never the command text (section 10).
+- The refusal starts as soon as the plugin updates, before troy-init's upgrade adds R23 to a project's rules table, so the reason stands on its own.
+
+**Not seen.** CI, the git hooks, `hooks.json`'s own commands, and the tests' subprocess calls do not pass through the Bash tool, so the hook never sees them. No file of an existing project holds such a command (`ZJUCao/recipe-menu`: none), so R23 needs no baseline and no cleanup.
+
 ## 9. Plugin files (D45)
 
 The F04 trial showed that a role cannot read the plugin's own files, such as `skills/technical-writing/SKILL.md`, in a session where nobody can approve a permission prompt. Troy would also see a prompt for each such read.
@@ -245,7 +286,7 @@ A `PreToolUse` hook on `Read`, `Glob`, and `Grep` answers `allow` when the call 
 
 All are under the 200 ms target of requirements section 8. The hooks keep the config's text in the git folder, keyed by `HEAD`'s commit ID, so most calls read it without a git process. The trial measured every hook kind 20 times: the medians are 74 to 151 ms (the F05 PR has the table).
 
-**Log.** Every refusal and block appends one JSON line to `<git dir>/troy-mode/hooks.log`: time, session, agent ID, agent type, event, tool, rule, the paths or git subcommand, and the decision. It never holds a command line or file content, so a secret typed in a command cannot reach it. The git folder is never committed. F07 reads the log after each role run (section 12).
+**Log.** Every refusal and block appends one JSON line to `<git dir>/troy-mode/hooks.log`: time, session, agent ID, agent type, event, tool, rule, the paths or git subcommand, and the decision. It never holds a command line or file content, so a secret typed in a command cannot reach it. R23's refusal (section 8.3) has rule `python-stdin` and no subcommand. The git folder is never committed. F07 reads the log after each role run (section 12).
 
 **How long the log keeps its lines (D219).** F08's retrospective (`retro --tag`, F08 section 7) counts the log lines since the previous version's tag, and a version can take many days: six in the pilot. So `SessionStart` keeps log lines for a number of days set in the project config:
 
@@ -272,6 +313,7 @@ A version that takes longer than `log_days` loses its earliest lines from the re
 | F05 row: commits that break R19 | Section 8.1 (`commit-msg`) and 8.2 (PR titles and descriptions) |
 | Section 6, R19: PR comments and reviews, issues, and release notes, checked before they are posted (D200) | Section 8.2 (every `gh` command that posts text) and section 10 (an error refuses the post) |
 | F05 row: commits on `main` and pushes of `main` (R21) | Section 8.1 (`pre-commit`, `pre-merge-commit`, `pre-push`), and 8.2 for `gh pr create` |
+| Section 6, R23, and the F05 row: Python never reads its program from standard input (D223) | Section 8.3, for every caller, and section 7.1 for `timeout` and `xargs` |
 | Section 8, hooks exit at once outside troy-mode projects | Section 4, the gate, and section 9's `if` rule |
 | Section 8, speed under 200 ms per call | Section 10 |
 | Section 8, privacy | The log holds no command lines (section 10) |
@@ -301,11 +343,12 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Callers | Main session, each role, an unknown `troy-pstack:troy-*` name, `general-purpose`, `Explore`. A role name with text before or after it is not a role. |
 | Scope table | Equals F04 section 3 and the Write scope section of each agent file. |
 | Paths | Each role against each path class and pattern. An ignored path is allowed. `.git/` is refused. Temp folder and scratchpad allowed, home folder refused. Backslashes, drive letter case, Git Bash paths, and `..`. A config edit that is not committed does not widen a scope. An invalid config refuses a role's call. |
-| Commands | Each allowed git and `gh` command passes, and each refused one is refused, alone and inside `;`, `&&`, `\|`, line breaks, `( )`, `$( )`, backticks, `bash -c`, and with variable assignments in front. A heredoc that holds "git commit" passes. Scratch repositories: `git -C <temp> commit` and `cd <temp> && git commit` pass, `git -C <temp> push` is refused. `gh api` with `GET` passes, with `-X POST` or `-f` it is refused. An unbalanced quote around a git write is refused. |
+| Commands | Each allowed git and `gh` command passes, and each refused one is refused, alone and inside `;`, `&&`, `\|`, line breaks, `( )`, `$( )`, backticks, `bash -c`, and with variable assignments or `timeout` in front. A heredoc that holds "git commit" passes, also when the heredoc feeds a script file that is then run. Scratch repositories: `git -C <temp> commit` and `cd <temp> && git commit` pass, `git -C <temp> push` is refused. `gh api` with `GET` passes, with `-X POST` or `-f` it is refused. An unbalanced quote around a git write is refused. |
 | Skills | `code-review` passes, with `--fix` or `--comment` it is refused, another skill is refused. The main session may run any skill. |
 | Changes | A Developer creates a test file through Bash: `PostToolUse` blocks and names it. After `git restore` or deleting it, nothing blocks. A file that was already changed and changes again is found by its hash. Changes inside the scope are not reported. `SubagentStop` blocks once and then lets the role stop. A missing start record is made at the first call. |
 | Guards | `--no-verify` and `commit -n` are refused, `push -n` passes. `-c core.hooksPath=` and `git config core.hooksPath` are refused. A commit while `core.hooksPath` is unset is refused. `gh pr create` on `main` and with `--head main` is refused, on a branch it passes. A PR body with "Generated with Claude Code" is refused. The word Claude in `trailers` mode passes. |
 | Posting guard (D200) | Each posting command of section 8.2, in its long, short, and `=` forms, refused with a bad title, body, notes, or file and passed with a clean one; a strict-mode word passes in `trailers` mode. The #92 shape, `check-text ... \| grep -q ok; gh pr comment ...`, refused. A heredoc on stdin checked. `--body-file -` from a pipe refused. A missing file refused. A clean file in a folder whose name is a strict-mode word passes. `gh api -X POST` with `-f`, `-F key=@file`, or `--input` refused with bad text, and a `GET` passes. `gh issue create --repo` for another repository checked. `--editor` and `--web` refused. `--body "$(cat <file>)"` refused, `--body "$(cat <<'EOF' ...)"` checked. An unsplittable posting call from the main session refused. A check error refuses a posting command and only warns for others. The log line holds the command name and no text. Subagents still get the `gh` refusal of section 7.3. |
+| Python from standard input (D223) | Each refused form of section 8.3 (`python -`, `python3 -`, `python -- -`, `python -i x.py`, `-i` in a flag group, `python` with no script, `-W` and `-X` with a value and no script, and `py -3.13 -`), for the main session, a role, and another subagent, and inside `&&`, `;`, `\|`, `$( )`, `bash -c`, `timeout`, `mamba run`, `uv run`, and PowerShell's `@'...'@ \| python -`. Allowed: `python x.py < /dev/null`, `\| python -c "..."`, `python -m pytest`, `--version`, `py -0p`, `xargs python`, and `python -` as text inside a heredoc body. Silent outside troy-mode. The reason names R23, the form, and the fix, with the scratchpad and the environment when they are known. The log line has rule `python-stdin`, decision `deny`, no subcommand, and no command text. `timeout 60 git push` is refused for a subagent. |
 | Plugin files | A read inside `CLAUDE_PLUGIN_ROOT` in a troy-mode project gets `allow`. Outside it, or in another project, nothing is printed. |
 | Errors and log | An exception refuses a role's call and only warns for the main session. Each refusal writes one log line without the command text. |
 | SessionStart | Unset `core.hooksPath` is set. Another value is left and reported. Missing hook files are reported. Old records are removed. |
@@ -315,7 +358,7 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 
 ### 13.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. D200's change adds: `comment` missing from the posting table, `-F` not read, the path scanned instead of the contents, and a missing file allowed. D219's change adds: the cutoff one day off, the default ignored (a day kept), role records kept for `log_days`, a `log_days` of 0 accepted, the config read from the working tree, and an invalid config stopping `SessionStart` before it turns on the git hooks. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the Developer's scope with the `tests` class, an unanchored role pattern, no ignore check, a temp folder test that accepts `/tmp-other`, `commit` in the allowed git commands, a scratch repository test that accepts the project, `pre-push` reading the local ref in place of the remote one, a role's call allowed on an exception, `SubagentStop` never blocking, `stop_hook_active` ignored, the config read from the working tree, and a plugin read allowed outside `CLAUDE_PLUGIN_ROOT`. D200's change adds: `comment` missing from the posting table, `-F` not read, the path scanned instead of the contents, and a missing file allowed. D219's change adds: the cutoff one day off, the default ignored (a day kept), role records kept for `log_days`, a `log_days` of 0 accepted, the config read from the working tree, and an invalid config stopping `SessionStart` before it turns on the git hooks. D223's change adds: `python3 -` missed, the `--` `-` form missed, `-i` inside a flag group missed, `-W` not skipping its value, `py -3.13` not skipped, `timeout` not unwrapped, `xargs` not exempt, the main session not checked, and the log line holding command text. The counts go in the PR description.
 
 ### 13.3 Trial on a sample project
 
@@ -363,8 +406,9 @@ D1 to D38 belong to the F01 to F04 designs, so F05 continues from D39.
 | D46 | How is F05 checked, and when does its status move? | A: unit tests and planted bugs, plus a trial with probes on the Python sample before the PR opens (section 13). Status after merge: "Runs on a sample project". B: unit tests only, status "Written". | A. The trial settles the facts the documentation leaves open (the `Skill` input, `deny` in `acceptEdits` mode, the `if` rule for `Glob` and `Grep`) and measures the speed on Windows. It costs about eight role runs. |
 | D200 | How is text that the main session posts to GitHub checked? A review comment on `ZJUCao/recipe-menu#92` was posted although `check-text` had failed on it, and GitHub keeps the history of every edit. From tstack issue #65, the rule proposal of recipe-menu's v0.1.0 retrospective. D161 to D199 are kept for F17 to F19, so this decision takes D200. | The levels the Architect weighed in the issue: the project's architecture; lint, troy-check, or a `project-rules.yml` job in CI; a Review or Process row; or F05's `PreToolUse` `gh` guard. And whether to widen R19 or add a new R row. | F05's `gh` guard, Hard, and R19 widened to PR comments and reviews, issues, and release notes, with no new R row. The guard checks the text of every `gh` command that posts it, for the main session, with `check-text`'s function and mode, and fails closed on text it cannot read and on check errors (sections 8.2 and 10). The hook is the only level that runs before the text leaves the machine, for every caller. The other levels read the repository or run in CI after GitHub already holds the text and its edit history, and a Review row in effect exists: #92 shows it followed in form and failed in effect. Approved by Troy on 2026-11-16 with the Architect's recommendations (AR6: A2, B1, C). |
 | D219 | How long does `hooks.log` keep its lines? F08's retrospective and F11's report count hook blocks over a whole version, which took six days in the pilot, while `SessionStart` removed log lines older than a day. So the v0.1.0 retrospective of `ZJUCao/recipe-menu` could see at most the last day's lines, and a block that repeated across the version could not reach a rule proposal. From tstack issue #66. This batch gives F05 D219 to D222. | A: keep the lines for a number of days set in the config, `[hooks] log_days`, 30 by default, and keep removing role records after a day. B: keep the lines until the next version's tag. C: `check-run` copies each role run's log lines into the flow state, which `retro` reads. | A. The hook needs no tags or flow state, so `SessionStart` stays one file read and one config read. 30 days covers the pilot's six-day version with room to spare, and a project with longer versions raises the number. B would make the hook read tags and F08's release state. C would change F07's and F08's state, and would leave out the main session's blocks, which no role run holds. Role records stay at one day, because a record only matters while its role runs. A bad value is a config error, and an invalid config keeps every line (section 10). Approved by Troy on 2026-11-18 with the recommendation. |
+| D223 | How is Python that reads its program from standard input stopped? An agent or the main session ran Python that way 168 times in `ZJUCao/recipe-menu`'s two session transcripts, and 39 of those runs hung at Python's prompt until the 120-second limit. The warning in every brief did not prevent it. From tstack issue #64, the rule proposal of recipe-menu's v0.1.0 retrospective. This batch gives F05 D223 to D230. | The levels the Architect weighed in the issue: the architecture, lint, CI, troy-check's limits, or `project-rules.yml`; permission deny rules; or F05's `PreToolUse` hook for every caller, with a new R row. And how much to refuse: every Python fed by a heredoc, a pipe, or `/dev/null`, as the retrospective's words read, or only Python whose program comes from standard input. | F05's hook, for every caller, with a new Hard row, R23, and the narrower reading: only `python -`, `python -i`, and Python with no script, `-c`, or `-m` are refused, whatever feeds standard input (section 8.3). A command leaves no trace in a commit or PR, so the architecture, lint, CI, and troy-check cannot see it, and deny rules match only a command's prefix: they miss full paths, `cd ... &&`, and wrappers, which make up most of the hangs. The hook sees each command before it starts, the level R08, R19, and R21 already use, and it checks the main session too, which caused 2 of the 7 time-outs in the session that built F11 to F13. The narrower reading refuses none of the 257 runs with a script, `-c`, or `-m` that read a pipe or `/dev/null` and finished, 237 of them the main session's reads of `troy_flow.py` output. `timeout` joins the wrappers of section 7.1, which also lets the git and `gh` checks see `timeout 60 git push`. Approved by Troy on 2026-11-16 with the Architect's recommendations (AR6: Q1 A, Q2 A, Q3 A) and the narrower reading. |
 
-Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads. Requirements 1.46 records D200: R19 in section 6 and the F05 row. D219 changes no requirement text: the F05 row says that a local log records each block, which still holds, and only its status names issue #66.
+Requirements 1.15 records the approved change: the F05 row describes the hooks as sections 4 to 9 build them, including the git hooks, read-only subagents, the check after shell calls, and plugin reads. Requirements 1.46 records D200: R19 in section 6 and the F05 row. D219 changes no requirement text: the F05 row says that a local log records each block, which still holds, and only its status names issue #66. Requirements 1.50 records D223: the new row R23 in section 6, and the F05 row.
 
 ## 16. Change log
 
@@ -375,3 +419,4 @@ Requirements 1.15 records the approved change: the F05 row describes the hooks a
 | 1.1 | 2026-11-07 | Facts from the trial of section 13.3: the `if` rule filters only `Read`, so `Glob` and `Grep` get their own entry without it (sections 3, 9, and 10). Claude Code's own permissions refuse `Write` outside the project in a session nobody can approve, so roles make scratch copies with Bash (section 5.2). The trial's Test Manager named its scratch folder with a `mktemp -d` variable, so section 7.1 also follows variables set to a literal path or to `mktemp -d` earlier in the same command (sections 7.1 and 7.2). The `Skill` input fields (section 7.4). The measured medians (section 10). |
 | 1.2 | 2026-11-17 | D200, from tstack issue #65, approved by Troy on 2026-11-16: the main session's `gh` commands that post text are checked before they run, and fail closed (sections 1, 8.2, 10, 11, 13.1, 13.2, and 15). |
 | 1.3 | 2026-11-18 | D219, from tstack issue #66, approved by Troy on 2026-11-18: `hooks.log` keeps its lines for `[hooks] log_days` days, 30 by default, and role records are still removed after a day (sections 1, 3, 10, 13.1, 13.2, and 15). Section 15's table no longer breaks before D200. |
+| 1.4 | 2026-11-20 | D223, from tstack issue #64, approved by Troy on 2026-11-16: every caller's Python that reads its program from standard input is refused before it starts, as the new rule R23, and `timeout` joins the wrappers that section 7.1 removes, with a mark for commands that come through `xargs` (sections 1, 3, 7.1, 8, 8.3, 10, 11, 13.1, 13.2, and 15). |

@@ -9,7 +9,7 @@ mirror: "rules.zh-CN.md"
 
 # {{project-name}} rules
 
-<!-- template: troy-init fills in {{project-name}} and {{init-date}}. Rules R01 to R22 come from troy-mode. This project's own rules are added below them as P01, P02, and so on, through the rule change flow (troy-mode requirements 5.8). Write None for a section, field, or table that has nothing to hold. Remove every template comment and every {{marker}} before the document merges. -->
+<!-- template: troy-init fills in {{project-name}} and {{init-date}}. Rules R01 to R23 come from troy-mode. This project's own rules are added below them as P01, P02, and so on, through the rule change flow (troy-mode requirements 5.8). Write None for a section, field, or table that has nothing to hold. Remove every template comment and every {{marker}} before the document merges. -->
 
 ## 1. Rule types
 
@@ -44,6 +44,7 @@ mirror: "rules.zh-CN.md"
 | R20 | A merged document or PR description holds no template markers or template guidance. | Hard | CI | troy-mode | {{init-date}} |
 | R21 | Every change reaches `main` through a PR from its own branch. Never commit on `main`, push `main`, or open a PR from `main`. | Hard | Hook and CI | troy-mode | {{init-date}} |
 | R22 | The description of every interface design, test plan, requirements, and architecture PR opens with a summary for Troy, in Chinese and then English: what changes for Troy, each point Troy decides with a recommendation, and the risks. Each language has at most 2,000 characters (`[summary] max_chars` in `.troy-mode/config.toml`) and holds no internal IDs. | Hard | CI | troy-mode | {{init-date}} |
+| R23 | In a command that troy-mode runs, Python never reads its program from standard input: no `python -`, no `python -i`, and no `python` without a script, `-c`, or `-m`, whatever feeds standard input (a heredoc, a pipe, `/dev/null`, or nothing). Such a run can hang at Python's interactive prompt. Write the script to a file in the scratchpad and run that file with the project's Python. | Hard | Hook (refuses the command before it starts) | troy-mode | {{init-date}} |
 
 <!-- template: troy-mode's rule change flow adds this project's own rules here, after the R rows, one row each, with the next free ID (P01, P02, and so on) and Scope "project". Example row: | P01 | {{rule}} | {{type}} | {{enforced-by}} | project | {{YYYY-MM-DD}} |. A retired rule keeps its row: its Rule cell starts with "Retired on <date>.", its Enforced by cell says None, and its ID is never used again. When existing code breaks a new check, the tool's config exempts each violating file on one line with the comment baseline: P01, until a cleanup PR fixes the file and deletes the line. -->
 
@@ -51,4 +52,4 @@ mirror: "rules.zh-CN.md"
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.0 | {{init-date}} | Seeded with R01 to R22 from troy-mode. |
+| 1.0 | {{init-date}} | Seeded with R01 to R23 from troy-mode. |

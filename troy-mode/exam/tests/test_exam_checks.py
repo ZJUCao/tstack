@@ -260,13 +260,109 @@ class ReadsStdinTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertFalse(reads_stdin(command))
 
+    # The interface note's section 2: reads_stdin is R23's own check (F05 design
+    # 8.3), so it agrees with the hook on every command that can be split.
+    HOOK_AGREES = (("py -0p", False), ("python -i x.py", True), ("ls | xargs python", False),
+                   ("timeout 60 python -", True), ("pixi run python -", True),
+                   ("python -- -", True), ("python -ic x", True), ("python -ci", False))
+    # More of F05 design 8.3's forms, from the note's section 1.5.
+    HOOK_TRUE = ("python -ui x.py", "python -i", "python -u", "python --", "python -Xutf8",
+                 "python -X utf8", "py -3.13 -", "py -V:3.13", "py -3", "python3.13 -",
+                 "PYTHONPATH=src python -", "env python3 -", "PY=python; $PY -",
+                 "timeout -k 5 --signal=TERM 60 python3 -", "uv run --with ruff python -",
+                 "pixi run -e env python -", "echo x | xargs python -", "python -i -m pytest",
+                 "ls && python3 -i x.py", 'bash -c "python -"', 'echo "$(python -)"')
+    HOOK_FALSE = ("py -0", "py --list", "py --list-paths", "py -3.13 x.py",
+                  "py -V:3.13 -c 'x'", "python -Bc 'x'", "python -mpytest", "python -cpass",
+                  "python -VV", "python -?", "python --help-env", "python -- x.py",
+                  "python x.py -i", "python -c 'x' -i", "python --check-hash-based-pycs never x.py",
+                  "find . -name '*.py' | xargs -n 1 python3", "uv run --with ruff python x.py",
+                  "timeout 60 python x.py", "$PY -",
+                  "cat > x.py <<'EOF'\npython -\nEOF\npython x.py")
+
+    def test_agrees_with_the_hook_on_the_notes_examples(self):
+        """py -0p, xargs python, and python -ci do not; -i, timeout, pixi, -- -, and -ic do."""
+        for command, expected in self.HOOK_AGREES:
+            with self.subTest(command=command):
+                self.assertIs(reads_stdin(command), expected)
+
+    def test_agrees_with_the_hook_on_refused_forms(self):
+        """Each form R23 refuses reads its program from standard input."""
+        for command in self.HOOK_TRUE:
+            with self.subTest(command=command):
+                self.assertIs(reads_stdin(command), True)
+
+    def test_agrees_with_the_hook_on_allowed_forms(self):
+        """Pair: each form R23 allows does not."""
+        for command in self.HOOK_FALSE:
+            with self.subTest(command=command):
+                self.assertIs(reads_stdin(command), False)
+
+
+def powershell(command: str, denied: bool = False) -> tuple:
+    """A PowerShell call."""
+    return ("PowerShell", {"command": command}, denied)
+
 
 class U4Tests(unittest.TestCase):
-    """U4: no shell command of the role ran Python from standard input."""
+    """U4: no shell command of the role ran Python from standard input (design 4.3, version 1.5).
+
+    U4 counts only the calls that ran: a call that a hook or a permission
+    refused (``denied``) never fails it.
+    """
 
     def run_u4(self, *commands: str) -> CheckResult:
         """U4 on a transcript of Bash calls."""
         return u4_stdin_python(context(transcript=role_transcript([bash(c) for c in commands])))
+
+    def run_calls(self, *calls: tuple) -> CheckResult:
+        """U4 on a transcript of (name, input, denied) calls."""
+        return u4_stdin_python(context(transcript=role_transcript(list(calls))))
+
+    def test_a_denied_python_dash_passes(self):
+        """python - with a heredoc that a hook refused did not run: U4 passes."""
+        for command in ("python - <<'EOF'\nprint(1)\nEOF", "python3 - < /dev/null",
+                        "timeout 60 python -i x.py", "cat x.py | python"):
+            with self.subTest(command=command):
+                result = self.run_calls(bash(command, denied=True))
+                self.assertTrue(result.passed, result.evidence)
+
+    def test_the_same_python_dash_not_denied_fails(self):
+        """Pair: the same commands, not refused, ran and fail U4."""
+        for command in ("python - <<'EOF'\nprint(1)\nEOF", "python3 - < /dev/null",
+                        "timeout 60 python -i x.py", "cat x.py | python"):
+            with self.subTest(command=command):
+                self.assertFalse(self.run_calls(bash(command)).passed)
+
+    def test_a_denied_try_then_a_script_passes(self):
+        """A refused python -, then the script written to a file and run: U4 passes."""
+        result = self.run_calls(bash("python - <<'EOF'\nprint(1)\nEOF", denied=True),
+                                bash("cat > /tmp/a.py <<'EOF'\nprint(1)\nEOF"),
+                                bash("python /tmp/a.py"))
+        self.assertTrue(result.passed, result.evidence)
+
+    def test_one_run_among_denied_tries_fails(self):
+        """Pair: a refused python -, then python3 - < /dev/null that ran: U4 fails."""
+        self.assertFalse(self.run_calls(bash("python -", denied=True),
+                                        bash("python3 - < /dev/null")).passed)
+
+    def test_powershell_calls_count_too(self):
+        """A PowerShell here-string into python - fails U4 when it ran, and passes when denied."""
+        command = "@'\nprint(1)\n'@ | python -"
+        self.assertFalse(self.run_calls(powershell(command)).passed)
+        result = self.run_calls(powershell(command, denied=True))
+        self.assertTrue(result.passed, result.evidence)
+
+    def test_hook_forms_that_pass(self):
+        """py -0p, ls | xargs python, and python -ci, which the hook allows, pass U4."""
+        result = self.run_u4("py -0p", "ls | xargs python", "python -ci")
+        self.assertTrue(result.passed, result.evidence)
+
+    def test_hook_forms_that_fail(self):
+        """Pair: timeout 60 python -, pixi run python -, and python -- -, which ran, fail U4."""
+        for command in ("timeout 60 python -", "pixi run python -", "python -- -"):
+            with self.subTest(command=command):
+                self.assertFalse(self.run_u4(command).passed)
 
     def test_python_dash_with_a_heredoc(self):
         """python - <<'EOF' fails."""

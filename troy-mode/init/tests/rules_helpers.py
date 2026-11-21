@@ -36,10 +36,11 @@ UPGRADE_STAGE = sorted([
     CHANGED_TEMPLATE, NEW_TEMPLATE, DROPPED_TEMPLATE, CHANGED_CHECK, CHANGED_HOOK, WORKFLOW,
     ".troy-mode/templates/rules.md", ".troy-mode/templates/rules.zh-CN.md", RECORD, *RULES,
 ])
-R23 = {
-    "docs/rules.md": "| R23 | Every PR description names the rules it relies on. "
+# The fake new rule of the next plugin version, after the last R row (R23 since tstack #64).
+R24 = {
+    "docs/rules.md": "| R24 | Every PR description names the rules it relies on. "
                      "| Review | Product Manager | troy-mode | {{init-date}} |",
-    "docs/rules.zh-CN.md": "| R23 | 每个 PR 描述都写明它依据的规则。 | 审查 | 产品经理 "
+    "docs/rules.zh-CN.md": "| R24 | 每个 PR 描述都写明它依据的规则。 | 审查 | 产品经理 "
                            "| troy-mode | {{init-date}} |",
 }
 R03_EDITS = {
@@ -108,7 +109,7 @@ def apply_upgrade_changes(plugin: Path) -> None:
     """Turns a fake plugin into its next version, as the upgrade tests expect.
 
     Version NEW_VERSION; README.md changed; glossary.md added; escalation.md
-    dropped; an R row's text changed and R23 added in both rules templates;
+    dropped; an R row's text changed and R24 added in both rules templates;
     the workflow, one troy-check module, and the commit-msg hook changed; and
     a new pattern in the Python pack's [paths] tests.
     """
@@ -120,7 +121,7 @@ def apply_upgrade_changes(plugin: Path) -> None:
     for project_path, template in RULE_TEMPLATES.items():
         replace_in(templates, template, *R03_EDITS[project_path])
         text = read_text(templates, template)
-        write_text(templates, template, add_rows_after(text, "R22", [R23[project_path]]))
+        write_text(templates, template, add_rows_after(text, "R23", [R24[project_path]]))
     checks = plugin / "troy-mode/checks"
     write_text(checks, "workflow.yml", read_text(checks, "workflow.yml") + "# Version 0.2.0.\n")
     init = read_text(checks, "troycheck/__init__.py")

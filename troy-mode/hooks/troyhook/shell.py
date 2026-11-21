@@ -1,10 +1,11 @@
 """Splitting a shell command into simple commands (design section 7.1).
 
 This is not a shell. It finds each program a command line runs, the words
-given to it, and the folder it runs in, which is all the git and gh checks
-need. It skips leading assignments and the wrappers command, env, exec,
-nohup, time, and xargs, reads the string after bash -c, sh -c, and eval as a
-command, and follows "cd <literal path>".
+given to it, and the folder it runs in, which is all the git, gh, and Python
+checks need. It skips leading assignments and the wrappers command, env, exec,
+nohup, time, timeout, and xargs, marks a command that came through xargs, reads
+the string after bash -c, sh -c, and eval as a command, and follows
+"cd <literal path>".
 """
 
 import os
@@ -24,6 +25,7 @@ _POPD = frozenset({"popd", "pop-location"})
 _SHELLS = frozenset({"bash", "sh"})
 _DECLARE = frozenset({"export", "declare", "typeset", "readonly", "local"})
 _XARGS_WITH_VALUE = frozenset({"-I", "-n", "-L", "-P", "-d", "-a", "-E", "-s"})
+_TIMEOUT_WITH_VALUE = frozenset({"-s", "--signal", "-k", "--kill-after"})
 
 
 class SimpleCommand:
@@ -33,13 +35,15 @@ class SimpleCommand:
         words: The program and its arguments.
         assignments: Variable assignments written before the program.
         cwd: The real path of the folder it runs in, or None when unknown.
+        xargs: It came through xargs, which adds words to it (design 8.3).
     """
 
-    __slots__ = ("words", "assignments", "cwd")
+    __slots__ = ("words", "assignments", "cwd", "xargs")
 
-    def __init__(self, words: list[Word], assignments: dict[str, str], cwd: str | None):
+    def __init__(self, words: list[Word], assignments: dict[str, str], cwd: str | None,
+                 xargs: bool = False):
         """Stores the command."""
-        self.words, self.assignments, self.cwd = words, assignments, cwd
+        self.words, self.assignments, self.cwd, self.xargs = words, assignments, cwd, xargs
 
 
 class Parsed:
@@ -116,7 +120,7 @@ class _Parser:
             return cwd
         for key, value in assignments.items():
             assignments[key] = expand(Word(value, value, "$" not in value), self.known).value
-        words, chdir = _unwrap([expand(word, self.known) for word in rest], assignments)
+        words, chdir, xargs = _unwrap([expand(word, self.known) for word in rest], assignments)
         if not words:
             return cwd
         name = program(words[0].value)
@@ -128,7 +132,7 @@ class _Parser:
         if name in _POPD:
             return None
         run_in = cwd if chdir is False else chdir
-        self.commands.append(SimpleCommand(words, assignments, run_in))
+        self.commands.append(SimpleCommand(words, assignments, run_in, xargs))
         if name in _SHELLS:
             self._shell_c(words[1:], run_in)
         elif name == "eval":
@@ -176,27 +180,32 @@ def _take_assignments(words: list[Word], out: dict[str, str]) -> list[Word]:
     return words
 
 
-def _unwrap(words: list[Word], assignments: dict[str, str]) -> tuple[list[Word], object]:
-    """Removes the wrappers command, env, exec, nohup, time, and xargs.
+def _unwrap(words: list[Word], assignments: dict[str, str]) -> tuple[list[Word], object, bool]:
+    """Removes the wrappers command, env, exec, nohup, time, timeout, and xargs.
 
     Returns:
-        The remaining words (empty for "command -v", which runs nothing), and
-        False, or the folder "env -C" names (None when it is not literal).
+        The remaining words (empty for "command -v", which runs nothing);
+        False, or the folder "env -C" names (None when it is not literal);
+        and whether xargs was among the wrappers.
     """
     chdir: object = False
+    xargs = False
     while words:
         name, rest = program(words[0].value), words[1:]
         if name == "command":
             while rest and rest[0].value.startswith("-"):
                 if any(flag in rest[0].value for flag in "vV"):
-                    return [], chdir
+                    return [], chdir, xargs
                 rest = rest[1:]
         elif name == "env":
             rest, chdir = _unwrap_env(rest, assignments, chdir)
         elif name in ("exec", "time", "nohup"):
             while rest and rest[0].value.startswith("-") and name != "nohup":
                 rest = rest[2:] if rest[0].value == "-a" else rest[1:]
+        elif name == "timeout":
+            rest = _unwrap_timeout(rest)
         elif name == "xargs":
+            xargs = True
             while rest and rest[0].value.startswith("-"):
                 done = rest[0].value == "--"
                 rest = rest[2:] if rest[0].value in _XARGS_WITH_VALUE else rest[1:]
@@ -205,7 +214,17 @@ def _unwrap(words: list[Word], assignments: dict[str, str]) -> tuple[list[Word],
         else:
             break
         words = rest
-    return words, chdir
+    return words, chdir, xargs
+
+
+def _unwrap_timeout(rest: list[Word]) -> list[Word]:
+    """Removes timeout's options and its duration."""
+    while rest and rest[0].value.startswith("-"):
+        value = rest[0].value
+        rest = rest[2:] if value in _TIMEOUT_WITH_VALUE else rest[1:]
+        if value == "--":
+            break
+    return rest[1:]
 
 
 def _unwrap_env(rest: list[Word], assignments: dict[str, str], chdir: object):

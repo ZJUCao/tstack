@@ -50,6 +50,6 @@ troy-mode 判断请求属于哪个流程，运行各个角色，开 PR 并合并
 
 本指南讲你输入什么、看到什么。每一步内部怎样运作，写在需求文档和设计文档里，指南链接过去，不再重复：
 
-- [需求文档](../requirements.zh-CN.md)：目标、流程、规则 R01 到 R22，以及功能列表。
+- [需求文档](../requirements.zh-CN.md)：目标、流程、规则 R01 到 R23，以及功能列表。
 - [设计文档](../design/)：每个功能一份，F01 到 F14。[F07](../design/F07-entry-skill.zh-CN.md) 是入口技能和功能循环，[F08](../design/F08-release.zh-CN.md) 是版本发布，[F09](../design/F09-rule-change.zh-CN.md) 是规则变更。
 - 运行它的技能：[`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) 和 [`skills/troy-init/SKILL.md`](../../../skills/troy-init/SKILL.md)。

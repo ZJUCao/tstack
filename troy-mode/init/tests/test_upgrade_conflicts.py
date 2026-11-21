@@ -127,7 +127,7 @@ class UpgradeNothingToChangeTest(InitCase):
         """A rules table with P rows and current R rows is not rewritten."""
         project = setup_project(self.plugin)
         for path in RULES:
-            project.write(path, add_rows_after(project.read(path), "R22", P_ROWS[path]))
+            project.write(path, add_rows_after(project.read(path), "R23", P_ROWS[path]))
         project.commit_paths(list(RULES), "[rules] Add P01 and P02")
         self.assert_nothing_to_do(project)
         for path in RULES:
