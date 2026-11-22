@@ -1,0 +1,73 @@
+# List prices for `troy_flow.py costs` (F07 design 8.8, D265, tstack issue #74).
+# US dollars per million tokens, except web_search, which is dollars per search.
+# Update this file in a tstack PR when a list price changes or a new model
+# comes, and raise the plugin version (F10 D89). `costs` reports `as_of`.
+#
+# The Opus 5.5, Sonnet 5.5, and Haiku 5.5 prices, and web_search, match the
+# desktop app's own cost records of the pilot (ZJUCao/recipe-menu) to the cent.
+# A 5-minute cache write costs 1.25 times the input price, a 1-hour write 2
+# times. Fast mode doubles every price of its model; its cache prices follow
+# the same rule and are not confirmed by a record yet. Haiku 5.5 prompts over
+# 100,000 tokens cost more ($0.50 / $2.50); this table prices every Haiku 5.5
+# message at the lower rate. A model ID with a suffix such as "[1m]" is priced
+# as the model without it.
+
+as_of = "2026-11-03"
+source = "https://platform.claude.com/docs/en/about-claude/pricing"
+web_search = 0.01
+
+[models."claude-opus-5-5"]
+input = 4.00
+output = 20.00
+cache_read = 0.20
+cache_write_5m = 5.00
+cache_write_1h = 8.00
+
+[models."claude-opus-5-5".fast]
+input = 8.00
+output = 40.00
+cache_read = 0.40
+cache_write_5m = 10.00
+cache_write_1h = 16.00
+
+[models."claude-sonnet-5-5"]
+input = 2.00
+output = 10.00
+cache_read = 0.10
+cache_write_5m = 2.50
+cache_write_1h = 4.00
+
+[models."claude-haiku-5-5"]
+input = 0.10
+output = 0.50
+cache_read = 0.01
+cache_write_5m = 0.125
+cache_write_1h = 0.20
+
+[models."claude-fable-5-2"]
+input = 8.00
+output = 40.00
+cache_read = 0.20
+cache_write_5m = 10.00
+cache_write_1h = 16.00
+
+[models."claude-fable-5-2".fast]
+input = 16.00
+output = 80.00
+cache_read = 0.40
+cache_write_5m = 20.00
+cache_write_1h = 32.00
+
+[models."claude-opus-5"]
+input = 5.00
+output = 25.00
+cache_read = 0.50
+cache_write_5m = 6.25
+cache_write_1h = 10.00
+
+[models."claude-sonnet-5"]
+input = 2.00
+output = 10.00
+cache_read = 0.20
+cache_write_5m = 2.50
+cache_write_1h = 4.00
