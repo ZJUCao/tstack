@@ -1,4 +1,4 @@
-"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 8.7, 11).
+"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 6.4, 8.7, 11).
 
 A brief is for a feature's stage, a side PR of a feature (a test fix or a
 [docs] PR), a bug, a version: its test plan and its version tests (F08
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, repo as git, rulebrief, summary
+from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, rulebrief, summary
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -475,6 +475,10 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
         values.update(plan=plan_path(version), under=under, upper=under.upper(),
                       features=", ".join(versions_of(features).get(version, [])))
     sentence = sentences[task].format(**values)
+    stage = target.stage if feature is not None and target.side is None else None
+    notes = mocknotes.text(task, stage, config.lang.get("name"))
+    if notes:
+        sentence += " " + notes
     if task in checksteps.CODE_TASKS:
         sentence += " " + checksteps.PLATFORM_SKIP
     item_text = f"{item}, {title}" if item and title else (item or title)

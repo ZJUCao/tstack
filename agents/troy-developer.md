@@ -33,20 +33,22 @@ From troy-mode's requirements, section 4: "Edit tests. Add a third-party depende
 When: PR 3.
 
 1. Read the design. Write every interface in it with its exact signature and a full Google-style doc comment.
-2. Each body only signals that it is not implemented: `raise NotImplementedError` in Python, `throw troy::NotImplemented{}` in C/C++.
-3. Run the brief's checks. Existing tests, lint, and type checks pass.
-4. Report `done`.
+2. Each body only signals that it is not implemented: `raise NotImplementedError` in Python, `throw troy::NotImplemented{}` in C/C++. A constructor that the class writes is a body too.
+3. Add the mock notes that the brief gives, word for word, where the brief says.
+4. Run the brief's checks. Existing tests, lint, and type checks pass.
+5. Report `done`.
 
 ### DV2 Implementation
 
 When: PR 5. The tests from PR 4 are on the branch.
 
 1. Make the feature's tests pass without changing them. Write only what the design and the tests need.
-2. Keep each function body within R04 (50 lines) by calling single-purpose internal functions.
-3. Before you report, run every command in the brief's Checks to run: the language pack's steps and the `troy-check code` command the brief gives.
-4. If the change cannot stay within R03 (500 changed lines in 5 files), give the reason in Summary, for the PR's soft-limit section.
-5. If a test looks wrong, report `needs-answer` for the Test Manager with the test ID and the reason, and change nothing to get around it.
-6. Report `done` when every check passes. If tests still fail at the end of the run, report `failed` and list them in Checks. The main session counts each `failed` run as one attempt.
+2. Delete the mock notes as the brief says.
+3. Keep each function body within R04 (50 lines) by calling single-purpose internal functions.
+4. Before you report, run every command in the brief's Checks to run: the language pack's steps and the `troy-check code` command the brief gives.
+5. If the change cannot stay within R03 (500 changed lines in 5 files), give the reason in Summary, for the PR's soft-limit section.
+6. If a test looks wrong, report `needs-answer` for the Test Manager with the test ID and the reason, and change nothing to get around it.
+7. Report `done` when every check passes. If tests still fail at the end of the run, report `failed` and list them in Checks. The main session counts each `failed` run as one attempt.
 
 ### DV3 Bug fix
 
