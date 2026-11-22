@@ -1,6 +1,7 @@
 """Command-line interface: options, the commands, and the report (F07, F08, F09 3.1, F12 5.1).
 
 F07 D204 adds wait-checks, the wait for a pushed head's CI checks before a merge.
+F07 D264 to D267 add costs, a feature's or a version's role runs and their cost.
 """
 
 import argparse
@@ -9,8 +10,8 @@ import sys
 
 from troycheck.gitio import GitError
 
-from . import acceptversion, approve, brief, issuesync, realreport, realrun, releasetest, \
-    retro, rulerow, runs, series, skips, status, textcheck, waitchecks
+from . import acceptversion, approve, brief, costs, issuesync, realreport, realrun, \
+    releasetest, retro, rulerow, runs, series, skips, status, textcheck, waitchecks
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -109,9 +110,15 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("issues", help="the changes to troy-mode's issues (F15)")
     cmd.add_argument("--device-test-scenarios",
                      help="a patch release's scenarios for its checklist, separated by commas")
+    cmd = sub.add_parser("costs", help="a feature's or a version's role runs and cost (D264)")
+    cmd.add_argument("--item", help="the feature, bug, or other item, for example F04")
+    cmd.add_argument("--tag", help="the version's tag, for example v0.1.0")
+    cmd.add_argument("--until", help="count up to this ISO 8601 time instead")
+    cmd.add_argument("--transcripts", action="append",
+                     help="a transcript folder to read instead of this project's")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks"):
+                 "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks", "costs"):
         _common(sub.choices[name])
     return parser
 
@@ -138,6 +145,8 @@ def _text(report: dict) -> str:
             lines.append(f"report    {report['files']['md']}")
     if report["command"] == "wait-checks":
         lines.append(f"result    {report['result']}")
+    if report["command"] == "costs":
+        lines.append(f"cost      {report['line']}")
     if report["command"] == "issues":
         lines += [f"label     {item['command']}" for item in report.get("labels", [])]
         lines += [f"action    {item['command']}" for item in report.get("actions", [])]
@@ -166,7 +175,7 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
             "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
             "real-run": realrun.run_real_run, "issues": issuesync.run_issues,
-            "wait-checks": waitchecks.run_wait_checks}
+            "wait-checks": waitchecks.run_wait_checks, "costs": costs.run_costs}
 
 
 def main(argv: list[str]) -> int:

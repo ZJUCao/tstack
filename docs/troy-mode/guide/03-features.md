@@ -69,10 +69,13 @@ Since F12, PR 6 first runs the real program the way you type it. `troy_flow.py r
 ```text
 [6/6] Real run: 41 commands of 6 prototypes match on your PC. 3 wait for F12.
       Acceptance PR #96 merged. F11 status is now "Ran for real on Troy's PC".
+      F11 cost $103.20 at list prices: 18 role runs, 5 helper agents, and the main session ($25.32).
       Not yet checked in Windows Terminal itself or on your devices.
 ```
 
 PR 6 sets the feature's status to "Ran for real on Troy's PC" when all its own commands ran on your PC and matched, apart from those that wait for a later feature, and otherwise to "Passes tests on main", with the reason in the PR. The run goes through pipes, not a console, so it does not show how Windows Terminal draws the text. The feature has not been checked on your devices yet: that happens when you test its version ([section 5](05-release.md)).
+
+PR 6 also has a "Cost" section: the feature's role runs per role, with the model, the helper agents, and the main session, and their cost at the API's list prices, read from the session transcripts on your PC. It counts this PC only, names any stage whose runs it did not find here, and gives the date of the price table it used ([F07 design section 8.8](../design/F07-entry-skill.md#88-role-runs-and-cost-d264-to-d267)).
 
 Since F15, each feature also has a **progress issue** on GitHub, labeled `progress`, from the moment it is the next feature or has a stage PR until its acceptance. Its title holds the feature's ID and name, and its body shows the six stages as boxes, ticked as each PR merges, what waits for you, and links to the documents, first in Chinese, with the English folded below. Each stage PR starts its Why with `Progress: #<n>`, so GitHub lists it in the issue, and PR 6's `Closes #<n>` closes it. troy-mode keeps the text: an edit of yours is put back at the next run, and to say something to troy-mode you write a comment ([section 7.6](07-taking-part.md#76-from-your-phone), [F15 design section 4](../design/F15-issues.md#4-the-progress-issue-d142)).
 

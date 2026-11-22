@@ -86,7 +86,7 @@ An open issue labeled `bug` stops the release until it is fixed or you defer it.
 
 ## 5.6 Acceptance and the tag
 
-On your acceptance, the Product Manager sets every feature of the version to "Usable on Troy's devices" in both languages, and troy-mode records your acceptance in the version test plan. Then it merges the release PR and creates the GitHub release on the merge commit. Nothing is pushed from your PC: GitHub creates the tag. Creating the release is one of troy-mode's rights, only after your acceptance ([section 7.2](07-taking-part.md#72-what-troy-mode-does-alone)).
+On your acceptance, the Product Manager sets every feature of the version to "Usable on Troy's devices" in both languages, and troy-mode records your acceptance in the version test plan. Before the merge, the release PR's description gets a "Cost" section: the version's role runs and their cost at list prices since the previous release, with each feature's share, as for PR 6 ([section 3.3](03-features.md#33-what-you-see)), and troy-mode's report gives the total. Then it merges the release PR and creates the GitHub release on the merge commit. Nothing is pushed from your PC: GitHub creates the tag. Creating the release is one of troy-mode's rights, only after your acceptance ([section 7.2](07-taking-part.md#72-what-troy-mode-does-alone)).
 
 If you merge the release PR on GitHub yourself, troy-mode records your acceptance in a `[docs] Record Troy's acceptance of v0.1.0` PR, then creates the release.
 

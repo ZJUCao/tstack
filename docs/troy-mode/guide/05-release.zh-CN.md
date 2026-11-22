@@ -88,7 +88,7 @@ troy-mode 把每次回复记录到发布 PR 上，标题为 `Release test by Tro
 
 ## 5.6 验收和标签
 
-你验收之后，产品经理把这个版本里每个功能的状态改为“在 Troy 的设备上可用”，中英文都改，troy-mode 把你的验收记进版本测试方案。然后它合并发布 PR，在合并 commit 上创建 GitHub release。你的电脑上不推送任何东西：标签由 GitHub 创建。创建 release 是 troy-mode 的权限之一，只在你验收之后进行（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。
+你验收之后，产品经理把这个版本里每个功能的状态改为“在 Troy 的设备上可用”，中英文都改，troy-mode 把你的验收记进版本测试方案。合并之前，发布 PR 的说明会加上一个"Cost"一节：从上一次发布以来这个版本的角色运行和按标价算的费用，以及每个功能各占多少，和 PR 6 一样（[第 3.3 节](03-features.zh-CN.md#33-你会看到什么)），troy-mode 的报告会给出总数。然后它合并发布 PR，在合并 commit 上创建 GitHub release。你的电脑上不推送任何东西：标签由 GitHub 创建。创建 release 是 troy-mode 的权限之一，只在你验收之后进行（[第 7.2 节](07-taking-part.zh-CN.md#72-troy-mode-自己做的事)）。
 
 如果你自己在 GitHub 上合并了发布 PR，troy-mode 会用一个 `[docs] Record Troy's acceptance of v0.1.0` PR 记下你的验收，然后创建 release。
 

@@ -71,10 +71,13 @@ your approval, because F02 is among the first 3 features you approve.
 ```text
 [6/6] Real run: 41 commands of 6 prototypes match on your PC. 3 wait for F12.
       Acceptance PR #96 merged. F11 status is now "Ran for real on Troy's PC".
+      F11 cost $103.20 at list prices: 18 role runs, 5 helper agents, and the main session ($25.32).
       Not yet checked in Windows Terminal itself or on your devices.
 ```
 
 功能自己的命令都在你的电脑上跑过并且一致时（等待后续功能的命令除外），PR 6 把它的状态改为“在 Troy 的电脑上真跑过”，否则改为“在 main 上通过测试”，并在 PR 里写明原因。真跑通过管道而不是控制台，所以看不出 Windows Terminal 怎样显示文字。这个功能还没在你的设备上验证过：那要等你测试它所在的版本时才做（[第 5 节](05-release.zh-CN.md)）。
+
+PR 6 还有一个"Cost"一节：这个功能按角色的角色运行（带模型）、辅助代理和主会话，以及按 API 标价算的费用，从你电脑上的会话记录读出。它只统计这台电脑，点名在这里没找到运行的阶段，并写明所用价格表的日期（[F07 设计第 8.8 节](../design/F07-entry-skill.zh-CN.md#88-角色运行和费用d264-到-d267)）。
 
 从 F15 起，每个功能在 GitHub 上还有一个**进度 issue**，标签是 `progress`，从它成为下一个功能或有了某一步的 PR 开始，直到验收。它的标题是功能的编号和名字，正文把六步列成复选框，每个 PR 合入就勾上一项，还写着等你做什么，以及文档的链接；中文在前，英文折叠在下面。每一步的 PR 在 Why 开头写 `Progress: #<n>`，所以 GitHub 会在 issue 里列出它；PR 6 的 `Closes #<n>` 会关闭它。正文由 troy-mode 维护：你的改动会在下次运行时被换回来；想对 troy-mode 说什么，就写评论（[第 7.6 节](07-taking-part.zh-CN.md#76-在手机上)，[F15 设计第 4 节](../design/F15-issues.zh-CN.md#4-进度-issued142)）。
 
