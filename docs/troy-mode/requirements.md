@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| Version | 1.53 |
-| Date | 2026-11-21 |
-| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. Version 1.13 records the F04 design decisions Troy approved: D31, D32, and D35, and the answer to Q5, and 1.14 updates F04's status. Version 1.15 records the F05 design decisions Troy approved: D40, D41, D44, and D45, and 1.16 records the F06 design decisions Troy approved: D48, D52, D53, D54, and D55. Versions 1.17 and 1.19 update F06's status, and 1.18 updates F05's status. Version 1.20 records the F07 design decisions Troy approved: D57 to D61, D64, D65, and D67, 1.21 updates the status of F07, F04, and F05, 1.22 updates F07's status, and 1.23 updates F02's status. Version 1.24 records the F08 design decisions Troy approved: D70, D71, D73, D75, and D77, 1.25 records the F09 design decisions Troy approved: D80, D81, and D83, 1.26 records the F10 design decisions Troy approved: D90 and D91, and 1.27 records the F11 design decisions Troy approved: D93 to D97. Version 1.28 updates F08's status, 1.29 updates F09's status, and 1.30 updates F10's status. Version 1.31 updates the status of F01 to F07 and F11 from the pilot. Version 1.32 records what Troy approved on 2026-11-14: F12 to F19, the changes they bring to sections 3, 4.1, 5, and 6 and to Q4, and the proposals for Q11 to Q16. Version 1.33 records the F13 design decisions Troy approved: D121 to D126, and 1.34 records the F14 design decisions Troy approved: D131 to D137. Version 1.35 records the F12 design decisions Troy approved: D102, D103, D105, D107 to D109, and D112. Version 1.36 updates F14's status, 1.37 updates F13's, and 1.38 updates F12's. Version 1.39 records the F15 design decisions Troy approved: D141 to D150, and 1.40 records the F19 design decisions Troy approved: D191 to D199. Version 1.41 updates the statuses of F01 to F14 at the end of the pilot. Version 1.42 records the F16 design decisions Troy approved: D151 to D160, which narrow F16 to the roles that run as subagents. Version 1.43 renames the plugin to tstack outside the history, with F19's build (D197), and 1.44 and 1.45 update F19's status. Version 1.46 records D200, the F05 design decision Troy approved as tstack issue #65, 1.47 updates the status of F05 and F15, 1.48 updates F05's status, and 1.49 updates F16's. Version 1.50 records D223, the F05 design decision Troy approved as tstack issue #64, with the new rule R23, and 1.51 updates F05's status. Version 1.52 records D231 and D232, the F05 design decisions Troy approved as tstack issue #49, and 1.53 updates the status of F05 and F07. No question is open. |
+| Version | 1.54 |
+| Date | 2026-11-22 |
+| Status | Approved by Troy on 2026-11-05. Later versions add what Troy approved the same day: F01 design D1 and D2 (1.1), the answers to Q1 and Q9 (1.2), and F02 design D10, D11, and D14 plus the Python environment rule (1.3). Version 1.4 updates F02's status, and 1.5 adds the EN/ZH pair check to troy-pstack's CI. Version 1.6 records the F03 design decisions Troy approved: D15, D16, D17, and D20. Version 1.7 adds Troy's rule R21, and 1.8 to 1.12 update F03's status. Version 1.13 records the F04 design decisions Troy approved: D31, D32, and D35, and the answer to Q5, and 1.14 updates F04's status. Version 1.15 records the F05 design decisions Troy approved: D40, D41, D44, and D45, and 1.16 records the F06 design decisions Troy approved: D48, D52, D53, D54, and D55. Versions 1.17 and 1.19 update F06's status, and 1.18 updates F05's status. Version 1.20 records the F07 design decisions Troy approved: D57 to D61, D64, D65, and D67, 1.21 updates the status of F07, F04, and F05, 1.22 updates F07's status, and 1.23 updates F02's status. Version 1.24 records the F08 design decisions Troy approved: D70, D71, D73, D75, and D77, 1.25 records the F09 design decisions Troy approved: D80, D81, and D83, 1.26 records the F10 design decisions Troy approved: D90 and D91, and 1.27 records the F11 design decisions Troy approved: D93 to D97. Version 1.28 updates F08's status, 1.29 updates F09's status, and 1.30 updates F10's status. Version 1.31 updates the status of F01 to F07 and F11 from the pilot. Version 1.32 records what Troy approved on 2026-11-14: F12 to F19, the changes they bring to sections 3, 4.1, 5, and 6 and to Q4, and the proposals for Q11 to Q16. Version 1.33 records the F13 design decisions Troy approved: D121 to D126, and 1.34 records the F14 design decisions Troy approved: D131 to D137. Version 1.35 records the F12 design decisions Troy approved: D102, D103, D105, D107 to D109, and D112. Version 1.36 updates F14's status, 1.37 updates F13's, and 1.38 updates F12's. Version 1.39 records the F15 design decisions Troy approved: D141 to D150, and 1.40 records the F19 design decisions Troy approved: D191 to D199. Version 1.41 updates the statuses of F01 to F14 at the end of the pilot. Version 1.42 records the F16 design decisions Troy approved: D151 to D160, which narrow F16 to the roles that run as subagents. Version 1.43 renames the plugin to tstack outside the history, with F19's build (D197), and 1.44 and 1.45 update F19's status. Version 1.46 records D200, the F05 design decision Troy approved as tstack issue #65, 1.47 updates the status of F05 and F15, 1.48 updates F05's status, and 1.49 updates F16's. Version 1.50 records D223, the F05 design decision Troy approved as tstack issue #64, with the new rule R23, and 1.51 updates F05's status. Version 1.52 records D231 and D232, the F05 design decisions Troy approved as tstack issue #49, and 1.53 updates the status of F05 and F07. Version 1.54 records what Troy approved on 2026-11-22 ("都批准"): the new feature F20, parallel feature teams, the changes it brings to sections 3.3, 3.4, 4, 5, 6, 8, and 9, the new rule R24, Troy's answers to Q17, Q18, and Q22, and the proposals for Q19 to Q21 and Q23 to Q25. No question is open. |
 | Source of truth | This English file. [`requirements.zh-CN.md`](requirements.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Goal
@@ -66,6 +66,8 @@ Every other step goes on without asking Troy, and its PR or the progress file sa
 Every interface design, test plan, requirements, and architecture PR opens with a one-page summary for Troy, in Chinese and then English: what changes for Troy, each point Troy decides with a recommendation, and the risks. In chat, troy-mode gives Troy the summary in the language Troy writes in (F14 design D132, D135).
 
 Troy approves steps 1 to 3 in chat or by merging the PR on GitHub. After an approval in chat, troy-mode records it in the document's header and change log (F08 design D77) and merges the PR. After a merge on GitHub, troy-mode records the approval in a `[docs]` PR (F07 design D61). Troy can also answer from the phone, with a comment on the PR, which troy-mode reads at its next run as a reply in chat (F15 design D145).
+
+When several feature teams run at once (F20), a wait for Troy stops only its own team and the teams that wait for its feature. troy-mode asks about every waiting PR in one message, starting with the one that holds up the most features, each with its summary, and Troy answers them together or one by one (Q23).
 
 Once real-run acceptance (F12) and the role exam (F16) give enough evidence, Troy can turn the approvals of step 3 into spot checks: Claude merges, and Troy reviews a sample and every PR marked as risky (F18, Q15).
 
@@ -138,6 +140,43 @@ troy-mode: Stopped on F07. This needs you.
 - Last updated: 2026-11-12 14:05
 ```
 
+**Prototype E. Two teams at once (F20).**
+
+```text
+Troy: /tstack:troy-mode the rest of v0.2
+troy-mode: v0.2 has 5 features left. F08, F09, and F10 depend only on accepted features.
+  The Architect planned the batch: F08 and F10 both change the import interface,
+  so F10 waits for F08's interface design PR.
+  Team F08 "Import from CSV": started, in its own worktree.
+  Team F09 "Weekly report": started, in its own worktree.
+  F11 and F12 wait for F08.
+  ...
+troy-mode: Two PRs wait for you. Each one holds up only its own team.
+  1. F08 [1/6] Interface design PR #51. F10, F11, and F12 wait for F08.
+     Summary: ...
+  2. F09 [2/6] Test plan PR #53. No feature waits for F09.
+     Summary: ...
+  Reply "approve all", or one at a time.
+Troy: approve all
+troy-mode: Team F08: [2/6] Test plan PR #54 is open. Team F10 started.
+  Team F09: [3/6] Mock PR #55 merged. [4/6] Test PR #56 is in review, round 1.
+```
+
+The progress file then lists each team:
+
+```markdown
+# Progress
+
+- Current version: v0.2 (F07 to F14)
+- Teams: 3
+  - F08 Import from CSV: stage 2 of 6. The Test Manager is writing test plan PR #54.
+  - F09 Weekly report: stage 4 of 6. Test PR #56 is in review (round 1).
+  - F10 Reminders: stage 1 of 6. The Interface Designer is writing the design.
+- Waiting for F08: F11, F12.
+- Waiting on Troy: nothing
+- Last updated: 2026-11-23 10:20
+```
+
 ## 4. Roles
 
 | Role | Runs as | Owns | Reviews | Must not |
@@ -150,7 +189,7 @@ troy-mode: Stopped on F07. This needs you.
 | Test Engineer | Subagent | Test code, bug reproduction tests, test fixes the Test Manager orders | Nothing | Edit source code |
 | Code Reviewer | Subagent | Nothing | Mock, test, and implementation PRs, for quality and security, using Claude Code's `/code-review` and `/security-review` | Edit the code it reviews |
 
-The main session also does the project manager's work. It picks the next feature, starts each role, passes reviews between roles, keeps the progress file, and escalates to Troy.
+The main session also does the project manager's work. It picks the next feature, starts each role, passes reviews between roles, keeps the progress file, and escalates to Troy. With parallel feature teams (F20), the one main session coordinates every team: it picks the features that may start, starts a team for each in its own worktree, and runs every team's roles (5.11).
 
 Each role's model is set in its agent file and can be overridden per project in `.troy-mode/config.toml` (Q3, [F04 design](design/F04-role-definitions.md) D32).
 
@@ -192,7 +231,7 @@ Where a pstack rule conflicts with a troy-mode rule, troy-mode's rule wins insid
 
 ### 5.2 Feature loop
 
-Features are built one at a time, in topological order. Each feature takes six PRs, merged in order. Each PR has exactly one commit and holds one stage's output only.
+Features are built in topological order. Until F20, they are built one at a time. With F20, features that do not depend on each other are built at the same time, each by its own team (5.11). Each feature takes six PRs, merged in order. Each PR has exactly one commit and holds one stage's output only.
 
 ```mermaid
 flowchart LR
@@ -249,6 +288,8 @@ The Code Reviewer reviews both PRs.
 4. A change to a feature that is already accepted becomes a new feature with a hard dependency on the old one. Its tests PR retires the old tests that the change makes wrong and adds new ones, and its mock PR is skipped when it adds no interface (F07 design D65).
 5. The changes go through the feature loop PRs as usual. All existing tests run as regression.
 
+While feature teams run (F20), the main session takes in a new idea or change request before it starts the next team, and the running teams go on. A team whose feature the change affects stops after its current stage PR until the change merges (Q24).
+
 ### 5.5 Version release
 
 1. The version plan groups consecutive features in the order into versions. Each version is usable on its own.
@@ -259,6 +300,8 @@ The Code Reviewer reviews both PRs.
 6. A retrospective turns problems that repeated during the version into new rules or checks (5.8).
 
 A patch release, such as v0.1.1, releases the bug fixes merged since the version's last tag. It is possible only while no code of a later version's feature has merged since that tag (F08 design D75).
+
+With feature teams (F20), the release starts once every feature of the version is accepted. Teams for the next version's features may write their design and test plan PRs before then, but none of their code PRs merges until the version's tag exists, so a patch release stays possible (Q24).
 
 ### 5.6 When tests run
 
@@ -280,7 +323,7 @@ troy-mode stops and asks Troy when:
 - A new third-party dependency is needed. The Architect reviews it first.
 - An irreversible action falls outside the merge rights, for example a force push or deleting data.
 
-Each escalation says what stopped, why, the options, and a recommendation (Prototype C).
+Each escalation says what stopped, why, the options, and a recommendation (Prototype C). With feature teams (F20), an escalation stops only its own team and the teams that wait for its feature, and the others go on (Q23).
 
 When a review loop reaches 3 rounds without agreement, troy-mode does not stop. The Architect decides, or the Product Manager when the loop is the Architect's own review, and writes the reason in the PR. Troy can overturn the decision later (F18). Until F18 is built, troy-mode stops and asks Troy after a review loop's third round and after an author's third attempt.
 
@@ -293,13 +336,32 @@ When a review loop reaches 3 rounds without agreement, troy-mode does not stop. 
 
 A rule for every project lives in tstack and ships in a new plugin version. On Troy's yes, troy-mode writes its proposal as an issue in tstack (F09 design D83). A rule for one project lives in that project's rules table.
 
+While feature teams run (F20), the main session runs the rule change. Its PR merges like any other, and each team rebases on it before its next PR (Q24).
+
 ### 5.9 Work outside the pipeline
 
 Investigations, questions, and experiments in a troy-mode project open no PR to `main`. Experiment code stays on a throwaway branch or folder. A throwaway branch does not turn off the mode guard of 3.2 (F13 design D123). Code worth keeping goes through the feature loop.
 
 ### 5.10 Continuing across sessions
 
-The progress file (Prototype D) records the current version, feature, stage, open PRs, what waits on Troy, and open issues. A new session reads it first and continues without the old conversation. Each feature's progress issue on GitHub is a view of the same state, rebuilt after every step, so a write that failed is repaired by the next one (F15 design D142, D147).
+The progress file (Prototype D) records the current version, feature, stage, open PRs, what waits on Troy, and open issues. With feature teams (F20), it records each team's feature and stage instead (Prototype E). A new session reads it first and continues without the old conversation. Each feature's progress issue on GitHub is a view of the same state, rebuilt after every step, so a write that failed is repaired by the next one (F15 design D142, D147).
+
+With feature teams, a new session rebuilds every team's state from git, GitHub, and the teams' worktrees, and goes on with every team.
+
+### 5.11 Parallel feature teams (F20)
+
+On 2026-11-22 Troy asked that whatever can run in parallel should, in troy-mode too: when several features can go ahead at once, troy-mode splits them across several teams at the same time, instead of one team building them all in series. The same day Troy decided three points: one main session coordinates every team (Q17), there is no limit on how many teams run at once (Q18), and whoever finishes first merges first, while the other teams go on from the merged `main` (Q22). Troy then approved this section on 2026-11-22 with the proposals for Q19 to Q21 and Q23 to Q25.
+
+- **Which features run at once.** A feature may start once every feature it depends on, hard or soft, is accepted (Q19), and once the Architect's plan of the batch lets it (Q20). Features that do not depend on each other then run at the same time, as the dependency graph already shows. In `ZJUCao/recipe-menu`'s v0.1, this rule turns 13 features in a row into 6 waves, with at most 4 features at once.
+- **A team.** The role runs of one feature, from PR 1 to PR 6, in its own git worktree and on that feature's branches. The main session creates the worktree with an engine command. Each team runs the feature loop of 5.2 unchanged: one writing role at a time within the team, with its own reviews, rounds, attempts, checks after each run, and merges. Roles of different teams run at the same time.
+- **The main session.** One main session, where Troy types `/tstack:troy-mode`, coordinates every team (Q17). It starts a team for each feature that may start, with no limit on how many (Q18), runs every team's roles, and talks with Troy for all of them. It keeps the work that spans features: the requirements, the architecture, the rules, idea issues, and releases. It acts as the Product Manager for each feature's acceptance (PR 6).
+- **Conflicts between teams.** Before a batch of teams starts, the Architect plans it: for each feature, the modules, interfaces, and shared documents it will touch. Where two features overlap, the plan orders them, so two features that change the same interface never run at once, or one waits for the other's interface design PR. The Architect checks again whenever a team's design PR changes a shared interface or document (Q20). Only the main session and the Architect's planning step change the requirements' text, the architecture, its ADRs, and the rules table.
+- **Hooks and checks.** Each team's roles write only in that team's worktree, within their role's write scope there. F05's records name each role's team, and F07's `snapshot` and `check-run` look only at that team's worktree and records, so no team is blamed for another team's files or held up by another team's running roles (Q21).
+- **Merges.** Whoever finishes first merges first (Q22). The other teams then rebase onto the new `main` and run their checks again before they merge (R24). A conflict at a rebase goes back to the team's author whose write scope holds the conflicting files, the Developer for source, or escalates (5.7). When the rebase changed a PR's diff, the Code Reviewer reviews the rebased diff.
+- **Usage limits.** When Troy's 5-hour usage limit stops the session, every team pauses, and every team resumes from git, GitHub, and its worktree after the limit resets, as F16's exams do ([F16 design](design/F16-role-exam.md) section 10.1). Having no cap on teams means the limit comes sooner, not that work is lost.
+- **Waits.** A wait for Troy or an escalation stops only its own team and the teams that wait for its feature. Several waits reach Troy in one message (3.3, 5.7, Q23).
+- **Progress.** Each feature that a team builds keeps its progress issue (F15), and the progress file lists every team (Prototype E, 5.10).
+- **One team.** When only one feature may start, troy-mode works as it does today.
 
 ## 6. Rules
 
@@ -330,6 +392,7 @@ The progress file (Prototype D) records the current version, feature, stage, ope
 | R21 | Every change reaches `main` through a PR from its own branch. Never commit on `main`, push `main`, or open a PR from `main`. | Hard | Hook and CI |
 | R22 | The description of every interface design, test plan, requirements, and architecture PR opens with a summary for Troy, in Chinese and then English: what changes for Troy, each point Troy decides with a recommendation, and the risks. Each language has at most 2,000 characters and holds no internal IDs (F14 design D133, D134). | Hard | CI |
 | R23 | In a command that troy-mode runs, Python never reads its program from standard input: no `python -`, no `python -i`, and no `python` without a script, `-c`, or `-m`, whatever feeds standard input (a heredoc, a pipe, `/dev/null`, or nothing). Such a run can hang at Python's interactive prompt. Write the script to a file in the scratchpad and run that file with the project's Python (F05 design D223). | Hard | Hook (refuses the command before it starts) |
+| R24 | A PR merges only when its branch holds the latest `origin/main` and its checks passed on that head commit. When `main` has moved since the push, troy-mode rebases, pushes, and waits for the checks again, so two PRs that pass alone never break `main` together (F20, Q22). | Process | troy-mode |
 
 ## 7. Features
 
@@ -367,6 +430,7 @@ The IDs are already in topological order.
 | F17 | More pstack in troy-mode. Adds a pstack skill where the pilot showed the same mistake twice. The candidates: principle cards in the role instructions, for example `principle-test-behavior-not-implementation` for the Test Manager and `principle-fix-root-causes` for bug fixes; `blast-radius` in code review and requirement changes; `reflect` in the retrospective; poteto-mode's investigation playbooks in bug triage; and `interrogate` for designs that change a data format or several modules. Each addition passes the role exam (F16) first. | F11, F16 | Not started |
 | F18 | Fewer stops. The Product Manager's instructions say that only the approvals in 3.3 and the escalations in 5.7 wait for Troy, and every other step goes on and reports in its PR. A review loop's third round no longer stops, and an author's third failed attempt first tests its premise once more (5.7, R17). Once F12 and F16 give evidence, Troy can turn the approvals of design and test plan PRs into spot checks (3.3, Q15). | F07, F12, F16 | Not started |
 | F19 | Rename to tstack. The plugin `troy-pstack` becomes `tstack`, Troy's own stack, as Lauren Tan's `pstack` is named after poteto. Commands become `/tstack:troy-mode` and `/tstack:troy-init`, and the skill, agent, and folder names inside stay. The hooks' agent-name match, the tests, the documents, and the GitHub repository change with it. The README and the plugin descriptions say that most skills come from Lauren Tan's pstack under its MIT license, and that troy-mode is Troy's own work. The GitHub repository becomes `ZJUCao/tstack` ([F19 design](design/F19-rename.md) D191). A new clone at `D:\Troy\Projects\tstack` takes over from the old folder, which stays until no session needs it (D192). The marketplace is `tstack`, and the version is the next free minor version, 0.6.0 (D193). Troy's PC uninstalls troy-pstack before it installs `tstack@tstack`, because each plugin's hooks refuse the other's roles (D194). Projects move with `upgrade troy-mode`, which also rewrites two comment lines that troy-init wrote, when nobody changed them (D195). The mamba env becomes `tstack` (D196). Approved designs, change logs, the pilot report, and links keep the old name, and all other text changes (D197). Tests, a name check in CI on every PR, planted bugs, and a trial on `ZJUCao/troy-mode-trial` check it (D198). The build starts once the F11 wrap-up's PRs, the F15 design PR, and every other open PR have merged (D199). Done in one PR after the pilot's v0.1 release and before a second project adopts troy-mode (Q4). | F11 | Used on a real project: Troy's PC runs tstack 0.6.0, and `ZJUCao/recipe-menu` upgraded to it (its PR 100) and ran troy-mode under the new names: the Interface Designer wrote F14's design (PR 102), and the Test Manager wrote F14's test plan (PR 103). |
+| F20 | Parallel feature teams. Features that do not depend on each other are built at the same time, each by its own team, instead of one after another (5.11). A feature may start once every feature it depends on is accepted (Q19). A team is one feature's role runs, from PR 1 to PR 6, in its own git worktree, which an engine command creates, and on that feature's branches, and it runs the feature loop unchanged. One main session coordinates every team and runs every team's roles, as Troy decided (Q17), with no limit on how many teams run at once (Q18). The Architect plans each batch of teams, so features that change the same interface or shared document never run at once or wait for each other's design (Q20). F05's records name each role's team and worktree, a role writes only in its team's worktree, and F07's `snapshot` and `check-run` look only at that team, so no team blames or holds up another (Q21). Whoever finishes first merges first, and the other teams rebase onto the new `main` and run their checks again (R24, Q22). At Troy's usage limit every team pauses and later resumes. A wait for Troy or an escalation stops only its own team, and troy-mode asks Troy about every waiting PR in one message (Q23). Requirement changes, rule changes, and releases stop only the teams they touch (Q24). F07's state, `status`, and progress file, and F15's progress issues, learn to show several features at once. When only one feature may start, troy-mode works as it does today. Built before F17 and F18 (Q25). | F05, F07, F15 | Not started |
 
 ```mermaid
 flowchart LR
@@ -402,9 +466,12 @@ flowchart LR
   F12 --> F18
   F16 --> F18
   F11 --> F19
+  F05 --> F20
+  F07 --> F20
+  F15 --> F20
 ```
 
-F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F15 do not depend on each other either.
+F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F15 do not depend on each other either, nor do F17, F18, and F20.
 
 ## 8. Non-functional requirements
 
@@ -413,6 +480,11 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F
 - **Platform.** Windows 11 first, through Git Bash and PowerShell. CI runs on GitHub-hosted Linux runners. Scripts also run on macOS and Linux. Files use LF line endings.
 - **Speed.** A hook adds no delay Troy notices, with a target under 200 ms per call. The per-PR regression run takes a few minutes.
 - **Cost.** Each role's model can be set. Checks also run locally before a push, so CI rarely fails and private-repository Actions minutes last. In tstack, a role exam of up to $60 at list prices starts without asking, and a larger one waits for Troy's yes to its estimate ([F16 design](design/F16-role-exam.md) D158).
+- **Parallel teams (F20).** There is no limit on how many teams run at once (Q18): every feature that may start gets a team.
+  - *Usage limits.* Every team's role runs count against Troy's usage limit, so with several teams the 5-hour limit comes sooner; the pilot reached it 5 times with one team. When the limit stops the session, every team pauses with its state in git, GitHub, and its worktree, and every team resumes after the limit resets, as F16's exams do. Nothing is lost or redone.
+  - *Cost.* A feature costs at most 10% more than in a serial run, measured in F20's trial and on the next real project. Rebases add CI runs and review rounds. The one main session holds every team's reports, and the pilot's single main session already cost $301, 28% of the total, so the design keeps what each team's step adds to it short.
+  - *Troy's PC.* Several teams' tests and real runs share it, so performance cases (R14) run only while no other team runs checks, or at the release.
+  - *Code under test.* Each team's checks run its own worktree's code, also in a Python series' shared environment (Q20).
 - **Privacy.** troy-mode uses no service beyond GitHub and Anthropic. No secret goes into a document, a log, the progress file, or an issue (F15 design D146).
 - **Resumable.** Any new session continues from the progress file.
 - **Language.** Documents are written in English with a Chinese mirror. Code and code comments are in English. In tstack, CI checks every PR that changes a document: each English document and its mirror must have the same headings, tables, code blocks, markers, and version (`troy-mode/dev/check_pairs.py`). CI also checks that the relative links and anchors in tstack's README and troy-mode documents resolve (`troy-mode/dev/check_links.py`). After F19, CI also checks on every PR that text outside history no longer names the old plugin `tstack` (`troy-mode/dev/check_name.py`, [F19 design](design/F19-rename.md) D198).
@@ -421,7 +493,8 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F
 
 ## 9. Out of scope (version 1)
 
-- Teams: more than one human, or roles assigned to people.
+- Teams of people: more than one human, or roles assigned to people. F20's feature teams are sets of role runs, not people.
+- Feature teams on more than one machine, or in the cloud. Every team runs on Troy's PC.
 - Hosts other than GitHub.
 - Changing upstream pstack skills or poteto-mode.
 - Deployment to production, app stores, or servers. troy-mode ends at a tagged, accepted version.
@@ -431,7 +504,7 @@ F02, F03, and F04 depend only on F01, so they can be built in parallel. F12 to F
 
 ## 10. Open questions
 
-Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Troy answered Q1 and extended Q9 the same day (version 1.2). Troy approved version 1.32 on 2026-11-14, which accepts the proposals for Q11 to Q16.
+Troy approved this document on 2026-11-05. That approval accepts the proposals for Q2 to Q10. Troy answered Q1 and extended Q9 the same day (version 1.2). Troy approved version 1.32 on 2026-11-14, which accepts the proposals for Q11 to Q16. Version 1.54 adds Q17 to Q25, for F20. Troy decided Q17, Q18, and Q22 on 2026-11-22, and approved version 1.54 the same day ("都批准"), which accepts the proposals for Q19 to Q21 and Q23 to Q25.
 
 | ID | Question | Proposal |
 | --- | --- | --- |
@@ -451,6 +524,15 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | Q14 | Does a small feature get a lighter path than six PRs? | Decide from the pilot's numbers in the pilot report. Today only a requirement change that adds no interface skips its mock PR (F07 design D65). |
 | Q15 | When approvals become spot checks (F18), how are the PRs picked? | F18's design proposes a rule, for example a share of the PRs plus every PR a reviewer marks as risky, and Troy decides then. |
 | Q16 | Which PRs get the summary for Troy (F14), and in which language? | Answered by the F14 design: every interface design, test plan, requirements, and architecture PR, whoever merges it, opens with the summary (D132). It is in Chinese and then English, and in chat Troy gets it in the language Troy writes in (D135). |
+| Q17 | How do several teams run: one main session that coordinates every team, or a session of its own for each team? | Decided by Troy on 2026-11-22: one main session coordinates every team and runs every team's roles. Each team works in its own worktree (5.11), and the hooks tell the teams apart as Q21 proposes. The pilot's single main session went through 15 compactions and cost $301, so F20's design keeps what each team's step adds to the main session's context short. |
+| Q18 | How many teams may run at once? | Decided by Troy on 2026-11-22: no limit; every feature that may start gets a team. At Troy's 5-hour usage limit every team pauses, and every team resumes after the limit resets, as F16's exams do (section 8). In `ZJUCao/recipe-menu`'s v0.1, at most 4 features could have run at once: its 13 features' own hours, waits for Troy included, add up to 107, and with the waves of 5.11 the longest chain of dependent features took about 55, before usage limits. |
+| Q19 | When may a feature start: once every feature it depends on is accepted, or once its hard dependencies are accepted and its soft dependencies have a merged mock? | Accepted by Troy on 2026-11-22 ("都批准"): once every dependency, hard or soft, is accepted, which is what the serial loop does today, and once the Architect's plan of the batch lets it (Q20). Starting against a mock, as a soft dependency allows (5.1), lets more features run at once, but a team would build on an interface whose tests and code have not merged. It can come later, if real runs with teams show the need. |
+| Q20 | Which role keeps the teams' work from colliding, and how are the files that several teams share kept consistent: the requirements, the architecture and its ADRs, the rules table, the progress file, and a Python series' shared environment? Troy asked for a role that reviews for conflicts, perhaps the Architect. | Accepted by Troy on 2026-11-22 ("都批准"): the Architect. Before a batch of teams starts, it plans the batch: for each feature, the modules, interfaces, and shared documents (the architecture, ADRs, and rules table) it will touch. Where two features overlap, it orders them, so two features that change the same interface never run at once, or one waits for the other's interface design PR. During the run, it checks again whenever a team's design PR changes a shared interface or document. At each merge, the engine checks mechanically: the rebase applies without a conflict, and the checks pass (Q22). Only the main session and the Architect's planning step change the requirements' text, the architecture, its ADRs, and the rules table, one change at a time, and an ADR takes its number when it merges. A team's PR 6 changes only its own row of the status table. The progress file stays local and git-ignored (Q8) and lists every team, rebuilt from git, GitHub, and the worktrees. In a Python series, each team's checks must run its own worktree's code, while today's editable install points the shared environment at one folder. The design keeps one environment per series if it can, for example with the worktree's source first on the import path, and asks Troy before it adds an environment per team, which would change the rule in section 8. |
+| Q21 | How do F05's hooks tell the roles of different teams apart, and how do `snapshot` and `check-run` keep working while other teams' roles run? Troy asked for a suggestion. | Accepted by Troy on 2026-11-22 ("都批准"), in five parts. First, its own worktree per team: the main session creates each team's git worktree and branch with an engine command, and every role of that team works only there. Second, the team in each record: the hooks already keep one record per `agent_id` (F05 design 6.1) and get `agent_id`, `agent_type`, `session_id`, and `cwd` in every input, and each record also holds the role's team and worktree. The design probes how the hook learns them: from the subagent's `cwd`, if the Agent tool can start a role in the team's worktree, or from a team tag that the engine writes into the brief and that `SubagentStart` reads. Third, writes stay in the team's worktree: a role may write only inside its team's worktree, within its role's write scope there, and the shared documents change only through the main session or the Architect's planning step. Fourth, checks per team: change detection, `check-run`, and `snapshot` look only at the role's own team's worktree and open records, so team A is never blamed for team B's files, and team A's checks never refuse because a role of team B still runs. Fifth, hook state per worktree: each worktree's own git folder (`git rev-parse --git-dir`, which gives `.git/worktrees/<name>`) keeps its records, so teams share no state file. A worktree's git folder goes when the worktree is removed, so the design also keeps every team's `hooks.log` lines for the retrospective (F08). F20's trial runs two teams' writing roles at the same time and checks that neither team's checks blame or wait for the other's roles. |
+| Q22 | In what order do the PRs of different teams merge, and how do rebases work? | Decided by Troy on 2026-11-22: whoever finishes first merges first, and the other teams go on from the merged `main`. The main session merges each PR with `--rebase --match-head-commit`, as F07 does. The other teams then rebase onto the new `main` and run their checks again before they merge (the new rule R24), so two PRs that pass alone never break `main` together. A conflict at a rebase goes back to that team's Developer when the conflicting files are inside its write scope, by the same rule to the Test Engineer for tests or to the author of a document, and otherwise escalates (5.7). When the rebase changed a PR's diff, the Code Reviewer reviews the rebased diff. |
+| Q23 | How do Troy's approvals (3.3), the summaries (F14), and escalations work when several teams wait at once? | Accepted by Troy on 2026-11-22 ("都批准"): a wait stops only its own team and the teams that wait for its feature. The main session asks in one message that lists every PR waiting for Troy, starting with the one that holds up the most features, each with its summary and link, and Troy answers them together ("approve all") or one by one, in chat or on the PR (F15). An escalation comes in a message of its own, since each needs its own decision. `troy_approves_first` still counts the first features in the order, whichever team builds them. |
+| Q24 | How do requirement changes, idea issues, rule changes, and releases fit with teams that are running? | Accepted by Troy on 2026-11-22 ("都批准"): the main session takes in an idea or a requirement change before it starts the next team. A team whose feature the change affects finishes its current stage PR and waits until the change merges, while the others go on. A rule PR merges like any other PR, and every team rebases on it before its next PR. A release starts once every feature of the version is accepted. Teams for the next version may write their design and test plan PRs before the release, but none of their code PRs merges until the version's tag exists, so a patch release stays possible (F08 design D75). |
+| Q25 | Where does F20 go in the build order? | Accepted by Troy on 2026-11-22 ("都批准"): before F17 and F18, right after the work already in progress. First, Troy asked on 2026-11-22 to finish faster, and F20 shortens a version the most (Q18's numbers). Second, it overlaps Troy's waits, 48 hours in the pilot, without changing which steps wait for Troy, so it brings part of F18's gain without F18's change of policy. Third, it changes few role instructions: the Architect gains the planning task (Q20), and the briefs may gain a team tag (Q21), so its role exam runs only the cases those touch, with an estimate in the design (F16 design D157, D158), while F17 and F18 change many roles' instructions, and F16 has not yet shown that it tells a better version from a worse one. Fourth, what it needs, F05, F07, and F15, is built. Its design can start now; its build waits for tstack issue #63 if the two change the same files. |
 
 ## 11. Change log
 
@@ -511,3 +593,4 @@ Troy approved this document on 2026-11-05. That approval accepts the proposals f
 | 1.51 | 2026-11-21 | F05 status: the refusal of Python that reads its program from standard input (R23, F05 design D223), from https://github.com/ZJUCao/tstack/pull/97 (plugin 0.9.0), is Written: its tests pass, and it has not run on a sample or real project yet. The refusal starts with the plugin update, before troy-init's upgrade adds the R23 row. |
 | 1.52 | 2026-11-21 | Troy approved tstack issue #49 on 2026-11-21 ("全按推荐"), recorded as F05 design D231 and D232. The F05 row says that the hooks record each command a role leaves running in the background, so that troy-mode ends it before the next run, and refuse every call of a role that has already stopped. The F07 row says that the check after each run also finds anything the role started that still runs, and ends it. No R row changes. The statuses of F05 and F07 for this change follow in the build's PR. |
 | 1.53 | 2026-11-21 | Statuses of F05 and F07: Runs on a sample project, for the record of commands a role leaves running and the `running` problem (F05 design D231 and D232, F07 design 1.10), from https://github.com/ZJUCao/tstack/pull/100 (plugin 0.10.0). The build's trial passed all four steps of F05 design 13.3 on a copy of F03's Python sample. They have not run on a real project yet. This status update is its own PR after the build, as F05 design 13.4 says, not part of the build's PR as 1.52 said. |
+| 1.54 | 2026-11-22 | Approved by Troy on 2026-11-22 ("都批准"), from Troy's request of the same day: whatever can run in parallel should, troy-mode included, so features that can go ahead at once get several teams at the same time, instead of one team in series. New feature F20, parallel feature teams, which depends on F05, F07, and F15 in the table and the graph. 3.3: a wait for Troy stops only its own team, and several waits come in one message. 3.4: Prototype E. 4: the one main session coordinates every team. 5.2: features that do not depend on each other are built at the same time. 5.4, 5.5, 5.7, 5.8, and 5.10: how each works while teams run. New section 5.11. New rule R24: a PR merges only on the latest `main`. Section 8: no limit on teams, and what that means for usage limits, cost, and Troy's PC. Section 9: teams of people, and teams on other machines. New questions Q17 to Q25. Troy decided three of them on 2026-11-22: one main session coordinates every team (Q17), no limit on how many teams run at once (Q18), and whoever finishes first merges first while the other teams rebase onto the merged `main` (Q22). With the whole version, Troy accepted the proposals for the others, among them the Architect as the role that keeps teams from colliding (Q20), how the hooks tell teams apart (Q21), and F20 before F17 and F18 (Q25). F20 is Not started. |
