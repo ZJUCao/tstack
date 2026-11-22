@@ -1,7 +1,8 @@
 id = "dv-mock-notes"
-version = 3
+version = 4
 # The pass anchor is the pilot's round 2 (3e53e685) with each mock note that shared a paragraph
 # with the full behavior moved to a paragraph of its own (F16 design 14.6, version 3).
+# Version 4: the rubric's criteria 1 and 2 pass true sentences and Raises entries (tstack #93).
 role = "developer"
 task = "DV1"
 item = "F05"

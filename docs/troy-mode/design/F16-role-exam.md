@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.6 |
+| Version | 1.7 |
 | Date | 2026-11-21 |
 | Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
@@ -662,8 +662,8 @@ So the exam measured the planted improvement, 1 of 8 against 4 of 7, and its tar
 
 **Follow-ups, not fixed here.**
 
-- **An estimate that counts the not-worse rule's second round,** and a target's, including when the base runs are reused, so that the guard does not stop a comparison the rule has asked for. The guard stopped exams 2026-11-19-8 and 2026-11-19-10. With base runs reused, the estimate is even smaller, while a harmed head can cost more than the base. This is a change to the engine.
-- **Criterion 1 of dv-mock-notes** could say that a sentence true of the mock as written passes, such as an enum's own `ValueError`. Criterion 2 could say that a Raises entry is not a paragraph of the description. Both are case changes, for the next PR that changes this case.
+- **An estimate that counts the not-worse rule's second round,** and a target's, including when the base runs are reused, so that the guard does not stop a comparison the rule has asked for. The guard stopped exams 2026-11-19-8 and 2026-11-19-10. With base runs reused, the estimate is even smaller, while a harmed head can cost more than the base. This is a change to the engine, tstack #92.
+- **Criterion 1 of dv-mock-notes** could say that a sentence true of the mock as written passes, such as an enum's own `ValueError`. Criterion 2 could say that a Raises entry is not a paragraph of the description. Both are case changes, for the next PR that changes this case. Done in version 1.7 (tstack #93), before troy-pstack#63's exam: dv-mock-notes is version 4, with both sentences in its rubric. `prove` (exam 2026-11-21-2, $5.25) graded both anchors right in both judge passes. Its five runs with `main`'s role instructions passed 2 of 5, so the trap is live. Two of them say that `Meal(value)` raises `ValueError`, and the judge passed that sentence in both.
 
 ## 15. How F16 maps to the requirements
 
@@ -721,3 +721,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.4 | 2026-11-20 | troy-pstack#64 waits for F16: the PR that lands its hook makes U4 a must in the exam's own code, which is part of the instruction set (sections 13 and 14.5). Found while F16 was built. |
 | 1.5 | 2026-11-20 | U4 is a must: the PR of troy-pstack#64 lands its hook, R23 (F05 design 8.3), as D152 says. U4 reads a command with the hook's own check and counts only the commands that ran, so a try that a hook refused does not fail it. U5 stays a note until #49's hook (sections 4.3 and 13, and D152). |
 | 1.6 | 2026-11-21 | D233, from tstack issue #49, approved by Troy on 2026-11-21 ("全按推荐"): U5 stays a note, since the fix, F05 design D231, ends a role's leftover commands from the main session, and an exam's session exit already ends them. The fix affects no case, and `check-run`'s new `running` problem never shows in an exam (sections 4.3, 13, and 17). |
+| 1.7 | 2026-11-21 | dv-mock-notes version 4, from tstack issue #93: its rubric's criterion 1 passes a sentence true of the mock as written, such as an enum's own `ValueError`, and criterion 2 says that a Raises entry is not a paragraph of the description. `prove` graded both anchors right, and the trap is live (14.7). |
