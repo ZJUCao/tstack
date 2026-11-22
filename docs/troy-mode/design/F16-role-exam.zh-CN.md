@@ -1,11 +1,11 @@
 # F16 设计：角色考试
 
-> 本文件是 [`F16-role-exam.md`](F16-role-exam.md) 的中文镜像，同步自英文版 1.9（2026-11-22）。两者如有出入，以英文版为准。
+> 本文件是 [`F16-role-exam.md`](F16-role-exam.md) 的中文镜像，同步自英文版 1.10（2026-11-22）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.42](../requirements.zh-CN.md#72-功能列表) 中的 F16 |
-| 版本 | 1.9 |
+| 版本 | 1.10 |
 | 日期 | 2026-11-22 |
 | 状态 | Troy 已于 2026-11-16 批准，含 D151 到 D160；D152 已于 2026-11-18 由 Troy 细化（第 4.3 节）。1.5 版按 D152 的说法，在落地 troy-pstack#64 的 hook 的 PR 里把 U4 改成必须项。1.6 版加入 D233，即 Troy 于 2026-11-21 批准的 tstack issue #49：U5 仍是记录项。1.8 版加入 D241 到 D243，即 Troy 于 2026-11-22 批准的 tstack issue #92：估算算进第二轮。 |
 | 事实来源 | 英文版 [`F16-role-exam.md`](F16-role-exam.md)。本文件是中文镜像。 |
@@ -567,7 +567,7 @@ troy-mode/dev/check_exam.py   the CI check of section 9.4, with its tests in tro
 
 | Issue | 对角色改了什么 | 要考的题 |
 | --- | --- | --- |
-| troy-pstack#63，固定的桩说明句子 | DV1、DV2 和 CR1 的简报，以及开发工程师和代码审查员的 agent 文件 | dv-mock-notes 和 dv-impl-notes 作为目标，cr-mock-review 和 cr-test-review |
+| troy-pstack#63，固定的桩说明句子 | DV1、DV2 和 CR1 的简报，以及开发工程师的 agent 文件；代码审查员的 agent 文件保持原样（F07 设计 6.4，D206） | dv-mock-notes 作为目标；dv-impl-notes 和 cr-mock-review，不能变差 |
 | troy-pstack#75，每个版本只做一次安全审查 | 代码审查员的 agent 文件 | cr-mock-review 和 cr-test-review，它们不能变差 |
 | troy-pstack#51，设计里的代码示例 | 如果它的修正在接口设计师的说明书里 | if-example-format 作为目标，if-error-rules、ar-design-review |
 | troy-pstack#49，后台运行 | 它的修正，F05 设计 D231，在 hook、引擎和入口技能的"Running a role"一节里，不改变任何一道题的 Input。只有 Troy 没有选的选项 C 才会改有 Bash 的五个代理文件，或连同 `common.md` 一起改。 | 按 D231 批准的答案 B：没有，`affected` 找不到受影响的题，不花钱。U5 仍是记录项（D233）。 |
@@ -657,7 +657,7 @@ troy-mode/dev/check_exam.py   the CI check of section 9.4, with its tests in tro
 
 **后续事项，这里不修。**
 
-- 后续 PR：dv-mock-notes 第 3 版，通过锚点里的说明都单独成段；然后重跑第 2 步和第 3 步，并在本设计里记下结果。它要在第一个需要把关的 PR 之前合并；构造函数那句话由 troy-pstack#63 的设计来定。
+- 后续 PR：dv-mock-notes 第 3 版，通过锚点里的说明都单独成段；然后重跑第 2 步和第 3 步，并在本设计里记下结果。它要在第一个需要把关的 PR 之前合并；构造函数那句话由 troy-pstack#63 的设计来定。已由 F07 设计 D205 确定。
 - 只验证了锚点的考题，考试部分的 Base 一栏显示 "0 of 5"，应该显示 "-"。
 - 被用量上限截断的运行，花费照算，结果却留不下来。
 
@@ -778,3 +778,4 @@ F16 使用 D151 到 D160。D161 起留给 F17，D171 起留给 F18。Troy 于 20
 | 1.7 | 2026-11-21 | dv-mock-notes 升到第 4 版，来自 tstack issue #93：评分标准第 1 条让对写出来的 mock 成立的句子算通过，比如枚举本身的 `ValueError`；第 2 条写明 Raises 里的条目不算描述里的段落。`prove` 把两个锚点都评对了，陷阱仍会触发（14.7）。 |
 | 1.8 | 2026-11-22 | D241 到 D243，来自 tstack issue #92，Troy 已于 2026-11-22 批准（"全按推荐"）：估算算进第 7.2 节的第二轮，$60 这条线看第一轮，预算保护只算规则要求的第二轮，到了上限时等 Troy 答复而不是停下，计入的运行不够的题显示 "no verdict"。各个选项在考试 2026-11-19-8 和 2026-11-19-10 里会怎样（第 7.2、8.2、10、11.2、11.5、14.1、14.7 和 17 节）。 |
 | 1.9 | 2026-11-22 | 引擎把评分员评判结果里标签相同的条目合并起来。考试 2026-11-22-1（tstack #92 构建的证明）的 23 次评分里，评分员有 2 次把一个标签的评分拆成两个条目，每次都让考试停下。同一条标准评了两次、结果不同时，考试仍然停下（11.4）。Troy 于 2026-11-22 选择把它单独做成一个 PR。 |
+| 1.10 | 2026-11-22 | tstack issue #63 的设计，即 F07 设计 6.4 和 D205 到 D207：它的构建改动 DV1、DV2 和 CR1 的任务简报，以及开发工程师的代理文件，不改代码审查员的，所以它的考试以 dv-mock-notes 为目标，另外运行 dv-impl-notes 和 cr-mock-review，不运行 cr-test-review（第 13 节）。F07 的 D205 确定了构造函数那句话（第 14.6 节）。 |
