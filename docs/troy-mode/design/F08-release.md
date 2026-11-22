@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.4 |
+| Version | 1.5 |
 | Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -177,9 +177,9 @@ On Troy's acceptance:
 
 1. **PM4**, on the release branch under a snapshot with `--role product-manager`: each feature of the version gets the status "Usable on Troy's devices" in both languages (F01 section 7, R13), the requirements' `version` rises by one minor step with a change-log row, and the changelog section takes the day of acceptance.
 2. **`accept-version --tag v0.1.0 --notes-file <file>`**, with Troy's notes in the file. Like `approve`, it runs after the check of PM4's run, outside any snapshot: in the trial, running it inside PM4's snapshot made `check-run` flag the test plan.
-3. **Merge.** F07 stages both sets of paths, amends the commit, runs the local checks, pushes, waits for CI, and merges (F07 section 8.6).
+3. **Merge.** F07 stages both sets of paths, amends the commit, runs the local checks, pushes, waits for CI, and merges (F07 section 8.6). Before that push, `costs --tag v0.1.0` gives the version's role runs and their cost at list prices, and its section `## Cost` goes into the release PR's description after Checks (F07 section 8.8, D264 to D267).
 4. **Tag.** `release-notes --tag v0.1.0 --out <file>`, then `gh release create v0.1.0 --target <merge commit> --title v0.1.0 --notes-file <file>`. GitHub creates the tag on that commit, so nothing is pushed from Troy's PC.
-5. **Report** to Troy, and `status --write-progress`.
+5. **Report** to Troy, with the cost's `line`, and `status --write-progress`.
 
 If Troy merges the release PR on GitHub instead, the statuses and the acceptance record are missing. `status` then gives `[docs] Record Troy's acceptance of v0.1.0`, which F07 opens and merges before the tag.
 
@@ -264,12 +264,13 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Accept and approve | `accept-version` writes the acceptance row, the next major, the status, and the change-log row in both languages. `approve` adds the change-log row in both languages. Both exit 1 and write nothing when either file has no change-log table (F07 D201). |
 | Notes and retro | `release-notes` writes exactly the tag's section. `retro` reads only the PRs since the previous tag, groups findings by rule and checklist item, counts across PRs, and tells Troy's comments apart. It adds each commit that failed in the author's files with no attempt comment counting it, once per commit and in the role's group, and lists a checkout failure in `ci_other` only (F07 D261 to D263). |
 | Briefs | TM7, TE5, and the version tests reviews: Read first, the title, and the release command in the checks for Python and C/C++. |
+| Cost | `costs --tag` counts from the previous release commit, a patch's included, or from the first transcript, to the tag's release commit or now, and gives `items` by feature. The skill's acceptance step names `costs --tag` and the section (F07 D264 to D267). |
 | troy-check | The `[v0.1 tests]` title parses, and its kind may change tests and dependencies only. `version-tests/**` is in the tests class. R09 and R10 treat the kind as "any other kind". |
 | Templates and roles | The "Run by" columns in both languages. TE5 in the Test Engineer's agent file and in F04's structure tests. |
 
 ### 11.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the version test plan not asked for before a version's first feature, the plan's feature list not compared, a release offered with a feature not accepted, the release PR continued before a bug's PR, a scenario without a test counted as passing, a skipped test counted as failing, the acceptance row written in English only, `approve` without the change-log row, notes taken from the wrong section, a patch allowed after a later version's implementation merged, `retro` reading PRs from before the previous tag, and a finding seen once counted as repeated. F07 D261 to D263 add: a CI failure that a comment counts counted again in `retro`, and a checkout failure grouped as an attempt. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the version test plan not asked for before a version's first feature, the plan's feature list not compared, a release offered with a feature not accepted, the release PR continued before a bug's PR, a scenario without a test counted as passing, a skipped test counted as failing, the acceptance row written in English only, `approve` without the change-log row, notes taken from the wrong section, a patch allowed after a later version's implementation merged, `retro` reading PRs from before the previous tag, and a finding seen once counted as repeated. F07 D261 to D263 add: a CI failure that a comment counts counted again in `retro`, and a checkout failure grouped as an attempt. F07 D264 to D267 add: a version's cost counted from the previous version's tag instead of the previous release commit of any tag. The counts go in the PR description.
 
 ### 11.3 Trial (D78)
 
@@ -337,3 +338,4 @@ Requirements 1.24 records the approved changes:
 | 1.2 | 2026-11-08 | Details the build settled: `status`'s `versions` and `release`, `next.step`, version items in `brief`, and the deferral comment (section 3.1). Facts from the trial (section 11.3): Claude's scenarios must run on Troy's PC (section 4); the release test's comment passes R19 (section 5.5); a release request stops at a feature not accepted (section 5.2); `accept-version` runs outside PM4's snapshot (section 5.7); review findings start with their rule or checklist item (section 7); the Python pack's ruff exempts `version-tests/**`, and every fetch prunes (section 9). |
 | 1.3 | 2026-11-18 | F07 D201, from tstack issue #46, approved by Troy on 2026-11-18: `approve` and `accept-version` exit 1 and change nothing when either file of the pair has no change-log table (sections 8 and 11.1). |
 | 1.4 | 2026-11-22 | F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22: the retrospective also counts each commit that failed CI in the author's files with no attempt comment counting it (sections 7, 11.1, and 11.2). |
+| 1.5 | 2026-11-22 | F07 D264 to D267, from tstack issue #74, approved under Troy's standing yes of 2026-11-22: before the release PR merges, `costs --tag` gives its section `## Cost`, and the report to Troy gives the cost's line (sections 5.7, 11.1, and 11.2). |
