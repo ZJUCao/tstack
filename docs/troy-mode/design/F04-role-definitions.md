@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-08 |
-| Status | Approved by Troy on 2026-11-06, with D27 to D38 |
+| Version | 1.3 |
+| Date | 2026-11-22 |
+| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -192,8 +192,8 @@ Owns: mock PRs, implementation PRs, and bug fix PRs. Reviews: nothing. Must not:
 
 | Task | When | Steps |
 | --- | --- | --- |
-| DV1 Mock | PR 3 | Write every interface in the design with its exact signature and a full Google-style doc comment. Each body only signals that it is not implemented: `raise NotImplementedError` in Python, `throw troy::NotImplemented{}` in C/C++ (F03 design section 4.2). Existing tests, lint, and type checks pass. |
-| DV2 Implementation | PR 5 | Make the feature's tests pass without changing them. Write only what the design and the tests need. Keep functions within R04 by calling single-purpose internal functions. Run the language pack's steps and `troy-check code` before reporting. If the change cannot stay within R03, give the reason for the PR's soft-limit section. |
+| DV1 Mock | PR 3 | Write every interface in the design with its exact signature and a full Google-style doc comment. Each body only signals that it is not implemented: `raise NotImplementedError` in Python, `throw troy::NotImplemented{}` in C/C++ (F03 design section 4.2), a constructor that the class writes too. Add the mock notes that the brief gives, word for word (F07 design 6.4). Existing tests, lint, and type checks pass. |
+| DV2 Implementation | PR 5 | Make the feature's tests pass without changing them. Write only what the design and the tests need. Keep functions within R04 by calling single-purpose internal functions. Run the language pack's steps and `troy-check code` before reporting. If the change cannot stay within R03, give the reason for the PR's soft-limit section. Delete the mock notes as the brief says, and change the rest of a doc comment only where the code makes it untrue (F07 design 6.4). |
 | DV3 Bug fix | Bug PR B | Fix the bug so that its reproduction test and every other must-pass test pass. |
 | DV4 Delete | A coverage gap ruling | Delete the code that the Test Manager or the Interface Designer named. |
 | DV5 Cleanup | A rule's cleanup PR (F09) | Fix the source files that the brief names for the rule, and delete their baseline lines. Stay within R03. |
@@ -223,7 +223,7 @@ Owns: nothing. Reviews: mock, test, implementation, bug, test-fix, and refactor 
 
 | Task | When | Steps |
 | --- | --- | --- |
-| CR1 Review | Each code or test PR, rounds 1 to 3 | Run `/code-review` and `/security-review` on the PR's diff through the Skill tool, never with `--fix` or `--comment` (D36). Then check what those commands do not: doc comment content (R05), and naming, error handling, and logging against sections 6 to 8 of the architecture. List blocking findings first and mark the rest non-blocking. Report `approved` when nothing blocks. |
+| CR1 Review | Each code or test PR, rounds 1 to 3 | Run `/code-review` and `/security-review` on the PR's diff through the Skill tool, never with `--fix` or `--comment` (D36). Then check what those commands do not: doc comment content (R05), and naming, error handling, and logging against sections 6 to 8 of the architecture. List blocking findings first and mark the rest non-blocking. Report `approved` when nothing blocks. At PR 3 and PR 5, the brief adds the check of the mock notes; the agent file does not repeat it (F07 design 6.4, D206). |
 
 ## 7. Agent file format
 
@@ -394,3 +394,4 @@ Requirements 1.13 records the approved changes:
 | 1.0 | 2026-11-06 | Approved by Troy with D27 to D38, every recommended answer. |
 | 1.1 | 2026-11-08 | From F08 design section 9: TE5 writes the version tests (section 6.6); TM7 says who runs each scenario, and TM2 also reviews `[vX.Y tests]` PRs (section 6.4); PM4 drafts the changelog when the release starts and sets the statuses after Troy accepts (section 6.1). |
 | 1.2 | 2026-11-08 | From F09 design sections 7 and 8: AR6 picks a rule's enforcement (section 6.2), DV5 and TE6 clean up the code and tests that a rule's baseline names (sections 6.5 and 6.6), the reviewers also check the Review-type P rules that name them, and the Developer and the Test Engineer fix a baselined file they change. The structure tests count the new tasks. |
+| 1.3 | 2026-11-22 | From F07 design 6.4, D205 to D207 (tstack #63): DV1 adds the mock notes that the brief gives and a written constructor only signals too, DV2 deletes the notes, and CR1's brief checks them at PR 3 and PR 5 while its agent file stays as it is (sections 6.5 and 6.7). |

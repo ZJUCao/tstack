@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.12（2026-11-22）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.13（2026-11-22）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.12 |
+| 版本 | 1.13 |
 | 日期 | 2026-11-22 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -170,6 +170,7 @@ troy_approves_first = 3
 
 - IF1 的 Task 还说明第 4 节归架构师，并要求在那里写 "Not reviewed yet."。试运行里 IF1 把第 4 节的模板标记留给了架构师，于是在 AR2 填好这一节之前，`troy-check pr` 一直因 R20 不通过。
 - 第一个 mock 时，DV1 的检查以需要代码的初始化步骤开头：Python 是 `uv pip install -e . --no-deps`，C/C++ 是 `cmake --preset coverage`（F06 设计 5.4）。
+- 在 PR 3 和 PR 5，DV1、DV2 和 CR1 的 Task 加上第 6.4 节的固定 mock 说明文字（tstack #63）。
 - 命令通过 `mamba run -n <environment>` 运行；设置了 `TROY_MODE_ENV_PREFIX` 时，用 `mamba run -p <folder>`。试运行会设置它，这样不会留下有名字的环境。mamba 的查找方式和不带 `--mamba` 时的 troy-init 相同：先找 PATH，再找 `$MAMBA_EXE`（F06 设计 5.4）。`brief` 没有 `--mamba` 选项。
 - 修改是同一个任务的一次新运行（设计的修改用 IF2），Input 里是审查意见，Round 是下一轮（F04 D33）。
 
@@ -193,6 +194,62 @@ troy_approves_first = 3
 | 报告不符合 F04 的格式 | 再运行这个角色一次。第二次仍然如此，F07 升级上报。 |
 
 角色要求用 `how`、`why` 或 `interrogate` 时，F07 照着那个技能的 `SKILL.md` 去做，把结果放进下一份任务简报的 Input（F04 共用规则第 9 条）。
+
+### 6.4 mock 说明（tstack #63，D205 到 D207）
+
+试点的七个 mock PR（ZJUCao/recipe-menu #36、#42、#55、#57、#67、#81 和 #88）里，代码审查员要求修改，原因是某条 mock 说明没有指向任何东西，或者说的和 mock 相反。"The mock leaves these checks out." 写在它所指的 Raises 一节前面，或者某个桩函数的文档注释说它会抛出或排序，而 mock 并不这样做。Troy 于 2026-11-16 接受了这条规则（ZJUCao/recipe-menu#94，AR6 选项 A）：由任务简报给出固定的句子，不加 R 规则，因为没有哪种架构、工具、troy-check 检查或工作流步骤能判断一条注释指向什么（理由见 tstack #63）。
+
+**文字放在哪里。** `troyflow/mocknotes.py` 保存这些文字，按 `HEAD` 上配置里的 `[lang] name` 选择，就像 `summary.py` 保存给 Troy 的摘要那句话一样。`brief` 只在功能的阶段 PR 里把它加到 Task 行、任务本身那句话之后，返工时某个阶段的重做也算（第 11.2 节）。旁支 PR、bug、版本和规则都不加。
+
+| 任务 | 阶段 | 加上的文字 |
+| --- | --- | --- |
+| DV1 | PR 3 | 注释的规则，带语言包的句子 |
+| CR1 | PR 3 | 对注释的检查，带语言包的句子 |
+| DV2 | PR 5 | 删掉注释 |
+| CR1 | PR 5 | 检查没有留下注释 |
+
+PR 4 的 CR1 和其他所有任务都不加文字。
+
+**这些句子**（D205）：
+
+| 位置 | Python | C/C++ |
+| --- | --- | --- |
+| 函数体只抛出异常的函数或方法 | `The mock raises ``NotImplementedError``.` | `The mock throws ``troy::NotImplemented``.` |
+| 自己写了构造函数的类的文档注释 | `The mock's constructor raises ``NotImplementedError``.` | `The mock's constructor throws ``troy::NotImplemented``.` |
+| 构造函数由语言生成（比如 dataclass），而设计要它检查参数的类 | `The mock leaves out the constructor's checks.` | 无：C++ 生成的构造函数不能做检查 |
+| 同上，而且这个构造函数还会改动参数，比如排序 | `The mock keeps the values as given and leaves out the constructor's checks.` | 无 |
+
+**DV1 的 Python 文字：**
+
+> Where the mock does less than a doc comment says, add the mock's note as a paragraph of its own, after the description and before Args, Attributes, Returns, and Raises. Use these sentences word for word: `The mock raises ``NotImplementedError``.` for a function or method whose body only raises; `The mock's constructor raises ``NotImplementedError``.` in the doc comment of a class that writes its own constructor, besides the constructor's own note; `The mock leaves out the constructor's checks.` for a class whose constructor Python generates, such as a dataclass's, when the design has that constructor check its arguments, or `The mock keeps the values as given and leaves out the constructor's checks.` when it also changes them, for example by sorting; and, for a body that the design itself gives the mock, one sentence that says all it does, such as `The mock reads no file, writes nothing, raises nothing, and gives 0.` Every other body only raises, a constructor that the class writes too, and a generated constructor gets no `__post_init__`. A note never points elsewhere: no "these", "this", "above", or "below". The description and the sections describe the implementation as the design gives it, for example "The constructor checks its values, as Raises gives them.", so that PR 5 has only the notes to delete.
+
+**DV1 的 C/C++ 文字：**
+
+> Where the mock does less than a doc comment says, add the mock's note as a paragraph of its own, after the description and before Args, Attributes, Returns, and Raises. Use these sentences word for word: `The mock throws ``troy::NotImplemented``.` for a function or method whose body only throws; `The mock's constructor throws ``troy::NotImplemented``.` in the doc comment of a class that writes its own constructor, besides the constructor's own note; and, for a body that the design itself gives the mock, one sentence that says all it does, such as `The mock reads no file, writes nothing, throws nothing, and returns 0.` Every other body only throws, a constructor's too. A note never points elsewhere: no "these", "this", "above", or "below". The description and the sections describe the implementation as the design gives it, for example "The constructor checks its values, as Raises gives them.", so that PR 5 has only the notes to delete.
+
+**PR 3 时 CR1 的 Python 文字：**
+
+> Check the mock's notes. Every stub, and every class whose constructor does less in the mock than in the design, has one, as a paragraph of its own after the description. Each is one of these sentences, word for word: `The mock raises ``NotImplementedError``.` for a body that only raises; `The mock's constructor raises ``NotImplementedError``.` for a class that writes its own constructor; `The mock leaves out the constructor's checks.`, or `The mock keeps the values as given and leaves out the constructor's checks.` when the constructor also changes them, for a class whose constructor Python generates; or one sentence that says all that a body given by the design does. No other sentence says what only the mock does.
+
+**PR 3 时 CR1 的 C/C++ 文字：**
+
+> Check the mock's notes. Every stub, and every class whose constructor does less in the mock than in the design, has one, as a paragraph of its own after the description. Each is one of these sentences, word for word: `The mock throws ``troy::NotImplemented``.` for a body that only throws; `The mock's constructor throws ``troy::NotImplemented``.` for a class that writes its own constructor; or one sentence that says all that a body given by the design does. No other sentence says what only the mock does.
+
+**DV2 的文字**（D207）：
+
+> Delete every paragraph of the feature's doc comments that starts with "The mock". Change the rest of those doc comments only where a sentence is not true of the code you write.
+
+**PR 5 时 CR1 的文字**（D207）：
+
+> Check that no paragraph of the feature's doc comments starts with "The mock", and that every other change to those doc comments makes them true of the code.
+
+DV2 和 PR 5 时 CR1 的文字两种语言相同。
+
+**代理文件。** 开发工程师的 DV1 多一步：把任务简报给出的 mock 说明一字不差地加上。它的第 2 步补充：类自己写的构造函数也只表示未实现。它的 DV2 多一步：按任务简报删掉 mock 说明。各个标题不变，所以 `troy-mode/dev/tests/test_roles.py` 仍然通过。代码审查员的代理文件不改（D206）。
+
+**不变的部分。** 规则模板、troy-check、F05 的钩子和 troy-init。引擎和代理文件从插件文件夹运行，所以这些文字随下一个插件版本到达每个项目，不需要 troy-init 的升级。recipe-menu 的 `main` 上已经没有 mock 说明，因为每个 PR 5 都把它们删掉了。处在 PR 3 和 PR 5 之间的功能保留它原来的注释：DV2 删掉以 "The mock" 开头的那些，PR 5 时的 CR1 抓住其余的。
+
+**考试（F16 设计 7.2 和 9）。** `brief.py`、新的 `mocknotes.py` 和开发工程师的代理文件都属于指令集（F16 设计 9.1）。于是 `affected` 列出 dv-mock-notes（DV1）、dv-impl-notes（DV2）和 cr-mock-review（PR 3 时的 CR1）；cr-test-review 审查的是 PR 4，所以不受影响（D206）。构建 PR 写明 `Fixes case: dv-mock-notes`，这个用例的陷阱在 `main` 上是活的：在考试 2026-11-21-2 里它的基线通过了 5 次中的 2 次。另外两个用例不能变差。没有哪条记录下来的基线运行带着 `main` 的哈希，所以基线要重新运行。如果新版本没有达到目标，评分标准保持不变：会话报告数字，并提出一步爬坡（F16 设计 8.3），连同它的费用。
 
 ## 7. 每次运行之后的检查（D59）
 
@@ -449,10 +506,11 @@ F07 不给项目的工作流添加步骤。它的测试在 troy-pstack 的 `troy
 | 从 CI 统计尝试（D261 到 D263） | 在检查步骤上失败的提交只算一次，不管它有几个运行或作业失败。每个工作流在一个提交上只算最新的运行：较新的通过运行会抵消较早的失败。被取消和正在运行的运行不算。同一分支在 PR 开出之前或合并之后的运行不计入。检出、环境安装、`Install from the lock` 或 troy-mode 没有写的工作流里的失败不算尝试，`author` 为 false。评论的 `Commit:` 行，不管是完整的还是 7 位前缀，都算它点名的提交。没有这一行的评论算它发出时最新的推送提交，前提是那个提交的失败已经结束，并且没有别的评论算过它。次数是评论里最大的编号加上每个没算过的提交，按推送顺序编号。`ci_failures` 给出每个失败的提交和它的 `attempt`。`gh run list` 失败时加一条说明，只统计评论。技能的合并步骤带着 `Commit:` 行补发漏掉的评论。 |
 | 角色运行和费用（D264 到 D267） | 由 Windows 路径和桌面工作树路径得出的文件夹名，以及 `$CLAUDE_CONFIG_DIR`。由 `agentType` 得出角色，由 `parentAgentId` 得出辅助代理，以及其他代理。一条消息重复的记录只算一次。用一张测试价格表给每种 token、网页搜索和快速模式定价；表里没有的模型列在 `unpriced` 里。用 `Item:` 行把两个会话里的运行对到条目上。`--item` 的时间从第一次运行到 `accept` commit，合入之前到现在；`--tag` 的时间从任何标签的前一个发布 commit 开始；`--until`。时间段之外的主会话消息不计入。没找到运行的阶段列在 `missing` 里。`cost-state` 的数字相差超过 1% 时有说明，在 1% 以内没有。`description` 和 `line` 含有这些数字，不含模型 ID，也不含路径。没找到记录：退出码 0，那一节写明这一点。技能的 PR 6 步骤写出 `costs` 和这一节。 |
 | 等检查（D204） | 起初没有检查，之后通过；稍晚登记的第二个工作流；一项失败，在每项检查都结束后才报告，带上运行 ID；同一项检查较早的失败运行和较新的通过运行；提交状态；`SKIPPED` 和 `NEUTRAL`；别的头提交；已合并的 PR；超时；gh 失败一次和三次。技能的合并步骤写出 `wait-checks`，永远不用 `;` 把合并接在后面。 |
+| mock 说明（D205 到 D207） | 在 `test_mock_notes_brief.py` 里，仿照 `test_summary_brief.py`：Python 项目和 C/C++ 项目里 DV1 的 Task 行，DV2 的，以及 PR 3 和 PR 5 时 CR1 的，都恰好含一次第 6.4 节里它的文字，带语言包的句子，从不带另一种语言的。返工时 PR 3 的重做含 DV1 的文字。PR 4 时的 CR1、测试修复旁支 PR 里的 CR1、bug PR 里的 CR1 和 DV3，以及其他任务，都不含。 |
 
 ### 14.2 埋 bug
 
-代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。D204 加上：没有检查算作通过、未完成的检查算作已结束、不比较头提交、算上一项检查较早的运行、不等稳定、把 `SKIPPED` 算作失败、忽略提交状态、还有检查没结束就报告失败、忽略超时，以及一次 gh 调用失败就结束等待。F05 的 D231 再加上：未停止的记录算作已关闭、算上快照之前的记录、有未关闭的记录时 `snapshot` 仍然通过、`running` 设置了 `escalate`，以及给 `running` 问题加上撤销步骤。D261 到 D263 加上：按每个失败的运行而不是每个提交计数、一个工作流较早的运行和较新的一起算、被取消的运行算作失败、保留了 PR 开出之前的运行、检出失败算作产出方的、忽略 `Commit:` 行、没有这一行的评论算了一个在它发出之后才失败的提交、一条评论算了两个提交、把 CI 次数加在评论条数上而不是最大编号上，以及 `gh run list` 失败让 `status` 停下。D264 到 D267 加上：一条消息重复的记录又算一次、1 小时缓存写入按 5 分钟的定价、快速模式按标准定价、没有价格的模型悄悄按零计算、辅助代理算作一次独立的角色运行、算上了另一个条目的运行、算上了结束之后的主会话消息、没读工作树的文件夹、说明里出现模型 ID，以及有任何差别就给出价格说明。数量写进 PR 说明。
+代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。D204 加上：没有检查算作通过、未完成的检查算作已结束、不比较头提交、算上一项检查较早的运行、不等稳定、把 `SKIPPED` 算作失败、忽略提交状态、还有检查没结束就报告失败、忽略超时，以及一次 gh 调用失败就结束等待。F05 的 D231 再加上：未停止的记录算作已关闭、算上快照之前的记录、有未关闭的记录时 `snapshot` 仍然通过、`running` 设置了 `escalate`，以及给 `running` 问题加上撤销步骤。D261 到 D263 加上：按每个失败的运行而不是每个提交计数、一个工作流较早的运行和较新的一起算、被取消的运行算作失败、保留了 PR 开出之前的运行、检出失败算作产出方的、忽略 `Commit:` 行、没有这一行的评论算了一个在它发出之后才失败的提交、一条评论算了两个提交、把 CI 次数加在评论条数上而不是最大编号上，以及 `gh run list` 失败让 `status` 停下。D264 到 D267 加上：一条消息重复的记录又算一次、1 小时缓存写入按 5 分钟的定价、快速模式按标准定价、没有价格的模型悄悄按零计算、辅助代理算作一次独立的角色运行、算上了另一个条目的运行、算上了结束之后的主会话消息、没读工作树的文件夹、说明里出现模型 ID，以及有任何差别就给出价格说明。D205 到 D207 再加上：PR 4 时的 CR1 拿到 PR 3 的文字、测试修复旁支 PR 里的 CR1 拿到 PR 5 的文字、PR 3 时的 CR1 拿到 PR 5 的文字、C/C++ 的任务简报里出现 Python 的句子，以及 PR 3 的重做没有文字。数量写进 PR 说明。
 
 ### 14.3 试运行（D68）
 
@@ -484,6 +542,8 @@ F07 不给项目的工作流添加步骤。它的测试在 troy-pstack 的 `troy
 2. **第 2 部分。** 旁支 PR 和系列锁文件（第 8.7 节）、修 bug 和需求变更。
 
 每次状态更新都单独开一个 PR。
+
+第 6.4 节的 mock 说明在它的构建通过角色考试并合入后，给 F07 的状态加一句：它们在试点状态的临时副本上通过了角色考试，还没有在真实项目上运行过。这次更新也单独开一个 PR。
 
 **从 CI 统计尝试（D261 到 D263）。** 构建 PR 开出之前，在临时文件夹里新克隆一份 `ZJUCao/recipe-menu`，运行 `retro --tag v0.1.0`，gh 只读 GitHub。它必须把 #52 和 #59 的四次失败推送算作界面设计师的尝试，其中 #59 的那条评论算掉其中一次，并且 #87 的检出失败不算尝试。然后构建 PR 在需求文档 7.2 里 F07 的状态加一句话：尝试次数也从 CI 运行统计，已在试点的 PR 上检查过，还没有在项目运行时用过。这次改动的状态在构建 PR 里更新，而不是单独开 PR，因为每项检查都在构建 PR 开出之前运行。
 
@@ -521,6 +581,9 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | D202 | 试点中（ZJUCao/recipe-menu#3），对架构运行 `approve` 只改了它的文件头和修改记录。它的决策记录表，以及七条 ADR 每条的状态一节，在两种语言里都仍写着 "Proposed"。产品经理自己去改，被 `check-run` 拒绝了，因为架构不在它的范围里，于是 AR1 又运行了一次，只为改这些字。来自 tstack issue #47。 | A：`approve --doc docs/architecture.md` 同时把架构列出的 ADR 的状态在两种语言里都改为已接受，架构自己的状态单元格也一起改。B：架构和 ADR 模板只在文件头里保存状态，这样只用 `approve` 就够了。 | A，Troy 已于 2026-11-18 批准。每次批准带 ADR 的架构都能省一次架构师运行，而且文件头里的状态字本来就由引擎负责。B 要改 F01 的模板，而 F16 的角色考试正在衡量这些模板。只改仍处于提议状态的 ADR；已接受和已取代的不动。功能设计里提出的 ADR 不在范围内。需求不用改。 |
 | D203 | 试点中，Troy 输入了 "Start v0.1"。troy-mode 把 F01 做完六个 PR，然后停下，说 "Next is F02"，之后 Troy 每个功能都要单独请求一次。路由表把 "the rest of v0.1" 列为做到这个版本每个功能的请求（D63），但 "Start v0.1" 也点名了一个版本。来自 tstack issue #52。 | A：点名一个版本的功能循环请求，做到这个版本剩下的功能。B：范围不变，在一个功能验收后的报告里说明怎样请求做完这个版本剩下的部分。 | A，Troy 已于 2026-11-18 批准。每个 PR 仍在今天的位置等 Troy 批准，变的只是请求的次数。范围在发布之前停下，发布仍是单独的请求。需求不用改：D63 写在本设计和技能里。 |
 | D204 | 试点中（ZJUCao/recipe-menu#47，2026-11-12），一个 PR 刚推送就合并了：`gh pr checks 47 --watch` 打印了 "no checks reported"，因为 GitHub 还没登记工作流，而用 `;` 接在后面的合并照样运行了。之后试点的主会话自己留了一个脚本，等推送的头提交的检查。来自 tstack issue #68。 | A：一个引擎命令 `wait-checks --pr <n> --sha <head>`，等到这个头提交的每项检查都已登记并结束，用退出码报告通过还是失败；合并步骤和 `gh pr merge --match-head-commit <head>` 一起用它，永远不用 `;` 把合并接在后面。B：技能的合并步骤用文字写出这次等待，并禁止连写。 | A，Troy 已于 2026-11-18 批准。退出码是检查，需求 5.8 更愿意用检查而不是指令。在 troy-mode 项目里等 CI 是 troy-mode 合并步骤的一部分。需求不用改：R18 已经说了检查通过后 troy-mode 才合并。 |
+| D205 | 类的构造函数用哪条注释？tstack #63 给出 "The mock leaves out the constructor's checks."，对还会改动参数的构造函数给出 "The mock keeps the values as given and leaves out the constructor's checks."。F16 的试运行里，考试 2026-11-19-5 用了这段文字：五次新版本运行全都写了一个保存参数的 `UsageError.__init__`，这违反了开发工程师的第 2 步和必须项检查 `mock_bodies_only_raise`。第二句话只对由语言生成的构造函数成立。F16 设计 14.6 把这个问题留给 #63 的设计。 | A：#63 的两句话，用于每个类。B：#63 的两句话只用于由语言生成的构造函数，比如 dataclass 的；类自己写的构造函数和其他函数体一样只抛出异常，类的文档注释写 "The mock's constructor raises ``NotImplementedError``."。C：同 B，但自己写了构造函数的类写 "The mock leaves out the constructor's checks."。D：mock 的构造函数可以保存参数；DV1 的第 2 步、CR1 对 mock 的审查和 dv-mock-notes 的 `mock_bodies_only_raise` 跟着改。 | B，按 Troy 2026-11-22 对小问题的长期同意批准。B 的新句子对类自己写的每个构造函数都成立，不论它检查或改动什么；C 的句子没有说到排序或转换，比如 `UsageError` 按名字排序的参数。A 在这一点上五次运行全部失败，D 要改 mock 规则和一个用例。考试 2026-11-19-8 的文字点到了排序，七次新版本运行里仍有两次栽在 `UsageError` 上：一次让类的文档注释没有注释，一次给 `__init__` 写了函数体。B 给类的句子和 "a constructor that the class writes too" 针对的正是这两种。 |
+| D206 | 代码审查员的代理文件要不要改？tstack #63 在 CR1 的第 4 步加上 "and in a mock or implementation PR, the mock's notes as the brief gives them"。任务简报已经在 PR 3 和 PR 5 给出这项检查。每次 CR1 运行都会读代理文件，所以这一行也会让审查 PR 4 的 cr-test-review 成为受影响的用例（F16 设计 9.2）。 | A：按 #63 改。B：代码审查员的代理文件保持原样，由任务简报在适用的地方带上这项检查。 | B，按 Troy 2026-11-22 对小问题的长期同意批准。这一行没有说出任务简报以外的东西。不加它，cr-test-review 的十次 opus 运行就不进构建的考试：按试运行每次 $2.95 的中位数，连同评审一次约 $31。考试第一轮因此约 $37，而不是约 $68，低于 F16 D158 的 $60 线。开发工程师的代理文件照样改，因为它的两个用例反正要运行。 |
+| D207 | PR 5 可以改功能文档注释里的什么？tstack #63 的 DV2 文字说 "change nothing else in those doc comments"，它在 PR 5 时的 CR1 文字检查 "that nothing else in those doc comments changed"。可是试点自己的 F08 实现，也就是用例 dv-impl-notes 的通过锚点，把 `os.path.isfile` 加进了某个文档注释列出的探测里，因为代码调用了它，而这个用例的标准 1 要求文档注释对代码成立（R05）。 | A：按 #63。B：DV2 删掉注释，其余文档注释只在某句话对它的代码不成立时才改；PR 5 时的 CR1 检查没有留下注释，并且其他每处改动都让文档注释对代码成立。 | B，按 Troy 2026-11-22 对小问题的长期同意批准；Troy 已于 2026-11-22 按原文批准 PR 3 和 PR 5 两行的需求子句。按 A，代码需要某个 mock 文档注释漏掉的调用时，开发工程师只能留下一句假话。DV1 仍要求文档注释描述实现，所以 PR 5 很少需要删除以外的改动。 |
 | D261 | tstack issue #73（试点报告的候选 T1，Troy 于 2026-11-16 接受）：`status` 和 `retro` 只从 F07 的评论统计尝试次数，而试点中 CI 有四次推送在产出方的文件上失败，只发了一条评论。哪些推送提交要算，一条评论又怎样算是已经算过某个提交？ | A：CI 为这个 PR 运行过的每个提交最多算一次，由它上面每个工作流最新的运行决定；被取消和正在运行的运行不算；评论算它的 `Commit:` 行点名的提交，没有这一行的评论算它发出时 PR 最新的推送提交，前提是那个提交当时已经失败，并且没有别的评论算过它（第 8.5 节）。B：同 A，但只认 `Commit:` 行。C：每个失败的运行都算，包括重跑和改 PR 说明而开始的运行。D：只算 PR 的最后一个提交。 | A，依据 Troy 2026-11-22 的长期同意批准。一次推送是产出方的一次尝试，所以重跑不能增加尝试次数（反对 C）；产出方修好了的失败仍然是一次尝试，而 D 会漏掉它：这正是 #52 的情况。B 会把试点的 #59 算成三次，因为它的评论发在 `Commit:` 行出现之前，而且主会话每次忘了写这一行都会重复计数。A 把试点的 PR 算对：#52 两次，#59 两次。 |
 | D262 | 对每个语言包的作业，怎样把失败的运行和产出方的文件对上？ | A：按失败的步骤。`Run troy-check`，以及语言包作业里 `Install from the lock` 之后的每个步骤，都在仓库文件上运行检查，所以它们失败就是产出方的。其他步骤的失败，比如检出、环境安装、`Install from the lock`、被取消或超时的步骤，或者 troy-mode 没有写的工作流，都不算尝试，F07 停下并告诉 Troy（第 8.5 节）。B：按日志：读 `gh run view --log-failed`，找 PR 改过的路径。C：每个失败的运行都算尝试。 | A，依据 Troy 2026-11-22 的长期同意批准。PR 里只有这个阶段的工作，放在检查已通过的 `main` 上，所以检查步骤在这里失败，就是在这份工作上失败。B 会漏掉实现没通过测试的情况，因为 pytest 的日志只点名测试文件，而测试文件是测试工程师的；它还要为每个运行下载日志。C 会把试点 #87 的 "Repository not found" 也算进去（指南第 8.6 节）。步骤名来自 troy-mode 自己的工作流文件，有一个测试把这份名单和它们对照。 |
 | D263 | `status` 算上的失败，事后也补发评论，让 PR 上能看到吗？ | A：补发。`status` 在 `ci_failures` 里给出每个开着的 PR 的失败提交，以及每个还没算过的提交要取的尝试编号；F07 继续之前发出 `<Role> attempt <n>: failed`，带 `Commit: <commit ID>` 一行，次数保持不变。`retro` 什么也不发（第 8.5 节）。B：不补发。`status` 算上它，PR 上显示的尝试比次数少。 | A，依据 Troy 2026-11-22 的长期同意批准。流程的状态放在 GitHub 上（D58），所以 Troy、新会话和复盘都从 PR 上读到同样的尝试。补发的评论用 `status` 给出的次数编号，发出前后次数都一样。`retro` 不改任何东西（F08 第 3.1 节），所以已合并 PR 的失败只出现在它的报告里。 |
@@ -531,6 +594,8 @@ F06 到 D56 为止，所以 F07 从 D57 开始。
 | D267 | F14 给 Troy 的摘要要带一行费用吗？ | A：不带。费用放在验收和发布 PR 说明里它自己的一节，以及给 Troy 的报告里的一行（第 8.8 节）。B：在 PR 1 的摘要里加一行，写这个功能到目前为止的费用，或者上一个功能的费用。 | A，依据 Troy 2026-11-22 的长期同意批准。摘要出现在 PR 1、PR 2、需求文档和架构的 PR 开头，不在验收或发布 PR 上，而一个功能的费用要到最后才知道。摘要的模板和技能的"The summary for Troy"一节属于 F16 的指令集，所以 B 会改变角色写的内容，还需要角色考试。 |
 
 D261 到 D263 不改需求：D64 已经把产出方文件上的 CI 失败算作一次尝试（需求文档 5.7）。D264 到 D267 也不改需求：这份报告是 F07 和 F08 负责的验收和发布步骤的一部分，就像 D204 的等待是合并的一部分。
+
+D205 到 D207 是 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则（ZJUCao/recipe-menu#94，AR6 选项 A）。需求文档 1.55 版在它第 5.2 节的 PR 3 和 PR 5 两行各加一个子句，第 6 节不加新行。Troy 已于 2026-11-22 批准这两个子句。
 
 F05 的 D231（F05 设计第 6.1 节），Troy 已于 2026-11-21 批准，改动第 6.2 和 7 节以及入口技能的"Running a role"一节，并在需求文档 1.52 版的 F07 一行加上一个分句（F05 设计第 15 节）。F07 不为它另作决定。
 
@@ -560,3 +625,4 @@ F05 的 D231（F05 设计第 6.1 节），Troy 已于 2026-11-21 批准，改动
 | 1.10 | 2026-11-21 | 跟随 F05 的 D231，来自 tstack issue #49，Troy 已于 2026-11-21 批准：某个角色，或它留在后台的命令，还在运行时，`check-run` 和 `snapshot` 以 `running` 问题拒绝，F07 用 `TaskStop` 结束每个列出的代理。桌面应用让每个角色都在后台运行（第 1、6.2、7、14.1、14.2 和 16 节）。 |
 | 1.11 | 2026-11-22 | D261 到 D263，来自 tstack issue #73，依据 Troy 2026-11-22 的长期同意批准：`status` 和 `retro` 还从 PR 推送过的提交的 CI 运行统计尝试次数，每个提交最多一次，只在检查步骤失败时算，评论已经算过的不再算；F07 带着 `Commit:` 行补发漏掉的评论（第 3.1、5.1、8.4、8.5、8.6、14.1、14.2、14.4 和 16 节）。 |
 | 1.12 | 2026-11-22 | D264 到 D267，来自 tstack issue #74，依据 Troy 2026-11-22 的长期同意批准：引擎的 `costs` 读取 Troy 电脑上的会话记录，按 `prices.toml` 的标价给出一个功能或一个版本的角色运行和费用，用于验收 PR 里的 `## Cost` 一节和给 Troy 的报告里的一行；桌面应用的数字用来检查价格；F14 的摘要不带费用（第 3.1、8.8、14.1、14.2、14.4 和 16 节）。 |
+| 1.13 | 2026-11-22 | D205 到 D207，来自 tstack issue #63，Troy 已于 2026-11-16 接受这条规则；这些选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准需求子句：在 PR 3 和 PR 5，DV1、DV2 和 CR1 的 Task 加上新的 `mocknotes.py` 给出的固定 mock 说明文字，按 `[lang] name` 选择；类自己写的构造函数只抛出异常，类的文档注释写明这一点；代码审查员的代理文件不改；PR 5 只在代码让文档注释不成立时才改注释以外的部分（第 6.1、6.4、14.1、14.2、14.4 和 16 节）。 |

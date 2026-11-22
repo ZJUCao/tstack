@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.9 |
+| Version | 1.10 |
 | Date | 2026-11-22 |
 | Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
@@ -565,7 +565,7 @@ It runs in the judge's folder of section 6.2, with no `--plugin-dir`. The verdic
 
 | Issue | What it changes for roles | Cases it runs |
 | --- | --- | --- |
-| troy-pstack#63, fixed mock-note sentences | The DV1, DV2, and CR1 briefs and the Developer's and the Code Reviewer's agent files | dv-mock-notes and dv-impl-notes as targets, cr-mock-review and cr-test-review |
+| troy-pstack#63, fixed mock-note sentences | The DV1, DV2, and CR1 briefs and the Developer's agent file; the Code Reviewer's agent file stays as it is (F07 design 6.4, D206) | dv-mock-notes as the target; dv-impl-notes and cr-mock-review, which must not get worse |
 | troy-pstack#75, security review once per version | The Code Reviewer's agent file | cr-mock-review and cr-test-review, which must not get worse |
 | troy-pstack#51, code examples in designs | If its fix is in the Interface Designer's instructions | if-example-format as the target, if-error-rules, ar-design-review |
 | troy-pstack#49, background runs | Its fix, F05 design D231, is in the hooks, the engine, and the entry skill's section "Running a role", which changes no case's Input. Only its option C, which Troy did not choose, would have changed the five agent files that have Bash, or `common.md` with them. | None under D231's approved answer, B: `affected` finds no case, at no cost. U5 stays a note (D233). |
@@ -655,7 +655,7 @@ The trial ran on Troy's PC with the bundled CLI 2.1.325, two runs at a time, on 
 
 **Follow-ups, not fixed here.**
 
-- The follow-up PR: dv-mock-notes version 3, with a pass anchor whose notes stand alone, then steps 2 and 3 again, and this design's record of them. It merges before the first gated PR, and troy-pstack#63's design settles the constructor sentence.
+- The follow-up PR: dv-mock-notes version 3, with a pass anchor whose notes stand alone, then steps 2 and 3 again, and this design's record of them. It merges before the first gated PR, and troy-pstack#63's design settles the constructor sentence. Settled in F07 design D205.
 - The exam section shows "0 of 5" in the Base column for a case proved on its anchors only; it should show "-".
 - A run cut by a usage limit keeps its cost but not its result.
 
@@ -776,3 +776,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.7 | 2026-11-21 | dv-mock-notes version 4, from tstack issue #93: its rubric's criterion 1 passes a sentence true of the mock as written, such as an enum's own `ValueError`, and criterion 2 says that a Raises entry is not a paragraph of the description. `prove` graded both anchors right, and the trap is live (14.7). |
 | 1.8 | 2026-11-22 | D241 to D243, from tstack issue #92, approved by Troy on 2026-11-22 ("全按推荐"): the estimate counts the second round of section 7.2, the $60 line applies to the first round, the guard counts the second rounds that the rules ask for and then waits for Troy instead of stopping, and a case left with too few runs shows "no verdict". What each option would have done in exams 2026-11-19-8 and 2026-11-19-10 (sections 7.2, 8.2, 10, 11.2, 11.5, 14.1, 14.7, and 17). |
 | 1.9 | 2026-11-22 | The engine merges the entries of a judge's verdict that share a label, since the judge split one label's grades across two entries in 2 of the 23 passes of exam 2026-11-22-1, the proof of tstack #92's build, and each such split stopped the exam. A criterion graded twice with different grades still stops it (11.4). Troy chose on 2026-11-22 to make this its own PR. |
+| 1.10 | 2026-11-22 | tstack issue #63's design, F07 design 6.4 and D205 to D207: its build changes the DV1, DV2, and CR1 briefs and the Developer's agent file, not the Code Reviewer's, so its exam runs dv-mock-notes as the target, and dv-impl-notes and cr-mock-review, and not cr-test-review (section 13). F07's D205 settles the constructor sentence (section 14.6). |
