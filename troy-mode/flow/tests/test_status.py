@@ -30,7 +30,7 @@ from flow_helpers import (
 )
 
 LIST_ARGS = ["pr", "list", "--state", "open", "--limit", "100", "--json",
-             "number,title,headRefName,url"]
+             "number,title,headRefName,url,createdAt"]
 APPROVALS_TITLE = "[rules] Set the features Troy approves"
 
 
@@ -148,14 +148,21 @@ class GhCallTests(FlowCase):
 
         F15 (interface note section 1) reads each open PR's comments and
         reviews, and adds the issue list and the list of PRs in every state.
+        F07 D261 adds one list of CI runs per open PR, by its head branch.
         """
         project = Project(history(stages(F01, 2)))
-        fakes = Fakes([stage_pr(9, F01, 3), pr(7, "[docs] Fix a typo in the README")])
+        open_prs = [stage_pr(9, F01, 3), pr(7, "[docs] Fix a typo in the README")]
+        fakes = Fakes(open_prs)
         self.report_of(project.status(fakes=fakes))
         calls = fakes.gh_calls()
+        runs = [["run", "list", "--branch", p["headRefName"], "--event", "pull_request",
+                 "--limit", "100", "--json",
+                 "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName"]
+                for p in open_prs]
         self.assertEqual(sorted(call["argv"] for call in calls), sorted([
             LIST_ARGS, ["pr", "view", "7", "--json", "comments,reviews"],
-            ["pr", "view", "9", "--json", "comments,reviews"], ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
+            ["pr", "view", "9", "--json", "comments,reviews"], ALL_ISSUES_ARGS, ALL_PRS_ARGS,
+            *runs]))
         for call in calls:
             self.assertTrue(same_path(call["cwd"], project.root), call)
         self.assertEqual(fakes.mamba_calls(), [])
@@ -236,6 +243,7 @@ class OriginMainOnlyTests(FlowCase):
             "number": 7, "title": "[F01 3/6 mock] Count words", "branch": "troy-mode/f01-3-mock",
             "url": "https://github.com/ZJUCao/wordcount/pull/7", "kind": "mock", "item": "F01",
             "stage": 3, "merged_by": "f07", "reviews": [], "rounds": 0, "attempts": 0,
+            "ci_failures": [],
             "troy_comments": [], "waiting_for_troy": False, "escalated": False}])
         self.assert_next(report, action="continue-pr", pr=7, item="F01", stage=3, task="DV1",
                          title="[F01 3/6 mock] Count words", branch="troy-mode/f01-3-mock",

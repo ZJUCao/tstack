@@ -4,15 +4,19 @@ It reads the PRs merged since the previous version's tag, F07's comments on
 them, the bugs fixed in that time, and the hooks.log lines, and groups the
 findings by the rule ID or checklist item each one names. A group seen in two
 or more PRs is a repeated problem. It changes nothing.
+
+F07 D261 to D263 add each commit that failed CI in the author's files with no
+attempt comment counting it, in its role's attempt group (ci.py).
 """
 
 import datetime
 import json
 import re
 
-from . import github
+from . import ci, github
 from . import repo as git
 from .errors import FlowError
+from .nextstep import title_task
 from .repo import MAIN, Repo
 from .stages import parse_subject, plain
 from .versions import is_patch, parse_tag, release_tag
@@ -187,23 +191,30 @@ def run_retro(args) -> tuple[dict, int]:
         return report, 1
     shas = {sha for sha, _ in commits}
     subjects = {plain(s) for _, s in commits}
-    prs = []
+    prs, merged = [], {}
     for pr in github.merged_prs(repo):
         merge = pr.get("mergeCommit") if isinstance(pr.get("mergeCommit"), dict) else None
         oid = str(merge.get("oid")) if merge else None
         if (oid and oid in shas) or (not oid and plain(str(pr.get("title") or "")) in subjects):
             prs.append({"number": int(pr.get("number", 0)), "title": pr.get("title"),
                         "url": pr.get("url")})
+            merged[int(pr.get("number", 0))] = pr
     prs.sort(key=lambda p: p["number"])
     groups: dict = {}
     loose = []
+    runs = _ci_runs(repo, [merged[p["number"]] for p in prs], report["notes"]) if prs else None
+    ci_attempts, ci_other = [], []
     for pr in prs:
-        for body in github.comments(repo, pr["number"]):
+        timed = github.timed_comments(repo, pr["number"])
+        for _, body in timed:
             heading = github.heading(body)
             entries, unkeyed = comment_entries(body)
             for entry in entries:
                 _group(groups, entry, pr, heading)
             loose += [{"pr": pr["number"], "heading": heading, "text": t} for t in unkeyed]
+        if runs is not None:
+            _ci_evidence(repo, pr, merged[pr["number"]], runs, timed, groups,
+                         (ci_attempts, ci_other), report["notes"])
     since = _commit_time(repo, previous_sha) if previous_sha else None
     for line in _hooks(repo, since):
         _group(groups, {"key": f"hooks.log: {line['rule']}", "kind": "hooks",
@@ -211,8 +222,55 @@ def run_retro(args) -> tuple[dict, int]:
     ordered = _sorted_groups(groups)
     report.update(ok=True, previous=previous, prs=prs, groups=ordered,
                   repeated=[g["key"] for g in ordered if g["repeated"]], ungrouped=loose,
-                  bugs=_bugs(repo, [s for _, s in commits]))
+                  bugs=_bugs(repo, [s for _, s in commits]), ci_attempts=ci_attempts,
+                  ci_other=ci_other)
     return report, 0
+
+
+def _ci_runs(repo: Repo, prs: list[dict], notes: list[str]) -> list[dict] | None:
+    """Lists the CI runs of the range's PRs in one call (F07 design 8.5), or None.
+
+    The call starts from the day the oldest PR opened. When gh cannot list the
+    runs, retro counts attempts from the comments only and says so.
+    """
+    opened = [moment for moment in (ci.when(p.get("createdAt")) for p in prs
+                                    if p.get("createdAt")) if moment is not None]
+    try:
+        runs = ci.version_runs(repo, min(opened) if opened else None)
+    except FlowError as exc:
+        notes.append(f"The CI runs could not be read ({exc}); attempts count the comments "
+                     "only.")
+        return None
+    if len(runs) >= ci.VERSION_LIMIT:
+        notes.append(f"gh listed {ci.VERSION_LIMIT:,} CI runs, its limit; attempts from older "
+                     "runs may be missing.")
+    return runs
+
+
+def _ci_evidence(repo: Repo, pr: dict, merged: dict, runs: list[dict],
+                 timed: list[tuple[str, str]], groups: dict, found: tuple[list, list],
+                 notes: list[str]) -> None:
+    """Adds one PR's CI failures that no comment counts (F07 D261 to D263).
+
+    An author failure joins its role's attempt group and ci_attempts; a
+    failure outside the author's files goes to ci_other only.
+    """
+    try:
+        counted = ci.pr_count(repo, merged, runs, timed)
+    except FlowError as exc:
+        notes.append(f"The CI runs of PR #{pr['number']} could not be read ({exc}); its "
+                     "attempts count the comments only.")
+        return
+    role = ci.role_of(title_task(str(pr.get("title") or ""))[0])
+    for failure in counted.failures:
+        item = {"pr": pr["number"], "url": pr.get("url"), "commit": failure.commit,
+                "runs": failure.runs, "steps": failure.steps}
+        if not failure.author:
+            found[1].append(item)
+        elif not failure.counted:
+            found[0].append({**item, "role": role})
+            _group(groups, {"key": f"{role} attempt failed", "kind": "attempt",
+                            "text": "; ".join(failure.steps)}, pr, f"CI: {failure.commit[:7]}")
 
 
 def _bugs(repo: Repo, subjects: list[str]) -> list[dict]:

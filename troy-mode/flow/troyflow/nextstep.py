@@ -50,21 +50,33 @@ def _pr_order(pr: dict) -> tuple[int, int]:
     return (group, int(pr.get("number", 0)))
 
 
+def title_task(title: str) -> tuple[str | None, str | None]:
+    """The author task and the item of an open PR, from its title alone.
+
+    Returns:
+        (task, item). The task is None for a PR whose author the title does not
+        give, such as a [docs] PR or a test fix.
+    """
+    parsed = parse_subject(title)
+    kind = parsed.kind if parsed else None
+    item = parsed.id if parsed else None
+    found = feature_stage(title)
+    task = AUTHOR_TASK.get(found[1]) if found else KIND_TASK.get(kind or "")
+    plan = PLAN_TITLE.fullmatch(plain(title))
+    if plan:
+        task, item = "TM7", plan.group(1)
+    elif kind == "version-tests":
+        task = "TE3" if parsed.summary.startswith("Fix ") else "TE5"
+    rule = rulestate.pr_rule(title)
+    if rule:
+        item, task = rule
+    return task, item
+
+
 def _pr_next(state: State, pr: dict) -> dict:
     """The next entry for continuing an open PR."""
     entry = pr_entry(state, pr)
-    found = feature_stage(entry["title"] or "")
-    task = AUTHOR_TASK.get(found[1]) if found else KIND_TASK.get(entry["kind"] or "")
-    item = entry["item"]
-    plan = PLAN_TITLE.fullmatch(plain(entry["title"] or ""))
-    if plan:
-        task, item = "TM7", plan.group(1)
-    elif entry["kind"] == "version-tests":
-        summary = parse_subject(entry["title"] or "").summary
-        task = "TE3" if summary.startswith("Fix ") else "TE5"
-    rule = rulestate.pr_rule(entry["title"] or "")
-    if rule:
-        item, task = rule
+    task, item = title_task(entry["title"] or "")
     return _next("continue-pr", pr=entry["number"], title=entry["title"], branch=entry["branch"],
                  item=item, stage=entry["stage"], task=task,
                  merged_by=entry["merged_by"], rounds=entry["rounds"], attempts=entry["attempts"])

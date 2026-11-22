@@ -28,7 +28,7 @@ if str(CHECKS_SOURCE) not in sys.path:
 from troycheck.attribution import find_attribution  # noqa: E402  (after the path setup)
 
 LIST_ARGS = ["pr", "list", "--state", "open", "--limit", "100", "--json",
-             "number,title,headRefName,url"]
+             "number,title,headRefName,url,createdAt"]
 PLAN = version_plan_path("v0.1")
 DEVICES = (("Troy's PC", "Windows 11", "Claude"), ("Troy's laptop", "macOS 15", "Troy"),
            ("Troy's phone", "Android 16", "Troy"))

@@ -62,7 +62,7 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | Heading | Posted when |
 | --- | --- |
 | `<Role> review, round <n>: <result>` | A reviewer reports, for example `Architect review, round 2: changes-requested`. Findings follow, one numbered line each, starting with the rule ID or checklist item. |
-| `<Role> attempt <n>: failed` | An author's attempt fails. The failing checks follow. |
+| `<Role> attempt <n>: failed` | An author's attempt fails. The failing checks follow. For a CI failure, a `Commit:` line first names the pushed commit. |
 | `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). |
 | `Waiting for Troy: approve this PR` | The PR waits for your approval. One line under it points to the summary for you at the top of the description. |
 | `Waiting for Troy: accept <tag>` | The release waits for your test on your devices. |

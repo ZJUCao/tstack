@@ -28,7 +28,8 @@ BLOB = REPO_URL + "/blob/main/"
 DETAILS = "<details><summary>English</summary>"
 ALL_LABELS = ("bug", "idea", "progress", "device-test")
 READ_CALLS = {("pr", "list"), ("pr", "view"), ("issue", "list"), ("issue", "view"),
-              ("label", "list"), ("repo", "view"), ("release", "list")}
+              ("label", "list"), ("repo", "view"), ("release", "list"),
+              ("run", "list"), ("run", "view")}  # status reads CI runs (F07 D261)
 ZH_NAMES = {"F01": "数单词", "F02": "数行数", "F03": "数字符", "F04": "报告总数",
             "F05": "监视文件夹"}
 ZH_STATUS = {"Not started": "未开始", "Passes tests on main": "在 main 上通过测试",

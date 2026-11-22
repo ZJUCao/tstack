@@ -3,6 +3,7 @@
 F08 adds the versions, the release state, and the release's next actions
 (F08 design 3.2 and 3.3). F09 adds the P rules and the cleanup action (F09
 design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
+F07 D261 to D263 count each open PR's attempts from its CI runs too (ci.py).
 """
 
 from . import github, issuesync, nextstep, progress, releases
@@ -187,10 +188,11 @@ def run_status(args) -> tuple[dict, int]:
     Returns:
         The report and the exit code, 0 whenever the state could be read.
     """
-    state = read_state(args.repo)
+    state = read_state(args.repo, with_ci=True)
     if state.repo is not None and state.origin:
         issuesync.load(state)
     entry, notes = nextstep.decide(state)
+    notes.extend(state.notes)
     prs = [pr_entry(state, pr) for pr in state.prs]
     report = {
         "command": "status", "ok": True, "notes": notes, "problems": [],

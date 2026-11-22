@@ -64,7 +64,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | 标题 | 什么时候发出 |
 | --- | --- |
 | `<Role> review, round <n>: <result>` | 某个审查方报告时，例如 `Architect review, round 2: changes-requested`。后面是审查意见，每条一行、带编号，以规则编号或检查项开头。 |
-| `<Role> attempt <n>: failed` | 产出方的一次尝试失败时。后面是失败的检查。 |
+| `<Role> attempt <n>: failed` | 产出方的一次尝试失败时。后面是失败的检查。CI 失败时，先用 `Commit:` 一行写明是哪个推送提交。 |
 | `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。 |
 | `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行指向描述开头给你的摘要。 |
 | `Waiting for Troy: accept <tag>` | 发布等你在自己的设备上测试时。 |

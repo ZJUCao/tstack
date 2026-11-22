@@ -29,7 +29,7 @@ from rule_helpers import (
 )
 
 LIST_ARGS = ["pr", "list", "--state", "open", "--limit", "100", "--json",
-             "number,title,headRefName,url"]
+             "number,title,headRefName,url,createdAt"]
 CLEANUP = dict(action="cleanup", item="P01", merged_by="f07")
 STAGE_F01 = dict(action="stage", item="F01", stage=1, task="IF1", title=F01.title(1),
                  branch=F01.branch(1), merged_by="troy")
