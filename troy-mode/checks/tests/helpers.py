@@ -225,6 +225,8 @@ class Sandbox:
         self._counter = itertools.count(1)
         self._default_message = False
         self._identity: dict = {}
+        self._titled: dict = {}
+        self._titled_lock = threading.Lock()
 
     def close(self) -> None:
         """Deletes the temporary folder."""
@@ -300,28 +302,39 @@ class Sandbox:
 
         When the last commit used the placeholder message, a detached commit
         object with the same tree and parent but the title as message is
-        created. This keeps shared sandboxes safe for concurrent checks.
+        written once per head commit and title, and reused. Concurrent checks
+        on a shared sandbox must not write the same object at once: Git for
+        Windows then fails with "unable to write file ... Permission denied".
 
         Args:
             head: The head ref the caller asked for.
             title: The PR title.
 
         Returns:
-            The synthetic commit's SHA, or ``head`` when no change is needed.
+            The synthetic commit's SHA, or ``head`` when no change is needed
+            or ``head`` is not a commit with one parent.
+
+        Raises:
+            RuntimeError: If git cannot write the titled commit. Checking
+                ``head`` instead would fail R01 on the placeholder subject.
         """
         if not self._default_message or not title.strip() or "\n" in title:
             return head
         try:
             sha = self.git("rev-parse", f"{head}^{{commit}}").strip()
             parents = self.git("rev-list", "--parents", "-n", "1", sha).split()[1:]
-            if len(parents) != 1:
-                return head
             tree = self.git("rev-parse", f"{sha}^{{tree}}").strip()
-            return self.git(
-                "commit-tree", tree, "-p", parents[0], "-m", title, **self._identity
-            ).strip()
         except RuntimeError:
             return head
+        if len(parents) != 1:
+            return head
+        with self._titled_lock:
+            key = (sha, title)
+            if key not in self._titled:
+                self._titled[key] = self.git(
+                    "commit-tree", tree, "-p", parents[0], "-m", title, **self._identity
+                ).strip()
+            return self._titled[key]
 
     def run_checker(
         self,

@@ -2,7 +2,7 @@
 
 import unittest
 
-from helpers import CheckTestCase, Sandbox, parallel
+from helpers import CheckTestCase, Sandbox, parallel, pr_sandbox
 from prefetch import PrefetchedCase, run_pr
 
 TITLE = "[docs] Update notes"
@@ -88,6 +88,57 @@ class CommitCountTests(CheckTestCase):
             sb.commit({"docs/b.md": "b\n"}, message=TITLE)
             out = sb.check_pr(TITLE)
         self.assert_rule(out, "R01", "fail")
+
+
+def watch_commit_tree(sb, writes, error=None):
+    """Makes a sandbox record each ``git commit-tree`` it runs.
+
+    Args:
+        sb: The sandbox.
+        writes: List that gets the arguments of each ``commit-tree`` run.
+        error: Raised instead of running ``commit-tree``, or None to run it.
+    """
+    real_git = sb.git
+
+    def git(*args, **identity):
+        if args[0] == "commit-tree":
+            writes.append(args)
+            if error is not None:
+                raise error
+        return real_git(*args, **identity)
+
+    sb.git = git
+
+
+class SharedSandboxTests(CheckTestCase):
+    """Concurrent checks on one sandbox whose commit has the placeholder message."""
+
+    def test_concurrent_checks_write_the_titled_commit_once(self):
+        """Six checks of one title run ``git commit-tree`` once between them.
+
+        Git for Windows cannot write one loose object from several processes
+        at once ("unable to write file ... Permission denied"), so a shared
+        sandbox where each check wrote the same titled commit failed now and
+        then (test_r03's ReasonTests on Windows CI).
+        """
+        writes = []
+        with pr_sandbox(CHANGE) as sb:
+            watch_commit_tree(sb, writes)
+            outs = parallel(lambda _: sb.check_pr(TITLE), range(6))
+        self.assertEqual(len(writes), 1, writes)
+        for out in outs:
+            self.assert_rule(out, "R01", "pass")
+
+    def test_failed_titled_commit_is_raised(self):
+        """A git error while writing the titled commit stops the test.
+
+        Checking the branch instead would check the placeholder subject and
+        fail R01 with "subject: Change", which hides the real error.
+        """
+        with pr_sandbox(CHANGE) as sb:
+            watch_commit_tree(sb, [], RuntimeError("git commit-tree failed"))
+            with self.assertRaises(RuntimeError):
+                sb.check_pr(TITLE)
 
 
 if __name__ == "__main__":
