@@ -23,6 +23,11 @@ and two more ``next`` keys, ``issue`` and ``ideas``, null unless F15 names them.
 D204 (``wait-checks``, tstack issue #68) adds ``pr view <n> --json
 headRefOid,state,statusCheckRollup``, served from a list of answers per PR
 (``Fakes.serve``'s ``check_views``), and ``failing_call``, an answer that fails.
+
+Attempts from CI (F07 D261 to D263, tstack issue #73, the #73 interface note
+section 2) add ``run list``, served from ``Fakes.serve``'s ``runs`` (kept to
+the ``--branch`` and ``--limit`` the call gives), and ``run view <id> --json
+jobs``, served from its ``run_views``.
 """
 
 from __future__ import annotations
@@ -1414,6 +1419,20 @@ def main():
         found = data.get("issue_views", {}).get(args[2])
         if found is not None:
             return answer(found)
+    elif args[:2] == ["run", "list"]:
+        runs = data.get("runs", [])
+        branch = option(args, "--branch")
+        if branch is not None:
+            runs = [run for run in runs if run.get("headBranch") == branch]
+        limit = option(args, "--limit")
+        if limit is not None and limit.isdigit():
+            runs = runs[:int(limit)]
+        return answer(runs)
+    elif args[:2] == ["run", "view"] and len(args) > 2 and option(args, "--json"):
+        found = data.get("run_views", {}).get(args[2])
+        if found is not None:
+            fields = option(args, "--json").split(",")
+            return answer({name: found[name] for name in fields if name in found})
     sys.stderr.write("fake gh: unknown call\n")
     return 4
 
@@ -1462,9 +1481,12 @@ class Fakes:
     all``, ``gh label list``, and ``gh repo view``. For D204 (``wait-checks``,
     tstack issue #68) it serves ``gh pr view <n> --json
     headRefOid,state,statusCheckRollup`` from a list of answers per PR, one
-    per call in order. Any other call, or every call when it is set to fail,
-    exits with a code other than 0. The fake mamba always fails, and no
-    engine command may run it.
+    per call in order. For attempts from CI (tstack issue #73) it serves
+    ``gh run list`` (the runs whose ``headBranch`` is the call's
+    ``--branch``, when it gives one, and at most ``--limit`` of them, in the
+    order given) and ``gh run view <id> --json <fields>``. Any other call, or
+    every call when it is set to fail, exits with a code other than 0. The
+    fake mamba always fails, and no engine command may run it.
 
     Attributes:
         folder: The folder that goes first on the PATH.
@@ -1511,7 +1533,9 @@ class Fakes:
               labels: Sequence[str] = ("bug",), repo_url: str = REPO_URL,
               issues_enabled: bool = True,
               fail_on: Sequence[tuple] = (),
-              check_views: Optional[Mapping] = None) -> None:
+              check_views: Optional[Mapping] = None,
+              runs: Sequence[Mapping] = (),
+              run_views: Optional[Mapping] = None) -> None:
         """Sets what the fake gh answers.
 
         Args:
@@ -1545,6 +1569,15 @@ class Fakes:
                 made by ``failing_call`` makes that one call exit 1 with its
                 message on stderr. A ``pr view`` call that asks for none of
                 these fields, or for a PR not mapped here, is served as before.
+            runs: What ``gh run list`` prints (tstack issue #73): each a dict
+                with ``databaseId``, ``headBranch``, ``headSha``, ``status``,
+                ``conclusion``, ``createdAt``, ``updatedAt``, and
+                ``workflowName``. A call with ``--branch`` gets only the runs
+                of that ``headBranch``, and a call with ``--limit`` at most
+                that many, in the order given here.
+            run_views: Run ID mapped to what ``gh run view <id> --json jobs``
+                prints, for example ``{"jobs": [...]}``, with only the fields
+                the call asks for. A run ID not mapped here exits 4.
         """
         views = {str(item["number"]): dict(item) for item in issues}
         views.update({str(k): dict(v) for k, v in (issue_views or {}).items()})
@@ -1570,7 +1603,9 @@ class Fakes:
                 "fail_on": [{"argv": list(words), "message": message}
                             for words, message in fail_on],
                 "check_views": {str(k): [dict(view) for view in v]
-                                for k, v in (check_views or {}).items()}}
+                                for k, v in (check_views or {}).items()},
+                "runs": [dict(run) for run in runs],
+                "run_views": {str(k): dict(v) for k, v in (run_views or {}).items()}}
         write_file(self.folder, self._data.name, json.dumps(data, ensure_ascii=False))
 
     def gh_argvs(self) -> list:

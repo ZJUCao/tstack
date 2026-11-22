@@ -6,7 +6,8 @@ them. The progress file is only a view of it (progress.py).
 
 from dataclasses import dataclass, field
 
-from . import github, plugincheck, repo as git, rulestate
+from . import ci, github, plugincheck, repo as git, rulestate
+from .errors import FlowError
 from .repo import MAIN, Repo
 from .requirements import Feature, approved, doc_version, order_problems, parse_features, \
     parse_order
@@ -53,6 +54,7 @@ class State:
             lines (F09 design 3.2).
         issues: Every issue, read by status for F15, or None when not read.
         all_prs: Every PR, open, merged, and closed, read with the issues.
+        notes: Notes for the report, such as CI runs that could not be read.
     """
 
     repo: Repo | None = None
@@ -79,6 +81,7 @@ class State:
     rules: list[dict] = field(default_factory=list)
     issues: object = None
     all_prs: list[dict] | None = None
+    notes: list[str] = field(default_factory=list)
 
     def feature(self, fid: str | None) -> Feature | None:
         """Returns a feature of the table by its ID, or None."""
@@ -156,12 +159,29 @@ def _read_requirements(state: State) -> None:
                    for v in state.versions}
 
 
-def _read_prs(state: State) -> None:
-    """Reads the open PRs and their comments through gh."""
+def _read_prs(state: State, with_ci: bool) -> None:
+    """Reads the open PRs and their comments through gh, and with_ci their CI runs."""
     for pr in github.open_prs(state.repo):
         number = int(pr.get("number", 0))
-        pr["notes"] = github.read_comments(github.comments(state.repo, number))
+        timed = github.timed_comments(state.repo, number)
+        pr["notes"] = github.read_comments([body for _, body in timed])
+        pr["ci"] = _read_ci(state, pr, timed) if with_ci else None
         state.prs.append(pr)
+
+
+def _read_ci(state: State, pr: dict, timed: list[tuple[str, str]]) -> ci.Count | None:
+    """Counts an open PR's attempts from its CI runs too (design 8.5, D261 to D263).
+
+    When gh cannot read the runs, the PR's attempts come from its comments
+    only, and the report says so.
+    """
+    try:
+        runs = ci.branch_runs(state.repo, str(pr.get("headRefName") or ""))
+        return ci.pr_count(state.repo, pr, runs, timed)
+    except FlowError as exc:
+        state.notes.append(f"The CI runs of PR #{pr.get('number')} could not be read ({exc}); "
+                           "its attempts count the comments only.")
+        return None
 
 
 def _bug_title(text: str):
@@ -195,11 +215,13 @@ def read_bugs(state: State) -> list[dict]:
     return sorted(bugs.values(), key=lambda b: int(b["id"][1:]))
 
 
-def read_state(path: str | None) -> State:
+def read_state(path: str | None, with_ci: bool = False) -> State:
     """Reads the project's state (design 5.1).
 
     Args:
         path: The --repo folder, or None for the current folder.
+        with_ci: Also count each open PR's attempts from its CI runs (design
+            8.5); status does, the issue sync does not.
 
     Returns:
         The state. Outside a repository, or without origin/main, most of it
@@ -225,7 +247,7 @@ def read_state(path: str | None) -> State:
     state.rules = rulestate.read_rules(state.repo).entries()
     if state.installed:
         state.checks = plugincheck.compare(state.repo)
-    _read_prs(state)
+    _read_prs(state, with_ci)
     state.bugs = read_bugs(state)
     return state
 
@@ -235,12 +257,15 @@ def pr_entry(state: State, pr: dict) -> dict:
     parsed = parse_subject(str(pr.get("title", "")))
     notes: github.Comments = pr["notes"]
     found = feature_stage(str(pr.get("title", "")))
+    counted: ci.Count | None = pr.get("ci")
     return {
         "number": int(pr.get("number", 0)), "title": pr.get("title"),
         "branch": pr.get("headRefName"), "url": pr.get("url"),
         "kind": parsed.kind if parsed else None, "item": parsed.id if parsed else None,
         "stage": found[1] if found else None, "merged_by": state.merged_by(pr.get("title")),
-        "reviews": notes.reviews, "rounds": notes.rounds, "attempts": notes.attempts,
+        "reviews": notes.reviews, "rounds": notes.rounds,
+        "attempts": counted.attempts if counted else notes.attempts,
+        "ci_failures": [f.entry() for f in counted.failures] if counted else [],
         "troy_comments": notes.troy, "waiting_for_troy": notes.waiting,
         "escalated": notes.escalated,
     }

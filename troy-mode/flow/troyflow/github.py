@@ -165,18 +165,19 @@ def _gh(repo: Repo, *args: str):
 
 
 def open_prs(repo: Repo) -> list[dict]:
-    """Lists the repository's open PRs: number, title, head branch, and URL, by number."""
+    """Lists the repository's open PRs: number, title, head branch, URL, and creation time."""
     data = _gh(repo, "pr", "list", "--state", "open", "--limit", "100", "--json",
-               "number,title,headRefName,url")
+               "number,title,headRefName,url,createdAt")
     if not isinstance(data, list):
         raise FlowError("gh pr list did not print a list")
     return sorted((pr for pr in data if isinstance(pr, dict)), key=lambda pr: pr.get("number", 0))
 
 
-def comments(repo: Repo, number: int) -> list[str]:
-    """Reads the bodies of a PR's comments and of its reviews that have a body, oldest first.
+def timed_comments(repo: Repo, number: int) -> list[tuple[str, str]]:
+    """Reads a PR's comments and its reviews that have a body, as (time, body), oldest first.
 
     A "Comment" review is how a reply from the phone may arrive (F15 design 7, D145).
+    The times let attempts from CI be matched to comments (F07 design 8.5).
     """
     data = _gh(repo, "pr", "view", str(number), "--json", "comments,reviews")
     data = data if isinstance(data, dict) else {}
@@ -186,7 +187,12 @@ def comments(repo: Repo, number: int) -> list[str]:
               for r in data.get("reviews") or [] if isinstance(r, dict)
               and str(r.get("body") or "").strip()]
     items.sort(key=lambda item: item[0])
-    return [body for _, body in items]
+    return items
+
+
+def comments(repo: Repo, number: int) -> list[str]:
+    """Reads the bodies of a PR's comments and of its reviews that have a body, oldest first."""
+    return [body for _, body in timed_comments(repo, number)]
 
 
 def gh_object(repo: Repo, *args: str) -> dict:
@@ -211,9 +217,9 @@ def _list(repo: Repo, *args: str) -> list[dict]:
 
 
 def merged_prs(repo: Repo) -> list[dict]:
-    """Lists merged PRs with their merge commits (F08 design 7), by number."""
+    """Lists merged PRs with their merge commits, head branches, and times (F08 design 7)."""
     data = _list(repo, "pr", "list", "--state", "merged", "--limit", "200", "--json",
-                 "number,title,url,mergeCommit")
+                 "number,title,url,mergeCommit,headRefName,createdAt,mergedAt")
     return sorted(data, key=lambda pr: int(pr.get("number", 0)))
 
 

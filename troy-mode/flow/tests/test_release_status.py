@@ -38,9 +38,9 @@ from flow_helpers import (
 )
 
 LIST_ARGS = ["pr", "list", "--state", "open", "--limit", "100", "--json",
-             "number,title,headRefName,url"]
+             "number,title,headRefName,url,createdAt"]
 MERGED_ARGS = ["pr", "list", "--state", "merged", "--limit", "200", "--json",
-               "number,title,url,mergeCommit"]
+               "number,title,url,mergeCommit,headRefName,createdAt,mergedAt"]
 RELEASE_ARGS = ["release", "list", "--limit", "100", "--json", "tagName"]
 ISSUE_ARGS = ["issue", "list", "--label", "bug", "--state", "open", "--limit", "100", "--json",
               "number,title,url"]
@@ -800,10 +800,14 @@ class GhCallTests(FlowCase):
                                  ALL_PRS_ARGS]))
 
     def test_open_release_pr_reads_its_comments_and_the_bugs(self):
-        """The open release PR: its comments and reviews, the open bugs, and F15's two lists."""
+        """The open release PR: its comments and reviews, the open bugs, F15's two lists, and
+        the CI runs of its head branch (F07 D261)."""
+        runs = ["run", "list", "--branch", release_pr(30, TAG)["headRefName"], "--event",
+                "pull_request", "--limit", "100", "--json",
+                "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName"]
         self.assertEqual(self.calls("release PR"),
                          sorted([LIST_ARGS, ["pr", "view", "30", "--json", "comments,reviews"],
-                                 ISSUE_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS]))
+                                 ISSUE_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS, runs]))
 
     def test_gh_failure_on_a_new_call_exits_two(self):
         """A failing release list, merged PR list, or bug issue list stops status (exit 2)."""

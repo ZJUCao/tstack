@@ -28,7 +28,7 @@ from flow_helpers import (
 )
 
 MERGED_ARGS = ["pr", "list", "--state", "merged", "--limit", "200", "--json",
-               "number,title,url,mergeCommit"]
+               "number,title,url,mergeCommit,headRefName,createdAt,mergedAt"]
 F02V2 = replace(F02, version="v0.2")
 CR = "Code Reviewer review, round 1: changes-requested"
 TM = "Test Manager review, round 1: changes-requested"
@@ -222,16 +222,19 @@ class RetroTests(FlowCase):
         self.assertEqual([b["id"] for b in report["bugs"]], ["B4"])
 
     def test_gh_calls_and_nothing_changed(self):
-        """The merged PR list, each PR's comments, each fixed bug's issue; no file changes."""
+        """The merged PR list, each PR's comments, each fixed bug's issue, and one list of CI
+        runs (F07 D261); no file changes."""
         self.report("v0.2.0")
         calls = self.fakes["v0.2.0"].gh_argvs()
         self.assertIn(MERGED_ARGS, calls)
         views = sorted(int(c[2]) for c in calls if c[:2] == ["pr", "view"])
         self.assertEqual(views, list(range(12, 25)))
         self.assertEqual(sorted(c[2] for c in calls if c[:2] == ["issue", "view"]), ["13", "15"])
+        self.assertEqual(sum(1 for c in calls if c[:2] == ["run", "list"]), 1)
         for argv in calls:
             with self.subTest(argv=argv):
-                self.assertIn(argv[:2], (["pr", "list"], ["pr", "view"], ["issue", "view"]))
+                self.assertIn(argv[:2], (["pr", "list"], ["pr", "view"], ["issue", "view"],
+                                         ["run", "list"]))
                 if argv[:2] == ["pr", "list"]:
                     self.assertEqual(argv, MERGED_ARGS)
         after = (self.project.status_lines(), self.project.head(),
