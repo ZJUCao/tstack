@@ -1,36 +1,116 @@
 # Runs the unit tests of troy-mode's checks (F02 design D13), of troy-init's
 # engine (F06 design 11.1), of the hooks (F05 design 13.1), of the flow
 # engine and the troy-mode skill (F07 design 14.1), and of the role exam
-# (F16 design section 12).
+# (F16 design section 12), and calls the two sample workflows (F03 design 10).
+#
+# It runs on every PR, so branch protection can require its last job. The first
+# job, changes, compares the PR's head with its base and decides which groups
+# the PR needs: the tests, the C++ sample, the Python sample. Each group runs only
+# when the PR changes one of its paths. Each test suite runs as its own job on
+# Linux and on Windows, and the flow suite runs in two parts. The last job,
+# required, always runs. It fails when a job before it failed or was cancelled,
+# and passes when each one passed or was skipped.
 name: troy-mode checks tests
 on:
   pull_request:
-    paths:
-      - "troy-mode/checks/**"
-      - "troy-mode/init/**"
-      - "troy-mode/templates/**"
-      - "troy-mode/lang/**"
-      - "skills/troy-init/**"
-      - "troy-mode/hooks/**"
-      - "hooks/**"
-      - "agents/**"
-      - "troy-mode/flow/**"
-      - "skills/troy-mode/**"
-      - "troy-mode/exam/**"
-      - "troy-mode/dev/requirements-dev.lock"
-      - ".github/workflows/troy-checks-tests.yml"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  test:
-    name: tests (${{ matrix.os }})
+  changes:
+    name: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tests: ${{ steps.diff.outputs.tests }}
+      cpp: ${{ steps.diff.outputs.cpp }}
+      python: ${{ steps.diff.outputs.python }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Find the groups the PR changes
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # Each group lists the paths of the paths filter its workflow had
+        # before, plus this file, which now starts the samples too. The diff
+        # runs from the merge base to the head, as GitHub's paths filter does. A
+        # git error fails the job, so required fails too. A run by hand runs
+        # every group.
+        run: |
+          set -euo pipefail
+          group() {
+            local name=$1 hits
+            shift
+            if [ "$EVENT" != pull_request ]; then
+              echo "$name=true" >> "$GITHUB_OUTPUT"
+              echo "- $name: runs, started by $EVENT" >> "$GITHUB_STEP_SUMMARY"
+              return
+            fi
+            hits=$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA" -- "$@")
+            if [ -n "$hits" ]; then
+              echo "$name=true" >> "$GITHUB_OUTPUT"
+              echo "- $name: runs, $(wc -l <<< "$hits") changed files in its paths" >> "$GITHUB_STEP_SUMMARY"
+              echo "$name runs for:"
+              sed 's/^/  /' <<< "$hits"
+            else
+              echo "$name=false" >> "$GITHUB_OUTPUT"
+              echo "- $name: skipped, the PR changes none of its paths" >> "$GITHUB_STEP_SUMMARY"
+              echo "$name is skipped."
+            fi
+          }
+          group tests \
+            troy-mode/checks/ troy-mode/init/ troy-mode/templates/ troy-mode/lang/ \
+            skills/troy-init/ troy-mode/hooks/ hooks/ agents/ troy-mode/flow/ \
+            skills/troy-mode/ troy-mode/exam/ troy-mode/dev/requirements-dev.lock \
+            .github/workflows/troy-checks-tests.yml
+          group cpp \
+            troy-mode/checks/troy_check.py troy-mode/checks/troycheck/ \
+            troy-mode/checks/workflow.yml troy-mode/checks/config.default.toml \
+            troy-mode/checks/git-hooks/ troy-mode/templates/ troy-mode/init/troyinit/ \
+            troy-mode/lang/cpp/ troy-mode/samples/cpp/ troy-mode/dev/build_sample.py \
+            .github/workflows/troy-cpp-sample.yml .github/workflows/troy-checks-tests.yml
+          group python \
+            troy-mode/checks/troy_check.py troy-mode/checks/troycheck/ \
+            troy-mode/checks/workflow.yml troy-mode/checks/config.default.toml \
+            troy-mode/checks/git-hooks/ troy-mode/templates/ troy-mode/init/troyinit/ \
+            troy-mode/lang/python/ troy-mode/samples/python/ troy-mode/dev/build_sample.py \
+            .github/workflows/troy-python-sample.yml .github/workflows/troy-checks-tests.yml
+  suite:
+    name: ${{ matrix.suite.name }} (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 75
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2025]
+        # The flow suite takes about 14 minutes on Windows, so it runs in two
+        # parts of about 6 and 8 minutes, split by file name: test_r*.py and
+        # test_[!r]*.py. Together they cover every test_*.py file in the folder.
+        suite:
+          - name: unit tests
+            step: Run unit tests
+            run: python -m unittest discover -s troy-mode/checks/tests -v
+          - name: troy-init tests
+            step: Run troy-init tests
+            run: python -m unittest discover -s troy-mode/init/tests -v
+          - name: hook tests
+            step: Run hook tests
+            run: python -m unittest discover -s troy-mode/hooks/tests -v
+          - name: flow tests, test_r*
+            step: Run flow tests in test_r*.py
+            run: python -m unittest discover -s troy-mode/flow/tests -p 'test_r*.py' -v
+          - name: flow tests, the rest
+            step: Run flow tests in the other files
+            run: python -m unittest discover -s troy-mode/flow/tests -p 'test_[!r]*.py' -v
+          - name: role exam tests
+            step: Run role exam tests
+            run: python -m unittest discover -s troy-mode/exam/tests -v
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
@@ -38,13 +118,45 @@ jobs:
           python-version: "3.11"
       - name: Install lizard for the C/C++ adapter
         run: python -m pip install -r troy-mode/dev/requirements-dev.lock
-      - name: Run unit tests
-        run: python -m unittest discover -s troy-mode/checks/tests -v
-      - name: Run troy-init tests
-        run: python -m unittest discover -s troy-mode/init/tests -v
-      - name: Run hook tests
-        run: python -m unittest discover -s troy-mode/hooks/tests -v
-      - name: Run flow tests
-        run: python -m unittest discover -s troy-mode/flow/tests -v
-      - name: Run role exam tests
-        run: python -m unittest discover -s troy-mode/exam/tests -v
+      - name: ${{ matrix.suite.step }}
+        run: ${{ matrix.suite.run }}
+  cpp-sample:
+    name: C++ sample
+    needs: changes
+    if: needs.changes.outputs.cpp == 'true'
+    uses: ./.github/workflows/troy-cpp-sample.yml
+  python-sample:
+    name: Python sample
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    uses: ./.github/workflows/troy-python-sample.yml
+  required:
+    name: required
+    if: always()
+    needs: [changes, suite, cpp-sample, python-sample]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check the jobs before this one
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          CHANGES: ${{ needs.changes.result }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        # A skipped job passes: the PR changes none of its paths. changes must
+        # succeed, because when it fails every later job is skipped.
+        run: |
+          echo "$NEEDS"
+          if [ "$CHANGES" != success ]; then
+            echo "::error::changes ended as $CHANGES, so no test job ran."
+            exit 1
+          fi
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "::error::A job ended as $result. The results above name it."
+                exit 1
+                ;;
+            esac
+          done
+          echo "Every job passed or was skipped."

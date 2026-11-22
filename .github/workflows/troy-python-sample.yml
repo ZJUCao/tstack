@@ -4,21 +4,11 @@
 # values come from build_sample.py instead of the pull_request event. The
 # design PR has no code yet, so its code steps are skipped (F06 design D50).
 # troy-mode/dev/tests/test_python_pack.py checks that the steps stay the same.
+# troy-checks-tests.yml calls this workflow when a PR changes one of the paths
+# its changes job lists for the Python sample, and its required job waits for it.
 name: troy-mode Python sample
 on:
-  pull_request:
-    paths:
-      - "troy-mode/checks/troy_check.py"
-      - "troy-mode/checks/troycheck/**"
-      - "troy-mode/checks/workflow.yml"
-      - "troy-mode/checks/config.default.toml"
-      - "troy-mode/checks/git-hooks/**"
-      - "troy-mode/templates/**"
-      - "troy-mode/init/troyinit/**"
-      - "troy-mode/lang/python/**"
-      - "troy-mode/samples/python/**"
-      - "troy-mode/dev/build_sample.py"
-      - ".github/workflows/troy-python-sample.yml"
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
