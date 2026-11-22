@@ -16,6 +16,24 @@ calls/<kind>-<n>.json, and answers:
   folder, writes the role's transcript and meta under
   $CLAUDE_CONFIG_DIR/projects/<folder key>/<session ID>/subagents/, and prints
   stream-json that ends in a result event.
+
+A role call's behavior is the plan's "role", updated in this order by:
+
+- "versions": for the version the call runs, named by the last "Marker:"
+  line of its agent file ("none" for a file without one), and again for
+  "<marker>@<case branch>": that entry's "every" for each of its calls, then
+  its "calls" entry for the version's own n-th call, counted from 1 with
+  claims of its own (v-<key>-<n>.claim, which claims("role") does not count).
+  So a test can make the head's first two runs fail, or one case's runs cost
+  more, whatever order the exam runs them in.
+- "calls": the entry for the call's number among all role calls.
+
+The keys a behavior may hold: "edit", "report" (handback, text, or
+alternate), "probe", "role_model", "costs" (model ID to dollars), "result"
+("limit" for a usage limit), "brief" ("mangle" changes the brief, so the run
+is void), and "tidy" (false leaves the pass marker out of the report, so the
+judge fails the run while it still counts). A plan without "versions" or
+"tidy" behaves as before.
 """
 
 import json
@@ -106,9 +124,9 @@ def probe_gh(cwd):
     return found
 
 
-def report_text(cwd, plugin, mangled):
+def report_text(cwd, plugin, mangled, tidy=True):
     """The role's report in the Developer's format, naming the run's own folders."""
-    summary = "the mock is written" if mangled else "kept tidy; the mock is written"
+    summary = "kept tidy; the mock is written" if tidy and not mangled else "the mock is written"
     return ("Role: Developer\nTask: DV1, F01\nResult: done\n"
             "Changed files: src/wordcount/f01.py\n"
             f"Checks: ran in {cwd} with {plugin}\n"
@@ -149,23 +167,47 @@ def transcript_lines(brief, cwd, report, how):
     return lines
 
 
+def version_behavior(plan, marker, branch):
+    """The plan's behavior for one version's call, and that version's call numbers by key.
+
+    Returns:
+        (behavior, numbers): the "versions" entries for the marker and for
+        "<marker>@<branch>", every-call part first, then the n-th call's part;
+        and each key mapped to n.
+    """
+    found, numbers = {}, {}
+    versions = plan.get("versions") or {}
+    for key in (marker, f"{marker}@{branch}"):
+        entry = versions.get(key)
+        if not entry:
+            continue
+        number = claim("v-" + re.sub(r"[^A-Za-z0-9]", "-", key))
+        numbers[key] = number
+        found.update(entry.get("every", {}))
+        found.update(entry.get("calls", {}).get(str(number), {}))
+    return found, numbers
+
+
 def role(args, plan):
     """Acts as the driver session and its role."""
     number = claim("role")
-    behavior = dict(plan.get("role", {}))
-    behavior.update(plan.get("calls", {}).get(str(number), {}))
     cwd = os.getcwd()
     prompt = option(args, "-p") or ""
     plugin = option(args, "--plugin-dir") or ""
     session = option(args, "--session-id") or str(uuid.uuid4())
     brief = brief_of(prompt)
-    seen = {"kind": "role", "index": number, "argv": args, "cwd": cwd, "env": dict(os.environ),
-            "brief": brief, "start": time.time(), "behavior": behavior}
     agent = Path(plugin) / "agents" / "troy-developer.md"
     markers = re.findall(r"(?m)^Marker: (\S+)", agent.read_text(encoding="utf-8")) \
         if agent.is_file() else ["no-agent-file"]
-    seen["marker"] = markers[-1] if markers else "none"
-    seen["branch"] = quiet(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)[1].strip()
+    marker = markers[-1] if markers else "none"
+    branch = quiet(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)[1].strip()
+    behavior = dict(plan.get("role", {}))
+    by_version, numbers = version_behavior(plan, marker, branch)
+    behavior.update(by_version)
+    behavior.update(plan.get("calls", {}).get(str(number), {}))
+    seen = {"kind": "role", "index": number, "argv": args, "cwd": cwd, "env": dict(os.environ),
+            "brief": brief, "start": time.time(), "behavior": behavior, "marker": marker,
+            "branch": branch, "version_calls": numbers}
     seen["run_root"] = sorted(os.listdir(Path(cwd).parent))
     if behavior.get("probe"):
         seen["gh"] = probe_gh(cwd)
@@ -188,7 +230,7 @@ def role(args, plan):
     first = brief if not mangled else (brief or "").replace("Task: DV1", "Task: DV2", 1)
     if behavior.get("edit", True):
         write_lf_preserving(Path(cwd) / "src" / "wordcount" / "f01.py", MOCK)
-    report = report_text(cwd, plugin, mangled)
+    report = report_text(cwd, plugin, mangled, behavior.get("tidy", True))
     how = behavior.get("report", "handback")
     if how == "alternate":
         how = "handback" if number % 2 else "text"
