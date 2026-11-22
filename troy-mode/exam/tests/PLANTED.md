@@ -131,6 +131,30 @@ Planted bugs of design 10.3, the second round (tstack #92).
    test_exam_second_round.StopBeforeStartTests.test_the_target_shows_no_verdict
    test_exam_second_round.RerunsTests.test_the_case_has_no_verdict
      (when the bug is in the path where reruns run out)
+
+Planted bugs of design 11.4, version 1.9: a verdict split across entries.
+
+22. parse_verdict keeping only the last entry of a label.
+   test_exam_blinding.SplitVerdictTests.test_a_label_split_across_two_entries_is_merged
+   test_exam_blinding.SplitVerdictTests.test_dv_mock_notes_of_exam_2026_11_22_1
+   test_exam_blinding.SplitVerdictTests.test_the_same_grade_twice_counts_once
+     (the two-entries subtest)
+   test_exam_blinding.SplitVerdictTests.test_labels_that_are_not_split_are_unchanged
+   test_exam_blinding.SplitVerdictTests.test_only_the_asked_labels_and_criteria_1_to_count
+   test_exam_blinding.SplitVerdictTests.test_different_grades_in_two_entries_raise
+     (the each-entry-whole subtest)
+
+23. parse_verdict keeping the last grade of a criterion graded twice with different grades
+    (or the first).
+   test_exam_blinding.SplitVerdictTests.test_different_grades_in_two_entries_raise
+   test_exam_blinding.SplitVerdictTests.test_different_grades_in_one_entry_raise
+
+24. parse_verdict raising on a criterion graded twice with the same grade.
+   test_exam_blinding.SplitVerdictTests.test_the_same_grade_twice_counts_once
+
+25. parse_verdict not checking a merged label for a missing criterion.
+   test_exam_blinding.SplitVerdictTests.test_if_error_rules_of_exam_2026_11_22_1
+   test_exam_blinding.SplitVerdictTests.test_a_criterion_missing_after_the_merge_raises
 -->
 
 # Planted bugs of F16 design 14.2

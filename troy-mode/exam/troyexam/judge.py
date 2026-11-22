@@ -95,8 +95,13 @@ def command_line(cli: Path, prompt: str, schema_text: str, max_cost: float) -> l
 def parse_verdict(output: dict, labels: Sequence[str], count: int) -> dict[str, dict[int, tuple[bool, str]]]:
     """Reads structured_output: label -> criterion number -> (pass, evidence).
 
+    The entries that share a label are merged, since the judge sometimes splits
+    one label's grades across two of them (design 11.4). A criterion graded
+    twice with the same grade counts once, with its first evidence.
+
     Raises:
-        ExamError: A label or a criterion is missing, or the shape is wrong.
+        ExamError: A label or a criterion is missing, a criterion is graded twice
+            with different grades, or the shape is wrong.
     """
     data = output.get("structured_output")
     if isinstance(data, str):
@@ -110,13 +115,20 @@ def parse_verdict(output: dict, labels: Sequence[str], count: int) -> dict[str, 
     for entry in data["sets"]:
         if not isinstance(entry, dict):
             continue
-        grades = {}
+        label = str(entry.get("label"))
+        grades = verdict.setdefault(label, {})
         for item in entry.get("criteria") or []:
             try:
-                grades[int(item["id"])] = (bool(item["pass"]), str(item.get("evidence", "")))
+                number, passed = int(item["id"]), bool(item["pass"])
+                evidence = str(item.get("evidence", ""))
             except (KeyError, TypeError, ValueError):
                 continue
-        verdict[str(entry.get("label"))] = grades
+            if number in grades:
+                if grades[number][0] != passed:
+                    raise ExamError(f"the verdict grades criterion {number} of {label} twice, "
+                                    f"with different grades")
+                continue
+            grades[number] = (passed, evidence)
     for label in labels:
         if label not in verdict:
             raise ExamError(f"the verdict has no label {label}")

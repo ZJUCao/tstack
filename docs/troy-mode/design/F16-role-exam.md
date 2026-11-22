@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.8 |
+| Version | 1.9 |
 | Date | 2026-11-22 |
 | Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
@@ -529,7 +529,7 @@ The runner starts one `claude -p` session per run, in the run's project folder, 
   --json-schema <schema> --output-format json --max-budget-usd <cap>  < /dev/null
 ```
 
-It runs in the judge's folder of section 6.2, with no `--plugin-dir`. The verdict is `structured_output` (probe D).
+It runs in the judge's folder of section 6.2, with no `--plugin-dir`. The verdict is `structured_output` (probe D). The engine merges the entries of `structured_output` that share a label, since the judge sometimes splits one label's grades across two of them (2 of the 23 passes of exam 2026-11-22-1). A criterion graded twice for one label with the same grade counts once. With different grades, or with a label or a criterion missing, the verdict is not valid: the exam stops with an error, and `resume` goes on from there.
 
 ### 11.5 What can go wrong
 
@@ -775,3 +775,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.6 | 2026-11-21 | D233, from tstack issue #49, approved by Troy on 2026-11-21 ("全按推荐"): U5 stays a note, since the fix, F05 design D231, ends a role's leftover commands from the main session, and an exam's session exit already ends them. The fix affects no case, and `check-run`'s new `running` problem never shows in an exam (sections 4.3, 13, and 17). |
 | 1.7 | 2026-11-21 | dv-mock-notes version 4, from tstack issue #93: its rubric's criterion 1 passes a sentence true of the mock as written, such as an enum's own `ValueError`, and criterion 2 says that a Raises entry is not a paragraph of the description. `prove` graded both anchors right, and the trap is live (14.7). |
 | 1.8 | 2026-11-22 | D241 to D243, from tstack issue #92, approved by Troy on 2026-11-22 ("全按推荐"): the estimate counts the second round of section 7.2, the $60 line applies to the first round, the guard counts the second rounds that the rules ask for and then waits for Troy instead of stopping, and a case left with too few runs shows "no verdict". What each option would have done in exams 2026-11-19-8 and 2026-11-19-10 (sections 7.2, 8.2, 10, 11.2, 11.5, 14.1, 14.7, and 17). |
+| 1.9 | 2026-11-22 | The engine merges the entries of a judge's verdict that share a label, since the judge split one label's grades across two entries in 2 of the 23 passes of exam 2026-11-22-1, the proof of tstack #92's build, and each such split stopped the exam. A criterion graded twice with different grades still stops it (11.4). Troy chose on 2026-11-22 to make this its own PR. |
