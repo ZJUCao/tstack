@@ -142,7 +142,7 @@ def _text(report: dict) -> str:
         lines += [f"label     {item['command']}" for item in report.get("labels", [])]
         lines += [f"action    {item['command']}" for item in report.get("actions", [])]
         lines += [f"skipped   {item}" for item in report.get("skipped", [])]
-    for key in ("run", "stage"):
+    for key in ("run", "stage", "stop"):
         if report.get(key):
             lines.append(f"{key:<9} {report[key]}")
     lines += [f"problem   {p if isinstance(p, str) else p.get('message')}"

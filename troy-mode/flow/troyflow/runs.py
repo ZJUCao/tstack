@@ -4,7 +4,9 @@ The tree is clean at the snapshot, so every change git lists after the run is
 the run's own. The engine reports what to stage, what is wrong, and how to undo
 it; the skill does the staging and the undoing. F09 adds the "rules" role, the
 main session's own work on a [rules] PR, and lets a dependency change through
-when it only deletes baseline lines (F09 design 3.1).
+when it only deletes baseline lines (F09 design 3.1). F05's D231 adds the
+"running" problem: a role, or a command it left in the background, may still
+run, and the skill ends it with TaskStop (F07 design 7, problem 5).
 """
 
 import json
@@ -15,6 +17,7 @@ from pathlib import Path
 
 from troycheck.classify import classify
 from troycheck.globs import matches_any
+from troyhook import records as agents
 from troyhook.scopes import SCOPES
 from troyhook.writes import allows
 
@@ -43,6 +46,32 @@ def _records(repo: Repo) -> Path:
     return repo.state_dir() / "flow"
 
 
+def _open_agents(repo: Repo) -> list[tuple[str, dict]]:
+    """Lists the open role records (F05 design 6.1): pairs of agent ID and record."""
+    found = []
+    for path, record in agents.read_all(str(repo.state_dir())):
+        if agents.is_open(record):
+            found.append((agents.agent_of(Path(path).name, record), record))
+    return found
+
+
+def _running(found: list[tuple[str, dict]], then: str) -> tuple[list[dict], list[str]]:
+    """Words one "running" problem per open record and lists the agent IDs to stop.
+
+    Args:
+        found: Pairs of agent ID and record.
+        then: What the skill does after TaskStop, for example "run check-run again".
+    """
+    problems = []
+    for agent_id, record in found:
+        who = str(record.get("agent_type") or "a role").removeprefix(f"{PLUGIN_PREFIX}troy-")
+        problems.append({"kind": "running", "path": None, "agent_id": agent_id, "message":
+                         f"The {who} agent {agent_id} still runs, or a command it left in the "
+                         f"background may still run. End it with TaskStop {agent_id}, then "
+                         f"{then}. This counts no attempt (F05 design D231)."})
+    return problems, sorted({agent_id for agent_id, _ in found})
+
+
 def snapshot(args) -> tuple[dict, int]:
     """Records the state before a role run (design 6.2, step 1).
 
@@ -55,12 +84,15 @@ def snapshot(args) -> tuple[dict, int]:
     repo = git.need_repo(args.repo)
     roles = list(dict.fromkeys(args.role))
     report = {"command": "snapshot", "ok": False, "notes": [], "problems": [], "run": None,
-              "roles": roles}
+              "roles": roles, "stop": []}
     dirty = git.changed_paths(repo)
-    if dirty:
+    running, stop = _running(_open_agents(repo), "take the snapshot again")
+    if dirty or running:
         report["problems"] = [{"kind": "dirty", "path": path,
                                "message": f"{path} has changes ({code.strip()}); commit or undo "
                                           "them before a role runs."} for code, path in dirty]
+        report["problems"] += running
+        report["stop"] = stop
         return report, 1
     now = time.gmtime()
     run = time.strftime("%Y%m%dT%H%M%SZ", now) + "-" + secrets.token_hex(4)
@@ -186,11 +218,17 @@ def check_run(args) -> tuple[dict, int]:
         problems.append({"kind": "branch", "path": None, "message":
                          "The branch changed during the run. Roles cannot switch branches."})
     problems += _path_problems(repo, record, changed, set(args.allow_dependency or []), paths)
+    types = {f"{PLUGIN_PREFIX}troy-{r}" for r in record["roles"] if r not in MAIN_SESSION}
+    running, stop = _running([(agent_id, rec) for agent_id, rec in _open_agents(repo)
+                              if rec.get("agent_type") in types
+                              and str(rec.get("started") or "") >= record["time"]],
+                             "run check-run again")
+    problems += running
     undo_kinds = {"scope", "section", "dependency"}
     report = {"command": "check-run", "ok": not problems, "notes": [], "run": record["run"],
               "roles": record["roles"], "changed": changed, "problems": problems,
               "escalate": any(p["kind"] in ("head", "branch") for p in problems),
-              "stage": [] if problems else [c["path"] for c in changed],
+              "stage": [] if problems else [c["path"] for c in changed], "stop": stop,
               "undo": _undo(repo, record, changed)
               if any(p["kind"] in undo_kinds for p in problems) else [],
               "hooks_log": _hooks_log(repo, record)}

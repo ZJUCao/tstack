@@ -125,6 +125,20 @@ names its bug in its docstring.
 - A plugin read allowed outside CLAUDE_PLUGIN_ROOT:
   test_plugin_files.PluginReadTests.test_read_outside_the_plugin_root_gets_nothing.
 
+Background work (design 6.1, D231 and D232, tstack issue #49). The role
+record of ``<git dir>/troy-mode/agents/<agent_id>.json`` gains ``session``,
+``started``, ``stopped``, and ``background`` (the build's interface note
+fixes the other keys: ``agent_id``, ``agent_type``, and ``paths``), and the
+hook no longer deletes it at the stop. The builders below take the new
+inputs: ``post_call(tool_response=...)`` with ``background_response``,
+``stop_call(background_tasks=...)`` with ``shell_task`` and
+``subagent_task``, ``task_stop_call``, ``session_end_call``, and
+``start_call(session=...)``. ``role_record`` builds a record to write by
+hand with ``Project.write_record``. The log gains the rules ``stopped``
+(decision ``deny``) and ``background`` (decision ``stop``); only a
+``background`` line has an eleventh key, ``tasks``. The tests and their
+planted bugs are in test_background_work.py.
+
 Run from the repository root:
 python -m unittest discover -s troy-mode/hooks/tests -v
 """
@@ -179,9 +193,16 @@ LOG_KEYS = frozenset({"time", "session", "agent_id", "agent_type", "event", "too
 LOG_RULES = frozenset({"scope", "changes", "git", "gh", "skill", "no-verify", "hooks-path",
                        "hooks-off", "pr-from-main", "attribution", "unparsed", "error",
                        "gh-delete",  # gh-delete: F15 interface note section 6
-                       "python-stdin"})  # python-stdin: F05 design 8.3 (D223)
+                       "python-stdin",  # python-stdin: F05 design 8.3 (D223)
+                       "stopped", "background"})  # F05 design 6.1 and 10 (D231, D232)
 LOG_DECISIONS = frozenset({"deny", "block", "stop"})
+# A background line has the ten keys and the kept task IDs (design 10, D231).
+BACKGROUND_LOG_KEYS = LOG_KEYS | {"tasks"}
 LOG_TIME = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+# The reason of rule stopped (design 6.1, D232).
+STOPPED_REASON = ("Your run has ended and your report was delivered. Do nothing more, "
+                  "and end your turn.")
 ERROR_PREFIX = "troy-mode hook error"
 ATTRIBUTION_LINE = "\U0001f916 Generated with [Claude Code](https://claude.com/claude-code)"
 TRAILER = "Co-Authored-By: Claude <noreply@anthropic.com>"
@@ -490,6 +511,25 @@ class Project:
     def record_path(self, agent_id: str) -> Path:
         """The start record of a role (contract section 4)."""
         return self.git_dir / "troy-mode" / "agents" / f"{agent_id}.json"
+
+    def read_record(self, agent_id: str) -> Optional[dict]:
+        """Parses a role record, or returns None when its file does not exist."""
+        path = self.record_path(agent_id)
+        if not path.is_file():
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def write_record(self, agent_id: str, record: Union[dict, str]) -> Path:
+        """Writes a role record by hand: a dict as JSON, or the exact text given."""
+        text = record if isinstance(record, str) else json.dumps(record) + "\n"
+        return write_file(self.git_dir, f"troy-mode/agents/{agent_id}.json", text)
+
+    def record_files(self) -> dict:
+        """Maps each record file's name to its bytes; empty when there is no folder."""
+        folder = self.git_dir / "troy-mode" / "agents"
+        if not folder.is_dir():
+            return {}
+        return {path.name: path.read_bytes() for path in sorted(folder.iterdir())}
 
     def log_text(self) -> str:
         """Returns the whole log, or an empty string when there is none."""
@@ -896,38 +936,134 @@ def read_call(project: Union[Project, Path], caller: Caller, path: Union[str, Pa
 
 
 def post_call(project: Union[Project, Path], caller: Caller, tool: str = "Bash",
-              command: str = "python -m pytest -q", session: str = SESSION) -> Call:
-    """Builds a PostToolUse call for Bash, PowerShell, or Skill."""
+              command: str = "python -m pytest -q", session: str = SESSION,
+              tool_response: Optional[dict] = None) -> Call:
+    """Builds a PostToolUse call for Bash, PowerShell, or Skill.
+
+    Args:
+        project: The project (its root is the input's ``cwd``).
+        caller: Who made the call.
+        tool: ``Bash``, ``PowerShell``, or ``Skill``.
+        command: The shell command, for Bash and PowerShell.
+        session: ``session_id``.
+        tool_response: ``tool_response``, or None for a command that finished
+            in the foreground. ``background_response`` builds one for a
+            command moved to the background (design 6.1).
+
+    Returns:
+        The call.
+    """
     if tool == "Skill":
         tool_input = {"skill": "code-review"}
     else:
         tool_input = {"command": command}
+    if tool_response is None:
+        tool_response = {"stdout": "", "stderr": "", "interrupted": False}
     payload = hook_input("PostToolUse", _root(project), caller, tool_name=tool,
-                         tool_input=tool_input,
-                         tool_response={"stdout": "", "stderr": "", "interrupted": False})
+                         tool_input=tool_input, tool_response=tool_response)
     payload["session_id"] = session
     return Call("PostToolUse", payload)
 
 
-def start_call(project: Union[Project, Path], caller: Caller) -> Call:
-    """Builds a SubagentStart call."""
-    return Call("SubagentStart", hook_input("SubagentStart", _root(project), caller))
+def background_response(task_id: str, timed_out_ms: int = 120000) -> dict:
+    """A shell ``tool_response`` for a command moved to the background (design 6.1, probe 1).
+
+    Args:
+        task_id: ``backgroundTaskId``.
+        timed_out_ms: ``timedOutAfterMs``.
+
+    Returns:
+        The response, in the shape the probe of CLI 2.1.328 logged.
+    """
+    return {"stdout": "", "stderr": "", "interrupted": False, "isImage": False,
+            "noOutputExpected": False, "backgroundTaskId": task_id,
+            "timedOutAfterMs": timed_out_ms}
+
+
+def shell_task(task_id: str, status: str = "running", command: str = "python -m pytest -q",
+               description: str = "Run the tests") -> dict:
+    """One shell entry of SubagentStop's ``background_tasks`` (design 6.1)."""
+    return {"id": task_id, "type": "shell", "status": status, "description": description,
+            "command": command}
+
+
+def subagent_task(agent_id: str, status: str = "running",
+                  agent_type: str = "tstack:troy-test-engineer") -> dict:
+    """One subagent entry of SubagentStop's ``background_tasks`` (design 6.1)."""
+    return {"id": agent_id, "type": "subagent", "status": status, "description": "role run",
+            "agent_type": agent_type}
+
+
+def start_call(project: Union[Project, Path], caller: Caller, session: str = SESSION) -> Call:
+    """Builds a SubagentStart call with ``session_id``."""
+    payload = hook_input("SubagentStart", _root(project), caller)
+    payload["session_id"] = session
+    return Call("SubagentStart", payload)
 
 
 def stop_call(project: Union[Project, Path], caller: Caller, active: bool = False,
-              session: str = SESSION) -> Call:
-    """Builds a SubagentStop call with ``stop_hook_active``."""
+              session: str = SESSION, background_tasks: Optional[list] = None) -> Call:
+    """Builds a SubagentStop call with ``stop_hook_active``.
+
+    Args:
+        project: The project.
+        caller: The subagent that stops.
+        active: ``stop_hook_active``.
+        session: ``session_id``.
+        background_tasks: The session's running tasks (design 6.1), or None to
+            leave the key out, as the inputs before D231 did.
+
+    Returns:
+        The call.
+    """
     payload = hook_input("SubagentStop", _root(project), caller, stop_hook_active=active,
                          agent_transcript_path=str(SCRATCH / "agent.jsonl"))
     payload["stop_hook_active"] = active
     payload["session_id"] = session
+    if background_tasks is not None:
+        payload["background_tasks"] = background_tasks
     return Call("SubagentStop", payload)
+
+
+def task_stop_call(project: Union[Project, Path], caller: Caller, task_id: str,
+                   session: str = SESSION) -> Call:
+    """Builds a PreToolUse call for ``TaskStop`` with ``task_id`` (design 6.1)."""
+    return pre_call(project, caller, "TaskStop", {"task_id": task_id}, session=session)
 
 
 def session_call(project: Union[Project, Path], cwd: Optional[Path] = None) -> Call:
     """Builds a SessionStart call."""
     return Call("SessionStart", hook_input("SessionStart", cwd or _root(project), MAIN,
                                            source="startup"))
+
+
+def session_end_call(project: Union[Project, Path], session: str = SESSION,
+                     reason: str = "other", cwd: Optional[Path] = None) -> Call:
+    """Builds a SessionEnd call (design 6.1): ``session_id``, ``cwd``, and ``reason``."""
+    payload = hook_input("SessionEnd", cwd or _root(project), MAIN, reason=reason)
+    payload["session_id"] = session
+    return Call("SessionEnd", payload)
+
+
+def role_record(caller: Caller, session: Optional[str] = SESSION,
+                started: Optional[str] = "2026-11-21T01:00:00Z", stopped: Optional[str] = None,
+                background: Sequence[str] = (), paths: Optional[dict] = None) -> dict:
+    """A role record in the shape of design 6.1 and the interface note, to write by hand.
+
+    Args:
+        caller: The role.
+        session: ``session``.
+        started: ``started``, ``YYYY-MM-DDTHH:MM:SSZ``.
+        stopped: ``stopped``, or None while the role runs.
+        background: ``background``, the task IDs.
+        paths: The starting state of design 6; ``{}`` for a clean tree.
+
+    Returns:
+        The record.
+    """
+    return {"agent_id": caller.agent_id, "agent_type": caller.agent_type, "session": session,
+            "started": started, "stopped": stopped, "background": list(background),
+            "paths": {} if paths is None else paths}
 
 
 # ---------------------------------------------------------------------------

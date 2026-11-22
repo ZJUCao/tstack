@@ -149,46 +149,103 @@ def _pre_check(ctx: Context):
 
 
 def pre_tool_use(ctx: Context) -> dict | None:
-    """PreToolUse: plugin reads, write scopes, commands, skills, and guards."""
+    """PreToolUse: plugin reads, write scopes, commands, skills, guards, and TaskStop."""
     if ctx.tool in ("Read", "Glob", "Grep"):
         return _plugin_read(ctx)
+    if ctx.tool == "TaskStop":
+        if ctx.caller.kind == MAIN:
+            _task_stop(ctx)
+        return None
     if ctx.caller.kind == ROLE:
-        from .changes import ensure_record  # noqa: PLC0415
+        from . import changes, records  # noqa: PLC0415
+        from .verdict import Refusal  # noqa: PLC0415
 
-        ensure_record(ctx.project, ctx.caller)
+        record = changes.ensure_record(ctx)
+        if records.is_stopped(record) and ctx.tool in records.STOPPED_TOOLS:
+            return _deny(ctx, Refusal("stopped", records.STOPPED_REASON))
     refusal = _pre_check(ctx)
     return _deny(ctx, refusal) if refusal else None
 
 
+def _task_stop(ctx: Context) -> None:
+    """Applies the main session's TaskStop to the role records (design 6.1, step 3)."""
+    from . import records  # noqa: PLC0415
+
+    tool_input = ctx.tool_input()
+    task_id = tool_input.get("task_id") or tool_input.get("shell_id")
+    if isinstance(task_id, str) and task_id:
+        records.stop_task(ctx.project.state_dir(), task_id)
+
+
+def _background_task(ctx: Context) -> str | None:
+    """Returns the task ID of a shell command that Claude Code moved to the background."""
+    if ctx.tool not in ("Bash", "PowerShell"):
+        return None
+    response = ctx.data.get("tool_response")
+    task = response.get("backgroundTaskId") if isinstance(response, dict) else None
+    return task if isinstance(task, str) and task else None
+
+
+def _note_background(ctx: Context, task: str) -> dict:
+    """Adds a task to the role's record and words the note for the role (D231)."""
+    from . import changes, records  # noqa: PLC0415
+
+    record = changes.current_record(ctx)
+    if task not in records.tasks(record):
+        record["background"] = [*records.tasks(record), task]
+        records.save(changes.record_path(ctx), record)
+    return {"hookEventName": "PostToolUse", "additionalContext": (
+        f"troy-mode: this command now runs in the background as task {task}. You cannot stop "
+        "it, and the main session stops it after your report, so do not wait for its result. "
+        "Say in your report what you could not check.")}
+
+
 def post_tool_use(ctx: Context) -> dict | None:
-    """PostToolUse: reports a role's changes outside its scope after a shell or skill call."""
+    """PostToolUse: a role's changes outside its scope, and its commands moved to the background."""
     if ctx.caller.kind != ROLE or ctx.tool not in ("Bash", "PowerShell", "Skill"):
         return None
-    from . import changes  # noqa: PLC0415
+    from . import changes, records  # noqa: PLC0415
     from .verdict import Refusal  # noqa: PLC0415
 
-    left = changes.out_of_scope(ctx)
-    if not left:
-        return None
-    return _block(ctx, Refusal("changes", changes.reason(left, ctx.caller, at_stop=False),
-                               paths=tuple(path for path, _ in left)))
+    output: dict = {}
+    if not records.is_stopped(changes.read_record(ctx)):
+        left = changes.out_of_scope(ctx)
+        if left:
+            output = _block(ctx, Refusal("changes", changes.reason(left, ctx.caller, at_stop=False),
+                                         paths=tuple(path for path, _ in left)))
+    task = _background_task(ctx)
+    if task:
+        output["hookSpecificOutput"] = _note_background(ctx, task)
+    return output or None
 
 
 def subagent_start(ctx: Context) -> None:
-    """SubagentStart: records a role's starting state."""
+    """SubagentStart: records a role's starting state, and keeps a stopped role's record."""
     if ctx.caller.kind == ROLE:
-        from .changes import write_record  # noqa: PLC0415
+        from . import changes, records  # noqa: PLC0415
 
-        write_record(ctx.project, ctx.caller)
+        if not records.is_stopped(changes.read_record(ctx)):
+            changes.write_record(ctx)
 
 
 def subagent_stop(ctx: Context) -> dict | None:
-    """SubagentStop: blocks a role's stop once while changes outside its scope remain."""
+    """SubagentStop: blocks a role's stop once while changes outside its scope remain.
+
+    When the role may stop, its record is marked stopped and keeps only the
+    commands still running (design 6.1). A role woken after its stop gets no
+    change detection and is never blocked (D232).
+    """
     if ctx.caller.kind != ROLE:
         return None
-    from . import changes, log  # noqa: PLC0415
+    from . import changes, log, records  # noqa: PLC0415
     from .verdict import Refusal  # noqa: PLC0415
 
+    record = changes.read_record(ctx)
+    running = records.running_shells(ctx.data)
+    if records.is_stopped(record):
+        record["background"] = [task for task in records.tasks(record) if task in running]
+        records.save(changes.record_path(ctx), record)
+        return None
     left = changes.out_of_scope(ctx)
     paths = tuple(path for path, _ in left)
     if left and not ctx.data.get("stop_hook_active"):
@@ -196,7 +253,12 @@ def subagent_stop(ctx: Context) -> dict | None:
                                    paths=paths))
     if left:
         log.write(ctx, "changes", "stop", paths)
-    changes.delete_record(ctx.project, ctx.caller)
+    record = changes.current_record(ctx)
+    record["stopped"] = records.now()
+    record["background"] = [task for task in records.tasks(record) if task in running]
+    records.save(changes.record_path(ctx), record)
+    if record["background"]:
+        log.write(ctx, "background", "stop", tasks=record["background"])
     return None
 
 
@@ -239,6 +301,15 @@ def session_start(ctx: Context) -> dict | None:
                                    "additionalContext": " ".join(notes)}}
 
 
+def session_end(ctx: Context) -> None:
+    """SessionEnd: closes the records of the ending session's roles (design 6.1, step 4)."""
+    from . import records  # noqa: PLC0415
+
+    session = ctx.data.get("session_id")
+    if isinstance(session, str) and session:
+        records.end_session(ctx.project.state_dir(), session)
+
+
 def user_prompt_expansion(ctx: Context) -> dict | None:
     """UserPromptExpansion: refuses poteto-mode's commands, with no log line (F13 design 7.2)."""
     from . import modeguard  # noqa: PLC0415
@@ -252,12 +323,13 @@ HANDLERS = {
     "PreToolUse": pre_tool_use,
     "PostToolUse": post_tool_use,
     "SubagentStop": subagent_stop,
+    "SessionEnd": session_end,
     "UserPromptExpansion": user_prompt_expansion,
 }
 
 # Events whose errors only warn, whoever the caller is: Troy's own typed
 # commands must never be blocked by a hook error (F13 design 7.2).
-_WARN_ONLY = ("SessionStart", "SubagentStart", "UserPromptExpansion")
+_WARN_ONLY = ("SessionStart", "SubagentStart", "SessionEnd", "UserPromptExpansion")
 
 
 def _posting_call(ctx: Context) -> str | None:
