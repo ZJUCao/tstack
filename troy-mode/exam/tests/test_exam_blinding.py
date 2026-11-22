@@ -11,6 +11,23 @@ Planted bugs of design 14.2 caught here:
   (and test_exam_cli.MainExamTests.test_judge_folder_holds_only_rubric_and_outputs).
 - "a label that names its version": LabelTests.test_labels_are_r_numbers_that_name_nothing
   (and test_exam_cli.MainExamTests.test_judge_labels_are_shuffled_r_numbers).
+
+Planted bugs of design 11.4 (version 1.9, a verdict split across entries) caught here:
+
+- "parse_verdict keeping only the last entry of a label":
+  SplitVerdictTests.test_a_label_split_across_two_entries_is_merged,
+  test_dv_mock_notes_of_exam_2026_11_22_1, test_the_same_grade_twice_counts_once
+  (two entries), test_labels_that_are_not_split_are_unchanged,
+  test_only_the_asked_labels_and_criteria_1_to_count, and
+  test_different_grades_in_two_entries_raise (each entry whole).
+- "parse_verdict keeping the last grade of a criterion graded twice with
+  different grades" (or the first): SplitVerdictTests.test_different_grades_in_two_entries_raise
+  and test_different_grades_in_one_entry_raise.
+- "parse_verdict raising on a criterion graded twice with the same grade":
+  SplitVerdictTests.test_the_same_grade_twice_counts_once.
+- "parse_verdict not checking a merged label for a missing criterion":
+  SplitVerdictTests.test_if_error_rules_of_exam_2026_11_22_1 and
+  test_a_criterion_missing_after_the_merge_raises.
 """
 
 import json
@@ -295,6 +312,160 @@ class JudgeCallTests(unittest.TestCase):
         self.assertFalse(anchors_ok({"R01": True, "R02": True, "R03": True}, key))
         self.assertFalse(anchors_ok({"R01": False, "R02": True, "R03": False}, key))
         self.assertFalse(anchors_ok({"R01": True, "R02": True, "R03": False}, key))
+
+
+def grade(number: int, passed: bool, evidence: str) -> dict:
+    """One criterion's grade in an entry of structured_output."""
+    return {"id": number, "pass": passed, "evidence": evidence}
+
+
+class SplitVerdictTests(unittest.TestCase):
+    """parse_verdict merges the entries that share a label (design 11.4, version 1.9).
+
+    The judge sometimes splits one label's grades across two entries of
+    structured_output (2 of the 23 passes of exam 2026-11-22-1). A criterion
+    graded twice for one label with the same grade counts once. Different
+    grades, or a label or a criterion still missing, make the verdict not
+    valid: ExamError. Which evidence a criterion graded twice alike keeps is
+    left open, so no test reads it.
+    """
+
+    def verdict(self, sets) -> dict:
+        """A judge output with structured_output."""
+        return {"type": "result", "structured_output": {"sets": sets}}
+
+    def merged(self, sets, labels, count) -> dict:
+        """parse_verdict's result for a valid verdict; its ExamError fails the test."""
+        try:
+            return parse_verdict(self.verdict(sets), labels, count)
+        except ExamError as exc:
+            error = exc
+        self.fail(f"a valid verdict raised ExamError: {error}")
+
+    def test_a_label_split_across_two_entries_is_merged(self):
+        """R01's criterion 1 in one entry and criteria 2 and 3 in the next make one R01."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "a")]},
+                {"label": "R01", "criteria": [grade(2, False, "b"), grade(3, True, "c")]}]
+        found = self.merged(sets, ["R01"], 3)
+        self.assertEqual(found, {"R01": {1: (True, "a"), 2: (False, "b"), 3: (True, "c")}})
+
+    def test_dv_mock_notes_of_exam_2026_11_22_1(self):
+        """R01 in one entry; R02 in two, criterion 1 then criteria 2 and 3: both complete."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "R01 one"), grade(2, True, "R01 two"),
+                                              grade(3, False, "R01 three")]},
+                {"label": "R02", "criteria": [grade(1, False, "R02 one")]},
+                {"label": "R02", "criteria": [grade(2, True, "R02 two"),
+                                              grade(3, True, "R02 three")]}]
+        found = self.merged(sets, ["R01", "R02"], 3)
+        self.assertEqual(found, {
+            "R01": {1: (True, "R01 one"), 2: (True, "R01 two"), 3: (False, "R01 three")},
+            "R02": {1: (False, "R02 one"), 2: (True, "R02 two"), 3: (True, "R02 three")}})
+
+    def test_if_error_rules_of_exam_2026_11_22_1(self):
+        """R01 in one entry; R02 in two, criterion 1 then an empty list: R02 lacks 2 and 3."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "R01 one"), grade(2, True, "R01 two"),
+                                              grade(3, True, "R01 three")]},
+                {"label": "R02", "criteria": [grade(1, True, "R02 one")]},
+                {"label": "R02", "criteria": []}]
+        with self.assertRaises(ExamError):
+            parse_verdict(self.verdict(sets), ["R01", "R02"], 3)
+
+    def test_the_same_grade_twice_counts_once(self):
+        """A criterion graded twice alike, in two entries or in one, keeps that pass or fail."""
+        shapes = {
+            "two entries": [
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "b"),
+                                              grade(3, True, "c")]},
+                {"label": "R01", "criteria": [grade(2, False, "b again"), grade(3, True, "c again"),
+                                              grade(4, False, "d")]}],
+            "one entry": [
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "b"),
+                                              grade(2, False, "b again"), grade(3, True, "c"),
+                                              grade(3, True, "c again"), grade(4, False, "d")]}]}
+        for shape, sets in shapes.items():
+            with self.subTest(shape=shape):
+                found = self.merged(sets, ["R01"], 4)
+                self.assertEqual(sorted(found["R01"]), [1, 2, 3, 4])
+                self.assertEqual({n: found["R01"][n][0] for n in range(1, 5)},
+                                 {1: True, 2: False, 3: True, 4: False})
+                self.assertEqual(found["R01"][1], (True, "a"))
+                self.assertEqual(found["R01"][4], (False, "d"))
+                for n in (2, 3):
+                    self.assertIsInstance(found["R01"][n][1], str)
+
+    def test_different_grades_in_two_entries_raise(self):
+        """A criterion that passes in one entry of a label and fails in another is not valid."""
+        shapes = {
+            # Each entry grades all three, so keeping either one whole looks complete.
+            "each entry whole": [
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, True, "b"),
+                                              grade(3, True, "c")]},
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "not b"),
+                                              grade(3, True, "c")]}],
+            "split with one overlap": [
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "not b")]},
+                {"label": "R01", "criteria": [grade(2, True, "b"), grade(3, True, "c")]}]}
+        for shape, sets in shapes.items():
+            with self.subTest(shape=shape):
+                with self.assertRaises(ExamError):
+                    parse_verdict(self.verdict(sets), ["R01"], 3)
+
+    def test_different_grades_in_one_entry_raise(self):
+        """A criterion graded pass and fail within one entry is not valid."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "not b"),
+                                              grade(2, True, "b"), grade(3, True, "c")]},
+                {"label": "R02", "criteria": [grade(1, True, "x"), grade(2, True, "y"),
+                                              grade(3, True, "z")]}]
+        with self.assertRaises(ExamError):
+            parse_verdict(self.verdict(sets), ["R01", "R02"], 3)
+
+    def test_a_criterion_missing_after_the_merge_raises(self):
+        """R01's two entries grade criteria 1, 3, and 4; criterion 2 is in neither."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "a"), grade(3, True, "c")]},
+                {"label": "R01", "criteria": [grade(4, False, "d")]},
+                {"label": "R02", "criteria": [grade(1, True, "w"), grade(2, True, "x"),
+                                              grade(3, True, "y"), grade(4, True, "z")]}]
+        with self.assertRaises(ExamError):
+            parse_verdict(self.verdict(sets), ["R01", "R02"], 4)
+
+    def test_a_label_missing_after_the_merge_raises(self):
+        """R01's two entries and R03's one do not stand in for R02, which has none."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "a")]},
+                {"label": "R01", "criteria": [grade(1, True, "a"), grade(2, False, "b"),
+                                              grade(3, True, "c")]},
+                {"label": "R03", "criteria": [grade(1, True, "x"), grade(2, True, "y"),
+                                              grade(3, True, "z")]}]
+        with self.assertRaises(ExamError):
+            parse_verdict(self.verdict(sets), ["R01", "R02", "R03"], 3)
+
+    def test_labels_that_are_not_split_are_unchanged(self):
+        """R02 and R03, one entry each, keep every grade and evidence while R01's two merge."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "R01 one")]},
+                {"label": "R02", "criteria": [grade(2, False, "R02 two"), grade(1, True, "R02 one"),
+                                              grade(3, False, "R02 three")]},
+                {"label": "R01", "criteria": [grade(2, True, "R01 two"),
+                                              grade(3, False, "R01 three")]},
+                {"label": "R03", "criteria": [grade(1, False, "R03 one"), grade(2, True, "R03 two"),
+                                              grade(3, True, "R03 three")]}]
+        found = self.merged(sets, ["R01", "R02", "R03"], 3)
+        self.assertEqual(found["R02"], {1: (True, "R02 one"), 2: (False, "R02 two"),
+                                        3: (False, "R02 three")})
+        self.assertEqual(found["R03"], {1: (False, "R03 one"), 2: (True, "R03 two"),
+                                        3: (True, "R03 three")})
+
+    def test_only_the_asked_labels_and_criteria_1_to_count(self):
+        """A label not asked for stays out, split or not; each asked label has criteria 1..count."""
+        sets = [{"label": "R01", "criteria": [grade(1, True, "a")]},
+                {"label": "R09", "criteria": [grade(1, True, "p")]},
+                {"label": "R01", "criteria": [grade(2, False, "b"), grade(3, True, "c")]},
+                {"label": "R09", "criteria": [grade(2, True, "q"), grade(3, False, "r")]},
+                {"label": "R02", "criteria": [grade(1, True, "x"), grade(2, True, "y"),
+                                              grade(3, True, "z")]}]
+        found = self.merged(sets, ["R01", "R02"], 3)
+        self.assertEqual(sorted(found), ["R01", "R02"])
+        for label in ("R01", "R02"):
+            with self.subTest(label=label):
+                self.assertEqual(sorted(found[label]), [1, 2, 3])
 
 
 if __name__ == "__main__":
