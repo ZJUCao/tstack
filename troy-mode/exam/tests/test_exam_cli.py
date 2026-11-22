@@ -14,9 +14,10 @@ Groups of design 14.1 covered here: Blinding (no exam word in a built run;
 the two versions' role-visible texts differ only by random letters; the
 judge's folder), The run (the command line, the brief, a mangled brief, the
 cost per model, the report, the folders deleted), Reuse (the base's runs
-reused by the next exam), Budget (the per-run cap, the $60 line, the stop at
-1.5 times, the pause at a usage limit, and resume), Comparison (a void run is
-not counted), and The instruction set (affected).
+reused by the next exam), Budget (the per-run cap, the $60 line, the wait for
+Troy at 1.5 times, the pause at a usage limit, and resume), Comparison (a
+void run is not counted), and The instruction set (affected). The second
+round of design 10.3 runs end to end in test_exam_second_round.py.
 
 Planted bugs of design 14.2 caught here:
 
@@ -134,7 +135,8 @@ def scene_stop(checkout) -> dict:
     scene = Scenario(role_plan(role={"costs": {HAIKU: 0.5, SONNET: 19.5}}))
     proc = scene.exam("run", "--base", checkout.base, "--head", checkout.head, "--case", CASE_ID,
                       "--jobs", "1")
-    return {"scene": scene, "proc": proc}
+    exams = scene.results()
+    return {"scene": scene, "proc": proc, "exam": exams[-1] if exams else None}
 
 
 def scene_affected(checkout) -> dict:
@@ -573,8 +575,8 @@ class BudgetLineTests(unittest.TestCase):
         self.assertEqual(sorted(runs.iterdir()) if runs.is_dir() else [], [])
 
 
-class BudgetStopTests(unittest.TestCase):
-    """E5: no new run once spending reaches 1.5 times the estimate (10.2)."""
+class BudgetGuardTests(unittest.TestCase):
+    """E5: no new run once spending reaches 1.5 times the estimate; the exam waits (10.2, 10.3)."""
 
     @classmethod
     def setUpClass(cls):
@@ -582,11 +584,20 @@ class BudgetStopTests(unittest.TestCase):
         cls.out = scenario("prove")["stop"]
         cls.scene = cls.out["scene"]
 
-    def test_one_run_then_stop(self):
-        """$20 spent against a $7.20 limit: the exam starts no second run and does not pass."""
+    def test_one_run_then_wait(self):
+        """$20 spent against a $7.20 guard: no second run starts, and the exam waits (exit 2)."""
         proc = self.out["proc"]
         self.assertEqual(self.scene.cli.claims("role"), 1, self.scene.describe(proc))
-        self.assertIn(proc.returncode, (1, 2), self.scene.describe(proc))
+        self.assertEqual(proc.returncode, 2, self.scene.describe(proc))
+
+    def test_the_exam_waits_for_troy_at_the_guard(self):
+        """state.json says waiting for Troy, why guard, and holds no verdict (D243)."""
+        exam = self.out["exam"]
+        self.assertIsNotNone(exam, self.scene.describe(self.out["proc"]))
+        state = json.loads((exam / "state.json").read_text(encoding="utf-8"))
+        self.assertEqual(state.get("status"), "waiting for Troy")
+        self.assertEqual((state.get("waiting") or {}).get("why"), "guard")
+        self.assertNotIn("summary", state)
 
 
 class AffectedTests(unittest.TestCase):

@@ -85,6 +85,52 @@ count the failures. Test names are module.Class.method.
 15. The gh stand-in letting "gh pr comment" through.
    test_exam_project.GhStubTests.test_pr_comment_is_refused_and_changes_nothing
    test_exam_cli.MainExamTests.test_the_gh_stand_in_is_first_on_the_path
+
+Planted bugs of design 10.3, the second round (tstack #92).
+
+16. The second round's estimate leaving out the base's runs when its first 5 were reused.
+   test_exam_budget.WholeTests.test_the_designs_exam_8
+   test_exam_budget.WholeTests.test_the_designs_exam_10
+   test_exam_budget.WholeTests.test_reused_base_runs_are_new_in_the_second_round
+   test_exam_budget.SecondRoundTests.test_every_run_of_both_versions_is_new
+     (when second_round itself leaves them out)
+   test_exam_second_round.RoundTests.test_the_second_rounds_estimate_from_each_versions_own_runs
+   test_exam_second_round.RoundTests.test_the_guard_holds_the_first_round_and_this_round
+   test_exam_second_round.LineTests.test_the_exam_waits_before_the_second_round
+   test_exam_second_round.LineTests.test_only_the_asked_round_joins_the_estimate
+
+17. The guard counting every case's second round from the start.
+   test_exam_second_round.GuardWaitTests.test_the_exam_waits_after_three_runs
+   test_exam_second_round.GuardWaitTests.test_the_saved_state_waits_at_the_guard
+   test_exam_second_round.RoundTests.test_the_guard_holds_the_first_round_and_this_round
+   test_exam_second_round.LineTests.test_only_the_asked_round_joins_the_estimate
+   test_exam_second_round.StartWaitTests.test_resume_yes_starts_it_with_the_whole_approved
+   test_exam_second_round.RunYesTests.test_run_yes_approves_the_whole
+
+18. A reused run counted at $0 in its version's median.
+   test_exam_second_round.RoundTests.test_the_second_rounds_estimate_from_each_versions_own_runs
+   test_exam_second_round.RoundTests.test_the_guard_holds_the_first_round_and_this_round
+   test_exam_second_round.LineTests.test_the_exam_waits_before_the_second_round
+   test_exam_second_round.LineTests.test_only_the_asked_round_joins_the_estimate
+
+19. The second round's judge pass left out.
+   test_exam_budget.SecondRoundTests.test_the_judge_pass_is_counted
+   test_exam_budget.SecondRoundTests.test_the_designs_figures_by_own_cost
+   test_exam_budget.WholeTests.test_the_designs_exam_8
+   test_exam_second_round.RoundTests.test_the_second_rounds_estimate_from_each_versions_own_runs
+   test_exam_second_round.RoundTests.test_the_second_rounds_judge_pass_is_in_its_estimate
+   test_exam_second_round.LineTests.test_only_the_asked_round_joins_the_estimate
+   test_exam_second_round.LineTests.test_the_waiting_report
+
+20. resume going on without --yes (for an exam waiting for Troy).
+   test_exam_second_round.LineTests.test_resume_without_a_flag_refuses
+   test_exam_second_round.StartWaitTests.test_resume_without_a_flag_refuses
+
+21. A case cut short shown as "worse" (or "not fixed").
+   test_exam_second_round.GuardWaitTests.test_the_case_cut_short_has_no_verdict
+   test_exam_second_round.StopBeforeStartTests.test_the_target_shows_no_verdict
+   test_exam_second_round.RerunsTests.test_the_case_has_no_verdict
+     (when the bug is in the path where reruns run out)
 -->
 
 # Planted bugs of F16 design 14.2

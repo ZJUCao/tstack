@@ -42,7 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--fixes", action="append", help="a case the change fixes")
     cmd.add_argument("--jobs", type=_jobs, default=2)
     cmd.add_argument("--case", action="append", help="run this case, affected or not")
-    cmd.add_argument("--yes", action="store_true", help="Troy's yes for an estimate above $60")
+    cmd.add_argument("--yes", action="store_true",
+                     help="Troy's yes for a first round above $60; it covers the whole")
     cmd = sub.add_parser("prove", help="prove cases: their anchors and five runs")
     cmd.add_argument("cases", nargs="+")
     cmd.add_argument("--ref", help="the version whose roles run (default: origin/main)")
@@ -51,6 +52,12 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("resume", "report", "block"):
         cmd = sub.add_parser(name)
         cmd.add_argument("exam")
+        if name == "resume":
+            answer = cmd.add_mutually_exclusive_group()
+            answer.add_argument("--yes", action="store_true",
+                                help="Troy's yes for an exam that waits for Troy")
+            answer.add_argument("--stop", action="store_true",
+                                help="end an exam that waits for Troy with the runs it has")
     cmd = sub.add_parser("log", help="add a row to a hillclimb's decision log")
     cmd.add_argument("name")
     for option in ("--id", "--hypothesis", "--change", "--before", "--after", "--gate", "--verdict"):
@@ -136,13 +143,15 @@ def _text(report: dict) -> str:
         return report["text"]
     if report.get("block"):
         return report["block"]
-    lines = [f"troy-exam {report['command']}: {'ok' if report.get('ok') else 'stopped'}"]
+    state = "ok" if report.get("ok") else ("waiting for Troy" if report.get("status") == "waiting for Troy"
+                                           else "stopped")
+    lines = [f"troy-exam {report['command']}: {state}"]
     if report["command"] == "affected":
         for row in report["cases"]:
             lines.append(f"{row['case']:<20} {'affected' if row['affected'] else 'not affected'}"
                          + (f": {'; '.join(row['why'])}" if row["why"] else ""))
         lines.append(f"result    {report['result']}")
-    for key in ("exam", "estimate", "status", "log"):
+    for key in ("exam", "status", "why", "estimate", "whole", "spent", "left", "log"):
         if report.get(key) is not None:
             lines.append(f"{key:<9} {report[key]}")
     lines += [f"problem   {p}" for p in report.get("problems", [])]

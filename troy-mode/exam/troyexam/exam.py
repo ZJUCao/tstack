@@ -1,7 +1,9 @@
-"""The exam of a PR, a case's proof, and resuming either (design 4.5, 7, 8, 10.2, 11.2).
+"""The exam of a PR, a case's proof, and resuming either (design 4.5, 7, 8, 10.2, 10.3, 11.2).
 
 Each run's record is saved as it ends, and state.json says what is planned,
-so `resume` goes on after a usage limit, a time-out, or a stop.
+so `resume` goes on after a usage limit, a time-out, or a stop. An exam that
+waits for Troy, before it starts, before a second round above the approved
+amount, or at the guard, goes on only with `resume --yes` (design 10.3).
 """
 
 import json
@@ -31,6 +33,8 @@ from .runrole import RunSpec, anchor_context, run_role, write_record
 FIRST = compare.FIRST
 MAX_RERUNS = 2
 UNSAFE = ("limit",)
+WAITING = "waiting for Troy"
+TOO_FEW = "too few runs that count"
 
 
 def new_exam_id(results: Path, today: str | None = None) -> str:
@@ -69,12 +73,14 @@ class Exam:
         self.guard.spent = state.get("spent", 0.0)
         self.cli = Path(state["cli"])
         self.paused = False
+        self.waiting = False
 
     # -------------------------------------------------------------- state
     def save(self) -> None:
         """Writes state.json."""
         with self.lock:
             self.state["spent"] = round(self.guard.spent, 6)
+            self.state["estimate"] = round(self.guard.estimate, 6)
             self.folder.mkdir(parents=True, exist_ok=True)
             (self.folder / "state.json").write_text(json.dumps(self.state, indent=1), encoding="utf-8")
 
@@ -164,7 +170,8 @@ class Exam:
                         pending.pop(0)
                         continue
                     if not self.guard.may_start():
-                        self.state["stopped"] = "the exam reached 1.5 times its estimate"
+                        # The guard waits for Troy; it never decides a case (D243).
+                        self.waiting = True
                         pending.clear()
                         break
                     pending.pop(0)
@@ -394,9 +401,9 @@ def _expected_models(rows: list[dict], cli: str) -> list[str] | None:
     return sorted(reuse.models_of(max(same, key=lambda r: r.get("time", ""))))
 
 
-def plan_slots(cid: str, side: str, start: int, count: int) -> list[dict]:
-    """Slots <case>-<side>-<nn> numbered from start."""
-    return [{"id": f"{cid}-{side}-{n:02d}", "case": cid, "side": side}
+def plan_slots(cid: str, side: str, start: int, count: int, cost: float = 0.0) -> list[dict]:
+    """Slots <case>-<side>-<nn> numbered from start, each with its estimated cost."""
+    return [{"id": f"{cid}-{side}-{n:02d}", "case": cid, "side": side, "cost": round(cost, 6)}
             for n in range(start + 1, start + count + 1)]
 
 
@@ -450,29 +457,86 @@ def run_exam(args, layout: Layout, env: dict) -> tuple[dict, int]:
             instructions=state["base_hash"], cli=state["cli_version"], models=models,
             effort=case.run.effort, now=now)[:FIRST]
         kind = "target" if cid in state["fixes"] else "not-worse"
-        state["cases"][cid] = {"kind": kind, "reused": [_row_record(r) for r in reused], "stage": "runs"}
-        slots += plan_slots(cid, "base", 0, FIRST - len(reused)) + plan_slots(cid, "head", 0, FIRST)
+        median = budget.median_cost(rows, case.role)
+        state["cases"][cid] = {"kind": kind, "reused": [_row_record(r) for r in reused],
+                               "stage": "runs", "median": median}
+        slots += (plan_slots(cid, "base", 0, FIRST - len(reused), median)
+                  + plan_slots(cid, "head", 0, FIRST, median))
         plan.append(budget.Planned(cid, case.role, 2 * FIRST, len(reused),
-                                   1 if case.judge_criteria() else 0,
-                                   budget.median_cost(rows, case.role)))
+                                   1 if case.judge_criteria() else 0, median))
     state["plan"] = interleave(slots)
+    # Two totals: the first round, and the whole with every case's second round (10.3).
     state["estimate"] = round(budget.estimate(plan), 2)
-    if budget.needs_approval(state["estimate"]) and not args.yes:
-        state["status"] = "waiting for Troy"
-        exam = Exam(folder, state, layout, env)
-        exam.save()
-        return {"command": "run", "ok": False, "exam": state["exam"], "estimate": state["estimate"],
-                "cases": chosen, "problems": [f"the estimate ${state['estimate']:.2f} is above "
-                                              f"${budget.ASK_ABOVE:.0f}; Troy must say yes (--yes)"]}, 2
+    state["whole"] = round(budget.whole(plan), 2)
+    # The $60 line applies to the first round; Troy's yes covers the whole (D241).
+    state["approved"] = state["whole"] if args.yes else budget.ASK_ABOVE
     exam = Exam(folder, state, layout, env)
+    if budget.needs_approval(state["estimate"]) and not args.yes:
+        return _wait(exam, "start")
     exam.save()
     return continue_exam(exam)
 
 
 def _row_record(row: dict) -> dict:
-    """A reused tsv row as a run record."""
+    """A reused tsv row as a run record; it costs nothing now, and keeps its recorded cost."""
+    try:
+        recorded = float(row.get("cost"))
+    except (TypeError, ValueError):
+        recorded = None
     return {"run": row.get("run"), "status": row.get("status"), "passed": row.get("passed") == "true",
-            "cost": 0.0, "reused": True, "exam": row.get("exam")}
+            "cost": 0.0, "recorded_cost": recorded, "reused": True, "exam": row.get("exam")}
+
+
+def _version_cost(exam: "Exam", cid: str, side: str) -> float:
+    """A version's cost per run from its runs that count in this exam (D242).
+
+    A reused run counts at its recorded cost; without any run, the case's median.
+    """
+    costs = []
+    for rec in exam.runs_of(cid, side):
+        if rec.get("status") == "void":
+            continue
+        cost = rec.get("recorded_cost") if rec.get("reused") else rec.get("cost")
+        if cost is not None:
+            costs.append(float(cost))
+    info = exam.state["cases"][cid]
+    return budget.own_cost(costs, info.get("median", budget.ROLE_MEDIAN[exam.cases[cid].role]))
+
+
+def _left(exam: "Exam") -> float:
+    """The estimate of what is left: each unsettled slot, and one judge pass per open case."""
+    state = exam.state
+    left = 0.0
+    for slot in state["plan"]:
+        if exam._attempt(slot) is not None:
+            left += float(slot.get("cost", state["cases"][slot["case"]].get("median", 0.0)))
+    for cid, info in state["cases"].items():
+        if info.get("stage") != "done" and exam.cases[cid].judge_criteria():
+            left += budget.JUDGE_COST
+    return left
+
+
+def _wait(exam: "Exam", why: str, asked: float = 0.0) -> tuple[dict, int]:
+    """Saves the exam as waiting for Troy, and reports what is spent and what is left (10.3)."""
+    state = exam.state
+    spent, left = exam.guard.spent, _left(exam)
+    state["status"] = WAITING
+    state["waiting"] = {"why": why, "spent": round(spent, 2), "left": round(left, 2)}
+    exam.save()
+    again = f"Troy must say yes: `troy_exam.py resume {state['exam']} --yes`, or end it with `--stop`"
+    if why == "start":
+        problem = (f"the estimate ${state['estimate']:.2f} (${state.get('whole', 0.0):.2f} with every "
+                   f"second round) is above ${budget.ASK_ABOVE:.0f}; {again}")
+    elif why == "line":
+        problem = (f"a second round would take the exam to ${spent + asked:.2f}, above the approved "
+                   f"${state.get('approved', budget.ASK_ABOVE):.2f}; {again}")
+    else:
+        problem = (f"the exam has spent ${spent:.2f}, {budget.STOP_FACTOR} times its estimate "
+                   f"${exam.guard.estimate:.2f}, and ${left:.2f} is left; {again}")
+    return {"command": state["command"], "ok": False, "exam": state["exam"], "status": WAITING,
+            "why": why, "spent": round(spent, 2), "left": round(left, 2),
+            "estimate": round(exam.guard.estimate, 2), "whole": state.get("whole"),
+            "cases": list(state["cases"]), "problems": [problem]}, 2
 
 
 def continue_exam(exam: "Exam") -> tuple[dict, int]:
@@ -484,7 +548,9 @@ def continue_exam(exam: "Exam") -> tuple[dict, int]:
             state["status"] = "paused"
             exam.save()
             return _paused(exam)
-        more = []
+        if exam.waiting:
+            return _wait(exam, "guard")
+        more, asked = [], 0.0
         for cid, info in state["cases"].items():
             if info.get("stage") == "done":
                 continue
@@ -510,14 +576,19 @@ def continue_exam(exam: "Exam") -> tuple[dict, int]:
             runs = min(base_n, head_n)
             wanted = compare.SECOND if info.get("stage") == "more" else FIRST
             if runs < wanted:
-                # Too few runs: the budget guard stopped the exam, or reruns ran out.
-                info.update(stage="done", outcome="fail", base=base_pass, head=head_pass, of=runs,
-                            why=state.get("stopped") or "too few runs that count")
+                # Too few runs that count, since reruns ran out: no verdict (10.3).
+                _no_verdict(info, exam, cid, TOO_FEW)
                 continue
             outcome = compare.decide(info["kind"], base_pass, head_pass, runs)
             if outcome == "more" and runs < compare.SECOND and info.get("stage") != "more":
                 info["stage"] = "more"
-                more += plan_slots(cid, "base", FIRST, FIRST) + plan_slots(cid, "head", FIRST, FIRST)
+                # The second round from each version's own runs (D242): all its runs are new.
+                base_cost, head_cost = _version_cost(exam, cid, "base"), _version_cost(exam, cid, "head")
+                info["second"] = round(budget.second_round(base_cost, head_cost,
+                                                           1 if case.judge_criteria() else 0), 6)
+                asked += info["second"]
+                more += (plan_slots(cid, "base", FIRST, budget.MORE, base_cost)
+                         + plan_slots(cid, "head", FIRST, budget.MORE, head_cost))
                 continue
             if outcome == "more":
                 outcome = "fail"
@@ -526,7 +597,32 @@ def continue_exam(exam: "Exam") -> tuple[dict, int]:
         if not more:
             break
         state["plan"] += interleave(more)
+        # The guard counts the second rounds asked for, and no others (D243).
+        exam.guard.extend(asked)
         exam.save()
+        if budget.needs_approval(exam.guard.spent + asked, state.get("approved", budget.ASK_ABOVE)):
+            return _wait(exam, "line", asked)
+    return _report(exam)
+
+
+def _no_verdict(info: dict, exam: "Exam", cid: str, why: str) -> None:
+    """Ends a case with no verdict, counting the runs that have a grade on each side (10.3)."""
+    graded = {}
+    for side in ("base", "head"):
+        runs = [r for r in exam.runs_of(cid, side)
+                if r.get("status") != "ok" or r.get("passed") is not None]
+        graded[side] = compare.counts(runs)
+    (base_pass, base_n), (head_pass, head_n) = graded["base"], graded["head"]
+    info.update(stage="done", outcome="fail", no_verdict=True, why=why, base=base_pass,
+                head=head_pass, of=min(base_n, head_n), base_of=base_n, head_of=head_n)
+
+
+def stop_exam(exam: "Exam") -> tuple[dict, int]:
+    """Ends an exam with the runs it has, on Troy's `resume --stop` (10.3)."""
+    for cid, info in exam.state["cases"].items():
+        if info.get("stage") != "done":
+            _no_verdict(info, exam, cid, "stopped by Troy")
+    exam.state.pop("waiting", None)
     return _report(exam)
 
 
@@ -568,10 +664,18 @@ def _report(exam: Exam) -> tuple[dict, int]:
         else:
             outcome = info.get("outcome", "fail")
             passed_all &= outcome == "pass"
-            word = "rubric unclear" if info.get("why") == "rubric unclear" \
-                else compare.result_word(info["kind"], outcome)
-            rows.append({"case": cid, "role": case.role, "base": info.get("base", 0),
-                         "head": info.get("head", 0), "of": info.get("of", FIRST), "result": word})
+            row = {"case": cid, "role": case.role, "base": info.get("base", 0),
+                   "head": info.get("head", 0), "of": info.get("of", FIRST)}
+            if info.get("why") == "rubric unclear":
+                row["result"] = "rubric unclear"
+            elif info.get("no_verdict"):
+                # The guard or Troy cut it short: never the rule's word (10.3).
+                row.update(base=f"{info.get('base', 0)} of {info.get('base_of', 0)}",
+                           head=f"{info.get('head', 0)} of {info.get('head_of', 0)}",
+                           result="no verdict")
+            else:
+                row["result"] = compare.result_word(info["kind"], outcome)
+            rows.append(row)
         details += _case_details(exam, case, records)
         _log_rows(exam, case, records)
     hash_key = "base_hash" if state["command"] == "prove" else "head_hash"
@@ -650,6 +754,9 @@ def _log_rows(exam: Exam, case: Case, records: list[dict]) -> None:
     for rec in records:
         if rec.get("reused") or rec["run"] in logged or rec.get("status") == "limit":
             continue
+        if rec.get("status") == "ok" and rec.get("passed") is None:
+            # Never graded, as when Troy stopped the exam: not a failed run to reuse.
+            continue
         reuse.append_log(exam.layout.case_log(case.id), {
             "exam": exam.state["exam"], "run": rec["run"], "time": rec.get("time"),
             "side": rec.get("side"), "case_version": rec.get("case_version"),
@@ -675,21 +782,27 @@ def prove(args, layout: Layout, env: dict) -> tuple[dict, int]:
     for cid in dict.fromkeys(args.cases):
         case = every[cid]
         _prepare_case(state, case, layout, args.env)
-        state["cases"][cid] = {"kind": "prove", "reused": [], "stage": "runs"}
-        if not args.anchors:
-            slots += plan_slots(cid, "base", 0, FIRST)
         rows = reuse.read_log(layout.case_log(cid))
+        median = budget.median_cost(rows, case.role)
+        state["cases"][cid] = {"kind": "prove", "reused": [], "stage": "runs", "median": median}
+        if not args.anchors:
+            slots += plan_slots(cid, "base", 0, FIRST, median)
         plan.append(budget.Planned(cid, case.role, 0 if args.anchors else FIRST, 0,
-                                   2 if case.judge_criteria() else 0, budget.median_cost(rows, case.role)))
+                                   2 if case.judge_criteria() else 0, median))
     state["plan"] = slots
-    state["estimate"] = round(budget.estimate(plan), 2)
+    # A proof has no second round; its guard waits for Troy like the exam's (10.3).
+    state["estimate"] = state["whole"] = round(budget.estimate(plan), 2)
+    state["approved"] = budget.ASK_ABOVE
     exam = Exam(folder, state, layout, env)
     exam.save()
     return continue_exam(exam)
 
 
 def resume(args, layout: Layout, env: dict) -> tuple[dict, int]:
-    """Goes on with a paused or stopped exam."""
+    """Goes on with a paused or stopped exam; one that waits for Troy needs --yes or --stop (10.3)."""
+    yes, stop = bool(getattr(args, "yes", False)), bool(getattr(args, "stop", False))
+    if yes and stop:
+        raise ExamError("--yes and --stop do not go together")
     folder = layout.result(args.exam)
     path = folder / "state.json"
     if not path.is_file():
@@ -699,6 +812,21 @@ def resume(args, layout: Layout, env: dict) -> tuple[dict, int]:
         summary = state["summary"]
         return {"command": "resume", "ok": summary["result"] != "failed", "exam": args.exam,
                 "summary": summary, "block": block(summary)}, 0 if summary["result"] != "failed" else 1
-    state["status"] = "running"
+    waits = state.get("status") == WAITING
+    if waits and not (yes or stop):
+        raise ExamError(f"exam {args.exam} waits for Troy; go on with `resume {args.exam} --yes` "
+                        f"(Troy's yes) or end it with `resume {args.exam} --stop`")
     exam = Exam(folder, state, layout, env)
+    if stop:
+        return stop_exam(exam)
+    if waits:
+        why = (state.get("waiting") or {}).get("why", "start")
+        if why == "start":
+            # Troy's yes before the start covers the whole (D241).
+            state["approved"] = state.get("whole", state.get("estimate", 0.0))
+        else:
+            total = exam.guard.spent + _left(exam)
+            state["approved"] = exam.guard.estimate = total
+        state.pop("waiting", None)
+    state["status"] = "running"
     return continue_exam(exam)
