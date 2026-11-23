@@ -27,7 +27,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 
 | Command | What it does |
 | --- | --- |
-| `troy_flow.py status [--write-progress] [--waiting <text>] [--note <text>]` | Reads the state from `origin/main`, the open PRs, your comments on them, and their CI runs, and gives the `next` action. Each open PR's `ci_failures` lists its pushed commits that failed CI (D261). `--write-progress` rewrites `.troy-mode/progress.md`; `--waiting` and `--note` also write it. It rebuilds a missing or old progress file by itself. |
+| `troy_flow.py status [--write-progress] [--waiting <text>] [--note <text>]` | Reads the state from `origin/main`, the open PRs, your comments on them, and their CI runs, and gives the `next` action. Each open PR's `ci_failures` lists its pushed commits that failed CI (D261). `--write-progress` rewrites `.troy-mode/progress.md`; `--waiting` and `--note` also write it. It rebuilds a missing or old progress file by itself. With feature teams it also gives `teams`, `may_start`, `needs_plan`, and `waiting` (section "Feature teams"). |
 | `troy_flow.py brief --task <task ID> --item <feature or bug ID> [--title <PR title>] [--round <n>] [--input-file <path>]` | The brief for one role run: `prompt`, and `agent` with `subagent_type` and, when the project sets them, `model` and `effort`. AR1 takes no `--item`. Give `--title` for a bug PR, a side PR, or the redo of a stage; the state gives every other title. |
 | `troy_flow.py snapshot --role <role>` | Records the state before a run and prints its `run` ID. It refuses a working tree with changes. `--role rules` is your own work on a `[rules]` PR. |
 | `troy_flow.py check-run --run <run ID> [--allow-dependency <path>]...` | Compares the tree after the run with the snapshot: the paths to `stage`, the `problems`, `escalate`, how to `undo` each change, and the role's `hooks_log` lines. A dependency change that only deletes `baseline:` lines needs no `--allow-dependency`. |
@@ -44,6 +44,9 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py retro --tag <tag>` | Groups the evidence for the retrospective: review findings by rule and checklist item, failed attempts (also the CI failures no comment counts, in `ci_attempts`), escalations, bugs, and `hooks.log` lines, with the groups seen in two or more PRs in `repeated`. CI failures outside the authors' files are in `ci_other`. It changes nothing. |
 | `troy_flow.py rule-id` | From `docs/rules.md` on `origin/main`: the next free P ID (`next_id`), the next R ID (`next_r_id`), and every P rule in `rules`, with whether it is retired, Troy's `choice` for existing code, and its `baseline` lines in config and dependency files. |
 | `troy_flow.py real-run --item <ID> [--keep]` or `real-run --all [--keep]` | Runs the real program the way Troy types it, through every `PS> ` command of the prototypes of the feature and of every accepted feature (`--all`: every accepted feature), each section set up by its run file, `docs/prototypes/<name>.run.toml`, in a scratch home folder. It compares each output with the prototype and gives each command's `result` (`matches`, `mismatch`, `waits for <ID>`, or `not run`), the `counts`, the one-line `summary`, the feature's `label`, the `open_bugs` of earlier real runs, the `description` for the PR's "Real run" section, and the `comments` its real output needs when it is too long. It writes the report to `files.json` and `files.md` in the git folder. The working tree must be clean. |
+| `troy_flow.py team start --item <ID>` and `team end --item <ID>` | A feature team's worktree, `.troy-teams/<id>` in this checkout, detached at `origin/main` (section "Feature teams"). `team start` refuses a feature whose dependencies are not accepted. `team end`, after PR 6 merges, appends the team's `hooks.log` lines to the common log, then removes the worktree; it refuses while the worktree has changes or one of its roles may still run (`stop`). |
+| `troy_flow.py plan --report <file>` | Reads AR7's plan from its report, checks it against the features that may start, and keeps it in the common git folder: `batch`, `plan`, and `problems` (`missing`, `overlap`, `module`, `order`, `line`). Exit 1 and nothing kept on a problem. |
+| `troy_flow.py merge-check [--rebased-from <sha>] [--conflicts <path>...]` | In a team's worktree, before its merge: `result` `rebase` (origin/main is not in the branch, R24), `outside-plan` (source paths outside the plan's modules, in `outside`), `held` (a later version's code PR before the earlier version's release, `held_by`), or `ready`. `--rebased-from` adds `diff_changed` and `review_again`; `--conflicts` gives the `owner` role, or `escalate`. It reads git only. |
 | `troy_flow.py rule-row --id <ID> --rule-file <file> [--retire] [--date <YYYY-MM-DD>]` | Writes one P row into `docs/rules.md` and its mirror: adds a new ID after the last P row, replaces an existing one and keeps its Since date, or retires it. Both files move to the next major version, approved by Troy, with one change-log row. |
 
 - Exit code 0: done. 1: a problem stops the step; the report says which. 2: the engine could not run; show Troy its error.
@@ -82,10 +85,10 @@ R19 covers every text you post: PR titles and descriptions, PR comments and revi
 
 ## Running a role
 
-1. **Brief.** `troy_flow.py brief --task <task> --item <ID> [--title <title>] [--round <n>] [--input-file <file>]`. Write Input (findings, an answer, failing checks, a ruling, Troy's decision or comments) to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/` first. Write files there, such as Input, `rule-row`'s rule file, and PR descriptions, through Bash, for example with a heredoc: the agent's file tools may refuse a path inside the git folder.
+1. **Brief.** `troy_flow.py brief --task <task> --item <ID> [--title <title>] [--round <n>] [--input-file <file>]`. Write Input (findings, an answer, failing checks, a ruling, Troy's decision or comments) to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/` first. Write files there, such as Input, `rule-row`'s rule file, and PR descriptions, through Bash, for example with a heredoc: the agent's file tools may refuse a path inside the git folder. For a team's role, give `brief`, `snapshot`, and `check-run` the team's `--repo <worktree>`: the brief then names the team's checkout, which the hooks read, and they run the role's commands there (section "Feature teams").
 2. **Snapshot.** `troy_flow.py snapshot --role <role>`. The tree must be clean: you commit after every writing run. A `running` problem means that an earlier role, or a command it left in the background, may still run: call `TaskStop` with each agent ID in `stop`, then take the snapshot again.
 3. **Agent call.** `subagent_type` from `agent`, the brief's `prompt` as the prompt, and `model` and `effort` only when `agent` has them.
-4. **Wait.** Wait for the role's report and do nothing else in the checkout meanwhile: F05's hooks blame every change during the run on the role. Roles that only read may run together, such as TM2 and CR1 on one test PR, under one snapshot with `--role test-manager --role code-reviewer`; nothing may change. A notice that the role is waiting on its own background work changes nothing: its report is final, and step 5 ends that work.
+4. **Wait.** Wait for the role's report and do nothing else in the checkout meanwhile: F05's hooks blame every change during the run on the role. With feature teams this holds per worktree: work in other teams' worktrees meanwhile, never in this one; the hooks refuse your git and file writes there while its role runs (rule `team-busy`). Roles that only read may run together, such as TM2 and CR1 on one test PR, under one snapshot with `--role test-manager --role code-reviewer`; nothing may change. A notice that the role is waiting on its own background work changes nothing: its report is final, and step 5 ends that work.
 5. **Check.** `troy_flow.py check-run --run <run ID>`, with `--allow-dependency <path>` only for a dependency Troy accepted.
    - No problem: stage exactly the paths in `stage`.
    - `escalate` true (`HEAD` or the branch moved): escalate at once.
@@ -121,7 +124,7 @@ The description of every interface design (PR 1), test plan (PR 2), requirements
 4. **Local checks.** `troy-check pr --body-file` runs R22. A failure goes back to the author as Input and counts as an attempt, and so does a report with no For Troy block.
 5. **AR2** gets the design's summary in its brief's Input, for the checklist's seventh item.
 6. **After each revision**, put the new summary in place of the old one: `gh pr edit <number> --body-file <file>`. CI runs again on the edit.
-7. **When the PR waits for Troy**, post `Waiting for Troy: approve this PR` with one line under it: "What to decide is in the summary at the top of the description." Then send Troy the summary in chat, in the language Troy writes in, as the description has it, with the PR's link.
+7. **When several PRs wait for Troy at once**, as feature teams make them, ask about all of them in one message, each with its summary (section "Feature teams"). **When the PR waits for Troy**, post `Waiting for Troy: approve this PR` with one line under it: "What to decide is in the summary at the top of the description." Then send Troy the summary in chat, in the language Troy writes in, as the description has it, with the PR's link.
 
 Troy's reply works as section "Merging" says. "全按推荐", "all as recommended", or "approved" approves the PR with every recommendation: record the approval, and say in the description's What that Troy took every recommendation. A reply that picks another option, such as "2: option 2", asks for changes: the author revises, as a round, and the PR waits for Troy again.
 
@@ -242,6 +245,49 @@ Run each step as its own command, and the merge only after you have read the wai
 
 **After the first features (D62).** When `status` gives `ask-approvals`, ask Troy once whether to go on approving PR 1 and PR 2 of later features, and how many. Record the answer in `.troy-mode/config.toml`'s `[flow] troy_approves_first`, with a comment line above it that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merge it. Apart from troy-init's steps and the rule change flow (section "Rule change"), this is the only config change you make.
 
+## Feature teams
+
+Features that may start at the same time are built at once, each by its own team in its own git worktree (tstack's F20 design, `docs/troy-mode/design/F20-parallel-teams.md`). One team is one feature's role runs, from PR 1 to PR 6, and it runs the feature loop above unchanged. When only one feature may start and no team runs, everything above holds as it is.
+
+### When teams start
+
+1. **Teams mode.** `status` is in teams mode when a team worktree exists or two or more features are dependency-ready. A feature already under way in this checkout stays here.
+2. **`next` is `plan`.** Run AR7 for the version: `brief --task AR7 --item <version> --input-file <file>`, with Input listing the features of `items` and the running teams of `teams` with their lines of the plan. Write AR7's report to a file under the git folder and run `plan --report <file>`. A problem goes back to AR7 once, as Input; a second one escalates.
+3. **`next` is `team-start`.** For each item, `team start --item <ID>`. Each team's progress issue comes with the next sync.
+
+### The loop
+
+1. **Each team's next action.** For each entry of `teams` with no `running` role and no `held` reason, do its `next` as the feature loop above says, in the team's worktree: `git -C <worktree>` for git and `--repo <worktree>` for the engine, never a bare `cd`, since your `cd` lasts and the next command may belong to another team. A stage's branch is `git -C <worktree> switch -c <branch> origin/main`.
+2. **All at once.** Start the next role of every team that has one, then wait for any report, handle that team's report, and go back to step 1. Where the Agent tool has `run_in_background`, as in `claude -p`, pass it as `true` while two or more teams run, so that their roles run at once; in the desktop app every role already runs in the background.
+3. **AR7's check.** After AR2 approves a team's design (PR 1), and before it merges, run `brief --task AR7 --item <ID> --title <PR 1 title>` with Input holding the plan (`plan.json` in the common git folder) and the running teams' merged designs. When it gives new lines, keep them with `plan --report`; a team that must wait then stops after its current stage (`held` `plan`).
+4. **Short messages.** One line per team event. Read role reports, never whole diffs. After a compaction, run `status` before anything else.
+5. **`team-end`.** After PR 6 merges, `team end --item <ID>`. A `running` problem names the agents to end with `TaskStop` first.
+
+### Merging a team's PR
+
+Ready PRs merge in the order they became ready (R24).
+
+1. `git -C <worktree> fetch origin --prune`, then `merge-check --repo <worktree>`.
+2. **`rebase`.** `git -C <worktree> rebase origin/main`.
+   - **Clean:** push with `--force-with-lease`, run the local checks again, and run `merge-check --repo <worktree> --rebased-from <old head>`. With `review_again`, CR1 reviews the rebased diff as the next round. Wait for CI on the new head, then run `merge-check` again.
+   - **A conflict:** list the conflicting paths (`git -C <worktree> diff --name-only --diff-filter=U`), run `git -C <worktree> rebase --abort`, then `merge-check --repo <worktree> --conflicts <path>...`. Make the stage's branch again from `origin/main` (`git -C <worktree> switch -C <branch> origin/main`) and run the `owner` role once more, with Input holding its old diff (`git -C <worktree> show <old head>`) and the paths, asking for the same change on the new main. For `product-manager`, write PR 6's status row again yourself, with a snapshot. With `escalate`, escalate. A redo counts neither as an attempt nor as a round.
+3. **`outside-plan`.** Run AR7's check with the PR's diff in Input before the merge.
+4. **`held`.** A later version's PR 3 to PR 6 waits for the earlier version's release.
+5. **`ready`.** `wait-checks` on the head, then merge as section "Merging" says.
+6. **Performance cases.** Before PR 5's performance cases run on Troy's PC, wait until no other team's role runs, and start none meanwhile.
+
+### Waits, changes, and rules
+
+- A team that waits for Troy, or escalated, stops. The teams that wait for its feature wait too; the others go on.
+- Ask Troy in one message about every PR in `waiting`, the one that holds up the most features first, each with its summary and link. Troy answers them together, "全部批准" or "approve all", which approves each listed PR with every recommendation, or one at a time. An escalation comes in a message of its own.
+- **A requirement change.** Take it in before you start the next team. The change PR's description has a line `Affects: <IDs>`, from PM2's list; `status` then holds those teams (`held` `change`) once their current stage PR merges, and the others go on.
+- **A rule change** runs in this checkout. Every team picks it up at its next stage, and an open PR at its rebase.
+- **Shared documents** (the requirements, the architecture, ADRs, and version test plans) change only in this checkout, as your own PRs; the hooks refuse them in a team's worktree. So AR3's write after Troy accepts a dependency, AR4, and AR6 run here, never in a team.
+
+### Usage limits and continuing
+
+When a usage limit stops the session, every team pauses with its state in git, on GitHub, and in its worktree. On "continue", `status` rebuilds every team from its worktree, the open PRs, and the plan. A role that the limit cut off leaves a `running` record: end it with `TaskStop`. When a team's role stopped without a report, undo that run's own changes and run the role once more.
+
 ## Side PRs
 
 A side PR interrupts a stage (design 8.7). First amend the author's work so far into the stage branch's commit, without pushing it, so the tree is clean. Then finish the side PR, switch back to the stage branch, run `git rebase origin/main`, and run the stage's author again with the side PR's result in Input.
@@ -290,7 +336,7 @@ A dispute or a new dependency during a bug runs as in section "Side PRs", with t
    - each affected feature that is accepted (D65): keep its status and add a new feature for the change, with the next free ID, a short name, a hard dependency on the old one, and Status `Not started`; put it in the topological order right after the features it depends on and before the features not started yet, unless Troy says otherwise, and in the version plan;
    - raise `version` by one minor step in both, with `updated`, and add a change log row.
 
-   Write the summary for Troy of the change (section "The summary for Troy"). Commit as `[docs] Change the requirements: <summary>`, run `troy-check pr`, open the PR with the summary at the top of its description, and wait for Troy's approval (section "Merging"). A Feature cell keeps to the feature's short name.
+   Write the summary for Troy of the change (section "The summary for Troy"). Commit as `[docs] Change the requirements: <summary>`, run `troy-check pr`, open the PR with the summary at the top of its description, and wait for Troy's approval (section "Merging"). A Feature cell keeps to the feature's short name. With feature teams, the description also has a line `Affects: <ID>, <ID>` listing the affected features, so `status` holds their teams (section "Feature teams").
 2. **AR4.** For each affected feature, run AR4 with the change in Input (`brief --task AR4 --item <ID>`), and add to Input: "If the architecture must change, write the summary for Troy from the summary-for-troy template in your report's For Troy field." When AR4 reports an architecture change, escalate it with AR4's ADR as the recommendation; on Troy's yes, put the ADR in a `[docs] Change the architecture for <ID>` PR on `troy-mode/<id>-architecture`, with AR4's summary at the top of its description, and merge it.
 3. **A feature not yet accepted** goes back to the earliest stage AR4 names. When its open PR's stage is at or after that stage, close it unmerged: `gh pr close <number>`. Then run that stage again with its usual title and branch, giving the title with `brief --title` (a redo; the engine allows it while the feature is in rework). When the feature's implementation has merged and its tests change, start at stage 3 at the latest: R09 needs every test of the feature to fail against a mock. Once the redo merges, `status` goes on from there.
 4. **An accepted feature** gets its new feature through the feature loop. Put AR4's list into each brief's Input:

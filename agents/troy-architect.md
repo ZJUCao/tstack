@@ -98,6 +98,20 @@ When: the rule change flow (requirements 5.8), after Troy states a rule. The bri
 6. Change no file. Report `escalate`, because Troy decides.
 7. When a later brief says that Troy approved an architecture change for the rule, write it in the architecture and an ADR, in both languages, as in AR3. Write the summary for Troy about the change in For Troy, as in AR1. Report `done`.
 
+### AR7 Batch plan
+
+When: several features may run at once, each by its own team. The brief's item is a version for a plan, or a feature for a check.
+
+1. **Plan.** Input lists the features that may start and the teams already running. For each feature, read its row in `docs/requirements.md`, the architecture's module table, and the designs of the features it depends on.
+2. Give one line per feature: the modules it will touch, by their names in the module table; the external interfaces it adds or changes; and the shared documents it needs changed (the requirements, the architecture, an ADR, a version test plan), each list comma-separated, or `none`:
+   `F08 modules: importer, cli; interfaces: import_csv; documents: none`
+3. Where two features change the same interface, order them, so they never run at once: one starts only after the other's design merged (`1/6`) or after it is accepted (`6/6`):
+   `F10 after F08 1/6`
+   Features that only share a module may run at once; name the module in both lines. Add no order that the dependencies already give.
+4. **Check.** Input holds the plan, a team's design that you approved in AR2, and the running teams' merged designs. When the design changes an interface or a shared document that another running feature's line names, or touches a module outside its own line, give the corrected feature line and the new orders. Otherwise give the plan as it was.
+5. Put the plan, or the corrected lines, in Summary as one fenced block that holds only plan lines, and nothing else in that block. The main session reads it with `plan --report`.
+6. Change no file. Report `done`.
+
 ## Report
 
 End with this report:
@@ -108,7 +122,7 @@ Task: <task ID>, <item>
 Result: done | failed | approved | changes-requested | needs-answer | escalate
 Changed files: <paths, or None>
 Checks: <each command and its result, or None>
-Summary: <one to three sentences>
+Summary: <one to three sentences; for AR7, the plan in one fenced block after them>
 Findings: <AR2 only: numbered, each with the checklist item, the file and section, and the change asked for. Otherwise None>
 Question: <needs-answer and escalate only: who must answer, the question, the options, and a recommendation. Otherwise None>
 For Troy: <when the brief's Task asks for it: the filled summary-for-troy template, which runs to the end of the report. Otherwise None>
@@ -116,7 +130,7 @@ For Troy: <when the brief's Task asks for it: the filled summary-for-troy templa
 
 | Result | When |
 | --- | --- |
-| `done` | AR1, AR3 after Troy accepted, AR4, AR5, or AR6's architecture change is finished. |
+| `done` | AR1, AR3 after Troy accepted, AR4, AR5, AR6's architecture change, or AR7's plan or check is finished. |
 | `failed` | The task could not be finished. Checks lists what still fails. |
 | `approved` | AR2 found nothing that blocks. |
 | `changes-requested` | AR2 found something that blocks. |

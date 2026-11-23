@@ -452,11 +452,16 @@ class MergeRightsTests(FlowCase):
                          branch="troy-mode/approvals", merged_by="f07")
 
     def test_fourth_feature_design_is_merged_by_f07(self):
-        """Planted bug "off by one": after the answer, F04's design is F07's to merge."""
+        """Planted bug "off by one": after the answer, F04's design is F07's to merge.
+
+        F04 and F05 may both start here, so troy-mode plans them for two teams (F20 design
+        3.5), and the merge right shows in F04's features entry.
+        """
         report = self.report_of(self.outs["fourth"])
-        self.assert_next(report, action="stage", item="F04", stage=1, task="IF1",
-                         title="[F04 1/6 design] Report totals",
-                         branch="troy-mode/f04-1-design", merged_by="f07")
+        f04 = next(f for f in report["features"] if f["id"] == "F04")
+        self.assertFalse(f04["troy_approves"], f04)
+        self.assert_next(report, action="plan")
+        self.assertEqual(report["next"]["items"], ["F04", "F05"])
 
     def test_open_prs_say_who_merges(self):
         """Troy merges PR 1 and 2 of counted features and the setup documents; F07 the rest."""

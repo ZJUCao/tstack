@@ -173,12 +173,13 @@ class Role(NamedTuple):
 
 AGENT_ROLES = (
     # AR6 "Rule enforcement", DV5 "Cleanup", and TE6 "Test cleanup" are F09's
-    # (F09 design section 7, interface note section 0).
+    # (F09 design section 7, interface note section 0); AR7 "Batch plan" is F20's
+    # (F20 design 3.4).
     Role(name="Architect", stem="troy-architect", model="opus",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash", "WebSearch", "WebFetch"),
          tasks=(("AR1", "Architecture"), ("AR2", "Design review"),
                 ("AR3", "Dependency review"), ("AR4", "Change impact"), ("AR5", "Answer"),
-                ("AR6", "Rule enforcement")),
+                ("AR6", "Rule enforcement"), ("AR7", "Batch plan")),
          results=RESULTS["Architect"],
          scope=((PATTERN, "docs/architecture*.md"), (PATTERN, "docs/adr/**"),
                 (PATTERN, "docs/features/*/design*.md"))),

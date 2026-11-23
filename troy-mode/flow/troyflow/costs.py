@@ -292,15 +292,15 @@ class Tally:
     cost: float = 0.0
     unpriced: dict[str, int] = field(default_factory=dict)
 
-    def add(self, prices: dict, messages: list[Message]) -> None:
-        """Adds the cost and models of some messages."""
+    def add(self, prices: dict, messages: list[Message], share=None) -> None:
+        """Adds the cost and models of some messages, each times share(message) when given."""
         for message in messages:
             value = price(prices, message)
             self.models.add(display(message.model))
             if value is None:
                 self.unpriced[message.model] = self.unpriced.get(message.model, 0) + 1
             else:
-                self.cost += value
+                self.cost += value * (share(message) if share else 1.0)
 
     def entry(self, **extra) -> dict:
         """The report's entry for this row."""
@@ -331,6 +331,34 @@ def _tag_window(repo: Repo, log: list[tuple[str, str]], tag: str
                      if release_tag(plain(s)) and release_tag(plain(s)) != tag), None)
     return (_subject_time(repo, previous) if previous else None,
             _subject_time(repo, log[own][0]) if own is not None else None)
+
+
+def _windows(repo: Repo, log: list[tuple[str, str]], agents: list, until, now) -> dict:
+    """Each item's run window: its first role run's start to its accept commit, or the end.
+
+    Raises:
+        GitError: A commit's time cannot be read.
+    """
+    found = {}
+    for item in sorted({a.item for a in agents if a.role and a.item}):
+        starts = [a.transcript.start for a in agents if a.role and a.item == item
+                  and a.transcript.start]
+        if starts:
+            found[item] = (min(starts), until or _accept_time(repo, log, item) or now)
+    return found
+
+
+def _share(windows: dict, item: str):
+    """The share of a main-session message that counts toward an item (F20 design 3.12).
+
+    A message counts in equal parts toward the items whose run window holds
+    its time, so items that run at once share the main session's work.
+    """
+    def share(message) -> float:
+        running = [name for name, (start, end) in windows.items()
+                   if _inside(message.moment, start, end)]
+        return 1.0 / len(running) if item in running else 1.0
+    return share
 
 
 def _inside(moment, start, end) -> bool:
@@ -431,8 +459,9 @@ def run_costs(args) -> tuple[dict, int]:
         runs = None
         mine = [a for a in agents if a.under is not None
                 and _inside(a.under.transcript.start, start, end)]
+    share = _share(_windows(repo, log, agents, until, now), args.item) if args.item else None
     report = _report(args, prices, sessions, agents, mine, (start, end), runs is not None
-                     and not runs, notes)
+                     and not runs, notes, share)
     report["missing"] = _missing(repo, log, args, mine)
     report["notes"] += [f"Not found here: {title}." for title in report["missing"]]
     _check_prices(prices, sessions, report["notes"])
@@ -441,8 +470,8 @@ def run_costs(args) -> tuple[dict, int]:
 
 
 def _report(args, prices: dict, sessions, agents: list[Agent], mine: list[Agent],
-            window: tuple, nothing: bool, notes: list[str]) -> dict:
-    """Builds the report's figures."""
+            window: tuple, nothing: bool, notes: list[str], share=None) -> dict:
+    """Builds the report's figures; share weighs an item's main-session messages."""
     start, end = window
     roles: dict[str, Tally] = {}
     helpers, others, main = Tally(), Tally(), Tally()
@@ -464,7 +493,7 @@ def _report(args, prices: dict, sessions, agents: list[Agent], mine: list[Agent]
             inside = [m for m in transcript.messages if _inside(m.moment, start, end)]
             if inside:
                 main.runs += 1
-                main.add(prices, inside)
+                main.add(prices, inside, share)
     for tally in [*roles.values(), helpers, others, main]:
         for model, count in tally.unpriced.items():
             unpriced[model] = unpriced.get(model, 0) + count

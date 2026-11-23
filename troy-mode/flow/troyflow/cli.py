@@ -12,7 +12,9 @@ import sys
 from troycheck.gitio import GitError
 
 from . import acceptversion, approve, brief, costs, issuesync, realreport, realrun, \
-    releasetest, retro, rulerow, runs, series, skips, status, teams, textcheck, waitchecks
+    mergecheck, releasetest, retro, rulerow, runs, series, skips, status, teams, textcheck, \
+    waitchecks
+from . import plan as batchplan
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -120,10 +122,15 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("team", help="a feature team's worktree (F20)")
     cmd.add_argument("action", choices=("start", "end"))
     cmd.add_argument("--item", required=True, help="the feature, for example F08")
+    cmd = sub.add_parser("plan", help="keep the Architect's batch plan (F20 AR7)")
+    cmd.add_argument("--report", required=True, help="the file with AR7's report")
+    cmd = sub.add_parser("merge-check", help="whether a team's PR may merge now (F20, R24)")
+    cmd.add_argument("--rebased-from", help="the PR's head commit before the rebase")
+    cmd.add_argument("--conflicts", nargs="+", help="the paths a rebase stopped on")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
                  "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks", "costs",
-                 "team"):
+                 "team", "plan", "merge-check"):
         _common(sub.choices[name])
     return parser
 
@@ -152,6 +159,8 @@ def _text(report: dict) -> str:
         lines.append(f"result    {report['result']}")
     if report["command"] == "costs":
         lines.append(f"cost      {report['line']}")
+    if report["command"] == "merge-check":
+        lines.append(f"result    {report['result']}")
     if report["command"] == "team" and report.get("worktree"):
         lines.append(f"worktree  {report['worktree']}")
     if report["command"] == "issues":
@@ -183,7 +192,8 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
             "real-run": realrun.run_real_run, "issues": issuesync.run_issues,
             "wait-checks": waitchecks.run_wait_checks, "costs": costs.run_costs,
-            "team": teams.run_team}
+            "team": teams.run_team, "plan": batchplan.run_plan,
+            "merge-check": mergecheck.run_merge_check}
 
 
 def main(argv: list[str]) -> int:
