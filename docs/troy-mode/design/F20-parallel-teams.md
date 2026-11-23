@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F20 in [requirements 1.54](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-22 ("全按推荐"), with D268 to D279, every recommended answer, and with them the estimates of the build's role exam and trial (D271, D279). |
+| Status | Approved by Troy on 2026-11-22 ("全按推荐"), with D268 to D279, every recommended answer, and with them the estimates of the build's role exam and trial (D271, D279). Version 1.1 records Troy's change of D278 on 2026-11-22 ("现在开始"): F20 lands in three PRs, so that part 1a, which changes no file of the instruction set, runs alongside tstack #63's build. |
 | Source of truth | This English file. [`F20-parallel-teams.zh-CN.md`](F20-parallel-teams.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -275,18 +275,20 @@ It takes about 30 role runs: about 13 per feature, three AR7 runs, and a CR1 run
 
 ### 8.4 Status and order
 
-F20 lands in two PRs (D278), each with one commit and its tests written first, after tstack #63's build merges, because both change the instruction set (Q25):
+F20 lands in three PRs (D278), each with one commit and its tests written first:
 
-1. **Part 1, the base.** The hooks of sections 3.2 and 3.3, the engine's `team`, `brief --repo`, per-team `snapshot` and `check-run`, and the locks. It can run one team in a worktree, with the main session driven by hand.
-2. **Part 2, the loop.** `plan` and AR7, `merge-check`, the skill's loop, waits, changes, releases, `status` and the progress file for several teams, F15's issues, `retro`, `costs`, and the Python path. It carries the role exam of section 6 and the trial of section 8.3.
+1. **Part 1a, the base, now.** The hooks of sections 3.2 and 3.3: the team from the brief, the rooting through `updatedInput`, the team's record, the refusal of writes outside the team's worktree, the shared documents out of a team's scopes, and `team-busy`; the log and record locks; the engine's `team start` and `team end`; and per-team `snapshot` and `check-run`. It changes no file of F16's instruction set, so it runs while tstack #63's build holds that set: `check_exam.py` and `troy_exam.py affected` must find the instruction hash unchanged. It can run one team in a worktree, with the brief's sentence and the main session's steps given by hand.
+2. **Part 1b, after #63's build merges.** `brief --repo`: the team sentence, absolute Read first paths, and `PYTHONPATH` in the checks (sections 3.2 and 3.11). It changes `brief.py`, so its PR carries a "Role exam" section, which finds no case affected (section 6).
+3. **Part 2, after part 1b.** `plan` and AR7, `merge-check`, the skill's loop, waits, changes, releases, `status` and the progress file for several teams, F15's issues, `retro`, `costs`, and the Python environment's check. It carries the role exam of section 6 and the trial of section 8.3.
 
 | When | F20's status in requirements 7.2 |
 | --- | --- |
-| Part 1 merges | Written, part 1 of 2: the hooks and the engine keep a team's roles in its own worktree, checked by tests and planted bugs. troy-mode does not run teams yet. |
+| Part 1a merges | Written, part 1a of 3: the hooks and the engine keep a team's roles in its own worktree, checked by tests and planted bugs. Briefs do not name a team yet, and troy-mode does not run teams. |
+| Part 1b merges | Written, part 1b of 3: as part 1a, and a team's brief names its checkout. troy-mode does not run teams yet. |
 | Part 2 merges after a passing trial | Runs on a sample project: two teams built two features at the same time on a scratch GitHub project, with rebases, a conflict, and a resume after a stop. Not yet used on a real project. |
 | The next real project runs teams | Used on a real project |
 
-Each status update is its own PR.
+Each part's PR updates F20's status itself, since its tests, planted bugs, and, for part 2, the trial run before it opens.
 
 ## 9. Not in F20
 
@@ -313,7 +315,7 @@ D261 to D267 belong to the designs of tstack #73 and #74, so F20 takes D268 to D
 | D275 | How does each team test its own code in a Python series' shared environment (Q20)? | A: one environment per series; each team's checks run with `PYTHONPATH` set to its worktree's source folders, which come before the editable install (section 3.11). B: one environment per team, which changes requirements section 8. C: install the team's worktree into the shared environment before each team's checks, one team at a time. | A, approved by Troy on 2026-11-22 ("全按推荐"). It keeps section 8's rule and the series' one lock, and needs no install per team. B needs Troy's change of section 8 and an environment for every team. C serializes the teams' checks and leaves the environment pointing at whichever team ran last. |
 | D276 | How is the main session kept from changing a team's worktree while one of its roles runs? | A: rule `team-busy`: the main session's git writes and file writes in that worktree are refused while a record of the team is open (section 3.3). B: the skill's words only, as F07 section 6.2 has today. | A, approved by Troy on 2026-11-22 ("全按推荐"). Requirements 5.8 prefers a check to an instruction. With several teams, the main session switches between worktrees all the time, and one commit in the wrong one would blame a role for the main session's change. The hook already reads `-C` and `cd`. |
 | D277 | May a team's roles change the shared documents: the requirements, the architecture, its ADRs, and the version test plans? | A: no. A team's write scopes leave them out; the Architect's writes there (AR3 after Troy accepts, AR4, AR6) run in the home checkout as the main session's own PR (section 3.3). B: yes, and only the plan keeps teams apart. | A, approved by Troy on 2026-11-22 ("全按推荐"). Q20 lets only the main session and the Architect's planning step change them, and the hook can hold that line mechanically. ADR numbers stay serial. A team that needs one of them waits for that PR, as a team waits for any change. |
-| D278 | How does F20 land? | A: two PRs: part 1, the hooks and the engine's base; part 2, the loop, AR7, the exam, and the trial (section 8.4). B: one PR. | A, approved by Troy on 2026-11-22 ("全按推荐"). Part 1 is checked on its own by tests and planted bugs, and each PR stays reviewable. Q10's list of exceptions names F01 to F10 only, so no requirement changes. |
+| D278 | How does F20 land? | A: two PRs: part 1, the hooks and the engine's base; part 2, the loop, AR7, the exam, and the trial. B: one PR. C: three PRs: part 1a, the hooks and the engine's base, which change no file of the instruction set; part 1b, `brief --repo`, after tstack #63's build merges; part 2, the loop, AR7, the exam, and the trial (section 8.4). | C, decided by Troy on 2026-11-22 ("现在开始"), in place of A, which Troy had approved earlier that day ("全按推荐"). Part 1a can then run while tstack #63's build holds the instruction set, and each part is checked on its own by tests and planted bugs. Q10's list of exceptions names F01 to F10 only, so no requirement changes. |
 | D279 | How is F20 checked, and when does its status move? | A: tests from this design by a separate agent, planted bugs, and a trial on `ZJUCao/troy-mode-trial` with two teams at once, about 30 role runs and about $85 at list prices; status "Runs on a sample project" after it (section 8). B: tests and planted bugs only, status "Written" until a real project. | A, approved by Troy on 2026-11-22 ("全按推荐"), with Troy's yes to the trial's about $85. Only a real repository shows two teams' roles, CI runs, rebases, and merges at once, and Q21 asks for exactly that trial. Its cost is about one pilot feature. |
 
 No decision changes the requirements' text. With D271 and D279, Troy said yes on 2026-11-22 to two costs, both spent at build time: the role exam's $62.80 for the first round, up to $125.60 in all, and the trial's about $85. Either still waits for Troy when it runs well over its estimate: the exam at its guard, 1.5 times its estimate (F16 section 10.2), and the trial past about $130.
@@ -324,3 +326,4 @@ No decision changes the requirements' text. With D271 and D279, Troy said yes on
 | --- | --- | --- |
 | 0.1 | 2026-11-22 | First draft, with D268 to D279 and the probes of section 2. |
 | 1.0 | 2026-11-22 | Approved by Troy with D268 to D279, every recommended answer ("全按推荐"), with the role exam's and the trial's estimates. |
+| 1.1 | 2026-11-22 | D278 changed by Troy on 2026-11-22 ("现在开始"): three build PRs, part 1a now, part 1b after tstack #63's build, and part 2 after that; each part's PR updates F20's status (sections 8.4 and 10). |
