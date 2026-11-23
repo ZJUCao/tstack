@@ -112,6 +112,43 @@ def check_command(ctx, text: str, powershell: bool) -> Refusal | None:
     return Refusal(first.rule, "\n".join(r.reason for r in refusals), first.subcommand)
 
 
+# git subcommands that change a checkout, refused in a team's worktree while
+# its roles run (F20 design 3.3, D276). "stash list" and "stash show" read.
+BUSY_GIT = frozenset({"add", "commit", "switch", "checkout", "restore", "reset", "rebase", "merge",
+                      "stash", "clean", "rm", "mv", "cherry-pick", "am", "apply"})
+
+
+def busy_refusal(found, label: str) -> Refusal:
+    """Words the team-busy refusal for a team and its running agents."""
+    team, agents = found
+    return Refusal("team-busy", f"`{label}` would change team {team.id}'s checkout "
+                   f"({team.root}) while its roles run: {', '.join(agents)}. Wait for their "
+                   "reports, or end them with TaskStop, and try again (F20 design 3.3, D276).",
+                   label if label.startswith("git") else None)
+
+
+def check_team_busy(ctx, text: str, powershell: bool) -> Refusal | None:
+    """Refuses the main session's git writes in a team's worktree while its roles run (D276)."""
+    from .gitcmd import parse_git, locations  # noqa: PLC0415
+    from .teams import busy_team  # noqa: PLC0415
+
+    parsed = parse(text, ctx.cwd, powershell)
+    if parsed.error:
+        return None
+    for cmd in parsed.commands:
+        if program(cmd.words[0].value) != "git":
+            continue
+        call = parse_git(cmd.words[1:])
+        if call.sub not in BUSY_GIT or (call.sub == "stash" and call.args[:1] in (["list"],
+                                                                                  ["show"])):
+            continue
+        for place in locations(cmd, call) or []:
+            found = busy_team(ctx.project, place)
+            if found:
+                return busy_refusal(found, f"git {call.sub}")
+    return None
+
+
 def check_skill(ctx, tool_input: dict) -> Refusal | None:
     """Checks a subagent's Skill call (design 7.4)."""
     if ctx.caller.kind == MAIN:

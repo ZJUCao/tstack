@@ -12,8 +12,14 @@ import os
 import re
 import time
 
+from . import locks
+
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 FOLDER = "agents"
+# On Windows a record that another hook process has open cannot be replaced or,
+# while it is being replaced, opened; such a call tries again for BUSY seconds.
+BUSY = 2.0
+BUSY_STEP = 0.02
 STOPPED_TOOLS = ("Bash", "PowerShell", "Edit", "Write", "NotebookEdit", "Skill")
 STOPPED_REASON = ("troy-mode: Your run has ended and your report was delivered. Do nothing more, "
                   "and end your turn. (F05 design D232)")
@@ -35,15 +41,33 @@ def path_of(state_dir: str, agent_id: str) -> str:
     return os.path.join(folder(state_dir), f"{safe}.json")
 
 
+def _busy(action):
+    """Runs a file action, trying again while Windows reports the file in use."""
+    deadline = time.monotonic() + BUSY
+    while True:
+        try:
+            return action()
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(BUSY_STEP)
+
+
+def _load(path: str):
+    """Reads and parses a record's file."""
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
 def read(path: str) -> dict | None:
     """Reads one record, or None when the file does not exist.
 
     Raises:
         ValueError: The file is not a JSON object.
+        OSError: The file stayed busy, or cannot be read.
     """
     try:
-        with open(path, encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = _busy(lambda: _load(path))
     except FileNotFoundError:
         return None
     if not isinstance(data, dict):
@@ -62,24 +86,29 @@ def save(path: str, record: dict) -> None:
     try:
         with open(temp, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(record, handle)
-        for attempt in range(10):
-            try:
-                os.replace(temp, path)
-                return
-            except PermissionError:
-                if attempt == 9:
-                    raise
-                time.sleep(0.02)
+        _busy(lambda: os.replace(temp, path))
     finally:
         if os.path.exists(temp):
             os.remove(temp)
 
 
-def fresh(agent_id: str, agent_type: str | None, session, paths: dict) -> dict:
-    """Builds the record of a role that starts now."""
-    return {"agent_id": agent_id, "agent_type": agent_type,
-            "session": session if isinstance(session, str) else None,
-            "started": now(), "stopped": None, "background": [], "paths": paths}
+def fresh(agent_id: str, agent_type: str | None, session, paths: dict,
+          team: tuple[str, str] | None = None) -> dict:
+    """Builds the record of a role that starts now.
+
+    Args:
+        agent_id: The role's agent ID.
+        agent_type: Its agent type.
+        session: The session ID of the input.
+        paths: The starting state of its checkout.
+        team: For a team's role, the team ID and its worktree (F20 design 3.3).
+    """
+    record = {"agent_id": agent_id, "agent_type": agent_type,
+              "session": session if isinstance(session, str) else None,
+              "started": now(), "stopped": None, "background": [], "paths": paths}
+    if team:
+        record["team"], record["worktree"] = team
+    return record
 
 
 def complete(record: dict, agent_id: str, agent_type: str | None, session) -> dict:
@@ -162,25 +191,61 @@ def running_shells(data: dict) -> set[str]:
             and task.get("status") == "running" and task.get("id")}
 
 
+def update(path: str, change) -> dict | None:
+    """Reads, changes, and saves one record under its lock (F20 design 3.3).
+
+    Args:
+        path: The record's file.
+        change: Called with the record, or None when there is none. It changes
+            the record in place, or returns a new one; it returns None to save
+            nothing.
+
+    Returns:
+        The record as saved, or None when nothing was saved.
+
+    Raises:
+        ValueError: The file is not a JSON object.
+        OSError: The record cannot be written.
+    """
+    with locks.held(path):
+        result = change(read(path))
+        if result is not None:
+            save(path, result)
+        return result
+
+
+def _changed(change):
+    """Wraps a change of a record that exists: saves only when the change altered it."""
+    def wrapped(record):
+        if record is None:
+            return None
+        before = json.dumps(record, sort_keys=True)
+        change(record)
+        return record if json.dumps(record, sort_keys=True) != before else None
+    return wrapped
+
+
 def stop_task(state_dir: str, task_id: str) -> None:
     """Applies the main session's TaskStop to the records (design 6.1, step 3).
 
     An agent ID closes that agent's record. A task ID leaves the background
     of the record that holds it.
     """
-    for path, record in read_all(state_dir):
-        before = json.dumps(record, sort_keys=True)
+    def change(record):
         if agent_of(os.path.basename(path), record) == task_id:
             close(record)
         elif task_id in tasks(record):
             record["background"] = [task for task in tasks(record) if task != task_id]
-        if json.dumps(record, sort_keys=True) != before:
-            save(path, record)
+
+    for path, _ in read_all(state_dir):
+        update(path, _changed(change))
 
 
 def end_session(state_dir: str, session: str) -> None:
     """Closes the records of the roles of a session that ends (design 6.1, step 4)."""
-    for path, record in read_all(state_dir):
+    def change(record):
         if record.get("session") == session and is_open(record):
             close(record)
-            save(path, record)
+
+    for path, _ in read_all(state_dir):
+        update(path, _changed(change))

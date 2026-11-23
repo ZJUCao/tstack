@@ -2,6 +2,7 @@
 
 F07 D204 adds wait-checks, the wait for a pushed head's CI checks before a merge.
 F07 D264 to D267 add costs, a feature's or a version's role runs and their cost.
+F20 adds team start and team end, a feature team's worktree.
 """
 
 import argparse
@@ -11,7 +12,7 @@ import sys
 from troycheck.gitio import GitError
 
 from . import acceptversion, approve, brief, costs, issuesync, realreport, realrun, \
-    releasetest, retro, rulerow, runs, series, skips, status, textcheck, waitchecks
+    releasetest, retro, rulerow, runs, series, skips, status, teams, textcheck, waitchecks
 from .errors import FlowError
 
 EXIT_ERROR = 2
@@ -116,9 +117,13 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--until", help="count up to this ISO 8601 time instead")
     cmd.add_argument("--transcripts", action="append",
                      help="a transcript folder to read instead of this project's")
+    cmd = sub.add_parser("team", help="a feature team's worktree (F20)")
+    cmd.add_argument("action", choices=("start", "end"))
+    cmd.add_argument("--item", required=True, help="the feature, for example F08")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
-                 "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks", "costs"):
+                 "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks", "costs",
+                 "team"):
         _common(sub.choices[name])
     return parser
 
@@ -147,6 +152,8 @@ def _text(report: dict) -> str:
         lines.append(f"result    {report['result']}")
     if report["command"] == "costs":
         lines.append(f"cost      {report['line']}")
+    if report["command"] == "team" and report.get("worktree"):
+        lines.append(f"worktree  {report['worktree']}")
     if report["command"] == "issues":
         lines += [f"label     {item['command']}" for item in report.get("labels", [])]
         lines += [f"action    {item['command']}" for item in report.get("actions", [])]
@@ -175,7 +182,8 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "release-notes": acceptversion.run_release_notes, "retro": retro.run_retro,
             "rule-id": rulerow.run_rule_id, "rule-row": rulerow.run_rule_row,
             "real-run": realrun.run_real_run, "issues": issuesync.run_issues,
-            "wait-checks": waitchecks.run_wait_checks, "costs": costs.run_costs}
+            "wait-checks": waitchecks.run_wait_checks, "costs": costs.run_costs,
+            "team": teams.run_team}
 
 
 def main(argv: list[str]) -> int:

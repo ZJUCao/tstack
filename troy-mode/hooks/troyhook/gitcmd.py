@@ -281,6 +281,11 @@ def _locations(cmd: SimpleCommand, call: GitCall) -> list[str] | None:
     return None if None in places else places
 
 
+def locations(cmd: SimpleCommand, call: GitCall) -> list[str] | None:
+    """Finds every folder a git command acts on, or None when one is not known."""
+    return _locations(cmd, call)
+
+
 def _absolute(path: str) -> bool:
     """Tells whether a path from a command is absolute, Git Bash forms included."""
     return bool(_ABSOLUTE.match(path))

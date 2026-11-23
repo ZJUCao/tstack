@@ -17,7 +17,9 @@ class Context:
         project: The troy-mode project the call is in.
         caller: Who makes the call.
         tool: The tool name, or None for events without a tool.
-        cwd: The real path of the input's cwd.
+        cwd: The real path of the input's cwd, or of the team's worktree.
+        home: For a team role's call, the checkout of the input's cwd.
+        team: For a team role's call, its team (teams.Team), else None.
     """
 
     def __init__(self, event: str, data: dict, project: Project):
@@ -27,7 +29,12 @@ class Context:
         tool = data.get("tool_name")
         self.tool = tool if isinstance(tool, str) else None
         self.cwd = os.path.realpath(str(data.get("cwd") or os.getcwd()))
+        self.home, self.team = None, None
         self._cache: dict = {}
+
+    def forget(self) -> None:
+        """Drops the facts read so far, after the call moves to a team's worktree."""
+        self._cache = {}
 
     def tool_input(self) -> dict:
         """Returns the tool input, or an empty dict."""
@@ -128,6 +135,53 @@ def _glob_base(pattern: str) -> str | None:
     return "/".join(fixed) or "/"
 
 
+def _read_tool(ctx: Context) -> dict | None:
+    """Read, Glob, and Grep: plugin reads, and a team role's path-less search (F20 design 3.2)."""
+    from . import teams  # noqa: PLC0415
+
+    allowed = _plugin_read(ctx)
+    if allowed or ctx.tool == "Read" or ctx.caller.kind != ROLE:
+        return allowed
+    tool_input = ctx.tool_input()
+    if tool_input.get("path") or _glob_base(str(tool_input.get("pattern") or "")):
+        return None
+    if teams.place(ctx) != teams.TEAM:
+        return None
+    return {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                   "updatedInput": {**tool_input, "path": ctx.team.root}}}
+
+
+def _rooted(ctx: Context) -> dict | None:
+    """Makes a team role's shell command start in its worktree (F20 design 3.2)."""
+    from . import teams  # noqa: PLC0415
+
+    if ctx.team is None or ctx.tool not in ("Bash", "PowerShell"):
+        return None
+    tool_input = ctx.tool_input()
+    command = teams.rooted(str(tool_input.get("command") or ""), ctx.team.root,
+                           ctx.tool == "PowerShell")
+    if command is None:
+        return None
+    return {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                   "updatedInput": {**tool_input, "command": command}}}
+
+
+def _team_busy(ctx: Context):
+    """Refuses the main session's writes in a team's worktree while its roles run (F20 3.3)."""
+    from . import commands, teams  # noqa: PLC0415
+    from .paths import to_native  # noqa: PLC0415
+
+    tool_input = ctx.tool_input()
+    if ctx.tool in ("Edit", "Write", "NotebookEdit"):
+        raw = tool_input.get("file_path") or tool_input.get("notebook_path")
+        found = teams.busy_team(ctx.project, to_native(str(raw), ctx.cwd)) if raw else None
+        return commands.busy_refusal(found, ctx.tool) if found else None
+    if ctx.tool in ("Bash", "PowerShell"):
+        return commands.check_team_busy(ctx, str(tool_input.get("command") or ""),
+                                        ctx.tool == "PowerShell")
+    return None
+
+
 def _pre_check(ctx: Context):
     """Runs the PreToolUse checks for Edit, Write, NotebookEdit, Bash, PowerShell, and Skill."""
     from . import commands  # noqa: PLC0415
@@ -151,30 +205,39 @@ def _pre_check(ctx: Context):
 def pre_tool_use(ctx: Context) -> dict | None:
     """PreToolUse: plugin reads, write scopes, commands, skills, guards, and TaskStop."""
     if ctx.tool in ("Read", "Glob", "Grep"):
-        return _plugin_read(ctx)
+        return _read_tool(ctx)
     if ctx.tool == "TaskStop":
         if ctx.caller.kind == MAIN:
             _task_stop(ctx)
         return None
     if ctx.caller.kind == ROLE:
-        from . import changes, records  # noqa: PLC0415
+        from . import changes, records, teams  # noqa: PLC0415
         from .verdict import Refusal  # noqa: PLC0415
 
+        if teams.place(ctx) == teams.UNKNOWN:
+            if ctx.tool in records.STOPPED_TOOLS:
+                return _deny(ctx, Refusal("team", teams.UNKNOWN_REASON))
+            return None
         record = changes.ensure_record(ctx)
         if records.is_stopped(record) and ctx.tool in records.STOPPED_TOOLS:
             return _deny(ctx, Refusal("stopped", records.STOPPED_REASON))
     refusal = _pre_check(ctx)
-    return _deny(ctx, refusal) if refusal else None
+    if refusal is None and ctx.caller.kind == MAIN:
+        refusal = _team_busy(ctx)
+    return _deny(ctx, refusal) if refusal else _rooted(ctx)
 
 
 def _task_stop(ctx: Context) -> None:
     """Applies the main session's TaskStop to the role records (design 6.1, step 3)."""
     from . import records  # noqa: PLC0415
 
+    from .teams import state_dirs  # noqa: PLC0415
+
     tool_input = ctx.tool_input()
     task_id = tool_input.get("task_id") or tool_input.get("shell_id")
     if isinstance(task_id, str) and task_id:
-        records.stop_task(ctx.project.state_dir(), task_id)
+        for state_dir in state_dirs(ctx.project):
+            records.stop_task(state_dir, task_id)
 
 
 def _background_task(ctx: Context) -> str | None:
@@ -190,10 +253,17 @@ def _note_background(ctx: Context, task: str) -> dict:
     """Adds a task to the role's record and words the note for the role (D231)."""
     from . import changes, records  # noqa: PLC0415
 
-    record = changes.current_record(ctx)
-    if task not in records.tasks(record):
+    changes.ensure_record(ctx)
+
+    def add(record):
+        record = records.complete(record or {}, ctx.caller.agent_id, ctx.caller.agent_type,
+                                  ctx.data.get("session_id"))
+        if task in records.tasks(record):
+            return None
         record["background"] = [*records.tasks(record), task]
-        records.save(changes.record_path(ctx), record)
+        return record
+
+    records.update(changes.record_path(ctx), add)
     return {"hookEventName": "PostToolUse", "additionalContext": (
         f"troy-mode: this command now runs in the background as task {task}. You cannot stop "
         "it, and the main session stops it after your report, so do not wait for its result. "
@@ -204,9 +274,11 @@ def post_tool_use(ctx: Context) -> dict | None:
     """PostToolUse: a role's changes outside its scope, and its commands moved to the background."""
     if ctx.caller.kind != ROLE or ctx.tool not in ("Bash", "PowerShell", "Skill"):
         return None
-    from . import changes, records  # noqa: PLC0415
+    from . import changes, records, teams  # noqa: PLC0415
     from .verdict import Refusal  # noqa: PLC0415
 
+    if teams.place(ctx) == teams.UNKNOWN:
+        return None
     output: dict = {}
     if not records.is_stopped(changes.read_record(ctx)):
         left = changes.out_of_scope(ctx)
@@ -220,10 +292,16 @@ def post_tool_use(ctx: Context) -> dict | None:
 
 
 def subagent_start(ctx: Context) -> None:
-    """SubagentStart: records a role's starting state, and keeps a stopped role's record."""
-    if ctx.caller.kind == ROLE:
-        from . import changes, records  # noqa: PLC0415
+    """SubagentStart: records a role's starting state, and keeps a stopped role's record.
 
+    While the repository has a team worktree it writes nothing: the role's
+    team is known only from its first call (F20 design 3.2).
+    """
+    if ctx.caller.kind == ROLE:
+        from . import changes, records, teams  # noqa: PLC0415
+
+        if teams.team_worktrees(ctx.project):
+            return
         if not records.is_stopped(changes.read_record(ctx)):
             changes.write_record(ctx)
 
@@ -237,14 +315,20 @@ def subagent_stop(ctx: Context) -> dict | None:
     """
     if ctx.caller.kind != ROLE:
         return None
-    from . import changes, log, records  # noqa: PLC0415
+    from . import changes, log, records, teams  # noqa: PLC0415
     from .verdict import Refusal  # noqa: PLC0415
 
+    if teams.place(ctx) == teams.UNKNOWN:
+        return None
     record = changes.read_record(ctx)
     running = records.running_shells(ctx.data)
+
+    def keep_running(found):
+        found["background"] = [task for task in records.tasks(found) if task in running]
+        return found
+
     if records.is_stopped(record):
-        record["background"] = [task for task in records.tasks(record) if task in running]
-        records.save(changes.record_path(ctx), record)
+        records.update(changes.record_path(ctx), lambda found: found and keep_running(found))
         return None
     left = changes.out_of_scope(ctx)
     paths = tuple(path for path, _ in left)
@@ -253,10 +337,15 @@ def subagent_stop(ctx: Context) -> dict | None:
                                    paths=paths))
     if left:
         log.write(ctx, "changes", "stop", paths)
-    record = changes.current_record(ctx)
-    record["stopped"] = records.now()
-    record["background"] = [task for task in records.tasks(record) if task in running]
-    records.save(changes.record_path(ctx), record)
+    changes.ensure_record(ctx)
+
+    def stop(found):
+        found = records.complete(found or {}, ctx.caller.agent_id, ctx.caller.agent_type,
+                                 ctx.data.get("session_id"))
+        found["stopped"] = records.now()
+        return keep_running(found)
+
+    record = records.update(changes.record_path(ctx), stop)
     if record["background"]:
         log.write(ctx, "background", "stop", tasks=record["background"])
     return None
@@ -304,10 +393,12 @@ def session_start(ctx: Context) -> dict | None:
 def session_end(ctx: Context) -> None:
     """SessionEnd: closes the records of the ending session's roles (design 6.1, step 4)."""
     from . import records  # noqa: PLC0415
+    from .teams import state_dirs  # noqa: PLC0415
 
     session = ctx.data.get("session_id")
     if isinstance(session, str) and session:
-        records.end_session(ctx.project.state_dir(), session)
+        for state_dir in state_dirs(ctx.project):
+            records.end_session(state_dir, session)
 
 
 def user_prompt_expansion(ctx: Context) -> dict | None:
