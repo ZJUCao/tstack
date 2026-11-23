@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F20 in [requirements 1.54](../requirements.md#72-feature-list) |
-| Version | 1.2 |
+| Version | 1.3 |
 | Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-22 ("全按推荐"), with D268 to D279, every recommended answer, and with them the estimates of the build's role exam and trial (D271, D279). Version 1.1 records Troy's change of D278 on 2026-11-22 ("现在开始"): F20 lands in three PRs, so that part 1a, which changes no file of the instruction set, runs alongside tstack #63's build. Version 1.2 records three details that part 1a's build settled: `SubagentStart` still writes a role's record while the repository has no team worktree, `team-busy` also refuses `git checkout`, and a writer that waits a second for a lock goes ahead without it. |
+| Status | Approved by Troy on 2026-11-22 ("全按推荐"), with D268 to D279, every recommended answer, and with them the estimates of the build's role exam and trial (D271, D279). Version 1.1 records Troy's change of D278 on 2026-11-22 ("现在开始"): F20 lands in three PRs, so that part 1a, which changes no file of the instruction set, runs alongside tstack #63's build. Version 1.2 records three details that part 1a's build settled: `SubagentStart` still writes a role's record while the repository has no team worktree, `team-busy` also refuses `git checkout`, and a writer that waits a second for a lock goes ahead without it. Version 1.3 records what part 1b's build settled: a team's checks take the source folders from `[lang] source_roots`, its environment's fallback name is the main checkout's folder, and DV1's first-mock install in a team installs the main checkout. |
 | Source of truth | This English file. [`F20-parallel-teams.zh-CN.md`](F20-parallel-teams.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -157,7 +157,7 @@ When Troy's 5-hour usage limit stops the session, every team pauses. Its state i
 
 ### 3.11 Python series and Troy's PC (D275)
 
-A Python series shares one environment (requirements section 8), and DV1's `uv pip install -e . --no-deps` points it at one folder. Two teams' checks would then test the same code (Q20). So each team's checks put the team's own source first on Python's import path: the checks that `brief --repo <worktree>` and the skill's local checks give run with `PYTHONPATH` set to the worktree's source folders, as the architecture's module table names them, `src` by default. A folder on `PYTHONPATH` comes before the editable install's entries, so the team's worktree is what its tests import. The environment and its lock stay one per series. The build's tests and trial check that `import <package>` gives a file in the team's worktree for the Python pack's build backend.
+A Python series shares one environment (requirements section 8), and DV1's `uv pip install -e . --no-deps` points it at one folder. Two teams' checks would then test the same code (Q20). So each team's checks put the team's own source first on Python's import path: the checks that `brief --repo <worktree>` and the skill's local checks give run with `PYTHONPATH` set to the worktree's source folders, as the config's `[lang] source_roots` names them, `src` by default. A folder on `PYTHONPATH` comes before the editable install's entries, so the team's worktree is what its tests import. The environment and its lock stay one per series. So a team's brief also names the environment by the main checkout's folder when `[lang] environment` is unset, never by the worktree's, and DV1's first-mock install installs the main checkout, `uv pip install -e "<main checkout>" --no-deps`, so the shared environment never points into a worktree that `team end` removes. The build's tests and trial check that `import <package>` gives a file in the team's worktree for the Python pack's build backend.
 
 C and C++ teams each build in their own worktree's build folder, so they share nothing.
 
@@ -328,3 +328,4 @@ No decision changes the requirements' text. With D271 and D279, Troy said yes on
 | 1.0 | 2026-11-22 | Approved by Troy with D268 to D279, every recommended answer ("全按推荐"), with the role exam's and the trial's estimates. |
 | 1.1 | 2026-11-22 | D278 changed by Troy on 2026-11-22 ("现在开始"): three build PRs, part 1a now, part 1b after tstack #63's build, and part 2 after that; each part's PR updates F20's status (sections 8.4 and 10). |
 | 1.2 | 2026-11-22 | What part 1a's build settled: `SubagentStart` keeps writing a role's record while the repository has no team worktree, `team-busy` also refuses `git checkout`, and a writer that waits a second for a lock goes ahead without it (sections 3.2, 3.3, and 5). |
+| 1.3 | 2026-11-22 | What part 1b's build settled: the source folders come from `[lang] source_roots`, the environment's fallback name is the main checkout's folder, and DV1's first-mock install in a team installs the main checkout (section 3.11). |
