@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F05 in [requirements 1.15](../requirements.md#72-feature-list) |
-| Version | 1.5 |
-| Date | 2026-11-21 |
-| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. Version 1.3 adds D219, which Troy approved on 2026-11-18 as tstack issue #66. Version 1.4 adds D223, which Troy approved on 2026-11-16 as tstack issue #64. Version 1.5 adds D231, D232, and D234, which Troy approved on 2026-11-21 as tstack issue #49 (section 6.1). |
+| Version | 1.6 |
+| Date | 2026-11-22 |
+| Status | Approved by Troy on 2026-11-06, with D39 to D46. Version 1.1 records the facts the trial of section 13.3 settled. Version 1.2 adds D200, which Troy approved on 2026-11-16 as tstack issue #65. Version 1.3 adds D219, which Troy approved on 2026-11-18 as tstack issue #66. Version 1.4 adds D223, which Troy approved on 2026-11-16 as tstack issue #64. Version 1.5 adds D231, D232, and D234, which Troy approved on 2026-11-21 as tstack issue #49 (section 6.1). Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
 | Source of truth | This English file. [`F05-hooks.zh-CN.md`](F05-hooks.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -516,3 +516,4 @@ No R row changes: the check belongs to troy-mode's own check after each run (F07
 | 1.3 | 2026-11-18 | D219, from tstack issue #66, approved by Troy on 2026-11-18: `hooks.log` keeps its lines for `[hooks] log_days` days, 30 by default, and role records are still removed after a day (sections 1, 3, 10, 13.1, 13.2, and 15). Section 15's table no longer breaks before D200. |
 | 1.4 | 2026-11-20 | D223, from tstack issue #64, approved by Troy on 2026-11-16: every caller's Python that reads its program from standard input is refused before it starts, as the new rule R23, and `timeout` joins the wrappers that section 7.1 removes, with a mark for commands that come through `xargs` (sections 1, 3, 7.1, 8, 8.3, 10, 11, 13.1, 13.2, and 15). |
 | 1.5 | 2026-11-21 | D231, D232, and D234, from tstack issue #49, approved by Troy on 2026-11-21 ("全按推荐"): the pilot's leftover work was a role's command that Claude Code moved to the background, not a hung role. The hooks record such commands, keep a role's record until its work ends, close it at the main session's `TaskStop` and at `SessionEnd`, and refuse every call of a role that has already stopped. Facts from the pilot's transcripts and from probes with CLI 2.1.328 (sections 1, 3, 6, 6.1, 10, 11, 12, 13.1, 13.2, 13.3, and 15). |
+| 1.6 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): the hooks learn a role's team from its brief, run its commands in the team's worktree, keep its record and log lines in that worktree's git folder, lock log appends and record updates, refuse the main session's writes in a team's worktree while one of its roles runs (rule `team-busy`), and take the shared documents out of a team's write scopes; `SubagentStart` no longer writes a role's record (sections 3, 4, 5, 6, 6.1, and 10). The changes land with F20's build. |

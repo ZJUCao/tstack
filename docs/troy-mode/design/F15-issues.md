@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.1 |
-| Date | 2026-11-17 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. |
+| Version | 1.2 |
+| Date | 2026-11-22 |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -556,3 +556,4 @@ Requirements 1.39 records the approved changes:
 | 0.1 | 2026-11-16 | First draft, with two probes on `ZJUCao/troy-mode-trial` (section 2). |
 | 1.0 | 2026-11-16 | Approved by Troy with D141 to D150, every recommended answer. |
 | 1.1 | 2026-11-17 | Facts from the build and its trial: status's two reads (section 3.3), the final render after PR 6 (4.5), the title when the mirror gives the same name (4.2), the version 0.7.0 (12), and the trial's record (13.5). |
+| 1.2 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): every feature that may start has its progress issue, not only the next feature (section 4.1). The change lands with F20's build. |
