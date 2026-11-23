@@ -32,24 +32,28 @@ def write_record(ctx) -> dict:
         GitError: git status fails.
         OSError: The record cannot be written.
     """
-    record = records.fresh(ctx.caller.agent_id, ctx.caller.agent_type,
-                           ctx.data.get("session_id"), gitstate.snapshot(ctx.project))
+    record = _fresh(ctx)
     records.save(record_path(ctx), record)
     return record
 
 
+def _fresh(ctx) -> dict:
+    """Builds the calling role's record from its checkout's state now."""
+    team = getattr(ctx, "team", None)
+    return records.fresh(ctx.caller.agent_id, ctx.caller.agent_type, ctx.data.get("session_id"),
+                         gitstate.snapshot(ctx.project), (team.id, team.root) if team else None)
+
+
 def ensure_record(ctx) -> dict:
-    """Returns the role's record, made now when SubagentStart made none."""
-    return read_record(ctx) or write_record(ctx)
+    """Returns the role's record, made now when SubagentStart made none.
 
-
-def current_record(ctx) -> dict:
-    """Returns the role's record with every field of D231, for a change to save.
-
-    An earlier plugin's record gains the fields as the record of a running role.
+    Two calls of one role may make it at once, so it is made under the
+    record's lock (F20 design 3.3).
     """
-    return records.complete(ensure_record(ctx), ctx.caller.agent_id, ctx.caller.agent_type,
-                            ctx.data.get("session_id"))
+    return read_record(ctx) or records.update(record_path(ctx),
+                                              lambda found: None if found else _fresh(ctx)) \
+        or read_record(ctx)
+
 
 
 def _way_back(path: str, start: dict, now: dict) -> str:
@@ -85,7 +89,9 @@ def out_of_scope(ctx) -> list[tuple[str, str]]:
     if not changed:
         return []
     paths, scope = ctx.config().paths, ctx.caller.scope()
-    return [(p, _way_back(p, start, now)) for p in changed if not allows(scope, p, paths)[0]]
+    team = getattr(ctx, "team", None) is not None
+    return [(p, _way_back(p, start, now)) for p in changed
+            if not allows(scope, p, paths, team)[0]]
 
 
 def reason(left: list[tuple[str, str]], caller: Caller, at_stop: bool) -> str:

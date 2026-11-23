@@ -9,6 +9,7 @@ import json
 import os
 import time
 
+from . import locks
 from .project import Project
 
 DAY = 24 * 60 * 60
@@ -72,11 +73,22 @@ def write(ctx, rule: str, decision: str, paths=(), subcommand: str | None = None
     }
     if tasks is not None:
         entry["tasks"] = [str(task) for task in tasks]
-    path = log_path(ctx.project)
+    append(log_path(ctx.project), [json.dumps(entry)])
+
+
+def append(path: str, lines: list[str]) -> None:
+    """Appends lines to a log under its lock (F20 design 3.3). A log that cannot be written is skipped.
+
+    Args:
+        path: The hooks.log file.
+        lines: Lines without their line ends.
+    """
+    if not lines:
+        return
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "a", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(entry) + "\n")
+        with locks.held(path), open(path, "a", encoding="utf-8", newline="\n") as handle:
+            handle.write("".join(line + "\n" for line in lines))
     except OSError:
         pass
 
@@ -92,34 +104,40 @@ def _line_time(line: str) -> float:
 def clean(project: Project, log_days: int | None) -> None:
     """Removes role records older than a day and log lines older than log_days days.
 
+    It cleans the troy-mode folder of every git folder of the repository: the
+    common one and each worktree's, the teams' included (F20 design 3.3).
+
     Args:
         project: The troy-mode project.
         log_days: [hooks] log_days from the config at HEAD (design section 10,
             D219), or None when that config is not valid: every line then stays.
     """
+    from .teams import state_dirs  # noqa: PLC0415
+
     now = time.time()
-    _remove_old_records(project, now - DAY)
-    if log_days is not None:
-        _remove_old_lines(project, now - log_days * DAY)
+    for state_dir in state_dirs(project):
+        _remove_old_records(state_dir, now - DAY)
+        if log_days is not None:
+            _remove_old_lines(os.path.join(state_dir, "hooks.log"), now - log_days * DAY)
 
 
-def _remove_old_records(project: Project, cutoff: float) -> None:
-    """Removes the role records last changed before the cutoff."""
-    agents = os.path.join(project.state_dir(), "agents")
+def _remove_old_records(state_dir: str, cutoff: float) -> None:
+    """Removes the role records, and their lock files, last changed before the cutoff."""
+    agents = os.path.join(state_dir, "agents")
     for name in os.listdir(agents) if os.path.isdir(agents) else []:
         full = os.path.join(agents, name)
         if os.path.isfile(full) and os.path.getmtime(full) < cutoff:
             os.remove(full)
 
 
-def _remove_old_lines(project: Project, cutoff: float) -> None:
+def _remove_old_lines(path: str, cutoff: float) -> None:
     """Removes the log lines written before the cutoff, and lines with no readable time."""
-    path = log_path(project)
     if not os.path.isfile(path):
         return
-    with open(path, encoding="utf-8", errors="replace") as handle:
-        lines = handle.read().splitlines()
-    kept = [line for line in lines if _line_time(line) >= cutoff]
-    if len(kept) != len(lines):
-        with open(path, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write("".join(line + "\n" for line in kept))
+    with locks.held(path):
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            lines = handle.read().splitlines()
+        kept = [line for line in lines if _line_time(line) >= cutoff]
+        if len(kept) != len(lines):
+            with open(path, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write("".join(line + "\n" for line in kept))
