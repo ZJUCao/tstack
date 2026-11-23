@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
+| Version | 1.3 |
+| Date | 2026-11-23 |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -76,7 +76,7 @@ python troy_flow.py issues [--device-test-scenarios <ID>,<ID>...] [common option
 `status` gains an `issues` part and one new action. It reads the issues with at most two more `gh` calls: every issue, open and closed, with its comments, and every PR, open, merged, and closed, for the stage PR numbers that `issues.pending` needs. The build chose these two reads over the open issues and the progress issues in every state: one list then serves the ideas, the progress issues, and the checklists.
 
 - `issues.ideas`: each open idea issue (section 5.1), with its comments, and `new` when troy-mode has not answered it or Troy has written since troy-mode's last comment.
-- `issues.troy_comments`: Troy's comments on progress and checklist issues since troy-mode's last comment on each.
+- `issues.troy_comments`: Troy's comments on progress and checklist issues since troy-mode's last comment on each. A `Note for <ID>` comment (section 8.4) does not count as troy-mode's last comment, so a note never hides a comment of Troy's that waits for an answer.
 - `issues.device_test`: the open checklist's tag, run, the scenarios with their ticks, the accept box, and `result`: `waiting`, `ticked` (every scenario and the accept box ticked), or `incomplete` (the accept box ticked while a scenario is not).
 - `issues.pending`: how many changes `issues` would make.
 - `next.issue`: the feature's progress issue number, on a `stage` or `continue-pr` entry.
@@ -148,7 +148,7 @@ troy-mode keeps this text and replaces edits to it. To reach troy-mode, write a 
 - **The stage line** names the stage's PR and its state. For the open PR, it adds the last review or attempt heading, translated into fixed words, such as "Code Reviewer, round 1: changes requested".
 - **"Waiting for you"** says what waits on Troy, from `status`: "approve #41; what to decide is at the top of its description", or an escalation with its link.
 - **The status** is the feature's Status cell in the requirements and its mirror, shown when it says more than "Not started": "Needs rework (<the change>)" during a rework, and the new status at acceptance.
-- **Other lines,** when they exist: side PRs whose title names the feature, such as `[F04 test-fix]`; bug issues titled `Real run of F04: ...` (F12 design D107); a stage PR closed unmerged; and "Needs rework" with the change that caused it.
+- **Other lines,** when they exist: side PRs whose title names the feature, such as `[F04 test-fix]`; bug issues titled `Real run of F04: ...` (F12 design D107); a stage PR closed unmerged; "Needs rework" with the change that caused it; and the notes that earlier work left for the feature, "备注：2 条（#31、#40）" and "Notes from earlier work: 2 (#31, #40)", each number linking its `Note for` comment (F07 design 6.6, D284).
 - **The links** go to the documents on `main` and to the dependencies' progress issues. The issue never holds a document's text or the summary for Troy (section 8.3).
 - **No time stamps** that change at every sync, so a sync edits the body only when something changed.
 
@@ -158,7 +158,7 @@ The Why section of every stage PR's description starts with `Progress: #<n>`, an
 
 ### 4.4 Kept up to date
 
-The sync runs at every start and after every step, and edits the body only when it differs. troy-mode writes no comment on a progress issue except a reply to Troy (section 7). When Troy edits the body or the title, the next sync puts troy-mode's text back. When Troy closes the issue while the feature is not accepted, the next sync reopens it. To say something to troy-mode, Troy writes a comment.
+The sync runs at every start and after every step, and edits the body only when it differs. troy-mode writes no comment on a progress issue except a reply to Troy (section 7) and a note for a later feature (F07 design 6.6), which it never edits or deletes. When Troy edits the body or the title, the next sync puts troy-mode's text back. When Troy closes the issue while the feature is not accepted, the next sync reopens it. To say something to troy-mode, Troy writes a comment.
 
 ### 4.5 Closed at acceptance
 
@@ -336,7 +336,8 @@ Each starts the comment's first line, so `status` can tell troy-mode's comments 
 - `Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, and `Idea: in the requirements` (section 5);
 - `Waiting for Troy: <question>` (F07's heading);
 - `Reply to Troy`;
-- `Device test, run <n>: ready` (section 6.3).
+- `Device test, run <n>: ready` (section 6.3);
+- `Note for <feature ID>, from <source>`, on progress issues, in English, since roles read it (F07 design 6.6).
 
 ## 9. When gh or the network fails (D147)
 
@@ -440,14 +441,15 @@ A separate agent writes the tests from this design, before the code exists, with
 | Ideas | An `idea` label and an unlabeled issue count; `bug`, `progress`, and `device-test` issues do not. `new` until troy-mode's heading comment, and again after Troy writes. The `ideas` action before a feature's first stage, a version test plan, a release not started, and `all-accepted`; never between two stages, during an open PR, or during an open release. |
 | Checklist | Created at `troy-test` with Troy's scenarios of sections 2 and 3, in both languages, and the accept box last. A patch's named scenarios kept across syncs. Only the accept box when no scenario is Troy's. Results `waiting`, `ticked`, and `incomplete`. Ticks alone cause no edit. A new run clears the accept box, unticks the failed scenarios named in the failed comment, keeps the others, and changes the commit. Closed after the release PR merges. |
 | Labels and text | A missing label gives its create command; an existing one is never changed. Both languages, Chinese first, the boxes once. No time stamp. Full URLs. A body over 60,000 characters shortened, with a problem. Duplicates closed, the older kept. Issues turned off: skipped. |
-| Reading Troy | Comments and reviews on a PR waiting for Troy end the wait and reach `troy_comments`. Troy's comments on progress issues and checklists. Every new heading of section 8.4 is troy-mode's. |
+| Reading Troy | Comments and reviews on a PR waiting for Troy end the wait and reach `troy_comments`. Troy's comments on progress issues and checklists. Every new heading of section 8.4 is troy-mode's. A `Note for` comment after Troy's comment leaves Troy's comment in `troy_comments`. |
+| Notes (F07 D284) | The notes line on the target's progress issue, in both languages, with a link per note, and none without notes. A note on a closed progress issue still counts. |
 | `check-text` | A file of 65,537 characters fails, one of 65,536 passes. |
 | Hooks | Each command of section 10.2, long and short forms, refused with attribution and passed without. `gh issue delete` and `gh label delete` refused for the main session and for roles. |
 | Skill, templates, init | The skill names `issues`, the headings, and the steps of section 3.4. The three templates and their README rows. Setup and upgrade write the idea template, and upgrade replaces it only when unchanged. |
 
 ### 13.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: a progress issue created for an accepted feature, a stage ticked from an open PR, the skipped mock left unticked, a body edited when nothing changed, Troy's closing left in place, a closed progress issue edited again, an unlabeled issue not counted as an idea, a `bug` issue counted as one, the `ideas` action between two stages, Troy's ticks lost at a sync, the accept box kept at a new run, `ticked` with one scenario unticked, a checklist ticked by the engine, a missing label used before it exists, an existing label changed, the size limit counted in bytes, the newer duplicate kept, a Troy review on a waiting PR ignored, `check-text`'s length check off by one, and `gh issue close --comment` let through unchecked. The counts go in the build PR's description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: a progress issue created for an accepted feature, a stage ticked from an open PR, the skipped mock left unticked, a body edited when nothing changed, Troy's closing left in place, a closed progress issue edited again, an unlabeled issue not counted as an idea, a `bug` issue counted as one, the `ideas` action between two stages, Troy's ticks lost at a sync, the accept box kept at a new run, `ticked` with one scenario unticked, a checklist ticked by the engine, a missing label used before it exists, an existing label changed, the size limit counted in bytes, the newer duplicate kept, a Troy review on a waiting PR ignored, `check-text`'s length check off by one, and `gh issue close --comment` let through unchecked. F07's D284 to D287 add: a note counted as troy-mode's answer to Troy, and a note's line shown on the source feature's issue instead of the target's. The counts go in the build PR's description.
 
 ### 13.3 Trial
 
@@ -557,3 +559,4 @@ Requirements 1.39 records the approved changes:
 | 1.0 | 2026-11-16 | Approved by Troy with D141 to D150, every recommended answer. |
 | 1.1 | 2026-11-17 | Facts from the build and its trial: status's two reads (section 3.3), the final render after PR 6 (4.5), the title when the mirror gives the same name (4.2), the version 0.7.0 (12), and the trial's record (13.5). |
 | 1.2 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): every feature that may start has its progress issue, not only the next feature (section 4.1). The change lands with F20's build. |
+| 1.3 | 2026-11-23 | F07's D284 to D287, from tstack issue #67, approved under Troy's standing yes of 2026-11-22: troy-mode's `Note for <ID>` comments on progress issues hold the notes for later features; the target's issue shows a notes line; a note never hides Troy's comment (sections 3.3, 4.2, 4.4, 8.4, 13.1, and 13.2). |

@@ -1,13 +1,13 @@
 # F15 设计：给 Troy 的 issue
 
-> 本文件是 [`F15-issues.md`](F15-issues.md) 的中文镜像，同步自英文版 1.2（2026-11-22）。两者如有出入，以英文版为准。
+> 本文件是 [`F15-issues.md`](F15-issues.md) 的中文镜像，同步自英文版 1.3（2026-11-23）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.39](../requirements.zh-CN.md#72-功能列表) 中的 F15 |
-| 版本 | 1.2 |
-| 日期 | 2026-11-22 |
-| 状态 | Troy 已于 2026-11-16 批准，含 D141 到 D150。1.1 版记录构建和试运行确认的事实。1.2 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。 |
+| 版本 | 1.3 |
+| 日期 | 2026-11-23 |
+| 状态 | Troy 已于 2026-11-16 批准，含 D141 到 D150。1.1 版记录构建和试运行确认的事实。1.2 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.3 版跟随 F07 为 tstack issue #67 定的 D284 到 D287，依据 Troy 2026-11-22 的长期同意批准：给后续功能的备注是 troy-mode 在进度 issue 上的评论（第 3.3、4.2、4.4 和 8.4 节）。 |
 | 事实来源 | 英文版 [`F15-issues.md`](F15-issues.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -78,7 +78,7 @@ python troy_flow.py issues [--device-test-scenarios <ID>,<ID>...] [common option
 `status` 增加一个 `issues` 部分和一个新的动作。它最多多用两次 `gh` 调用来读 issue：所有 issue，开着的和已关闭的，连同评论；以及所有 PR，开着的、已合并的和已关闭的，用来得到 `issues.pending` 需要的各阶段 PR 编号。构建时选了这两次读取，而不是开着的 issue 加所有状态的进度 issue：这样一个列表就同时用于想法、进度 issue 和清单。
 
 - `issues.ideas`：每个开着的想法 issue（第 5.1 节）及其评论；troy-mode 还没回答过它，或者 troy-mode 上次评论之后 Troy 又写了东西时，标为 `new`。
-- `issues.troy_comments`：每个进度 issue 和清单上，troy-mode 上次评论之后 Troy 写的评论。
+- `issues.troy_comments`：每个进度 issue 和清单上，troy-mode 上次评论之后 Troy 写的评论。`Note for <ID>` 评论（第 8.4 节）不算 troy-mode 的上次评论，所以备注不会把 Troy 等着回复的评论盖掉。
 - `issues.device_test`：开着的清单的标签版本、轮次、各个场景及其勾选、验收框，以及 `result`：`waiting`、`ticked`（每个场景和验收框都勾了），或 `incomplete`（勾了验收框，但有场景没勾）。
 - `issues.pending`：`issues` 会做几项改动。
 - `next.issue`：功能的进度 issue 编号，出现在 `stage` 或 `continue-pr` 条目上。
@@ -150,7 +150,7 @@ troy-mode keeps this text and replaces edits to it. To reach troy-mode, write a 
 - **阶段那一行**写出这个阶段的 PR 和它的状态。对开着的 PR，再加上最近一次审查或尝试的标题，换成固定的说法，比如"代码审查员第 1 轮：要求修改"。
 - **"等你"**说明什么在等 Troy，来自 `status`："批准 #41；要决定的事在它描述的开头"，或者一次升级上报及其链接。
 - **状态**是这个功能在需求文档及其镜像里的状态栏，只在它比"未开始"多说了点什么时才显示：返工期间的"需要返工（<改动>）"，以及验收时的新状态。
-- **其他行**，有的时候才出现：标题里带这个功能编号的旁支 PR，比如 `[F04 test-fix]`；标题为 `Real run of F04: ...` 的 bug issue（F12 设计 D107）；没合并就关掉的阶段 PR；以及"需要返工"和引起它的改动。
+- **其他行**，有的时候才出现：标题里带这个功能编号的旁支 PR，比如 `[F04 test-fix]`；标题为 `Real run of F04: ...` 的 bug issue（F12 设计 D107）；没合并就关掉的阶段 PR；"需要返工"和引起它的改动；以及之前的工作给这个功能留下的备注，"备注：2 条（#31、#40）"和"Notes from earlier work: 2 (#31, #40)"，每个编号链接到它的 `Note for` 评论（F07 设计 6.6，D284）。
 - **链接**指向 `main` 上的文档和所依赖功能的进度 issue。issue 里从不放文档的正文或给 Troy 的摘要（第 8.3 节）。
 - **没有每次同步都会变的时间戳**，所以只有真有变化时，同步才编辑正文。
 
@@ -160,7 +160,7 @@ troy-mode keeps this text and replaces edits to it. To reach troy-mode, write a 
 
 ### 4.4 保持最新
 
-同步在每次开始时和每一步之后运行，只在正文不同时才编辑。troy-mode 在进度 issue 上不写评论，除了回复 Troy（第 7 节）。Troy 改了正文或标题，下一次同步会把 troy-mode 的文字放回去。功能还没验收时 Troy 关掉了这个 issue，下一次同步会重新打开它。想对 troy-mode 说什么，Troy 就写评论。
+同步在每次开始时和每一步之后运行，只在正文不同时才编辑。troy-mode 在进度 issue 上不写评论，除了回复 Troy（第 7 节）和给后续功能的备注（F07 设计 6.6）；备注从不编辑或删除。Troy 改了正文或标题，下一次同步会把 troy-mode 的文字放回去。功能还没验收时 Troy 关掉了这个 issue，下一次同步会重新打开它。想对 troy-mode 说什么，Troy 就写评论。
 
 ### 4.5 验收时关闭
 
@@ -338,7 +338,8 @@ Troy 在手机上读这些 issue，先读中文，和给 Troy 的摘要一样（
 - `Idea: requirement change`、`Idea: bug`、`Idea: rule`、`Idea: answered`、`Idea: later` 和 `Idea: in the requirements`（第 5 节）；
 - `Waiting for Troy: <question>`（F07 的标题）；
 - `Reply to Troy`；
-- `Device test, run <n>: ready`（第 6.3 节）。
+- `Device test, run <n>: ready`（第 6.3 节）；
+- `Note for <feature ID>, from <source>`，在进度 issue 上，用英文，因为是角色来读（F07 设计 6.6）。
 
 ## 9. gh 或网络出问题时（D147）
 
@@ -442,14 +443,15 @@ F15 的构建 PR 提高插件的次版本号，合并时取下一个空闲的：
 | 想法 | 带 `idea` 标签和没有标签的 issue 都算；`bug`、`progress` 和 `device-test` 的 issue 不算。直到 troy-mode 写了带标题的评论之前都是 `new`，Troy 再写后又是 `new`。`ideas` 动作出现在功能的第一步、版本测试计划、还没开始的发布和 `all-accepted` 之前；从不出现在两步之间、开着 PR 时或进行中的发布期间。 |
 | 清单 | 在 `troy-test` 时创建，包含 Troy 在第 2 和第 3 节的场景，两种语言，验收框在最后。补丁版本指定的场景在多次同步间保持。没有 Troy 场景时只有验收框。结果 `waiting`、`ticked` 和 `incomplete`。单纯勾选不引起编辑。新的一轮清掉验收框、取消勾选失败评论里点名的场景、保留其他勾选，并更换提交。发布 PR 合并后关闭。 |
 | 标签和文字 | 缺少的标签给出创建命令；已有的从不改。两种语言，中文在前，勾选框只出现一次。没有时间戳。完整 URL。超过 60,000 个字符的正文被缩短，并报告一个问题。重复的 issue 被关闭，保留较早的。关闭了 issue 功能：略过。 |
-| 读取 Troy 的输入 | 等 Troy 的 PR 上的评论和审查结束等待，并进入 `troy_comments`。Troy 在进度 issue 和清单上的评论。第 8.4 节的每个新标题都算 troy-mode 的。 |
+| 读取 Troy 的输入 | 等 Troy 的 PR 上的评论和审查结束等待，并进入 `troy_comments`。Troy 在进度 issue 和清单上的评论。第 8.4 节的每个新标题都算 troy-mode 的。Troy 评论之后的 `Note for` 评论不会把 Troy 的评论移出 `troy_comments`。 |
+| 备注（F07 D284） | 目标功能的进度 issue 上的备注一行，两种语言，每条备注一个链接；没有备注时没有这一行。关闭的进度 issue 上的备注也算。 |
 | `check-text` | 65,537 个字符的文件失败，65,536 个字符的通过。 |
 | hook | 第 10.2 节的每条命令，长短两种写法，带归属信息时拒绝，不带时放行。对主会话和角色都拒绝 `gh issue delete` 和 `gh label delete`。 |
 | 技能、模板、初始化 | 技能提到 `issues`、各个标题和第 3.4 节的步骤。三个模板及其 README 行。初始化和升级写入想法模板，升级只在它没被改过时替换。 |
 
 ### 13.2 埋 bug
 
-代码通过之后，在一个临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：为已验收的功能创建进度 issue、用开着的 PR 勾选阶段、跳过的模拟没勾、没有变化也编辑正文、Troy 关闭后不管、已关闭的进度 issue 又被编辑、没有标签的 issue 不算想法、`bug` issue 被算作想法、`ideas` 动作出现在两步之间、同步时丢掉 Troy 的勾选、新的一轮保留验收框、有一个场景没勾也算 `ticked`、引擎勾了清单、在标签存在之前就用它、改动已有的标签、长度上限按字节算、保留了较新的重复 issue、忽略 Troy 在等待中的 PR 上的审查、`check-text` 的长度检查差一个，以及 `gh issue close --comment` 未经检查就放行。数量写进构建 PR 的描述。
+代码通过之后，在一个临时副本里一次埋一个 bug，每个都必须让某个测试失败。包括：为已验收的功能创建进度 issue、用开着的 PR 勾选阶段、跳过的模拟没勾、没有变化也编辑正文、Troy 关闭后不管、已关闭的进度 issue 又被编辑、没有标签的 issue 不算想法、`bug` issue 被算作想法、`ideas` 动作出现在两步之间、同步时丢掉 Troy 的勾选、新的一轮保留验收框、有一个场景没勾也算 `ticked`、引擎勾了清单、在标签存在之前就用它、改动已有的标签、长度上限按字节算、保留了较新的重复 issue、忽略 Troy 在等待中的 PR 上的审查、`check-text` 的长度检查差一个，以及 `gh issue close --comment` 未经检查就放行。F07 的 D284 到 D287 加上：备注被算作 troy-mode 对 Troy 的回复，以及备注那一行显示在来源功能的 issue 上而不是目标功能的。数量写进构建 PR 的描述。
 
 ### 13.3 试运行
 
@@ -559,3 +561,4 @@ F12、F13 和 F14 用了 D101 到 D137，D151 起留给 F16，D191 起留给 F19
 | 1.0 | 2026-11-16 | Troy 批准，含 D141 到 D150，全部采用推荐答案。 |
 | 1.1 | 2026-11-17 | 构建和试运行确认的事实：`status` 的两次读取（第 3.3 节）、PR 6 之后的最终生成（4.5）、镜像名字相同时的标题（4.2）、版本 0.7.0（12），以及试运行的记录（13.5）。 |
 | 1.2 | 2026-11-22 | F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）：每个可以开始的功能都有进度 issue，而不只是下一个功能（第 4.1 节）。这个改动随 F20 的构建落地。 |
+| 1.3 | 2026-11-23 | F07 的 D284 到 D287，来自 tstack issue #67，依据 Troy 2026-11-22 的长期同意批准：troy-mode 在进度 issue 上的 `Note for <ID>` 评论保存给后续功能的备注；目标功能的 issue 显示备注一行；备注不会盖掉 Troy 的评论（第 3.3、4.2、4.4、8.4、13.1 和 13.2 节）。 |
