@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.14（2026-11-22）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.15（2026-11-23）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.14 |
-| 日期 | 2026-11-22 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。 |
+| 版本 | 1.15 |
+| 日期 | 2026-11-23 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.15 版为 CR1 的任务简报加上安全审查的检查，并加入 CR2 的任务简报，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 6.5 节）。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -171,6 +171,7 @@ troy_approves_first = 3
 - IF1 的 Task 还说明第 4 节归架构师，并要求在那里写 "Not reviewed yet."。试运行里 IF1 把第 4 节的模板标记留给了架构师，于是在 AR2 填好这一节之前，`troy-check pr` 一直因 R20 不通过。
 - 第一个 mock 时，DV1 的检查以需要代码的初始化步骤开头：Python 是 `uv pip install -e . --no-deps`，C/C++ 是 `cmake --preset coverage`（F06 设计 5.4）。
 - 在 PR 3 和 PR 5，DV1、DV2 和 CR1 的 Task 加上第 6.4 节的固定 mock 说明文字（tstack #63）。
+- 每个 CR1 的 Task 都根据第 6.5 节的检查，说明要不要运行 `/security-review`（tstack #75）。CR2 的任务简报用于一次发布的审查分支（F08 设计 5.9）。
 - 命令通过 `mamba run -n <environment>` 运行；设置了 `TROY_MODE_ENV_PREFIX` 时，用 `mamba run -p <folder>`。试运行会设置它，这样不会留下有名字的环境。mamba 的查找方式和不带 `--mamba` 时的 troy-init 相同：先找 PATH，再找 `$MAMBA_EXE`（F06 设计 5.4）。`brief` 没有 `--mamba` 选项。
 - 修改是同一个任务的一次新运行（设计的修改用 IF2），Input 里是审查意见，Round 是下一轮（F04 D33）。
 
@@ -250,6 +251,39 @@ DV2 和 PR 5 时 CR1 的文字两种语言相同。
 **不变的部分。** 规则模板、troy-check、F05 的钩子和 troy-init。引擎和代理文件从插件文件夹运行，所以这些文字随下一个插件版本到达每个项目，不需要 troy-init 的升级。recipe-menu 的 `main` 上已经没有 mock 说明，因为每个 PR 5 都把它们删掉了。处在 PR 3 和 PR 5 之间的功能保留它原来的注释：DV2 删掉以 "The mock" 开头的那些，PR 5 时的 CR1 抓住其余的。
 
 **考试（F16 设计 7.2 和 9）。** `brief.py`、新的 `mocknotes.py` 和开发工程师的代理文件都属于指令集（F16 设计 9.1）。于是 `affected` 列出 dv-mock-notes（DV1）、dv-impl-notes（DV2）和 cr-mock-review（PR 3 时的 CR1）；cr-test-review 审查的是 PR 4，所以不受影响（D206）。构建 PR 写明 `Fixes case: dv-mock-notes`，这个用例的陷阱在 `main` 上是活的：在考试 2026-11-21-2 里它的基线通过了 5 次中的 2 次。另外两个用例不能变差。没有哪条记录下来的基线运行带着 `main` 的哈希，所以基线要重新运行。如果新版本没有达到目标，评分标准保持不变：会话报告数字，并提出一步爬坡（F16 设计 8.3），连同它的费用。
+
+### 6.5 安全审查（tstack #75，F04 D280 到 D283）
+
+原因见 F04 设计 6.8：试点里，代码审查员几乎在每个代码 PR 上都运行了 `/security-review`，一无所获。现在 `brief` 为 CR1 检查 PR 的 diff 里有没有四种迹象，并在 Task 里说明要不要运行 `/security-review`。
+
+**diff。** 从 `origin/main` 和 `HEAD` 的合并基点到 `HEAD`，在 `brief` 读取的检出里；功能以团队方式运行时，就是团队的 worktree（F20 设计 3.11）。只看新增的行，而且只看源码文件和依赖文件：在子进程里运行程序的测试，并没有给程序本身增加什么。文件的类别取自 troy-check 的模式和 `HEAD` 上配置的 `[paths]` 表，和写入范围用的一样（F02 D9）。
+
+**迹象。**
+
+| 迹象 | 什么时候算 |
+| --- | --- |
+| 依赖 | `dependencies` 类的文件有改动。CMake 文件（`CMakeLists.txt` 或 `cmake/` 下的文件）里，只有新增的、指明一个包的行才算：`find_package`、`FetchContent_Declare`、`ExternalProject_Add`、`CPMAddPackage` 或 `pkg_check_modules`，因为 C/C++ 项目添加自己的文件时也要改 `CMakeLists.txt`。 |
+| 子进程调用 | 源码文件新增的某一行启动了进程。Python：模块 `subprocess` 和 `pty`、`os.system`、`os.popen`，以及调用 `os.exec*`、`os.spawn*`、`os.posix_spawn*` 和 `asyncio.create_subprocess_*`。C/C++：`system`、`popen`、`_popen`、`exec*` 系列调用、`fork`、`vfork`、`posix_spawn`、`CreateProcess*`、`ShellExecute*` 和 `WinExec`，以及头文件 `<spawn.h>` 和 `boost/process`。 |
+| 网络访问 | 源码文件新增的某一行导入了网络模块或包含了网络头文件。Python：`socket`、`ssl`、`http`、`urllib`、`urllib3`、`ftplib`、`smtplib`、`poplib`、`imaplib`、`xmlrpc`、`socketserver`、`webbrowser`、`requests`、`httpx`、`aiohttp`、`websockets`、`grpc` 和 `paramiko`，以及调用 `asyncio.open_connection` 和 `asyncio.start_server`。C/C++：`<sys/socket.h>`、`<netinet/*>`、`<arpa/inet.h>`、`<netdb.h>`、`<winsock2.h>`、`<ws2tcpip.h>`、`<curl/curl.h>`、`boost/asio` 和 `<asio.hpp>`，以及调用 `getaddrinfo` 和 `WSAStartup`。 |
+| 凭据处理 | 源码文件新增的某一行导入了 `getpass`、`keyring`、`netrc` 或 `secrets`（Python），或者含有一个名字，其中包含 `password`、`passwd`、`passphrase`、`credential`、`secret`、`api_key`、`apikey`、`access_token`、`auth_token` 或 `private_key`，不分大小写。 |
+
+`troyflow/risks.py` 保存这些列表，按 `HEAD` 上配置的 `[lang] name` 选择，就像 `mocknotes.py` 保存 mock 说明一样（第 6.4 节）。提到其中某项的注释或字符串也算：误报只多花一次审查，漏报则等发布时的审查。这个模块不认识的语言包，让每个 CR1 都做审查。
+
+**Task 的文字。** 在任务自己的句子之后，以及 PR 3 和 PR 5 的 mock 说明文字之后，CR1 的 Task 加上两句之一。检查发现迹象时：
+
+> Run `/security-review` too, because the diff adds <signs>.
+
+`<signs>` 列出发现的每种迹象，每种最多三个位置，写成 `path:line`，依赖文件只写路径，后面再加 "and <n> more"，例如 "a subprocess call (src/app/run.py:12) and network access (src/net/fetch.py:3, src/net/fetch.py:40)"。什么都没发现时：
+
+> troy-mode's check finds no dependency, subprocess call, network access, or credential handling that the diff adds, so `/security-review` is not needed, unless you see one of those four that the check missed.
+
+每份 CR1 任务简报都带其中一句：每个阶段的、旁支 PR 的、bug 各个 PR 的、版本测试 PR 的，以及规则清理 PR 的。其他任务都不带。
+
+**CR2 的任务简报。** `brief --task CR2 --item <vX.Y>` 只在 F08 设计 5.9 的审查分支上运行：`HEAD` 必须是分支 `troy-mode/<vX.Y.Z>-security`，它唯一的 commit 带着 `origin/main` 的文件，父 commit 是前一个发布 commit 或第一个 commit。在别处运行时，它以一个问题停下。Task 写作：
+
+> CR2, review the security of <tag>: this branch's one commit holds every change since <the previous tag, or "the first commit">. Run `/security-review` on it, judge each finding, and change no file.
+
+Read first 含 `docs/rules.md`、带这个版本各行的 `docs/requirements.md`，以及 `docs/architecture.md`。Checks to run 为 None。
 
 ## 7. 每次运行之后的检查（D59）
 
@@ -507,10 +541,11 @@ F07 不给项目的工作流添加步骤。它的测试在 troy-pstack 的 `troy
 | 角色运行和费用（D264 到 D267） | 由 Windows 路径和桌面工作树路径得出的文件夹名，以及 `$CLAUDE_CONFIG_DIR`。由 `agentType` 得出角色，由 `parentAgentId` 得出辅助代理，以及其他代理。一条消息重复的记录只算一次。用一张测试价格表给每种 token、网页搜索和快速模式定价；表里没有的模型列在 `unpriced` 里。用 `Item:` 行把两个会话里的运行对到条目上。`--item` 的时间从第一次运行到 `accept` commit，合入之前到现在；`--tag` 的时间从任何标签的前一个发布 commit 开始；`--until`。时间段之外的主会话消息不计入。没找到运行的阶段列在 `missing` 里。`cost-state` 的数字相差超过 1% 时有说明，在 1% 以内没有。`description` 和 `line` 含有这些数字，不含模型 ID，也不含路径。没找到记录：退出码 0，那一节写明这一点。技能的 PR 6 步骤写出 `costs` 和这一节。 |
 | 等检查（D204） | 起初没有检查，之后通过；稍晚登记的第二个工作流；一项失败，在每项检查都结束后才报告，带上运行 ID；同一项检查较早的失败运行和较新的通过运行；提交状态；`SKIPPED` 和 `NEUTRAL`；别的头提交；已合并的 PR；超时；gh 失败一次和三次。技能的合并步骤写出 `wait-checks`，永远不用 `;` 把合并接在后面。 |
 | mock 说明（D205 到 D207） | 在 `test_mock_notes_brief.py` 里，仿照 `test_summary_brief.py`：Python 项目和 C/C++ 项目里 DV1 的 Task 行，DV2 的，以及 PR 3 和 PR 5 时 CR1 的，都恰好含一次第 6.4 节里它的文字，带语言包的句子，从不带另一种语言的。返工时 PR 3 的重做含 DV1 的文字。PR 4 时的 CR1、测试修复旁支 PR 里的 CR1、bug PR 里的 CR1 和 DV3，以及其他任务，都不含。 |
+| 安全审查（F04 D280 到 D283） | 在 `test_security_brief.py` 里：Python 和 C/C++ 的每种迹象，出现在源码文件新增的行里，带它的位置；删掉的行、上下文行和测试文件里的行都不算；依赖文件给出它的迹象，CMake 文件只在有指明包的行时才算；每种最多三个位置，再加 "and <n> more"；什么都没发现时给出"不需要"的那句；每份 CR1 任务简报恰有一句，位于 mock 说明文字之后，其他任务的都没有；模块不认识的语言包要求审查；diff 从合并基点算起，团队的 worktree 里也一样。审查分支上的 CR2 任务简报，带它的标签和基点；不在审查分支上时给出问题。代码审查员的代理文件有 CR2，它的 CR1 步骤只按任务简报或角色自己看到的迹象运行 `/security-review`。 |
 
 ### 14.2 埋 bug
 
-代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。D204 加上：没有检查算作通过、未完成的检查算作已结束、不比较头提交、算上一项检查较早的运行、不等稳定、把 `SKIPPED` 算作失败、忽略提交状态、还有检查没结束就报告失败、忽略超时，以及一次 gh 调用失败就结束等待。F05 的 D231 再加上：未停止的记录算作已关闭、算上快照之前的记录、有未关闭的记录时 `snapshot` 仍然通过、`running` 设置了 `escalate`，以及给 `running` 问题加上撤销步骤。D261 到 D263 加上：按每个失败的运行而不是每个提交计数、一个工作流较早的运行和较新的一起算、被取消的运行算作失败、保留了 PR 开出之前的运行、检出失败算作产出方的、忽略 `Commit:` 行、没有这一行的评论算了一个在它发出之后才失败的提交、一条评论算了两个提交、把 CI 次数加在评论条数上而不是最大编号上，以及 `gh run list` 失败让 `status` 停下。D264 到 D267 加上：一条消息重复的记录又算一次、1 小时缓存写入按 5 分钟的定价、快速模式按标准定价、没有价格的模型悄悄按零计算、辅助代理算作一次独立的角色运行、算上了另一个条目的运行、算上了结束之后的主会话消息、没读工作树的文件夹、说明里出现模型 ID，以及有任何差别就给出价格说明。D205 到 D207 再加上：PR 4 时的 CR1 拿到 PR 3 的文字、测试修复旁支 PR 里的 CR1 拿到 PR 5 的文字、PR 3 时的 CR1 拿到 PR 5 的文字、C/C++ 的任务简报里出现 Python 的句子，以及 PR 3 的重做没有文字。数量写进 PR 说明。
+代码通过之后，在一份临时副本里一次埋一个 bug，每个都必须让某个测试失败。这些 bug 包括：从 PR 标题而不是 `origin/main` 读阶段、不检查顺序行、F07 合并了第三个功能的 PR 2、`troy_approves_first` 差一、从所有评论统计轮数、从工作区读 `[roles]`、没有设置时也传 effort、`snapshot` 接受不干净的工作区、开发工程师的范围包含 `tests` 类别、允许 AR2 改整份设计、没有 `--allow-dependency` 也放行依赖改动、报告了其他角色的日志记录、`approve` 只升英文文件，以及 `--worktree` 在索引里留下暂存的文件。第二部分的包括：PR A 合入之前就给出 PR B、阶段 PR 排在它的旁支 PR 前面、重做之后后续阶段仍算数、第 2 节有接口时也跳过 mock、代码任务没有 `--worktree`、已修好的 bug 也给出任务简报、`check-skips` 放过了不是跳过的失败，以及漏掉成员过期的锁文件。D201 加上：在 `approve`、`accept-version` 和 `rule-row` 里，保留退出码 0 加说明、还没检查英文文件的表格就先写了镜像、只检查英文文件。D202 加上：接受了的 ADR 在镜像里仍是提议状态、它的文件头没改、已经接受的 ADR 又被升版本、架构表格的单元格没改、接受了架构没有列出的 ADR，以及拒绝了某条 ADR 却仍写了架构。D204 加上：没有检查算作通过、未完成的检查算作已结束、不比较头提交、算上一项检查较早的运行、不等稳定、把 `SKIPPED` 算作失败、忽略提交状态、还有检查没结束就报告失败、忽略超时，以及一次 gh 调用失败就结束等待。F05 的 D231 再加上：未停止的记录算作已关闭、算上快照之前的记录、有未关闭的记录时 `snapshot` 仍然通过、`running` 设置了 `escalate`，以及给 `running` 问题加上撤销步骤。D261 到 D263 加上：按每个失败的运行而不是每个提交计数、一个工作流较早的运行和较新的一起算、被取消的运行算作失败、保留了 PR 开出之前的运行、检出失败算作产出方的、忽略 `Commit:` 行、没有这一行的评论算了一个在它发出之后才失败的提交、一条评论算了两个提交、把 CI 次数加在评论条数上而不是最大编号上，以及 `gh run list` 失败让 `status` 停下。D264 到 D267 加上：一条消息重复的记录又算一次、1 小时缓存写入按 5 分钟的定价、快速模式按标准定价、没有价格的模型悄悄按零计算、辅助代理算作一次独立的角色运行、算上了另一个条目的运行、算上了结束之后的主会话消息、没读工作树的文件夹、说明里出现模型 ID，以及有任何差别就给出价格说明。D205 到 D207 再加上：PR 4 时的 CR1 拿到 PR 3 的文字、测试修复旁支 PR 里的 CR1 拿到 PR 5 的文字、PR 3 时的 CR1 拿到 PR 5 的文字、C/C++ 的任务简报里出现 Python 的句子，以及 PR 3 的重做没有文字。F04 的 D280 到 D283 加上：删掉的行被算作迹象、测试文件里的子进程调用被算进去、添加项目自己文件的 CMake 行被算作依赖、Python 项目用了 C/C++ 的列表、diff 从 `origin/main` 而不是从合并基点算起、bug 的 CR1 任务简报里漏了那句，以及在审查分支之外给出 CR2 的任务简报。数量写进 PR 说明。
 
 ### 14.3 试运行（D68）
 
@@ -627,3 +662,4 @@ F05 的 D231（F05 设计第 6.1 节），Troy 已于 2026-11-21 批准，改动
 | 1.12 | 2026-11-22 | D264 到 D267，来自 tstack issue #74，依据 Troy 2026-11-22 的长期同意批准：引擎的 `costs` 读取 Troy 电脑上的会话记录，按 `prices.toml` 的标价给出一个功能或一个版本的角色运行和费用，用于验收 PR 里的 `## Cost` 一节和给 Troy 的报告里的一行；桌面应用的数字用来检查价格；F14 的摘要不带费用（第 3.1、8.8、14.1、14.2、14.4 和 16 节）。 |
 | 1.13 | 2026-11-22 | D205 到 D207，来自 tstack issue #63，Troy 已于 2026-11-16 接受这条规则；这些选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准需求子句：在 PR 3 和 PR 5，DV1、DV2 和 CR1 的 Task 加上新的 `mocknotes.py` 给出的固定 mock 说明文字，按 `[lang] name` 选择；类自己写的构造函数只抛出异常，类的文档注释写明这一点；代码审查员的代理文件不改；PR 5 只在代码让文档注释不成立时才改注释以外的部分（第 6.1、6.4、14.1、14.2、14.4 和 16 节）。 |
 | 1.14 | 2026-11-22 | F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）：引擎增加 `team`、`plan` 和 `merge-check`，`status`、`brief`、`snapshot`、`check-run`、`retro` 和 `costs` 学会处理多个团队；每个团队同一时间一个会写文件的角色，主会话管各团队的循环，PR 按做好的先后合并并 rebase（R24）；第 15 节的同时做两个功能移入 F20（第 3.1、5、6.2、7、8.6、8.8 和 15 节）。这些改动随 F20 的构建落地。 |
+| 1.15 | 2026-11-23 | F04 的 D280 到 D283，来自 tstack issue #75，依据 Troy 2026-11-22 的长期同意批准：`brief` 按新的 `troyflow/risks.py` 里各语言包的列表，检查 CR1 所审 PR 的 diff 里有没有依赖、子进程调用、网络访问和凭据处理，CR1 的 Task 说明要不要运行 `/security-review`；CR2 的任务简报在一次发布的审查分支上运行（第 6.1、6.5、14.1 和 14.2 节）。 |

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.6 |
-| Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
+| Version | 1.7 |
+| Date | 2026-11-23 |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.7 adds each release's security review, from F04's D280 to D283 for tstack issue #75, approved under Troy's standing yes of 2026-11-22 (section 5.9). |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -58,7 +58,7 @@ python troy_flow.py retro          --tag <vX.Y.Z> [common options]
 | `retro` | Gathers the evidence for the retrospective from GitHub and groups it (section 7). It changes nothing. |
 
 - `status` gains the release state and its next actions (sections 3.2 and 3.3). `brief` learns TM7 and TE5, and the reviews of a version tests PR (section 5.3). `approve` gains D77's change-log row (section 8).
-- The build settled the details. `status` reports `versions` (each version's features, test plan, released tags, and its next patch with the fixes and the later-version code that blocks it) and `release` (the release in progress or due, with the ready checks of section 5.2 as `problems` and, at the release test, its commands as `checks`). `next` gains `step`, `tag`, and `commit`. `brief` takes a version, such as `--item v0.1`, for TM7, TE5, and the version tests' reviews. A deferred bug is the release PR's comment `Bug deferred by Troy: #<n>`. The ready checks do not change `next`: the skill fixes each one, and escalates later-version code with Troy's options.
+- The build settled the details. `status` reports `versions` (each version's features, test plan, released tags, and its next patch with the fixes and the later-version code that blocks it) and `release` (the release in progress or due, with the ready checks of section 5.2 as `problems` and, at the release test, its commands as `checks`). `next` gains `step`, `tag`, and `commit`. `brief` takes a version, such as `--item v0.1`, for TM7, TE5, the version tests' reviews, and CR2 (section 5.9). A deferred bug is the release PR's comment `Bug deferred by Troy: #<n>`. The ready checks do not change `next`: the skill fixes each one, and escalates later-version code with Troy's options.
 - As in F07, the engine reads git and GitHub and never commits, pushes, or writes to GitHub. The skill does that (F04 D29). The exit codes are F07's.
 
 ### 3.2 State
@@ -72,6 +72,7 @@ The release state lives in git and on GitHub, like the rest of F07's state (D58)
 | A version's tests | A commit `[vX.Y tests] ...` on `origin/main` |
 | The release PR | An open PR titled `[docs] Release vX.Y.Z`, or that commit subject on `origin/main` |
 | Release test runs and Troy's results | F08's comments on the release PR (section 5.6) |
+| Security reviews | F08's comments `Security review, run <n>: approved` or `changes-requested` on the release PR (section 5.9) |
 | Released versions | GitHub's releases of the repository, read with `gh release list` |
 | The retrospective | A `Retrospective: vX.Y.Z` comment on the merged release PR |
 
@@ -82,7 +83,7 @@ The release state lives in git and on GitHub, like the rest of F07's state (D58)
 | Action | When | What follows |
 | --- | --- | --- |
 | `version-test-plan` | The next feature's version has no test plan, or its plan lists other features than the requirements give that version (section 4) | TM7 on `troy-mode/<vX.Y>-test-plan`, merged by F07 |
-| `release` | Every feature of the earliest version without a release is accepted. `next.step` names the release's next step from the state: `version-tests` when the plan has scenarios that Claude runs and no `[vX.Y tests]` commit is on `origin/main`, then `release-pr` when no release PR exists, then `release-test` when the release PR has no run or its newest run failed and every bug found since is fixed | Section 5 |
+| `release` | Every feature of the earliest version without a release is accepted. `next.step` names the release's next step from the state: `version-tests` when the plan has scenarios that Claude runs and no `[vX.Y tests]` commit is on `origin/main`, then `release-pr` when no release PR exists, then `security-review` when the release PR has no security review, or its newest one requested changes and every bug found since is fixed, then `release-test` when the release PR has no run or its newest run failed and every bug found since is fixed | Section 5 |
 | `tag` | The release commit is on `origin/main` and GitHub has no release for its tag | Section 5.7 |
 | `retro` | A version, not a patch, is released and its release PR has no `Retrospective:` comment | Section 7 |
 
@@ -110,7 +111,7 @@ When the version's features change through a requirement change, the plan's feat
 | 1. Ready | The checks of section 5.2 | None | |
 | 2. Version tests | TE5 writes the tests of the scenarios Claude runs. TM2 and CR1 review them together. Skipped when no scenario is Claude's. | `[v0.1 tests] End-to-end and stress tests`, on `troy-mode/v0.1-tests` | F07 |
 | 3. Release PR | PM4 drafts the changelog section, in the main session | `[docs] Release v0.1.0`, on `troy-mode/release-v0.1.0` | F07, after Troy accepts |
-| 4. Release test | The regression and the version tests on Troy's PC. The report goes on the release PR. | None | |
+| 4. Security review and release test | CR2 reviews the release's changes for security (section 5.9). Then the regression and the version tests on Troy's PC. Each report goes on the release PR. | None | |
 | 5. Troy's test | Troy runs Troy's scenarios on Troy's devices and replies | None | |
 | 6. Acceptance | PM4 sets the statuses, and `accept-version` fills the acceptance record. Then the merge. | The release PR | F07 |
 | 7. Tag | A GitHub release `v0.1.0` on the release PR's merge commit | None | |
@@ -187,15 +188,26 @@ Creating the GitHub release joins F07's rights (F07 section 9). It happens only 
 
 ### 5.8 Failures and bugs (D74)
 
-- **A failed test or scenario,** in the release test or in Troy's test, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (F07 section 11.1). A wrong version test gets TE3's fix (section 5.3). A misunderstood requirement goes to the change flow.
+- **A failed test or scenario,** in the release test or in Troy's test, or a blocking finding of the security review (section 5.9), goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (F07 section 11.1). A wrong version test gets TE3's fix (section 5.3). A misunderstood requirement goes to the change flow.
 - **Open bugs.** The release waits until every open `bug` issue is fixed. Troy may defer one in chat: F08 notes it on the release PR, and `accept-version` puts it into Troy's notes in the acceptance record.
 - **After the fixes,** PM4 adds the fixed bugs to the changelog section, F07 rebases the release branch on `origin/main` and amends the commit, and the release test runs again as run 2. It runs every version test, because they are cheap. Troy tests again only what failed.
+
+### 5.9 The security review (tstack #75, F04 D280 to D283)
+
+Each release, a patch's included, gets one security review of all its changes, before its first release test. F04 design 6.8 gives the reasons: the per-PR reviews run `/security-review` only where a PR adds a risk, so this review is the one that reads everything.
+
+1. **The review branch.** `/security-review` reviews the current branch's changes since its merge base with `origin/HEAD`, and the release PR holds only the changelog. So at the step `security-review`, `status` gives the base, the previous release commit of any tag, as `costs --tag` finds it (F07 section 8.8), or the first commit of `origin/main` for a project's first release, and two commands that the skill runs from the release branch. `git commit-tree origin/main^{tree} -p <base> -m "Security review of v0.1.0"` makes one commit with `origin/main`'s files on the base, and `git switch -c troy-mode/v0.1.0-security <commit>` puts the checkout on it. The branch's merge base with `origin/main` is then the base, and its changes are every change of the release. The branch stays on Troy's PC and is never pushed. A checkout without `origin/HEAD`, which a clone always has, gets `git remote set-head origin --auto` first.
+2. **CR2.** As for any review: `snapshot --role code-reviewer`, `brief --task CR2 --item v0.1`, the Agent call, and `check-run`. CR2 runs `/security-review` and judges each finding (F04 section 6.7).
+3. **The report.** F08 posts it on the release PR as `Security review, run <n>: approved` or `changes-requested`, with the findings. Then it switches back to the release branch and deletes the review branch.
+4. **Findings.** A blocking finding goes to TM5 with the report in Input, as a failed release test does (section 5.8). After the fixes merge, F07 rebases the release branch, and the step runs again as the next run, before the release test. A review that approved is not repeated: a later fix gets CR1's check like any PR. Non-blocking findings stay in the comment.
+
+The entry skill's release steps gain the step. Its section "Running a role" does not change, so no exam case's Input changes (F16 design 9.2). Before the build PR opens, a probe on a scratch project checks that `/security-review` on a review branch lists the release's files, and not only the changelog. If it does not, the build stops, and the coordinator brings option C of F04's D283 to Troy.
 
 ## 6. Patch releases (D75)
 
 "Release v0.1.1" releases the bug fixes merged since v0.1.0. It is allowed only while no mock, tests, implementation, or acceptance PR of a later version's feature has merged since v0.1.0. Otherwise the fixes ship with the next version, and F08 says so.
 
-A patch release runs steps 1 and 3 to 7 of section 5.1. It writes no version test plan and no version tests. The release test runs the same regression and every version test. Troy tests the scenarios that the fixed bugs touched. The changelog section `v0.1.1` lists only Fixed. The features keep their statuses. `accept-version` adds a row for v0.1.1 to v0.1's acceptance record. A patch has no retrospective.
+A patch release runs steps 1 and 3 to 7 of section 5.1. Its security review covers the fixes since the previous tag (section 5.9). It writes no version test plan and no version tests. The release test runs the same regression and every version test. Troy tests the scenarios that the fixed bugs touched. The changelog section `v0.1.1` lists only Fixed. The features keep their statuses. `accept-version` adds a row for v0.1.1 to v0.1's acceptance record. A patch has no retrospective.
 
 ## 7. Retrospective (D76)
 
@@ -259,18 +271,18 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 
 | Group | Cases include |
 | --- | --- |
-| Status | `version-test-plan` before the first stage of a version without a plan, and again when the plan's feature list differs. `release` once every feature of the version is accepted. The release's steps `version-tests`, `release-pr`, and `release-test`, then `tag` and `retro`, in turn. No `version-tests` step when the plan has no scenario that Claude runs. The release PR after a bug's PRs. Waiting for Troy after a passing run. A patch allowed, and refused after a later version's implementation merged. |
+| Status | `version-test-plan` before the first stage of a version without a plan, and again when the plan's feature list differs. `release` once every feature of the version is accepted. The release's steps `version-tests`, `release-pr`, and `release-test`, then `tag` and `retro`, in turn. No `version-tests` step when the plan has no scenario that Claude runs. The release PR after a bug's PRs. Waiting for Troy after a passing run. A patch allowed, and refused after a later version's implementation merged. The step `security-review` after the release PR and before the release test; again after a review that requested changes, once every bug found since is fixed; not again after one that approved; a patch's review. Its base: the previous release commit of any tag, or the first commit. Its commands, with `git remote set-head` first when `origin/HEAD` is missing (F04 D280 to D283). |
 | Release test | Scenarios matched to tests by ID, with case, `-`, `_`, and `.` alike. A scenario run by Claude with no test fails. A failed regression test fails. A test skipped on this platform passes. Troy's scenarios listed with devices and steps. The comment's heading and run number. |
 | Accept and approve | `accept-version` writes the acceptance row, the next major, the status, and the change-log row in both languages. `approve` adds the change-log row in both languages. Both exit 1 and write nothing when either file has no change-log table (F07 D201). |
 | Notes and retro | `release-notes` writes exactly the tag's section. `retro` reads only the PRs since the previous tag, groups findings by rule and checklist item, counts across PRs, and tells Troy's comments apart. It adds each commit that failed in the author's files with no attempt comment counting it, once per commit and in the role's group, and lists a checkout failure in `ci_other` only (F07 D261 to D263). |
-| Briefs | TM7, TE5, and the version tests reviews: Read first, the title, and the release command in the checks for Python and C/C++. |
+| Briefs | TM7, TE5, and the version tests reviews: Read first, the title, and the release command in the checks for Python and C/C++. CR2 on a review branch, as F07 design 14.1 lists. |
 | Cost | `costs --tag` counts from the previous release commit, a patch's included, or from the first transcript, to the tag's release commit or now, and gives `items` by feature. The skill's acceptance step names `costs --tag` and the section (F07 D264 to D267). |
 | troy-check | The `[v0.1 tests]` title parses, and its kind may change tests and dependencies only. `version-tests/**` is in the tests class. R09 and R10 treat the kind as "any other kind". |
 | Templates and roles | The "Run by" columns in both languages. TE5 in the Test Engineer's agent file and in F04's structure tests. |
 
 ### 11.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the version test plan not asked for before a version's first feature, the plan's feature list not compared, a release offered with a feature not accepted, the release PR continued before a bug's PR, a scenario without a test counted as passing, a skipped test counted as failing, the acceptance row written in English only, `approve` without the change-log row, notes taken from the wrong section, a patch allowed after a later version's implementation merged, `retro` reading PRs from before the previous tag, and a finding seen once counted as repeated. F07 D261 to D263 add: a CI failure that a comment counts counted again in `retro`, and a checkout failure grouped as an attempt. F07 D264 to D267 add: a version's cost counted from the previous version's tag instead of the previous release commit of any tag. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: the version test plan not asked for before a version's first feature, the plan's feature list not compared, a release offered with a feature not accepted, the release PR continued before a bug's PR, a scenario without a test counted as passing, a skipped test counted as failing, the acceptance row written in English only, `approve` without the change-log row, notes taken from the wrong section, a patch allowed after a later version's implementation merged, `retro` reading PRs from before the previous tag, and a finding seen once counted as repeated. F07 D261 to D263 add: a CI failure that a comment counts counted again in `retro`, and a checkout failure grouped as an attempt. F07 D264 to D267 add: a version's cost counted from the previous version's tag instead of the previous release commit of any tag. F04 D280 to D283 add: the review's base taken from the previous version's tag instead of the previous release commit of any tag, the review asked for again after it approved, the release test offered before the review, and a patch release without it. The counts go in the PR description.
 
 ### 11.3 Trial (D78)
 
@@ -340,3 +352,4 @@ Requirements 1.24 records the approved changes:
 | 1.4 | 2026-11-22 | F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22: the retrospective also counts each commit that failed CI in the author's files with no attempt comment counting it (sections 7, 11.1, and 11.2). |
 | 1.5 | 2026-11-22 | F07 D264 to D267, from tstack issue #74, approved under Troy's standing yes of 2026-11-22: before the release PR merges, `costs --tag` gives its section `## Cost`, and the report to Troy gives the cost's line (sections 5.7, 11.1, and 11.2). |
 | 1.6 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): with feature teams, the next version's PR 3 to PR 6 wait for the current version's tag, and `retro` reads every team's log lines (sections 3.3, 5.2, 6, and 7). The changes land with F20's build. |
+| 1.7 | 2026-11-23 | F04's D280 to D283, from tstack issue #75, approved under Troy's standing yes of 2026-11-22: every release, a patch's included, gets CR2's security review of all its changes on a local review branch, before its first release test; a blocking finding goes to the bug flow, and the review runs again after the fixes (sections 3.1, 3.2, 3.3, 5.1, 5.8, 5.9, 6, 11.1, and 11.2). |
