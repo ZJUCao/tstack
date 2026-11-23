@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, rulebrief, summary
+from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, rulebrief, summary, teambrief
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -453,8 +453,12 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     task, item, title, feature = args.task, args.item, target.title, target.feature
     folder = feature_folder(repo, item, feature.name) if feature else None
     version = target.version
-    checks = checksteps.steps(task, config, title or "", subjects, repo.root.name,
+    team = teambrief.team_of(repo)
+    name = teambrief.folder_name(team, repo)
+    checks = checksteps.steps(task, config, title or "", subjects, name,
                               report["notes"], version_tests=version is not None)
+    if team:
+        checks = teambrief.checks(team, config, checks)
     read_first = (rulebrief.read_first(repo, task, target.rule) if target.rule
                   else _read_first(repo, task, item, features or [], folder, version))
     report.update(ok=True, title=title, agent=_agent(report["role"], config),
@@ -467,7 +471,7 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     values = {"item": item, "folder": folder, "title": title}
     if target.rule:
         sentences.update(rulebrief.sentences(target.rule))
-        values.update(run=checksteps.run_prefix(config, repo.root.name, report["notes"]),
+        values.update(run=checksteps.run_prefix(config, name, report["notes"]),
                       baseline=", ".join(target.rule.files) or "the config and dependency files")
     if version is not None:
         sentences.update(_VERSION_SENTENCES)
@@ -475,6 +479,9 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
         values.update(plan=plan_path(version), under=under, upper=under.upper(),
                       features=", ".join(versions_of(features).get(version, [])))
     sentence = sentences[task].format(**values)
+    if team:
+        sentence += " " + teambrief.sentence(team)
+        report["team"] = {"id": team.id, "worktree": team.root}
     stage = target.stage if feature is not None and target.side is None else None
     notes = mocknotes.text(task, stage, config.lang.get("name"))
     if notes:
@@ -482,9 +489,11 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     if task in checksteps.CODE_TASKS:
         sentence += " " + checksteps.PLATFORM_SKIP
     item_text = f"{item}, {title}" if item and title else (item or title)
-    shown = [p if p != "docs/requirements.md" or (feature is None and version is None)
-             else f"{p} (the {item} rows and the version plan)" if version
-             else f"{p} (the {item} row in section 4)" for p in report["read_first"]]
+    shown = [teambrief.absolute(team, p) if team else p for p in report["read_first"]]
+    shown = [s if p != "docs/requirements.md" or (feature is None and version is None)
+             else f"{s} (the {item} rows and the version plan)" if version
+             else f"{s} (the {item} row in section 4)"
+             for p, s in zip(report["read_first"], shown)]
     report["prompt"] = render({"task": f"{task}, {sentence}", "item": item_text,
                                "read_first": shown, "input": text, "round": args.round,
                                "checks": checks})
