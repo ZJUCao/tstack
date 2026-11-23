@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.5 |
+| Version | 1.6 |
 | Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -339,3 +339,4 @@ Requirements 1.24 records the approved changes:
 | 1.3 | 2026-11-18 | F07 D201, from tstack issue #46, approved by Troy on 2026-11-18: `approve` and `accept-version` exit 1 and change nothing when either file of the pair has no change-log table (sections 8 and 11.1). |
 | 1.4 | 2026-11-22 | F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22: the retrospective also counts each commit that failed CI in the author's files with no attempt comment counting it (sections 7, 11.1, and 11.2). |
 | 1.5 | 2026-11-22 | F07 D264 to D267, from tstack issue #74, approved under Troy's standing yes of 2026-11-22: before the release PR merges, `costs --tag` gives its section `## Cost`, and the report to Troy gives the cost's line (sections 5.7, 11.1, and 11.2). |
+| 1.6 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): with feature teams, the next version's PR 3 to PR 6 wait for the current version's tag, and `retro` reads every team's log lines (sections 3.3, 5.2, 6, and 7). The changes land with F20's build. |

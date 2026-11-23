@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F14 in [requirements 1.34](../requirements.md#72-feature-list) |
-| Version | 1.0 |
-| Date | 2026-11-14 |
-| Status | Approved by Troy on 2026-11-14, with D131 to D137. |
+| Version | 1.1 |
+| Date | 2026-11-22 |
+| Status | Approved by Troy on 2026-11-14, with D131 to D137. Version 1.1 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
 | Source of truth | This English file. [`F14-summary.zh-CN.md`](F14-summary.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -398,3 +398,4 @@ Requirements 1.34 records the approved changes:
 | --- | --- | --- |
 | 0.1 | 2026-11-14 | First draft. |
 | 1.0 | 2026-11-14 | Approved by Troy with D131 to D137, every recommended answer. |
+| 1.1 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): when several PRs wait for Troy, the skill asks about all of them in one message, each with its summary; the summaries themselves do not change (sections 5.3 and 5.4). The change lands with F20's build. |

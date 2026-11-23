@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.10 |
+| Version | 1.11 |
 | Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. |
+| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. Version 1.11 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -777,3 +777,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.8 | 2026-11-22 | D241 to D243, from tstack issue #92, approved by Troy on 2026-11-22 ("全按推荐"): the estimate counts the second round of section 7.2, the $60 line applies to the first round, the guard counts the second rounds that the rules ask for and then waits for Troy instead of stopping, and a case left with too few runs shows "no verdict". What each option would have done in exams 2026-11-19-8 and 2026-11-19-10 (sections 7.2, 8.2, 10, 11.2, 11.5, 14.1, 14.7, and 17). |
 | 1.9 | 2026-11-22 | The engine merges the entries of a judge's verdict that share a label, since the judge split one label's grades across two entries in 2 of the 23 passes of exam 2026-11-22-1, the proof of tstack #92's build, and each such split stopped the exam. A criterion graded twice with different grades still stops it (11.4). Troy chose on 2026-11-22 to make this its own PR. |
 | 1.10 | 2026-11-22 | tstack issue #63's design, F07 design 6.4 and D205 to D207: its build changes the DV1, DV2, and CR1 briefs and the Developer's agent file, not the Code Reviewer's, so its exam runs dv-mock-notes as the target, and dv-impl-notes and cr-mock-review, and not cr-test-review (section 13). F07's D205 settles the constructor sentence (section 14.6). |
+| 1.11 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22; F20 design section 6): its build changes the Architect's agent file, so ar-design-review and ar-error-review run, an estimated $62.80 for the first round and $125.60 with second rounds, to which Troy said yes on 2026-11-22; the briefs change only in a team's worktree, so no other case is affected. The exam runs with F20's build. |
