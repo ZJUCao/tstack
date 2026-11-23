@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.4 |
-| Date | 2026-11-22 |
-| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. |
+| Version | 1.5 |
+| Date | 2026-11-23 |
+| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -219,11 +219,39 @@ The Developer and the Test Engineer fix a file that a P rule's baseline names wh
 
 ### 6.7 Code Reviewer
 
-Owns: nothing. Reviews: mock, test, implementation, bug, test-fix, and refactor PRs, for quality and security. Must not: edit the code it reviews.
+Owns: nothing. Reviews: mock, test, implementation, bug, test-fix, and refactor PRs, for quality and security, and each release's changes, for security. Must not: edit the code it reviews.
 
 | Task | When | Steps |
 | --- | --- | --- |
-| CR1 Review | Each code or test PR, rounds 1 to 3 | Run `/code-review` and `/security-review` on the PR's diff through the Skill tool, never with `--fix` or `--comment` (D36). Then check what those commands do not: doc comment content (R05), and naming, error handling, and logging against sections 6 to 8 of the architecture. List blocking findings first and mark the rest non-blocking. Report `approved` when nothing blocks. At PR 3 and PR 5, the brief adds the check of the mock notes; the agent file does not repeat it (F07 design 6.4, D206). |
+| CR1 Review | Each code or test PR, rounds 1 to 3 | Run `/code-review` on the PR's diff through the Skill tool, never with `--fix` or `--comment` (D36). Run `/security-review` the same way only when the brief asks for it, or when the diff adds a dependency, a subprocess call, network access, or credential handling that the brief does not name (section 6.8, D280). Then check what those commands do not: doc comment content (R05), and naming, error handling, and logging against sections 6 to 8 of the architecture. List blocking findings first and mark the rest non-blocking. Report `approved` when nothing blocks. At PR 3 and PR 5, the brief adds the check of the mock notes; the agent file does not repeat it (F07 design 6.4, D206). |
+| CR2 Security review | Once per release, a patch's included, before the release test (F08 design 5.9) | On the review branch that the brief names, whose one commit holds every change of the release, run `/security-review` through the Skill tool, never with `--fix` or `--comment`. Judge each finding: it blocks when the code really has the flaw and something outside the program can reach it, such as an argument, a file the program reads, or the network. Mark the rest non-blocking, with the reason. Report `approved` when nothing blocks (section 6.8, D283). |
+
+### 6.8 The security review (tstack #75, D280 to D283)
+
+In the pilot on `ZJUCao/recipe-menu`, the Code Reviewer ran `/security-review` 71 times, on nearly every code PR, and no run found anything: the reviews say "A security review found nothing" or "no vulnerability". The program has no network access, no subprocess, and no secret. The Code Reviewer's runs cost $139 at list prices, and the helper agents that its review skills started cost another $94. Troy accepted the pilot report's candidate T3 on 2026-11-16 (section 4.2 of that report, tstack #75): the Code Reviewer runs `/security-review` once per version, on the version's whole diff, and on any PR whose diff adds a dependency, a subprocess call, network access, or the handling of credentials.
+
+**A PR's review (D280).** For CR1, `brief` checks the PR's diff for those four signs, and the Task says whether to run `/security-review`, with each sign it found and where (F07 design 6.5). The check reads the added lines of source files and the changed dependency files, so it needs no model call and tests can check it exactly. It matches text, not meaning, so the Code Reviewer keeps its own eye open: when it sees one of the four in the diff that the brief does not name, such as a subprocess started through a library that the check's lists lack, it runs `/security-review` and says in Checks what it saw. It runs it for no other reason, and the release's review covers the rest. When it does not run it, Checks says `/security-review: not needed` with the brief's reason, so the review comment on the PR shows the choice.
+
+**File access (D281).** Reading or writing files is not a sign, inside the project's data folder or outside it. The pilot's program reads recipe files and settings from paths that the user gives, on the user's own PC, in most of its features, so such a sign would bring back most of the 71 runs. A path that arrives over the network comes with network access, which is a sign. `/code-review` still finds a wrong path as a bug, and the release's review reads every file access of the release.
+
+**`/code-review`'s level (D282).** This change leaves it as it is. The agent file names no level, so the Code Reviewer picks one, and the pilot's runs used `high` and `medium`. A rule for the level would be a second instruction change in the same PR, and F16 design 8.1 keeps one change per PR, so that the exam can tell which change moved a case. A later issue can propose it, with its own exam.
+
+**A release's review (D283).** A new task, CR2, runs `/security-review` once per release, before the release test (F08 design 5.9). `/security-review` reviews the current branch's changes since its merge base with `origin/HEAD`: in F16's exams, its prompt listed the branch's changed files and commits. A release PR holds only the changelog, so F08 makes a local review branch with one commit, `origin/main`'s files on the previous release's commit. The branch's changes are then every change of the release. CR2 runs there, and the main session posts its report on the release PR. A blocking finding goes to the bug flow, like a failed release test, and the review runs again after the fixes. A patch release runs it too: the next version's review starts from the patch's tag, so nothing else would review a patch's fixes together. Before the build PR opens, a probe on a scratch project checks that `/security-review` on such a branch lists the release's files. If it does not, the build stops there, and the coordinator brings option C of D283 to Troy.
+
+**The agent file.** The Code Reviewer's file changes in four places:
+
+- **Who you are** adds that it also reviews each release's changes for security.
+- **CR1.** Step 2 reads: "If the brief's Input holds findings from `/code-review`, and from `/security-review` when you need it, the main session ran them for you." Step 3 runs `/code-review`, and `/security-review` only as D280 says. D36's fallback stays: when the Skill tool refuses a command, the role reports `needs-answer`, and the main session runs it and gives its findings in Input.
+- **CR2 Security review**, a new task, with the steps of section 6.7's row: check that `HEAD` is the review branch that the brief names, read its one commit's diff with `git diff HEAD^ HEAD`, run `/security-review`, judge each finding, and report.
+- **Report.** The Checks line names `/code-review`, and `/security-review` or the reason it was not needed.
+
+The other roles' files, `common.md`, the templates, troy-check, and F05's hooks do not change.
+
+**The exam (F16 design 7.2, 9, and 10).** The Code Reviewer's agent file, `brief.py`, and the new `troyflow/risks.py` are in F16's instruction set (F16 design 9.1). `affected` then names the two CR1 cases, cr-mock-review (a PR 3) and cr-test-review (a PR 4). No case runs CR2, and no other role's brief or agent file changes. Neither case is a target, so neither may get worse. By troy_exam's budget code (F16 design 10.3), with no recorded base run on the build's base hash, both versions run 5 times in each case: cr-mock-review at its median of $1.80 over the 10 runs of exam 2026-11-22-3, and cr-test-review, which has no recorded run, at the pilot's Code Reviewer median of $2.63, each with one $2 judge pass. That gives $48.30 for the first round, and $96.61 with both second rounds. The first round is under F16's $60 line (D158), so the exam starts without asking, and a second round that would pass $60 waits for Troy (F16 D241). The head's runs should cost less: every run of cr-mock-review in exam 2026-11-22-3 ran `/security-review` and its helper agent, and the case's mock PR adds no network, subprocess, or secret. The build checks that in the brief that `affected` renders.
+
+**Tests, planted bugs, and status.** F07 design 14.1 and 14.2 and F08 design 11.1 and 11.2 list them, and F04's structure tests count CR2 as one more task (section 10.1). Once the build merges after a passing exam, its status PR adds one sentence to the statuses of F04 and F08 in requirements 7.2: the security review runs on the PRs that add a risk and once per release, checked by tests and the role exam, and not yet used on a real project.
+
+**No requirement changes.** The Code Reviewer's row in requirements section 4 names the two commands it uses, and both stay. Requirements 5.5 lists the release's tests, and the security review is a step of F08's release, as the cost section of F07 D264 is.
 
 ## 7. Agent file format
 
@@ -275,7 +303,7 @@ The structure tests (section 10.1) check every part of this format.
 | 5.2 Coverage gaps | TM3, IF4, DV4, TE4, TM6 |
 | 5.3 Bug fix | TM5, TE2, DV3, CR1 |
 | 5.4 Requirement change | PM2, AR4 |
-| 5.5 Version release | TM7, TE5, TM2, PM4 |
+| 5.5 Version release | TM7, TE5, TM2, CR2, PM4 |
 | 5.6 Performance | IF1 copies targets, TM1 plans cases, DV2 runs them |
 | 5.7 Escalation | The `escalate` and `failed` results, common rule 11, AR3 |
 | 5.8 Rule change | AR6, DV5, TE6, and TM2 and CR1 for their PRs (F09) |
@@ -386,6 +414,17 @@ Requirements 1.13 records the approved changes:
 - Section 4: each role's model is set in its agent file and can be overridden per project (D32).
 - 5.8 step 3: role instructions are in English only (D35).
 
+D39 to D279 belong to later designs, so the design of tstack issue #75 takes D280 to D283. Each takes the recommended answer, approved under Troy's standing yes of 2026-11-22.
+
+| ID | Question | Options | Recommended and approved |
+| --- | --- | --- | --- |
+| D280 | tstack issue #75 (the pilot report's candidate T3, which Troy accepted on 2026-11-16): the Code Reviewer runs `/security-review` on a PR only when its diff adds a dependency, a subprocess call, network access, or the handling of credentials. Who decides that a diff adds one? | A: `brief`'s check on the PR's diff decides, from lists per language pack in `troyflow/risks.py`, and the Task names each sign it found; the Code Reviewer also runs it when it sees one of the four that the brief does not name, and says so in Checks (section 6.8, F07 design 6.5). B: the check alone; the Code Reviewer never adds one. C: the Code Reviewer alone, from the four kinds in its agent file. | A, approved under Troy's standing yes of 2026-11-22. A check is exact, needs no model call, and tests can check it, and requirements 5.8 prefers a check to an instruction. Its lists match text, so B would leave a risk written in a form the lists lack until the release's review. C leaves the choice to the role that ran the review on nearly every PR of the pilot, and no exam case would show its choices drifting. |
+| D281 | Does reading files outside the project's data folder count as a sign? | A: no. File access is not a sign, inside the data folder or outside it, and the release's review reads it (section 6.8). B: yes, when the Code Reviewer sees a path that comes from outside the program, such as an argument, a setting, or an environment variable. C: yes, every new file-system call in a source file. | A, approved under Troy's standing yes of 2026-11-22. The pilot's program reads recipe files and settings from paths that the user gives in most of its features, so B and C would bring back most of the 71 runs. A path that arrives over the network already brings the network sign, and `/code-review` still finds a wrong path as a bug. |
+| D282 | Does `/code-review`'s level per stage change at the same time? The pilot's runs used `high` and `medium`. | A: no. The agent file names no level, as now, and a later issue can propose one, with its own exam (section 6.8). B: `medium` at every stage. C: `high` at PR 5 and on bug fixes, `medium` at PR 3 and PR 4. | A, approved under Troy's standing yes of 2026-11-22. B or C would be a second instruction change in the same PR, and F16 design 8.1 keeps one change per PR, so that the exam can tell which change moved a case. |
+| D283 | How does the review once per release run? A release PR holds only the changelog, and `/security-review` reviews the current branch's changes since its merge base with `origin/HEAD`. | A: a new task, CR2, before the release test of every release, a patch's included. The main session makes a local review branch whose one commit puts `origin/main`'s files on the previous release's commit, CR2 runs `/security-review` there, and its report goes on the release PR. A blocking finding goes to the bug flow, and the review runs again after the fixes (F08 design 5.9). B: CR1 on the release PR, with the release's diff named in Input. `/security-review` would then see the changelog only, so the Code Reviewer reads the release's diff itself. C: CR2 without the Skill tool: the brief lists the kinds of flaw to look for, and the Code Reviewer reads `git diff <previous tag>...origin/main` itself. | A, approved under Troy's standing yes of 2026-11-22. It runs Claude Code's own `/security-review`, which the requirements' role row names, on exactly the release's changes, and the branch never leaves Troy's PC. B and C put the role's own reading in place of the command, which nothing has measured. If the build's probe finds that `/security-review` does not review that commit, the build stops and the coordinator brings C to Troy. |
+
+D280 to D283 change no requirement (section 6.8).
+
 ## 13. Change log
 
 | Version | Date | Change |
@@ -396,3 +435,4 @@ Requirements 1.13 records the approved changes:
 | 1.2 | 2026-11-08 | From F09 design sections 7 and 8: AR6 picks a rule's enforcement (section 6.2), DV5 and TE6 clean up the code and tests that a rule's baseline names (sections 6.5 and 6.6), the reviewers also check the Review-type P rules that name them, and the Developer and the Test Engineer fix a baselined file they change. The structure tests count the new tasks. |
 | 1.3 | 2026-11-22 | From F07 design 6.4, D205 to D207 (tstack #63): DV1 adds the mock notes that the brief gives and a written constructor only signals too, DV2 deletes the notes, and CR1's brief checks them at PR 3 and PR 5 while its agent file stays as it is (sections 6.5 and 6.7). |
 | 1.4 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22) adds the Architect's task AR7, Batch plan, with a plan run and a check run, and takes the shared documents out of the write scopes within a team (sections 3 and 6.2). The changes land with F20's build. |
+| 1.5 | 2026-11-23 | D280 to D283, from tstack issue #75, which Troy accepted on 2026-11-16, approved under Troy's standing yes of 2026-11-22: CR1 runs `/security-review` only when `brief`'s check finds that the PR adds a dependency, a subprocess call, network access, or credential handling, or the Code Reviewer sees one that the check missed; file access is no sign; `/code-review`'s level stays as it is; and the new task CR2 reviews each release's changes on a local review branch before the release test. No requirement changes (sections 6.7, 6.8, 8, and 12). |
