@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.3 |
-| Date | 2026-11-23 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). |
+| Version | 1.4 |
+| Date | 2026-11-24 |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). Version 1.4 records where tstack #67's build put the notes line (section 4.2). |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -148,7 +148,7 @@ troy-mode keeps this text and replaces edits to it. To reach troy-mode, write a 
 - **The stage line** names the stage's PR and its state. For the open PR, it adds the last review or attempt heading, translated into fixed words, such as "Code Reviewer, round 1: changes requested".
 - **"Waiting for you"** says what waits on Troy, from `status`: "approve #41; what to decide is at the top of its description", or an escalation with its link.
 - **The status** is the feature's Status cell in the requirements and its mirror, shown when it says more than "Not started": "Needs rework (<the change>)" during a rework, and the new status at acceptance.
-- **Other lines,** when they exist: side PRs whose title names the feature, such as `[F04 test-fix]`; bug issues titled `Real run of F04: ...` (F12 design D107); a stage PR closed unmerged; "Needs rework" with the change that caused it; and the notes that earlier work left for the feature, "备注：2 条（#31、#40）" and "Notes from earlier work: 2 (#31, #40)", each number linking its `Note for` comment (F07 design 6.6, D284).
+- **Other lines,** when they exist: side PRs whose title names the feature, such as `[F04 test-fix]`; bug issues titled `Real run of F04: ...` (F12 design D107); a stage PR closed unmerged; "Needs rework" with the change that caused it; and the notes that earlier work left for the feature, "备注：2 条（#31、#40）" and "Notes from earlier work: 2 (#31, #40)", each number linking its `Note for` comment (F07 design 6.6, D284). The line comes after the stage lines and before the dependencies.
 - **The links** go to the documents on `main` and to the dependencies' progress issues. The issue never holds a document's text or the summary for Troy (section 8.3).
 - **No time stamps** that change at every sync, so a sync edits the body only when something changed.
 
@@ -560,3 +560,4 @@ Requirements 1.39 records the approved changes:
 | 1.1 | 2026-11-17 | Facts from the build and its trial: status's two reads (section 3.3), the final render after PR 6 (4.5), the title when the mirror gives the same name (4.2), the version 0.7.0 (12), and the trial's record (13.5). |
 | 1.2 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): every feature that may start has its progress issue, not only the next feature (section 4.1). The change lands with F20's build. |
 | 1.3 | 2026-11-23 | F07's D284 to D287, from tstack issue #67, approved under Troy's standing yes of 2026-11-22: troy-mode's `Note for <ID>` comments on progress issues hold the notes for later features; the target's issue shows a notes line; a note never hides Troy's comment (sections 3.3, 4.2, 4.4, 8.4, 13.1, and 13.2). |
+| 1.4 | 2026-11-24 | tstack #67's build: the notes line comes after the stage lines and before the dependencies (section 4.2). |

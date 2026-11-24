@@ -9,7 +9,7 @@ ideas. troy-mode's comments start with a fixed English heading (design 8.4).
 import re
 from dataclasses import dataclass, field
 
-from . import github
+from . import github, notes
 from .errors import FlowError
 from .repo import Repo
 from .versions import SCENARIO_ID
@@ -21,7 +21,7 @@ PROGRESS, CHECKLIST, IDEA = "progress", "device-test", "idea"
 _NOT_IDEA = frozenset({"bug", PROGRESS, CHECKLIST})
 TURNED_OFF = "issues are turned off"
 ISSUE_FIELDS = "number,title,labels,body,comments,url,createdAt,state,stateReason"
-PR_FIELDS = "number,title,state,url"
+PR_FIELDS = "number,title,state,url,createdAt"
 _BOX = re.compile(r"^- \[([ xX])\] \*\*(.+?)\*\*")
 _RUN = re.compile(r"第 ([1-9][0-9]*) 轮")
 _ACCEPT = "我接受 "
@@ -40,6 +40,8 @@ class Issue:
         open: Whether the issue is open.
         reason: The state reason of a closed issue, such as "NOT_PLANNED", or None.
         comments: The comments' bodies, oldest first.
+        comment_items: gh's comment objects, oldest first, with their url and
+            createdAt, for the notes on progress issues (F07 design 6.6).
     """
 
     number: int
@@ -50,6 +52,7 @@ class Issue:
     open: bool
     reason: str | None
     comments: list[str] = field(default_factory=list)
+    comment_items: list[dict] = field(default_factory=list)
 
     def mark(self) -> tuple[str, str] | None:
         """Returns ("progress", "F04") or ("device-test", "v0.1.0") from the first line, or None."""
@@ -110,11 +113,16 @@ def _labels(value) -> list[str]:
     return names
 
 
-def _comments(value) -> list[str]:
-    """Reads gh's comments field as bodies, oldest first."""
+def _comment_items(value) -> list[dict]:
+    """Reads gh's comments field as comment objects, oldest first."""
     items = [c for c in value or [] if isinstance(c, dict)]
     items.sort(key=lambda c: str(c.get("createdAt", "")))
-    return [str(c.get("body") or "").replace("\r\n", "\n") for c in items]
+    return items
+
+
+def _comments(value) -> list[str]:
+    """Reads gh's comments field as bodies, oldest first."""
+    return [str(c.get("body") or "").replace("\r\n", "\n") for c in _comment_items(value)]
 
 
 def to_issue(data: dict) -> Issue:
@@ -124,7 +132,8 @@ def to_issue(data: dict) -> Issue:
     return Issue(int(data.get("number", 0)), str(data.get("title") or ""),
                  str(data.get("url") or ""), str(data.get("body") or "").replace("\r\n", "\n"),
                  _labels(data.get("labels")), state == "OPEN",
-                 str(reason).upper() if reason else None, _comments(data.get("comments")))
+                 str(reason).upper() if reason else None, _comments(data.get("comments")),
+                 _comment_items(data.get("comments")))
 
 
 def turned_off(error: str) -> bool:
@@ -163,9 +172,14 @@ def by_troy_mode(body: str) -> bool:
 
 
 def troy_since(comments: list[str]) -> list[str]:
-    """Troy's comments after troy-mode's last comment, oldest first; all when it never wrote."""
+    """Troy's comments after troy-mode's last comment, oldest first; all when it never wrote.
+
+    A note for a later feature is neither (F07 design 6.6, F15 design 3.3).
+    """
     found: list[str] = []
     for body in comments:
+        if notes.is_note(body):
+            continue
         found = [] if by_troy_mode(body) else found + [body]
     return found
 

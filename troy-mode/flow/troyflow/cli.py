@@ -3,6 +3,7 @@
 F07 D204 adds wait-checks, the wait for a pushed head's CI checks before a merge.
 F07 D264 to D267 add costs, a feature's or a version's role runs and their cost.
 F20 adds team start and team end, a feature team's worktree.
+tstack #67 adds note, a note for a later feature (F07 design 6.6).
 """
 
 import argparse
@@ -12,8 +13,8 @@ import sys
 from troycheck.gitio import GitError
 
 from . import acceptversion, approve, brief, costs, issuesync, realreport, realrun, \
-    mergecheck, releasetest, retro, rulerow, runs, series, skips, status, teams, textcheck, \
-    waitchecks
+    mergecheck, notecmd, releasetest, retro, rulerow, runs, series, skips, status, teams, \
+    textcheck, waitchecks
 from . import plan as batchplan
 from .errors import FlowError
 
@@ -127,10 +128,15 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("merge-check", help="whether a team's PR may merge now (F20, R24)")
     cmd.add_argument("--rebased-from", help="the PR's head commit before the rebase")
     cmd.add_argument("--conflicts", nargs="+", help="the paths a rebase stopped on")
+    cmd = sub.add_parser("note", help="a note for a later feature, for a progress issue (F07)")
+    cmd.add_argument("--for", dest="for_id", required=True, help="the feature, for example F12")
+    cmd.add_argument("--from", dest="source", required=True,
+                     help='where it comes from, such as "#57, Code Reviewer, round 1"')
+    cmd.add_argument("--file", required=True, help="the file with the note's text")
     for name in ("status", "brief", "snapshot", "check-run", "approve", "check-text",
                  "check-skips", "series", "release-test", "accept-version", "release-notes",
                  "retro", "rule-id", "rule-row", "real-run", "issues", "wait-checks", "costs",
-                 "team", "plan", "merge-check"):
+                 "team", "plan", "merge-check", "note"):
         _common(sub.choices[name])
     return parser
 
@@ -161,6 +167,8 @@ def _text(report: dict) -> str:
         lines.append(f"cost      {report['line']}")
     if report["command"] == "merge-check":
         lines.append(f"result    {report['result']}")
+    if report["command"] == "note" and report.get("ok"):
+        lines += [f"issue     #{report['issue']}", f"post      {report['gh']}"]
     if report["command"] == "team" and report.get("worktree"):
         lines.append(f"worktree  {report['worktree']}")
     if report["command"] == "issues":
@@ -193,7 +201,7 @@ COMMANDS = {"status": status.run_status, "brief": brief.build, "snapshot": runs.
             "real-run": realrun.run_real_run, "issues": issuesync.run_issues,
             "wait-checks": waitchecks.run_wait_checks, "costs": costs.run_costs,
             "team": teams.run_team, "plan": batchplan.run_plan,
-            "merge-check": mergecheck.run_merge_check}
+            "merge-check": mergecheck.run_merge_check, "note": notecmd.run_note}
 
 
 def main(argv: list[str]) -> int:

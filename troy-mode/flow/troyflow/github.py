@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 
+from . import notes
 from .errors import FlowError
 from .repo import Repo
 from .versions import SCENARIO_ID
@@ -107,6 +108,8 @@ def read_comments(bodies: list[str]) -> Comments:
     result = Comments()
     for body in bodies:
         first = heading(body)
+        if notes.is_note(body):
+            continue
         if not is_f07(body):
             result.troy.append(body)
             continue
