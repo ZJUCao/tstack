@@ -453,5 +453,58 @@ class SecurityReviewSkillTests(unittest.TestCase):
                     self.assertNotIn(word, text)
 
 
+class NotesSkillTests(unittest.TestCase):
+    """tstack #67 (F07 design 6.6, D285; the build contract, section F): notes for later features.
+
+    The skill gains ``## Notes for later features``, which names the engine's ``note`` command
+    with its options, the check of the comment's file, and the post. Its section "One stage"
+    points there. The sections "Running a role" and "The summary for Troy" do not change, so
+    they say nothing of notes.
+    """
+
+    WORDS = ("troy_flow.py note", "--for", "--from", "--file", "check-text", "gh issue comment")
+
+    @classmethod
+    def setUpClass(cls):
+        """Cuts the new section, One stage, and the two unchanged sections out of SKILL.md."""
+        text = SKILL.read_bytes().decode("utf-8") if SKILL.is_file() else ""
+        body = split_skill(text)[1]
+        cls.notes = section(body, "## Notes for later features")
+        cls.stage = section(body, "### One stage")
+        cls.unchanged = {name: section(body, f"## {name}")
+                         for name in ("Running a role", "The summary for Troy")}
+
+    def test_has_the_section(self):
+        """A level-2 heading ``## Notes for later features`` with text under it."""
+        self.assertNotEqual(self.notes.strip(), "")
+        self.assertGreater(len(self.notes.strip().split("\n")), 1, self.notes)
+
+    def test_section_names_the_command_its_options_and_the_post(self):
+        """``troy_flow.py note``, ``--for``, ``--from``, ``--file``, ``check-text``, and
+        ``gh issue comment``, each in the section itself."""
+        for word in self.WORDS:
+            with self.subTest(word=word):
+                self.assertIn(word, self.notes)
+
+    def test_note_is_named_as_a_command(self):
+        """``troy_flow.py note`` as a whole word, not as the start of another command."""
+        self.assertRegex(self.notes, r"troy_flow\.py note(?![\w-])")
+
+    def test_one_stage_points_to_it(self):
+        """The section "One stage" names section "Notes for later features"."""
+        self.assertNotEqual(self.stage, "")
+        self.assertIn('"Notes for later features"', self.stage)
+
+    def test_running_a_role_and_the_summary_do_not_change(self):
+        """Neither unchanged section names a note, the command, or its post."""
+        for name, text in self.unchanged.items():
+            with self.subTest(section=name):
+                self.assertNotEqual(text, "", name)
+                for word in ("troy_flow.py note", "Note for", "Notes for later features",
+                             "--for", "gh issue comment"):
+                    self.assertNotIn(word, text)
+                self.assertNotRegex(text, r"(?i)\bnotes?\b")
+
+
 if __name__ == "__main__":
     unittest.main()

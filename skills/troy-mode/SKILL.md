@@ -47,6 +47,7 @@ The engine is `${CLAUDE_PLUGIN_ROOT}/troy-mode/flow/troy_flow.py`. Run it from t
 | `troy_flow.py team start --item <ID>` and `team end --item <ID>` | A feature team's worktree, `.troy-teams/<id>` in this checkout, detached at `origin/main` (section "Feature teams"). `team start` refuses a feature whose dependencies are not accepted. `team end`, after PR 6 merges, appends the team's `hooks.log` lines to the common log, then removes the worktree; it refuses while the worktree has changes or one of its roles may still run (`stop`). |
 | `troy_flow.py plan --report <file>` | Reads AR7's plan from its report, checks it against the features that may start, and keeps it in the common git folder: `batch`, `plan`, and `problems` (`missing`, `overlap`, `module`, `order`, `line`). Exit 1 and nothing kept on a problem. |
 | `troy_flow.py merge-check [--rebased-from <sha>] [--conflicts <path>...]` | In a team's worktree, before its merge: `result` `rebase` (origin/main is not in the branch, R24), `outside-plan` (source paths outside the plan's modules, in `outside`), `held` (a later version's code PR before the earlier version's release, `held_by`), or `ready`. `--rebased-from` adds `diff_changed` and `review_again`; `--conflicts` gives the `owner` role, or `escalate`. It reads git only. |
+| `troy_flow.py note --for <ID> --from <source> --file <file>` | A note for a later feature as a comment for a progress issue: `issue`, the comment's `file`, and the `gh issue comment` command in `gh`. It refuses an accepted feature. `brief` adds the feature's notes to IF1, IF2, and DV2 (section "Notes for later features"). |
 | `troy_flow.py rule-row --id <ID> --rule-file <file> [--retire] [--date <YYYY-MM-DD>]` | Writes one P row into `docs/rules.md` and its mirror: adds a new ID after the last P row, replaces an existing one and keeps its Since date, or retires it. Both files move to the next major version, approved by Troy, with one change-log row. |
 
 - Exit code 0: done. 1: a problem stops the step; the report says which. 2: the engine could not run; show Troy its error.
@@ -150,7 +151,7 @@ Troy's reply works as section "Merging" says. "全按推荐", "all as recommende
 3. **Commit.** `git add -- <path>` for exactly the paths in `stage`. The first run makes the commit, whose subject is the PR title (R01): `git commit -m "<title>"`. Later runs amend it with `git commit --amend --no-edit`, so the PR keeps one commit. The git hooks check R19.
 4. **Local checks**, on the commit (section "Local checks"). A failure goes back to the author as Input and counts as an attempt.
 5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why, which starts with `Progress: #<next.issue>` (PR 6: `Closes #<next.issue>`) and then gives the feature's goal, What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
-6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input.
+6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input. When a report says what a later feature, or a later stage of this one, must take, record it as a note (section "Notes for later features").
 7. **Merge** (section "Merging").
 8. **Progress.** After every step (each role run, commit, push, review, merge, and escalation) run `troy_flow.py status --write-progress`.
 
@@ -287,6 +288,16 @@ Ready PRs merge in the order they became ready (R24).
 ### Usage limits and continuing
 
 When a usage limit stops the session, every team pauses with its state in git, on GitHub, and in its worktree. On "continue", `status` rebuilds every team from its worktree, the open PRs, and the plan. A role that the limit cut off leaves a `running` record: end it with `TaskStop`. When a team's role stopped without a report, undo that run's own changes and run the role once more.
+
+## Notes for later features
+
+A review often finds what a later feature, or a later stage of this one, must take: what to reuse from this feature's module, a rule its design must follow, a timing model for its speed target. Never keep such a note in your own memory or in the progress file. Record it on GitHub, so that it reaches that feature's briefs from any session, PC, or team worktree (F07 design 6.6):
+
+1. Write the note in your own words, in English, to a file under `$(git rev-parse --absolute-git-dir)/troy-mode/flow/`.
+2. `troy_flow.py note --for <feature ID> --from "<source>" --file <file>`, where the source is the PR, the role, and the round, such as `#57, Code Reviewer, round 1`, or `Troy, in chat` for a note Troy gives. It refuses an accepted feature: a change to one is a requirement change.
+3. Check its `file` with `troy_flow.py check-text --file <file>` and read the exit code, then run its `gh`, a `gh issue comment` on the progress issue it picked.
+
+`brief` then adds the feature's notes to the Input of every IF1, IF2, and DV2 run of that feature, so you never copy them by hand. `status` lists them in `feature_notes`, and a note that came after the feature's PR 1 or PR 5 opened is late: decide whether it needs a design update in a `[docs]` side PR with IF2, a line in the open PR's next round, or nothing, and say so in your report to Troy.
 
 ## Side PRs
 

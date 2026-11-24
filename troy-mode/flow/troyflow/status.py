@@ -6,7 +6,7 @@ design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
 F07 D261 to D263 count each open PR's attempts from its CI runs too (ci.py).
 """
 
-from . import github, issuesync, nextstep, progress, releases, teamstate
+from . import github, issuesync, nextstep, notecmd, progress, releases, teamstate
 from .progress import View
 from .requirements import approved
 from .stages import stage_name
@@ -247,6 +247,7 @@ def run_status(args) -> tuple[dict, int]:
     }
     if report["release"] is not None and entry.get("step") == "release-test":
         report["release"]["checks"] = releases.release_checks(state, entry["title"], notes)
+    report["feature_notes"] = notecmd.feature_notes(state, notes)
     if report["release"] is not None and entry.get("step") == "security-review":
         found = releases.target(state)
         report["release"]["review"] = releases.review_entry(state, found[0], found[1])

@@ -75,8 +75,9 @@ REPO_URL = f"https://github.com/{LOGIN}/{PROJECT}"
 # The read calls F15 adds (F15 interface note, section 1).
 ALL_ISSUES_ARGS = ["issue", "list", "--state", "all", "--limit", "300", "--json",
                    "number,title,labels,body,comments,url,createdAt,state,stateReason"]
+# tstack #67 (late notes, F07 D287) adds createdAt: a stage PR's opening.
 ALL_PRS_ARGS = ["pr", "list", "--state", "all", "--limit", "300", "--json",
-                "number,title,state,url"]
+                "number,title,state,url,createdAt"]
 LABEL_ARGS = ["label", "list", "--limit", "100", "--json", "name"]
 REPO_ARGS = ["repo", "view", "--json", "url,hasIssuesEnabled"]
 PROGRESS_FIELDS = ("Current version", "Current feature", "Stage", "Open PRs", "Waiting on Troy",

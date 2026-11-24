@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import github, issuedata, releases
+from . import github, issuedata, notecmd, releases
 from . import repo as git
 from .errors import FlowError
 from .issuedata import CHECKLIST, IDEA, PROGRESS, Issue, Issues
@@ -298,6 +298,9 @@ def _extra(sync: Sync, fid: str, prs: dict) -> list[tuple[str, str]]:
                           f"#{i.number} {i.title}（{'未解决' if i.open else '已解决'}）" for i in bugs),
                       "Real-run bugs: " + "; ".join(
                           f"#{i.number} {i.title} ({'open' if i.open else 'closed'})" for i in bugs)))
+    noted = notecmd.progress_line(sync.issues, fid)
+    if noted:
+        lines.append(noted)
     if prs["closed"]:
         lines.append(("关闭未合并的 PR：" + "；".join(f"#{n} {t}" for n, t in prs["closed"]),
                       "Closed without merging: " + "; ".join(f"#{n} {t}" for n, t in prs["closed"])))

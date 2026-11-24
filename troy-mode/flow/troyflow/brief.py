@@ -1,10 +1,11 @@
-"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 6.4, 6.5, 8.7, 11).
+"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 6.4 to 6.6, 8.7, 11).
 
 A brief is for a feature's stage, a side PR of a feature (a test fix or a
 [docs] PR), a bug, a version: its test plan, its version tests, and its
 security review (F08 design 4, 5.3, and 5.9), or a rule: AR6's proposal and
 the cleanup PRs (F09 design 5 and 7). CR1's Task says whether to run
-/security-review (F07 design 6.5). --title names the PR when the state
+/security-review (F07 design 6.5), and the Input of IF1, IF2, and DV2 adds
+the notes that earlier work left for the feature (6.6). --title names the PR when the state
 cannot: a bug PR, a side PR, the redo of a stage after a requirement change,
 or a fix of a version's tests.
 """
@@ -14,8 +15,8 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, risks, rulebrief, summary, \
-    teambrief
+from . import PLUGIN_PREFIX, checksteps, mocknotes, notes as later_notes, repo as git, risks, \
+    rulebrief, summary, teambrief
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -485,6 +486,13 @@ def build(args) -> tuple[dict, int]:
     report["problems"] = _problems(args.task, target, config)
     if report["problems"]:
         return report, 1
+    if target.feature is not None:
+        # The notes that earlier work left for the feature (design 6.6, D286).
+        try:
+            text = later_notes.brief_input(repo, args.task, args.item, text)
+        except FlowError as exc:
+            report["problems"] = [f"{exc}. Run brief again once gh works."]
+            return report, 1
     return _fill(report, args, repo, config, features, subjects, text, target), 0
 
 
