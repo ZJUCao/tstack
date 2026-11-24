@@ -328,11 +328,20 @@ def _has_stage_pr(sync: Sync, fid: str) -> bool:
                and str(pr.get("state") or "").upper() in ("OPEN", "MERGED") for pr in sync.prs)
 
 
+def _team_features(state: State) -> set[str]:
+    """The features that may start, or that have a team, with feature teams (F20 design 3.12)."""
+    from .teamstate import compute  # noqa: PLC0415  (teamstate imports nextstep, which needs this)
+
+    part = compute(state)
+    return set(part["may_start"]) | {team["id"] for team in part["teams"]}
+
+
 def wanted_progress(sync: Sync) -> list[Wanted]:
     """What each progress issue should be (design 4.1, 4.4, and 4.5)."""
     state = sync.state
     kept = sync.kept(PROGRESS)
     nxt = next_feature(state)
+    teamed = _team_features(state)
     found, known = [], set()
     for feature in state.features or []:
         fid = feature.id
@@ -347,7 +356,7 @@ def wanted_progress(sync: Sync) -> list[Wanted]:
                 body = None if final else progress_body(progress_facts(sync, feature))
                 found.append(Wanted(PROGRESS, fid, "closed", "completed", title, body))
             continue
-        if fid == nxt or _has_stage_pr(sync, fid):
+        if fid == nxt or fid in teamed or _has_stage_pr(sync, fid):
             found.append(Wanted(PROGRESS, fid, "open", None, title,
                                 progress_body(progress_facts(sync, feature))))
         elif issue is not None and issue.open:

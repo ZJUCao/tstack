@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.5 |
+| Version | 1.6 |
 | Date | 2026-11-23 |
-| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). |
+| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). Version 1.6 adds AR7 to section 6.2's table, from F20 part 2's build. |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -156,6 +156,7 @@ Owns: the architecture, coding rules, module dependency rules, ADRs, and approva
 | AR4 Change impact | Change flow (5.4.3) | List the interfaces, tests, and parts of the architecture that change. Write an ADR for an architecture change. |
 | AR5 Answer | Another role asks | Answer from the architecture. If the answer needs the architecture to change, report `escalate`. |
 | AR6 Rule enforcement | The rule change flow (F09) | Pick the strongest enforcement that works for a rule Troy states, give the rule's cells and the exact config, and find the existing code that breaks it by running the tool with the rule turned on in a command-line option. Change no file, and report `escalate` with the proposal. After Troy approves an architecture change, write it with an ADR. |
+| AR7 Batch plan | Several features may run at once (F20) | For a version: give each feature that may start its modules, external interfaces, and shared documents, and order two features that change the same interface, in the plan's fixed form in Summary. For a feature: check its approved design against the plan and the running teams' designs, and give new orders. Change no file (F20 design 3.4, D271). |
 
 ### 6.3 Interface Designer
 
@@ -436,3 +437,4 @@ D280 to D283 change no requirement (section 6.8).
 | 1.3 | 2026-11-22 | From F07 design 6.4, D205 to D207 (tstack #63): DV1 adds the mock notes that the brief gives and a written constructor only signals too, DV2 deletes the notes, and CR1's brief checks them at PR 3 and PR 5 while its agent file stays as it is (sections 6.5 and 6.7). |
 | 1.4 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22) adds the Architect's task AR7, Batch plan, with a plan run and a check run, and takes the shared documents out of the write scopes within a team (sections 3 and 6.2). The changes land with F20's build. |
 | 1.5 | 2026-11-23 | D280 to D283, from tstack issue #75, which Troy accepted on 2026-11-16, approved under Troy's standing yes of 2026-11-22: CR1 runs `/security-review` only when `brief`'s check finds that the PR adds a dependency, a subprocess call, network access, or credential handling, or the Code Reviewer sees one that the check missed; file access is no sign; `/code-review`'s level stays as it is; and the new task CR2 reviews each release's changes on a local review branch before the release test. No requirement changes (sections 6.7, 6.8, 8, and 12). |
+| 1.6 | 2026-11-23 | From F20 design 3.4 and D271: the Architect's AR7, Batch plan, joins section 6.2's table (F20 part 2's build). |

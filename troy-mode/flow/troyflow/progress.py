@@ -17,6 +17,8 @@ FIELDS = ("Current version", "Current feature", "Stage", "Open PRs", "Waiting on
 # F07's comments on the open PR are part of the state (design 5.1).
 STATE_FIELDS = ("Current version", "Current feature", "Stage", "Open PRs", "Waiting on Troy",
                 "Next action")
+# With feature teams, the lines after Current version (F20 design 3.12, Prototype E).
+TEAM_FIELDS = ("Teams", "May start", "Needs a plan")
 
 
 @dataclass
@@ -26,10 +28,12 @@ class View:
     Attributes:
         values: Each field's one-line text, by field name.
         notes: The Open issues items.
+        teams: One line per team, under Teams (F20 design 3.12).
     """
 
     values: dict[str, str] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    teams: list[str] = field(default_factory=list)
 
 
 def render(view: View) -> str:
@@ -43,23 +47,37 @@ def render(view: View) -> str:
             lines.append("- Open issues: None")
         else:
             lines.append(f"- {name}: {view.values.get(name, 'None')}")
+        if name == "Current version":
+            lines += _team_lines(view)
     return "\n".join(lines) + "\n"
+
+
+def _team_lines(view: View) -> list[str]:
+    """The teams block: the count, one line per team, and what may start or needs a plan."""
+    lines = []
+    if "Teams" in view.values:
+        lines.append(f"- Teams: {view.values['Teams']}")
+        lines += [f"  - {line}" for line in view.teams]
+    for name in TEAM_FIELDS[1:]:
+        if name in view.values:
+            lines.append(f"- {name}: {view.values[name]}")
+    return lines
 
 
 def parse(text: str) -> View:
     """Reads a progress file back into its fields and notes."""
-    view, in_issues = View(), False
+    view, under = View(), None
     for line in text.replace("\r\n", "\n").split("\n"):
-        if line.startswith("  - ") and in_issues:
-            view.notes.append(line[4:].strip())
+        if line.startswith("  - ") and under is not None:
+            under.append(line[4:].strip())
             continue
-        in_issues = False
+        under = None
         if not line.startswith("- "):
             continue
         name, sep, value = line[2:].partition(":")
-        if sep and name in FIELDS:
+        if sep and (name in FIELDS or name in TEAM_FIELDS):
             view.values[name] = value.strip()
-            in_issues = name == "Open issues"
+            under = {"Open issues": view.notes, "Teams": view.teams}.get(name)
     return view
 
 
@@ -77,7 +95,8 @@ def same_work(old: View, new: View) -> bool:
 
 def is_current(old: View, new: View) -> bool:
     """Tells whether an existing file still says where the project stands."""
-    return all(old.values.get(name) == new.values.get(name) for name in STATE_FIELDS)
+    return (all(old.values.get(name) == new.values.get(name)
+                for name in STATE_FIELDS + TEAM_FIELDS) and old.teams == new.teams)
 
 
 def read(root: Path) -> View | None:

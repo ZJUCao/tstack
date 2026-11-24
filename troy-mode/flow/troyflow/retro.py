@@ -11,9 +11,11 @@ attempt comment counting it, in its role's attempt group (ci.py).
 
 import datetime
 import json
+import os
 import re
+from pathlib import Path
 
-from . import ci, github
+from . import ci, github, teams
 from . import repo as git
 from .errors import FlowError
 from .nextstep import title_task
@@ -121,13 +123,30 @@ def _commit_time(repo: Repo, sha: str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(text).astimezone(datetime.timezone.utc)
 
 
-def _hooks(repo: Repo, since: datetime.datetime | None) -> list[dict]:
-    """The hooks.log lines at or after a time (all without one), as parsed JSON."""
+def _logs(repo: Repo) -> list[Path]:
+    """The hooks.log files of every git folder of the repository, this checkout's first."""
+    common = teams.common_dir(repo)
+    folders = [Path(repo.git_dir), common, *sorted((common / "worktrees").glob("*"))]
+    unique = list(dict.fromkeys(Path(os.path.realpath(f)) for f in folders))
+    return [folder / "troy-mode" / "hooks.log" for folder in unique]
+
+
+def _log_lines(path: Path) -> list[str]:
+    """A log's lines, or none when it cannot be read."""
     try:
-        lines = (repo.state_dir() / "hooks.log").read_text(
-            encoding="utf-8", errors="replace").splitlines()
+        return path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
+
+
+def _hooks(repo: Repo, since: datetime.datetime | None) -> list[dict]:
+    """The hooks.log lines at or after a time (all without one), as parsed JSON.
+
+    The lines come from every git folder of the repository: the common one,
+    where `team end` keeps a removed team's lines, and each worktree's, the
+    teams' included (F20 design 3.3). A line in two logs counts once.
+    """
+    lines = list(dict.fromkeys(line for path in _logs(repo) for line in _log_lines(path)))
     found = []
     for line in lines:
         try:

@@ -26,7 +26,7 @@ from .versions import VERSION, parse_plan, plan_path, versions_of
 # Every task ID of F04 section 6, written out so that a task added later
 # cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6; F12 adds TM8).
 ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
-             "AR1", "AR2", "AR3", "AR4", "AR5", "AR6",
+             "AR1", "AR2", "AR3", "AR4", "AR5", "AR6", "AR7",
              "IF1", "IF2", "IF3", "IF4",
              "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7", "TM8",
              "DV1", "DV2", "DV3", "DV4", "DV5",
@@ -57,6 +57,10 @@ VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
 REAL_RUN_TASKS = ("TM8",)
 
 _SENTENCES = {
+    "AR7": "check the design of {item} in {folder}/design.md against the batch plan and the "
+           "running teams' designs that Input gives: when the design changes an interface or a "
+           "shared document that another running feature's plan names, or touches a module "
+           "outside its own plan, give the new orders in the plan's fixed form. Change no file.",
     "AR1": "write the architecture in docs/architecture.md and its mirror "
            "docs/architecture.zh-CN.md. " + summary.SENTENCE,
     "AR2": "review the interface design of {item} in {folder}/design.md and fill its section 4 "
@@ -137,6 +141,11 @@ _BUG_SENTENCES = {
 }
 # A version's tests are checked against the version test plan (F08 design 5.3).
 _VERSION_SENTENCES = {
+    "AR7": "plan the batch of {item}'s features that Input lists: for each, the modules it will "
+           "touch, by their names in the architecture's module table, the external interfaces it "
+           "adds or changes, and the shared documents it needs changed; order two features that "
+           "change the same interface. Give the plan in Summary as one fenced block in the plan's "
+           "fixed form. Change no file.",
     "TM2": "review the version tests of {item} against {plan}: every scenario that Claude runs "
            "has a test whose name starts with its ID, no test lies outside the plan, each test "
            "checks the scenario's expected result, and a test that fails, fails because the "
@@ -326,6 +335,23 @@ def _version_target(repo, task: str, version: str, parsed, title: str | None,
                   title or VERSION_TESTS_TITLE.format(version=version), version=version)
 
 
+def _plan_target(repo, item: str, title: str | None, features, subjects: list[str]) -> Target:
+    """AR7's target: a version's batch to plan, or a feature's design to check (F20 3.4)."""
+    if VERSION.fullmatch(item):
+        if item not in versions_of(features):
+            return _stop(f"{item} is not the version of any feature in the features table of "
+                         "docs/requirements.md on origin/main.")
+        return Target([], ("AR7",), "", None, None, version=item)
+    feature = next((f for f in features or [] if f.id == item), None)
+    if feature is None:
+        return _stop(f"{item} is not a version or a feature in the features table of "
+                     "docs/requirements.md on origin/main.")
+    merged = merged_stages(subjects).get(item, set())
+    stage = current_stage(merged, _skips_mock(repo, item, merged))
+    own = title or (stage_title(item, stage, feature.name) if stage else None)
+    return Target([], ("AR7",), "", stage, own, feature)
+
+
 def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
     """Finds what the brief is for and what stops it (exit 1)."""
     task, item = args.task, args.item
@@ -335,6 +361,8 @@ def _target(repo, args, parsed, features, subjects: list[str]) -> Target:
         return _stop(NOT_BUILT[task])
     if task == "AR1":
         return Target([], ("AR1",), "", None, ARCHITECTURE_TITLE)
+    if task == "AR7":
+        return _plan_target(repo, item, args.title, features, subjects)
     if BUG_ID.fullmatch(item):
         return _bug_target(item, task, parsed, args.title, subjects)
     if VERSION.fullmatch(item):

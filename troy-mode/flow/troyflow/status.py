@@ -6,7 +6,7 @@ design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
 F07 D261 to D263 count each open PR's attempts from its CI runs too (ci.py).
 """
 
-from . import github, issuesync, nextstep, progress, releases
+from . import github, issuesync, nextstep, progress, releases, teamstate
 from .progress import View
 from .requirements import approved
 from .stages import stage_name
@@ -24,6 +24,7 @@ _ACTIONS = {
                      "change; ask Troy.",
     "ask-approvals": "Ask Troy whether to go on approving PR 1 and PR 2 of later features.",
     "all-accepted": "Every feature is accepted and every version is released.",
+    "teams": "Go on with each team's next action (teams).",
 }
 _STEPS = {
     "version-tests": "start TE5 for the version tests: {title}.",
@@ -68,6 +69,13 @@ def action_text(entry: dict) -> str:
         return (f"Clean up {entry['item']}: fix the files its baseline lines name, at most 5 a "
                 f"PR, in [refactor] Apply {entry['item']} to <area> (DV5) or "
                 f"[{entry['item']} test-fix] Apply {entry['item']} to tests (TE6).")
+    if action == "plan":
+        return (f"Run AR7 to plan the batch ({', '.join(entry['items'])}), then keep its plan "
+                "with plan --report.")
+    if action == "team-start":
+        return f"Start a team for each of {', '.join(entry['items'])} with team start."
+    if action == "team-end":
+        return f"{entry['item']} is accepted: run team end --item {entry['item']}."
     if action == "rework":
         text = (f"{entry['item']} needs rework after a requirement change: run AR4, then redo "
                 "the earliest stage it names.")
@@ -108,7 +116,8 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
     return f"{text} PR #{pr['number']} is open.{review}"
 
 
-def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None) -> View:
+def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None,
+               part: dict | None = None) -> View:
     """Builds the progress file's fields from the state and the next action."""
     feature = _current_feature(state, entry)
     version = "None"
@@ -118,7 +127,7 @@ def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None) 
     elif entry.get("item") in state.versions:
         version = f"{entry['item']} ({', '.join(state.versions[entry['item']])})"
     open_prs = "; ".join(f"#{p['number']} {p['title']} ({p['url']})" for p in prs) or "None"
-    return View({
+    view = View({
         "Current version": version,
         "Current feature": f"{feature.id} {feature.name}" if feature else "None",
         "Stage": _stage_text(entry, prs),
@@ -126,6 +135,23 @@ def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None) 
         "Waiting on Troy": waiting or "Nothing",
         "Next action": action_text(entry),
     })
+    if part and part["mode"]:
+        _team_view(state, view, part)
+    return view
+
+
+def _team_view(state: State, view: View, part: dict) -> None:
+    """Adds the teams block of Prototype E to the progress file (F20 design 3.12)."""
+    view.values["Teams"] = str(len(part["teams"]))
+    for team in part["teams"]:
+        feature = state.feature(team["id"])
+        name = f"{team['id']} {feature.name}" if feature else team["id"]
+        stage = "accepted" if team["stage"] is None else f"stage {team['stage']} of 6"
+        view.teams.append(f"{name}: {stage}. {action_text(team['next'])}")
+    if part["may_start"]:
+        view.values["May start"] = ", ".join(part["may_start"])
+    if part["needs_plan"]:
+        view.values["Needs a plan"] = ", ".join(part["needs_plan"])
 
 
 def _waiting(args, state: State, entry: dict, carried: View | None) -> str | None:
@@ -143,9 +169,10 @@ def _waiting(args, state: State, entry: dict, carried: View | None) -> str | Non
     return text if text and text != "Nothing" else None
 
 
-def _progress(args, state: State, entry: dict, prs: list[dict], report: dict) -> None:
+def _progress(args, state: State, entry: dict, prs: list[dict], report: dict,
+              part: dict) -> None:
     """Rebuilds or rewrites the progress file when it is due (design 5.2)."""
-    view = build_view(state, entry, prs, None)
+    view = build_view(state, entry, prs, None, part)
     old = progress.read(state.repo.root) if state.marker else None
     carried = old if old is not None and progress.same_work(old, view) else None
     notes = (carried.notes if carried else []) + list(args.note or [])
@@ -153,7 +180,7 @@ def _progress(args, state: State, entry: dict, prs: list[dict], report: dict) ->
     entry["attempts"] = max(entry["attempts"], attempts)
     waiting = _waiting(args, state, entry, carried)
     report["waiting_on_troy"] = waiting
-    view = build_view(state, entry, prs, waiting)
+    view = build_view(state, entry, prs, waiting, part)
     view.notes = notes
     stale = old is None or not progress.is_current(old, view)
     due = args.write_progress or args.waiting is not None or bool(args.note) or stale
@@ -191,7 +218,12 @@ def run_status(args) -> tuple[dict, int]:
     state = read_state(args.repo, with_ci=True)
     if state.repo is not None and state.origin:
         issuesync.load(state)
-    entry, notes = nextstep.decide(state)
+    part = teamstate.compute(state)
+    if part["mode"]:
+        entry, notes = nextstep.decide(teamstate.without_teams(state, part))
+        entry = teamstate.home_next(entry, part, state)
+    else:
+        entry, notes = nextstep.decide(state)
     notes.extend(state.notes)
     prs = [pr_entry(state, pr) for pr in state.prs]
     report = {
@@ -208,6 +240,8 @@ def run_status(args) -> tuple[dict, int]:
         "issues": issuesync.status_part(state),
         "waiting_on_troy": None,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
+        "teams": part["teams"], "may_start": part["may_start"],
+        "needs_plan": part["needs_plan"], "waiting": part["waiting"],
     }
     if report["release"] is not None and entry.get("step") == "release-test":
         report["release"]["checks"] = releases.release_checks(state, entry["title"], notes)
@@ -219,5 +253,5 @@ def run_status(args) -> tuple[dict, int]:
                      "brings it up to date; [roles], [flow], and troy-check code --worktree "
                      "need it.")
     if state.repo is not None:
-        _progress(args, state, entry, prs, report)
+        _progress(args, state, entry, prs, report, part)
     return report, 0
