@@ -282,10 +282,15 @@ def waiting(tag: str = TAG) -> str:
     return f"Waiting for Troy: accept {tag}"
 
 
+# Each release's security review comes before its release test (tstack #75, F08 design 5.9).
+# The release PRs here have passed it, so their comments start with its approval.
+REVIEWED = "Security review, run 1: approved\n\nFindings: None."
+
+
 def release_fakes(*bodies: str, all_issues: Sequence = (), number: int = 30, tag: str = TAG,
                   labels: Sequence[str] = ALL_LABELS, **more) -> dict:
-    """Fakes keyword arguments for an open release PR with its comments."""
-    return {"prs": [release_pr(number, tag)], "comments": {number: comments(*bodies)},
+    """Fakes keyword arguments for an open release PR with its comments after the review."""
+    return {"prs": [release_pr(number, tag)], "comments": {number: comments(REVIEWED, *bodies)},
             "all_issues": list(all_issues), "labels": list(labels), **more}
 
 
@@ -303,9 +308,12 @@ def patched_steps() -> list:
 
 
 def patch_fakes(*bodies: str, all_issues: Sequence = ()) -> dict:
-    """Fakes for the open patch release PR #60 of v0.1.1, after v0.1.0's GitHub release."""
+    """Fakes for the open patch release PR #60 of v0.1.1, after v0.1.0's GitHub release.
+
+    Its comments start with the security review's approval (``REVIEWED``).
+    """
     return {"prs": [release_pr(60, "v0.1.1")],
-            "comments": {40: comments(RETRO), 60: comments(*bodies)},
+            "comments": {40: comments(RETRO), 60: comments(REVIEWED, *bodies)},
             "merged": [merged_pr(40, release_title(TAG))], "releases": [TAG],
             "all_issues": list(all_issues), "labels": list(ALL_LABELS)}
 

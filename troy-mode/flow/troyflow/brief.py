@@ -1,11 +1,12 @@
-"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 6.4, 8.7, 11).
+"""The brief for one role run and the Agent call's parameters (F07 design 3.2, 6.1, 6.4, 6.5, 8.7, 11).
 
 A brief is for a feature's stage, a side PR of a feature (a test fix or a
-[docs] PR), a bug, a version: its test plan and its version tests (F08
-design 4 and 5.3), or a rule: AR6's proposal and the cleanup PRs (F09 design
-5 and 7). --title names the PR when the state cannot: a bug PR, a
-side PR, the redo of a stage after a requirement change, or a fix of a
-version's tests.
+[docs] PR), a bug, a version: its test plan, its version tests, and its
+security review (F08 design 4, 5.3, and 5.9), or a rule: AR6's proposal and
+the cleanup PRs (F09 design 5 and 7). CR1's Task says whether to run
+/security-review (F07 design 6.5). --title names the PR when the state
+cannot: a bug PR, a side PR, the redo of a stage after a requirement change,
+or a fix of a version's tests.
 """
 
 import re
@@ -13,7 +14,8 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, rulebrief, summary, teambrief
+from . import PLUGIN_PREFIX, checksteps, mocknotes, repo as git, risks, rulebrief, summary, \
+    teambrief
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -24,14 +26,15 @@ from .stages import STAGE_KINDS, STAGE_TASKS, current_stage, merged_stages, pars
 from .versions import VERSION, parse_plan, plan_path, versions_of
 
 # Every task ID of F04 section 6, written out so that a task added later
-# cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6; F12 adds TM8).
+# cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6; F12 adds TM8;
+# tstack #75 adds CR2).
 ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
              "AR1", "AR2", "AR3", "AR4", "AR5", "AR6", "AR7",
              "IF1", "IF2", "IF3", "IF4",
              "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7", "TM8",
              "DV1", "DV2", "DV3", "DV4", "DV5",
              "TE1", "TE2", "TE3", "TE4", "TE5", "TE6",
-             "CR1")
+             "CR1", "CR2")
 # Tasks of F04 that the engine cannot brief yet, with the reason.
 NOT_BUILT: dict[str, str] = {}
 ROLE_OF = {"AR": "architect", "IF": "interface-designer", "TM": "test-manager",
@@ -55,6 +58,8 @@ VERSION_TESTS_TASKS = ("TE5", "TE3", "TM2", "CR1", "TM4", "AR5")
 VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
 # The release test's real run (F12 design 11): TM8 rules on its mismatches.
 REAL_RUN_TASKS = ("TM8",)
+# A release's security review, on its review branch (F08 design 5.9).
+SECURITY_TASKS = ("CR2",)
 
 _SENTENCES = {
     "AR7": "check the design of {item} in {folder}/design.md against the batch plan and the "
@@ -132,6 +137,8 @@ _SENTENCES = {
            "needs another platform goes to Troy on a device Troy has, or is left out with the "
            "reason under the table. When the plan exists, update it to these features.",
     "CR1": "review the PR {title}.",
+    "CR2": "review the security of {tag}: this branch's one commit holds every change since "
+           "{since}. Run `/security-review` on it, judge each finding, and change no file.",
 }
 # A bug has no test plan: its tests are checked against the bug report.
 _BUG_SENTENCES = {
@@ -175,6 +182,7 @@ class Target:
         side: "test-fix" or "docs" for a side PR, else None.
         version: The version of a version item, else None.
         rule: The context of a rule item, else None.
+        review: CR2's tag and base words, else None.
     """
 
     problems: list[str]
@@ -186,6 +194,7 @@ class Target:
     side: str | None = None
     version: str | None = None
     rule: rulebrief.RuleContext | None = None
+    review: dict | None = None
 
 
 def _stop(message: str) -> Target:
@@ -319,6 +328,9 @@ def _version_target(repo, task: str, version: str, parsed, title: str | None,
     why = f"{task} does not belong to version {version}."
     if parsed is None and task in REAL_RUN_TASKS:
         return Target([], REAL_RUN_TASKS, why, None, None, version=version)
+    if parsed is None and task in SECURITY_TASKS:
+        problems, review = risks.check_review_branch(repo, version)
+        return Target(problems, SECURITY_TASKS, why, None, None, version=version, review=review)
     if parsed is None and task in VERSION_DOCS_TASKS:
         verb = "Add" if plan is None else "Update"
         return Target([], VERSION_DOCS_TASKS, why, None,
@@ -404,12 +416,12 @@ def _version_files(repo, task: str, version: str, features: list) -> list[str]:
 
 def _read_first(repo, task: str, item: str | None, features: list, folder: str | None,
                 version: str | None = None) -> list:
-    """Lists the files the role reads first (design 6.1, F08 design 4 and 5.3)."""
+    """Lists the files the role reads first (design 6.1 and 6.5, F08 design 4 and 5.3)."""
     paths = ["docs/rules.md", "docs/requirements.md"]
     if task == "AR1":
         return paths
     candidates = ["docs/architecture.md"]
-    if version is not None:
+    if version is not None and task not in SECURITY_TASKS:
         candidates += _version_files(repo, task, version, features)
     feature = next((f for f in features if f.id == item), None)
     if feature is not None:
@@ -501,6 +513,8 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
         sentences.update(rulebrief.sentences(target.rule))
         values.update(run=checksteps.run_prefix(config, name, report["notes"]),
                       baseline=", ".join(target.rule.files) or "the config and dependency files")
+    if target.review:
+        values.update(target.review)
     if version is not None:
         sentences.update(_VERSION_SENTENCES)
         under = version.replace(".", "_")
@@ -514,6 +528,8 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
     notes = mocknotes.text(task, stage, config.lang.get("name"))
     if notes:
         sentence += " " + notes
+    if task == "CR1":
+        sentence += " " + risks.sentence(repo, config)
     if task in checksteps.CODE_TASKS:
         sentence += " " + checksteps.PLATFORM_SKIP
     item_text = f"{item}, {title}" if item and title else (item or title)

@@ -30,13 +30,15 @@ TROY_RUN = re.compile(r"^Release test by Troy, run ([1-9][0-9]*): "
                       r"(accepted|failed|not accepted)$")
 RETROSPECTIVE = re.compile(r"^Retrospective: (v\d+\.\d+\.\d+)$")
 DEFERRED = re.compile(r"^Bug deferred by Troy: #([1-9][0-9]*)$")
+# CR2's report on a release PR (F08 design 5.9).
+SECURITY = re.compile(r"^Security review, run ([1-9][0-9]*): (approved|changes-requested)$")
 # troy-mode's headings on issues (F15 design 8.4).
 IDEA = re.compile(r"^Idea: (requirement change|bug|rule|answered|later|in the requirements)")
 REPLY = re.compile(r"^Reply to Troy")
 DEVICE_RUN = re.compile(r"^Device test, run ([1-9][0-9]*): ready$")
 _COMMIT = re.compile(r"^Commit tested: ([0-9a-f]{7,40})\s*$", re.M)
 _OWN = (REVIEW, ATTEMPT, ESCALATION, WAITING, RELEASE_RUN, TROY_RUN, RETROSPECTIVE, DEFERRED,
-        IDEA, REPLY, DEVICE_RUN)
+        SECURITY, IDEA, REPLY, DEVICE_RUN)
 
 
 @dataclass
@@ -57,6 +59,7 @@ class Comments:
         retrospectives: The tags of the Retrospective comments.
         commits: The commit each passed release test run names, by run (F15 6.2).
         troy_failed: The scenario IDs each failed run of Troy's names, by run (F15 6.3).
+        security: The security reviews, oldest first: run and result (F08 design 5.9).
     """
 
     reviews: list[dict] = field(default_factory=list)
@@ -71,6 +74,7 @@ class Comments:
     retrospectives: list[str] = field(default_factory=list)
     commits: dict[int, str] = field(default_factory=dict)
     troy_failed: dict[int, list[str]] = field(default_factory=dict)
+    security: list[dict] = field(default_factory=list)
 
 
 def heading(body: str) -> str:
@@ -121,7 +125,7 @@ def read_comments(bodies: list[str]) -> Comments:
 
 
 def _read_release(result: Comments, first: str, body: str = "") -> None:
-    """Records an F08 comment's release run, deferred bug, or retrospective."""
+    """Records an F08 comment's release run, deferred bug, security review, or retrospective."""
     for pattern, by in ((RELEASE_RUN, "claude"), (TROY_RUN, "troy")):
         match = pattern.match(first)
         if match:
@@ -137,6 +141,9 @@ def _read_release(result: Comments, first: str, body: str = "") -> None:
     deferred = DEFERRED.match(first)
     if deferred and int(deferred.group(1)) not in result.deferred:
         result.deferred.append(int(deferred.group(1)))
+    security = SECURITY.match(first)
+    if security:
+        result.security.append({"run": int(security.group(1)), "result": security.group(2)})
     retro = RETROSPECTIVE.match(first)
     if retro:
         result.retrospectives.append(retro.group(1))

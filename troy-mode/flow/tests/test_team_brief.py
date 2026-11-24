@@ -87,6 +87,7 @@ from flow_helpers import (
     run_engine, same_path, stages,
 )
 from test_mock_notes_brief import CR1_PR3_CPP, CR1_PR3_PY, CR1_PR5, DV1_CPP, DV1_PY, DV2_TEXT
+from test_security_brief import NO_SIGN, RUN_PREFIX
 
 F08 = Feature("F08", "Merge reports")
 FEATURES = (F01, F08)
@@ -108,8 +109,11 @@ SEP = os.sep
 D69 = ("A test that the test plan runs only on another platform is skipped here, and "
        "troy-check code reports it under R09 or R10; CI checks it, so name it in your report "
        "and do not count it as a failure.")
-# Text that the Task line holds after the task's own sentence (contract item 1).
-LATER_TEXTS = (DV1_PY, DV1_CPP, CR1_PR3_PY, CR1_PR3_CPP, DV2_TEXT, CR1_PR5, D69)
+# Text that the Task line holds after the task's own sentence (contract item 1). CR1's
+# security sentence (tstack #75) comes after the team sentence too: the "not needed"
+# sentence, or one that starts RUN_PREFIX.
+LATER_TEXTS = (DV1_PY, DV1_CPP, CR1_PR3_PY, CR1_PR3_CPP, DV2_TEXT, CR1_PR5, NO_SIGN,
+               RUN_PREFIX, D69)
 
 PY_CONFIG = config_text("python")
 ROOTS_CONFIG = config_text("python", environment="wc-series").replace(

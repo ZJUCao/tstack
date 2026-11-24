@@ -366,7 +366,7 @@ tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for t
 | 1. Ready | Read `release.problems` and fix each one first (below) | None | |
 | 2. `version-tests` | TE5 writes the tests of the scenarios Claude runs; TM2 and CR1 review them together | `[<version> tests] End-to-end and stress tests` on `troy-mode/<version>-tests` | You |
 | 3. `release-pr` | PM4: the changelog section | `[docs] Release <tag>` on `troy-mode/release-<tag>` | You, after Troy accepts |
-| 4. `release-test` | The regression, the version tests, and the real run of every accepted feature's prototypes on Troy's PC; the report goes on the release PR | None | |
+| 4. `security-review`, then `release-test` | CR2's security review of the release's changes, on a local review branch; then the regression, the version tests, and the real run of every accepted feature's prototypes on Troy's PC; each report goes on the release PR | None | |
 | 5. `troy-test` | Troy runs Troy's scenarios on Troy's devices and replies | None | |
 | 6. `accept` | PM4 sets the statuses, `accept-version` fills the acceptance record, then the merge | The release PR | You |
 | 7. `tag` | A GitHub release on the release PR's merge commit | None | |
@@ -384,6 +384,14 @@ tstack's F08 design (`docs/troy-mode/design/F08-release.md`) is the source for t
 **2. Version tests (D71).** On `next.branch`, run TE5 (`brief --task TE5 --item <version>`). It writes one test per scenario that Claude runs, in `version-tests/`, each named with its scenario ID (`test_v0_1_s01_...`, `TEST(Version, V0_1_S01_...)`), and runs them against `origin/main`'s code. A test that fails there stays as written; its report lists it. Commit as `next.title`, run the local checks of the brief (the pack's steps never collect `version-tests/`, so the release command at the end of the checks runs them), open the PR, and run TM2 and CR1 together with `--item <version>`. Merge it when both approve and CI passes, even when some version tests fail: CI does not run them, and a failing scenario is a finding of the release test. A patch release has no version tests. Every PR of a version's tests is titled `[<version> tests] <summary>`: a wrong version test is fixed later by TE3 in `[<version> tests] Fix <scenario ID>`, on TM4's ruling, with that title in `brief --title`.
 
 **3. Release PR (D72).** On `troy-mode/release-<tag>` from `origin/main`, under a snapshot with `--role product-manager`, do PM4: add the version's section to `CHANGELOG.md` and its mirror from the `changelog` template (create both for the first release), with the version's features and the bugs fixed since the previous release sorted into Added, Changed, and Fixed. A feature that changes an accepted one goes under Changed; a patch lists only Fixed. The section's date is today. Commit as `[docs] Release <tag>`, run `troy-check pr`, and open the PR with Why (the version's line in the version plan), What (the changelog section and the features), and Checks. Every later step comments on this PR, so a new session finds the release where it stopped.
+
+**4. Security review (tstack #75).** At the step `security-review`, before the release's first release test, CR2 reviews every change since the previous release with `/security-review`. The per-PR reviews ran it only where a PR added a risk (F04 D280 to D283).
+
+1. From the release branch, run each command of `release.review.commands` in order: `git remote set-head origin --auto` when it is there, then `git commit-tree`, which prints a commit ID, then `git switch -c <release.review.branch> <commit>` with that ID. The branch's one commit puts `origin/main`'s files on the previous release commit, so `/security-review` sees all of the release's changes. Never push it.
+2. Run CR2 as in "Running a role": `brief --task CR2 --item <version>`, a snapshot with `--role code-reviewer`, the Agent call, and `check-run`.
+3. Write the report's findings to a file headed `Security review, run <release.review.run>: approved` or `changes-requested`, check it with `check-text`, and post it on the release PR.
+4. `git switch <the release branch>`, then `git branch -D <release.review.branch>`.
+5. `changes-requested`: each blocking finding goes to TM5, as in "Failures and bugs". Once the bugs are fixed, `status` gives `security-review` again, as the next run. `approved`: `status` goes on to `release-test`, and the review is not repeated for this release.
 
 **4. Release test.** On the release branch, on Troy's PC:
 
@@ -413,7 +421,7 @@ If Troy merges the release PR on GitHub instead, `status` gives `record-acceptan
 After bug fixes, when the release test passes again, the issue sync updates the checklist: its `edit` action has `new_run: true`. Post `Device test, run <n>: ready` on the checklist, naming the scenarios to test again, and tell Troy in chat.
 
 - A real run mismatch goes to TM8 with `real-run`'s Markdown report in Input (`brief --task TM8 --item <version> --input-file <files.md>`), and its rulings are acted on as in section "PR 6: the real run", with each bug's issue titled `Real run of <feature ID>: <summary>`.
-- A failed test or scenario, in the release test or in Troy's test, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (section "Bug fix"). A wrong version test gets TE3's fix. A misunderstood requirement goes to the requirement change flow.
+- A failed test or scenario, in the release test or in Troy's test, or a blocking finding of the security review, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (section "Bug fix"). A wrong version test gets TE3's fix. A misunderstood requirement goes to the requirement change flow.
 - `status` gives the step `bugs` with the first open bug issue that Troy has not deferred; the release waits until every open `bug` issue is fixed or deferred.
 - After the fixes, PM4 adds the fixed bugs to the changelog section, rebase the release branch on `origin/main`, amend the commit, and push; `status` then gives `release-test` again, and the release test runs as the next run. It runs every version test; Troy tests again only what failed.
 

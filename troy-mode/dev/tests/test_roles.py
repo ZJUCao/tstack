@@ -210,9 +210,10 @@ AGENT_ROLES = (
                 ("TE4", "Added cases"), ("TE5", "Version tests"), ("TE6", "Test cleanup")),
          results=RESULTS["Test Engineer"],
          scope=((CLASS, "tests"), (CLASS, "dependencies"))),
+    # CR2 "Security review" is tstack #75's (F04 design 6.7 and 6.8, D283).
     Role(name="Code Reviewer", stem="troy-code-reviewer", model="opus",
          tools=("Read", "Grep", "Glob", "Bash", "Skill"),
-         tasks=(("CR1", "Review"),),
+         tasks=(("CR1", "Review"), ("CR2", "Security review")),
          results=RESULTS["Code Reviewer"],
          scope=()),
 )
@@ -865,6 +866,52 @@ class CommonRulesTests(RoleFileCase):
                     self.fail(f"{where(role)}: the Common rules section differs from "
                               f"troy-mode/roles/common.md: "
                               f"{first_difference(common, copy, number + 2)}")
+
+
+class SecurityReviewTests(RoleFileCase):
+    """The Code Reviewer's steps for the security review (tstack #75, F04 design 6.7 and 6.8).
+
+    CR1 runs ``/security-review`` only when the brief asks for it, or for one of the four
+    signs that the brief does not name, and otherwise writes ``/security-review: not needed``
+    in Checks (D280). CR2 reviews a release's one commit with ``git diff HEAD^ HEAD`` and
+    ``/security-review`` (D283).
+    """
+
+    SIGNS = ("a dependency", "a subprocess call", "network access", "credential handling")
+
+    def task_text(self, task_id: str) -> str:
+        """The Code Reviewer's text under one task heading, whitespace collapsed."""
+        roles = [role for role in self.agent_roles() if role.stem == "troy-code-reviewer"]
+        self.assertEqual(1, len(roles), "test_roles.py: no Code Reviewer")
+        tasks = subsections(self.section(roles[0], "Tasks"), 3)
+        found = [lines for title, lines in tasks if title.split(" ")[0] == task_id]
+        self.assertEqual(1, len(found), f"{where(roles[0])}: needs one '### {task_id} ...'")
+        return normalize("\n".join(line.text for line in found[0]))
+
+    def test_cr1_runs_the_security_review_only_when_needed(self) -> None:
+        """CR1 runs ``/security-review`` when the brief asks for it, or for a sign the brief
+        does not name, and writes ``/security-review: not needed`` in Checks otherwise."""
+        text = self.task_text("CR1")
+        self.assertIn("/security-review", text)
+        self.assertRegex(text, r"\bbrief\b[^.]*\basks\b")
+        for sign in self.SIGNS:
+            with self.subTest(sign=sign):
+                self.assertIn(sign, text)
+        self.assertIn("does not name", text)
+        self.assertIn("/security-review: not needed", text)
+        self.assertIn("Checks", text)
+
+    def test_cr1_no_longer_runs_it_on_every_pr(self) -> None:
+        """The old step that ran ``/code-review`` and then ``/security-review`` on every PR
+        is gone."""
+        text = self.task_text("CR1").lower()
+        self.assertNotIn("run `/code-review` and then `/security-review`", text)
+
+    def test_cr2_reads_the_one_commit_and_runs_the_review(self) -> None:
+        """CR2 names ``git diff HEAD^ HEAD`` and ``/security-review``."""
+        text = self.task_text("CR2")
+        self.assertIn("git diff HEAD^ HEAD", text)
+        self.assertIn("/security-review", text)
 
 
 class ProductManagerTests(RoleFileCase):

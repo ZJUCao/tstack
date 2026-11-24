@@ -29,6 +29,8 @@ _ACTIONS = {
 _STEPS = {
     "version-tests": "start TE5 for the version tests: {title}.",
     "release-pr": "open {title} with the changelog section (PM4).",
+    "security-review": "make the review branch {branch}, run CR2's security review there, and "
+                       "post its report on PR #{pr}.",
     "release-test": "run the release test on Troy's PC and post its report on PR #{pr}.",
     "troy-test": "Troy tests the version on Troy's devices and accepts it (PR #{pr}).",
     "accept": "Troy accepted. Set the statuses (PM4), run accept-version, and merge PR #{pr}.",
@@ -245,6 +247,9 @@ def run_status(args) -> tuple[dict, int]:
     }
     if report["release"] is not None and entry.get("step") == "release-test":
         report["release"]["checks"] = releases.release_checks(state, entry["title"], notes)
+    if report["release"] is not None and entry.get("step") == "security-review":
+        found = releases.target(state)
+        report["release"]["review"] = releases.review_entry(state, found[0], found[1])
     if state.installed and report["issues"]["template"] is False:
         notes.append(f"{issuesync.IDEA_TEMPLATE} is missing on origin/main: 'upgrade "
                      "troy-mode' brings it. Until then an issue with no label is an idea.")

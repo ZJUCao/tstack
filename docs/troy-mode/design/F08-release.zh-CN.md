@@ -1,13 +1,13 @@
 # F08 设计：版本发布流程
 
-> 本文件是 [`F08-release.md`](F08-release.md) 的中文镜像，同步自英文版 1.7（2026-11-23）。两者如有出入，以英文版为准。
+> 本文件是 [`F08-release.md`](F08-release.md) 的中文镜像，同步自英文版 1.8（2026-11-24）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.24](../requirements.zh-CN.md#72-功能列表) 中的 F08 |
-| 版本 | 1.7 |
-| 日期 | 2026-11-23 |
-| 状态 | Troy 已于 2026-11-08 批准，含 D70 到 D78。1.1 版记录 Troy 为试运行设下的长期许可（第 11.3 节）。1.2 版记录构建时确定的细节和试运行发现的事实。1.3 版记录 F07 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准。1.4 版记录 F07 D261 到 D263，来自 tstack issue #73，依据 Troy 2026-11-22 的长期同意批准。1.5 版记录 F07 D264 到 D267，来自 tstack issue #74，同样批准。1.6 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.7 版加入每次发布的安全审查，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 5.9 节）。 |
+| 版本 | 1.8 |
+| 日期 | 2026-11-24 |
+| 状态 | Troy 已于 2026-11-08 批准，含 D70 到 D78。1.1 版记录 Troy 为试运行设下的长期许可（第 11.3 节）。1.2 版记录构建时确定的细节和试运行发现的事实。1.3 版记录 F07 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准。1.4 版记录 F07 D261 到 D263，来自 tstack issue #73，依据 Troy 2026-11-22 的长期同意批准。1.5 版记录 F07 D264 到 D267，来自 tstack issue #74，同样批准。1.6 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.7 版加入每次发布的安全审查，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 5.9 节）。1.8 版记录 tstack #75 的构建和它的探测确定的细节（第 5.9 节）。 |
 | 事实来源 | 英文版 [`F08-release.md`](F08-release.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -198,12 +198,12 @@ Troy 验收之后：
 
 每次发布，包括补丁版本，在第一次发布测试之前，对它的全部改动做一次安全审查。原因见 F04 设计 6.8：每个 PR 的审查只在 PR 带来风险时才运行 `/security-review`，所以这次审查才是看全部改动的那一次。
 
-1. **审查分支。** `/security-review` 审查的是当前分支自它和 `origin/HEAD` 的合并基点以来的改动，而发布 PR 只含 changelog。所以在 `security-review` 这一步，`status` 给出基点：任何标签的前一个发布 commit，按 `costs --tag` 的找法（F07 第 8.8 节）；项目的第一次发布则是 `origin/main` 的第一个 commit。它还给出两条命令，由技能在发布分支上运行。`git commit-tree origin/main^{tree} -p <base> -m "Security review of v0.1.0"` 在基点上做出一个带 `origin/main` 全部文件的 commit，`git switch -c troy-mode/v0.1.0-security <commit>` 让检出切到它上面。这样这个分支和 `origin/main` 的合并基点就是基点，它的改动就是这次发布的全部改动。这个分支只留在 Troy 的电脑上，从不推送。如果检出里没有 `origin/HEAD`（克隆出来的仓库总会有），先运行 `git remote set-head origin --auto`。
+1. **审查分支。** `/security-review` 审查的是当前分支自它和 `origin/HEAD` 的合并基点以来的改动，而发布 PR 只含 changelog。所以在 `security-review` 这一步，`status` 给出基点：任何标签的前一个发布 commit，按 `costs --tag` 的找法（F07 第 8.8 节）；项目的第一次发布则是 `origin/main` 的第一个 commit。它还给出两条命令，由技能在发布分支上运行。`git commit-tree origin/main^{tree} -p <base> -m "Security review of v0.1.0"` 在基点上做出一个带 `origin/main` 全部文件的 commit，`git switch -c troy-mode/v0.1.0-security <commit>` 让检出切到它上面。这样这个分支和 `origin/main` 的合并基点就是基点，它的改动就是这次发布的全部改动。这个分支只留在 Troy 的电脑上，从不推送。如果检出里没有 `origin/HEAD`（克隆出来的仓库总会有），先运行 `git remote set-head origin --auto`。在这一步，`next.task` 是 CR2，`next.branch` 是审查分支，`release.review` 给出运行次数、基点及其标签（第一个 commit 时为 null）、分支和命令；`release.security` 按时间先后列出已有的审查。
 2. **CR2。** 和任何审查一样：`snapshot --role code-reviewer`、`brief --task CR2 --item v0.1`、Agent 调用和 `check-run`。CR2 运行 `/security-review`，并判断每条意见（F04 第 6.7 节）。
 3. **报告。** F08 把它作为 `Security review, run <n>: approved` 或 `changes-requested` 发到发布 PR 上，附上意见。然后切回发布分支，删掉审查分支。
 4. **意见。** 阻止合入的意见交给 TM5，报告放在 Input 里，和失败的发布测试一样（第 5.8 节）。修复合入之后，F07 rebase 发布分支，这一步在发布测试之前作为下一次运行再做一遍。通过的审查不再重复：之后的修复和任何 PR 一样，由 CR1 的检查把关。不阻止合入的意见留在评论里。
 
-入口技能的发布步骤加上这一步。它的"Running a role"一节不变，所以没有考试用例的 Input 会变（F16 设计 9.2）。构建 PR 开出之前，先在一个临时项目上探测：在审查分支上运行 `/security-review`，列出的是这次发布的文件，而不只是 changelog。如果不是，构建就停下，由协调会话把 F04 D283 的选项 C 交给 Troy。
+入口技能的发布步骤加上这一步。它的"Running a role"一节不变，所以没有考试用例的 Input 会变（F16 设计 9.2）。构建 PR 开出之前，先在一个临时项目上探测：在审查分支上运行 `/security-review`，列出的是这次发布的文件，而不只是 changelog。如果不是，构建就停下，由协调会话把 F04 D283 的选项 C 交给 Troy。2026-11-24 的探测证实了这一点：在一个上次发布为 v0.1.0 的临时仓库里，在审查分支上运行 `/security-review`，列出的正好是那次发布之后改过的两个源码文件，不含 changelog，并找出了其中一个文件里埋下的命令注入，用 haiku 花了 $0.004。探测第一次尝试时，从一个 HEAD 指向不存在的分支的裸仓库克隆出来的仓库没有 `origin/HEAD`，这正是 `git remote set-head origin --auto` 要处理的情况。
 
 ## 6. 补丁版本（D75）
 
@@ -355,3 +355,4 @@ F07 到 D69 为止，所以 F08 从 D70 开始。Troy 于 2026-11-08 接受了�
 | 1.5 | 2026-11-22 | F07 D264 到 D267，来自 tstack issue #74，依据 Troy 2026-11-22 的长期同意批准：发布 PR 合并之前，`costs --tag` 给出它的 `## Cost` 一节，给 Troy 的报告带上费用的那一行（第 5.7、11.1 和 11.2 节）。 |
 | 1.6 | 2026-11-22 | F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）：有功能团队时，下一版本的 PR 3 到 PR 6 等当前版本打标签，`retro` 读每个团队的日志行（第 3.3、5.2、6 和 7 节）。这些改动随 F20 的构建落地。 |
 | 1.7 | 2026-11-23 | F04 的 D280 到 D283，来自 tstack issue #75，依据 Troy 2026-11-22 的长期同意批准：每次发布（包括补丁版本）在第一次发布测试之前，由 CR2 在本地的审查分支上对它的全部改动做安全审查；阻止合入的意见走修 bug 流程，修好后再审查一次（第 3.1、3.2、3.3、5.1、5.8、5.9、6、11.1 和 11.2 节）。 |
+| 1.8 | 2026-11-24 | tstack #75 的构建和它的探测确定的细节：`security-review` 这一步的 `next` 和 `release.review`、`release.security`，以及 F04 D283 的探测（第 5.9 节）。 |

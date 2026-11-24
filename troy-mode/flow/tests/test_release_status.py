@@ -59,6 +59,10 @@ PASSED = "Release test, run 1: passed\n\nv0.1-S01 passed.\nv0.1-S03 passed."
 FAILED = "Release test, run 1: failed\n\nv0.1-S01 failed.\n\nFailed tests:\n- x::y"
 WAITING = "Waiting for Troy: accept v0.1.0"
 RETRO = "Retrospective: v0.1.0\n\nNothing repeated in two or more PRs."
+# Each release's security review comes before its release test (tstack #75, F08 design 5.9);
+# the release PRs of these tests have passed it, so the steps after it are tested here, and
+# the review step itself in test_security_release.py.
+REVIEWED = "Security review, run 1: approved\n\nFindings: None."
 
 
 def files_of(features=THREE, plans: bool = True, drop=()) -> dict:
@@ -270,7 +274,8 @@ class ReleaseTests(FlowCase):
             "accepted": True, "plan": PLAN1, "plan_features": ["F01", "F02"],
             "plan_matches": True, "claude_scenarios": ["v0.1-S01", "v0.1-S03"],
             "troy_scenarios": ["v0.1-S02"], "tests_merged": False, "pr": None, "runs": [],
-            "deferred": [], "open_bugs": [], "checks": [], "problems": []})
+            "deferred": [], "open_bugs": [], "checks": [], "problems": [], "security": [],
+            "review": None})
 
     def test_release_pr_after_the_version_tests(self):
         """A ``[v0.1 tests]`` commit on origin/main: PM4 opens the release PR next."""
@@ -344,8 +349,10 @@ class ReleaseTests(FlowCase):
 def release_case(*bodies: str, issues=(), prs=None, steps=TESTED) -> tuple:
     """A status case with the open release PR #30 and its comments.
 
+    The security review approved first (``REVIEWED``), so the case tests the steps after it.
+
     Args:
-        *bodies: The release PR's comments, oldest first.
+        *bodies: The release PR's comments after the review, oldest first.
         issues: The open bug issues.
         prs: The open PRs, or None for the release PR alone.
         steps: The history.
@@ -354,7 +361,7 @@ def release_case(*bodies: str, issues=(), prs=None, steps=TESTED) -> tuple:
         ``(steps, fakes keyword arguments)``.
     """
     return (steps, {"prs": prs if prs is not None else [release_pr(30, TAG)],
-                    "comments": {30: comments(*bodies)}, "issues": list(issues)})
+                    "comments": {30: comments(REVIEWED, *bodies)}, "issues": list(issues)})
 
 
 RELEASE_PR_NEXT = dict(action="release", item="v0.1", tag=TAG, pr=30, title=release_title(TAG),
@@ -671,7 +678,8 @@ class PatchTests(FlowCase):
                          DONE_FAKES),
             "old fix": (old_fix, DONE_FAKES),
             "open patch": (PATCHED + stages(F03V2, 3),
-                           {**DONE_FAKES, "prs": [release_pr(60, "v0.1.1")]}),
+                           {**DONE_FAKES, "prs": [release_pr(60, "v0.1.1")],
+                            "comments": {**DONE_FAKES["comments"], 60: comments(REVIEWED)}}),
             "open, no fix": (RELEASED, {**DONE_FAKES, "prs": [release_pr(60, "v0.1.1")]}),
             "patch merged": (PATCHED + [release_step("v0.1.1", patch_plan)], DONE_FAKES),
             "patch tagged": (PATCHED + [release_step("v0.1.1", patch_plan)],
