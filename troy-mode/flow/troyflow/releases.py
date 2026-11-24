@@ -6,7 +6,7 @@ vX.Y.Z", the open release PR and F08's comments on it, GitHub's releases, and
 the open bug issues.
 """
 
-from . import checksteps, github
+from . import checksteps, github, risks
 from . import repo as git
 from .nextentry import make
 from .repo import MAIN
@@ -205,6 +205,7 @@ def release_entry(state: State) -> dict | None:
         "tests_merged": tests_merged(state, version),
         "pr": int(pr.get("number", 0)) if pr else None,
         "runs": list(notes.runs) if notes else [], "deferred": deferred,
+        "security": list(notes.security) if notes else [], "review": None,
         "open_bugs": bugs, "checks": [],
         "problems": _release_problems(state, tag, pr, bugs, deferred)}
     return entry
@@ -217,6 +218,15 @@ def tests_merged(state: State, version: str) -> bool:
         if parsed and parsed.kind == "version-tests" and parsed.id == version:
             return True
     return False
+
+
+def review_entry(state: State, tag: str, pr: dict) -> dict:
+    """release.review at the step security-review: the run, the base, the branch, the commands."""
+    base, base_tag = risks.review_base(state.repo)
+    runs = [r["run"] for r in pr["notes"].security]
+    return {"run": max(runs, default=0) + 1, "base": base, "base_tag": base_tag,
+            "branch": risks.review_branch(tag),
+            "commands": risks.review_commands(state.repo, tag, base)}
 
 
 def release_checks(state: State, title: str, notes: list[str]) -> list[str]:
@@ -306,6 +316,12 @@ def _step(state: State, tag: str, pr: dict | None) -> tuple[str, dict]:
     keys = {"pr": int(pr.get("number", 0)), "title": pr.get("title"),
             "branch": pr.get("headRefName")}
     notes = pr["notes"]
+    reviews = notes.security
+    if not reviews or reviews[-1]["result"] == "changes-requested":
+        left = [b for b in _bugs(state) if b["number"] not in notes.deferred] if reviews else []
+        if left:
+            return "bugs", dict(keys, item=f"B{left[0]['number']}", task="TM5")
+        return "security-review", dict(keys, task="CR2", branch=risks.review_branch(tag))
     last = notes.runs[-1] if notes.runs else None
     if last is None:
         return "release-test", keys

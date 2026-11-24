@@ -390,5 +390,68 @@ class WaitChecksSkillTests(unittest.TestCase):
         self.assertEqual(len(rows), 1, self.engine)
 
 
+def table_rows(text: str) -> list:
+    """The rows of the Markdown tables in a text, as lists of trimmed cells, separators left out.
+    """
+    rows = []
+    for line in text.split("\n"):
+        if line.strip().startswith("|"):
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if not all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+                rows.append(cells)
+    return rows
+
+
+class SecurityReviewSkillTests(unittest.TestCase):
+    """tstack #75 (F08 design 5.9, F04 D283): the release's security review in the skill.
+
+    The release steps name the step ``security-review``, CR2's brief, ``release.review``'s
+    commands, and the comment heading. The sections "Running a role" and "The summary for
+    Troy" do not change, so they name none of it.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Cuts the Version release, release steps, and two unchanged sections out of SKILL.md."""
+        text = SKILL.read_bytes().decode("utf-8") if SKILL.is_file() else ""
+        body = split_skill(text)[1]
+        cls.release = section(body, "## Version release")
+        cls.steps = section(body, "### The release steps")
+        cls.unchanged = {name: section(body, f"## {name}")
+                         for name in ("Running a role", "The summary for Troy")}
+
+    def test_steps_table_has_the_review_before_the_release_test(self):
+        """The release steps' table has a ``security-review`` row, before ``release-test``."""
+        rows = table_rows(self.steps)
+        review = [i for i, row in enumerate(rows) if "`security-review`" in row[0]]
+        test = [i for i, row in enumerate(rows) if "`release-test`" in row[0]]
+        self.assertEqual(len(review), 1, rows)
+        self.assertEqual(len(test), 1, rows)
+        self.assertLessEqual(review[0], test[0], rows)
+
+    def test_names_cr2s_brief(self):
+        """The release steps run CR2 with ``brief --task CR2``."""
+        self.assertIn("brief --task CR2", self.release)
+
+    def test_names_the_review_commands(self):
+        """The release steps run the commands of ``release.review``."""
+        found = [s for s in sentences(self.release)
+                 if "release.review" in s and re.search(r"(?i)\bcommands?\b", s)]
+        self.assertTrue(found, self.release)
+
+    def test_names_the_comment_heading(self):
+        """The release steps post the report as ``Security review, run <n>:``, the run number
+        written as a placeholder such as ``<n>``."""
+        self.assertRegex(self.release, r"Security review, run <[^<>\n]+>:")
+
+    def test_running_a_role_and_the_summary_do_not_change(self):
+        """Neither unchanged section names the security review's step, task, or heading."""
+        for name, text in self.unchanged.items():
+            with self.subTest(section=name):
+                self.assertNotEqual(text, "", name)
+                for word in ("security-review`", "CR2", "Security review", "release.review"):
+                    self.assertNotIn(word, text)
+
+
 if __name__ == "__main__":
     unittest.main()

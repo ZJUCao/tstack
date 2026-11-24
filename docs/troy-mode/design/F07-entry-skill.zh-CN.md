@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.16（2026-11-23）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.17（2026-11-24）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.16 |
-| 日期 | 2026-11-23 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.15 版为 CR1 的任务简报加上安全审查的检查，并加入 CR2 的任务简报，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 6.5 节）。1.16 版为 tstack issue #67（F11 试点里的一个问题）加入 D284 到 D287：给后续功能的备注保存在 GitHub 上，并送到那些功能的任务简报里；每项都采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.6 节）。 |
+| 版本 | 1.17 |
+| 日期 | 2026-11-24 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.15 版为 CR1 的任务简报加上安全审查的检查，并加入 CR2 的任务简报，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 6.5 节）。1.16 版为 tstack issue #67（F11 试点里的一个问题）加入 D284 到 D287：给后续功能的备注保存在 GitHub 上，并送到那些功能的任务简报里；每项都采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.6 节）。1.17 版记录 tstack #75 的构建确定的细节（第 6.5 节）。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -271,7 +271,7 @@ DV2 和 PR 5 时 CR1 的文字两种语言相同。
 | 网络访问 | 源码文件新增的某一行导入了网络模块或包含了网络头文件。Python：`socket`、`ssl`、`http`、`urllib`、`urllib3`、`ftplib`、`smtplib`、`poplib`、`imaplib`、`xmlrpc`、`socketserver`、`webbrowser`、`requests`、`httpx`、`aiohttp`、`websockets`、`grpc` 和 `paramiko`，以及调用 `asyncio.open_connection` 和 `asyncio.start_server`。C/C++：`<sys/socket.h>`、`<netinet/*>`、`<arpa/inet.h>`、`<netdb.h>`、`<winsock2.h>`、`<ws2tcpip.h>`、`<curl/curl.h>`、`boost/asio` 和 `<asio.hpp>`，以及调用 `getaddrinfo` 和 `WSAStartup`。 |
 | 凭据处理 | 源码文件新增的某一行导入了 `getpass`、`keyring`、`netrc` 或 `secrets`（Python），或者含有一个名字，其中包含 `password`、`passwd`、`passphrase`、`credential`、`secret`、`api_key`、`apikey`、`access_token`、`auth_token` 或 `private_key`，不分大小写。 |
 
-`troyflow/risks.py` 保存这些列表，按 `HEAD` 上配置的 `[lang] name` 选择，就像 `mocknotes.py` 保存 mock 说明一样（第 6.4 节）。提到其中某项的注释或字符串也算：误报只多花一次审查，漏报则等发布时的审查。这个模块不认识的语言包，让每个 CR1 都做审查。
+`troyflow/risks.py` 保存这些列表，按 `HEAD` 上配置的 `[lang] name` 选择，就像 `mocknotes.py` 保存 mock 说明一样（第 6.4 节）。提到其中某项的注释或字符串也算：误报只多花一次审查，漏报则等发布时的审查。这个模块不认识的语言包，让每个 CR1 都做审查。它的那句话是 ``Run `/security-review` too, because troy-mode's check has no lists for the language pack <name>.`` troy-check 目前只接受 `python` 和 `cpp`，所以只有 troy-check 比这个模块先认识一个新语言包时，任务简报才会用到它。
 
 **Task 的文字。** 在任务自己的句子之后，以及 PR 3 和 PR 5 的 mock 说明文字之后，CR1 的 Task 加上两句之一。检查发现迹象时：
 
@@ -283,7 +283,7 @@ DV2 和 PR 5 时 CR1 的文字两种语言相同。
 
 每份 CR1 任务简报都带其中一句：每个阶段的、旁支 PR 的、bug 各个 PR 的、版本测试 PR 的，以及规则清理 PR 的。其他任务都不带。
 
-**CR2 的任务简报。** `brief --task CR2 --item <vX.Y>` 只在 F08 设计 5.9 的审查分支上运行：`HEAD` 必须是分支 `troy-mode/<vX.Y.Z>-security`，它唯一的 commit 带着 `origin/main` 的文件，父 commit 是前一个发布 commit 或第一个 commit。在别处运行时，它以一个问题停下。Task 写作：
+**CR2 的任务简报。** `brief --task CR2 --item <vX.Y>` 只在 F08 设计 5.9 的审查分支上运行：`HEAD` 必须是分支 `troy-mode/<vX.Y.Z>-security`，它唯一的 commit 带着 `origin/main` 的文件，父 commit 是前一个发布 commit 或第一个 commit。在别处运行时，它以一个问题停下，问题写明审查分支和哪里不对：别的分支或版本、不止一个 commit、文件和 `origin/main` 的不同，或者别的父 commit。Task 写作：
 
 > CR2, review the security of <tag>: this branch's one commit holds every change since <the previous tag, or "the first commit">. Run `/security-review` on it, judge each finding, and change no file.
 
@@ -726,3 +726,4 @@ F05 的 D231（F05 设计第 6.1 节），Troy 已于 2026-11-21 批准，改动
 | 1.14 | 2026-11-22 | F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）：引擎增加 `team`、`plan` 和 `merge-check`，`status`、`brief`、`snapshot`、`check-run`、`retro` 和 `costs` 学会处理多个团队；每个团队同一时间一个会写文件的角色，主会话管各团队的循环，PR 按做好的先后合并并 rebase（R24）；第 15 节的同时做两个功能移入 F20（第 3.1、5、6.2、7、8.6、8.8 和 15 节）。这些改动随 F20 的构建落地。 |
 | 1.15 | 2026-11-23 | F04 的 D280 到 D283，来自 tstack issue #75，依据 Troy 2026-11-22 的长期同意批准：`brief` 按新的 `troyflow/risks.py` 里各语言包的列表，检查 CR1 所审 PR 的 diff 里有没有依赖、子进程调用、网络访问和凭据处理，CR1 的 Task 说明要不要运行 `/security-review`；CR2 的任务简报在一次发布的审查分支上运行（第 6.1、6.5、14.1 和 14.2 节）。 |
 | 1.16 | 2026-11-23 | D284 到 D287，来自 tstack issue #67，依据 Troy 2026-11-22 的长期同意批准：给后续功能的备注是主会话用新的 `note` 命令在进度 issue 上发的 `Note for <ID>` 评论；`brief` 把一个功能的备注加进它的 IF1、IF2 和 DV2 运行的 Input，在团队的 worktree 里和 `team end` 之后也一样；`status` 给出备注并标出迟到的（第 3.1、5.1、6.1、6.6、14.1、14.2、14.4 和 16 节）。 |
+| 1.17 | 2026-11-24 | tstack #75 的构建确定的细节：`risks.py` 不认识的语言包用的那句话，以及在审查分支之外给出 CR2 任务简报时的问题（第 6.5 节）。 |
