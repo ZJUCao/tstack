@@ -1,5 +1,13 @@
-"""Read-only git access for the engine, through troy-check's gitio."""
+"""Read-only git access for the engine, through troy-check's gitio.
 
+On Windows a --repo folder in Git Bash's form, such as /tmp/x or /c/x, is read
+as Git Bash means it when it does not exist as given (F20 design 4, D290).
+"""
+
+import os
+import re
+import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +17,8 @@ from troycheck.config import CONFIG_PATH, Config, ConfigError, parse_config
 from .errors import FlowError
 
 MAIN = "origin/main"
+_DRIVE = re.compile(r"/([A-Za-z])(?:/(.*))?")
+CYGPATH_SECONDS = 10
 
 
 @dataclass(frozen=True)
@@ -33,21 +43,61 @@ def _text(proc) -> str:
     return proc.stdout.decode("utf-8", "replace")
 
 
+def _cygpath(path: str) -> str | None:
+    """Asks Git Bash's cygpath for a path's Windows form, or None without an answer."""
+    found = shutil.which("cygpath")
+    if not found:
+        return None
+    try:
+        proc = subprocess.run([found, "-w", path], capture_output=True, timeout=CYGPATH_SECONDS,
+                              check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    answer = proc.stdout.decode("utf-8", "replace").strip()
+    return answer if proc.returncode == 0 and answer else None
+
+
+def git_bash_folder(path: str) -> Path | None:
+    """The folder that Git Bash means by a path in its form, on Windows (F20 design D290).
+
+    Args:
+        path: The --repo folder as given.
+
+    Returns:
+        cygpath's answer when cygpath is on the PATH and answers, else ``/c/rest``
+        as ``C:\\rest``; None for another system, for a path that does not
+        start with one ``/``, and for a Git Bash path that only cygpath knows.
+    """
+    if os.name != "nt" or not path.startswith("/") or path.startswith("//"):
+        return None
+    answer = _cygpath(path)
+    if answer:
+        return Path(answer)
+    match = _DRIVE.fullmatch(path)
+    if match is None:
+        return None
+    return Path(f"{match.group(1).upper()}:\\", match.group(2) or "")
+
+
 def find_repo(path: str | None) -> Repo | None:
     """Finds the checkout that holds a folder.
 
     Args:
-        path: The --repo folder, or None for the current folder.
+        path: The --repo folder, or None for the current folder. A folder that
+            does not exist as given may be in Git Bash's form (git_bash_folder).
 
     Returns:
         The checkout, or None when the folder is not inside a git repository.
 
     Raises:
-        FlowError: The folder does not exist.
+        FlowError: The folder does not exist, as given or as Git Bash means it.
     """
     start = Path(path) if path else Path.cwd()
     if not start.is_dir():
-        raise FlowError(f"{start} is not a folder")
+        other = git_bash_folder(path) if path else None
+        if other is None or not other.is_dir():
+            raise FlowError(f"{start} is not a folder")
+        start = other
     proc = gitio.run_git(start, "rev-parse", "--show-toplevel", "--absolute-git-dir",
                          check=False)
     if proc.returncode != 0:
