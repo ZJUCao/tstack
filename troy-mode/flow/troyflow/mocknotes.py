@@ -55,8 +55,13 @@ _CHECK = ("Check the mock's notes. Every stub, and every class whose constructor
           "Each is one of these sentences, word for word: ")
 _ANY_BODY = "one sentence that says all that a body given by the design does"
 
-DV2 = ('Delete every paragraph of the feature\'s doc comments that starts with "The mock". Change '
-       "the rest of those doc comments only where a sentence is not true of the code you write.")
+DV2 = ('Delete every paragraph of the feature\'s doc comments that starts with "The mock". Then '
+       "check each doc comment of the code you write or change against that code, also the "
+       "sentences you did not change. Fix each sentence that is not true of that code. What the "
+       "code does includes what the functions it calls do, in any file. A sentence is not true "
+       "when it names a call, a file access, or an exception that the code does not make. A full "
+       'list, claimed with words such as "only", "every", or "besides", is also not true when it '
+       "leaves out one that the code makes. Change nothing else in those doc comments.")
 CR1_PR5 = ('Check that no paragraph of the feature\'s doc comments starts with "The mock", and that '
            "every other change to those doc comments makes them true of the code.")
 
