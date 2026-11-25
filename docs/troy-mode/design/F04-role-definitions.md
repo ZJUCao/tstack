@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.7 |
-| Date | 2026-11-24 |
-| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). Version 1.6 adds AR7 to section 6.2's table, from F20 part 2's build. Version 1.7 records the probe of D283, run by tstack #75's build (section 6.8). |
+| Version | 1.8 |
+| Date | 2026-11-25 |
+| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). Version 1.6 adds AR7 to section 6.2's table, from F20 part 2's build. Version 1.7 records the probe of D283, run by tstack #75's build (section 6.8). Version 1.8 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -439,3 +439,4 @@ D280 to D283 change no requirement (section 6.8).
 | 1.5 | 2026-11-23 | D280 to D283, from tstack issue #75, which Troy accepted on 2026-11-16, approved under Troy's standing yes of 2026-11-22: CR1 runs `/security-review` only when `brief`'s check finds that the PR adds a dependency, a subprocess call, network access, or credential handling, or the Code Reviewer sees one that the check missed; file access is no sign; `/code-review`'s level stays as it is; and the new task CR2 reviews each release's changes on a local review branch before the release test. No requirement changes (sections 6.7, 6.8, 8, and 12). |
 | 1.6 | 2026-11-23 | From F20 design 3.4 and D271: the Architect's AR7, Batch plan, joins section 6.2's table (F20 part 2's build). |
 | 1.7 | 2026-11-24 | tstack #75's build: the probe of D283 showed that `/security-review` on a review branch reviews every change since the previous release (section 6.8). |
+| 1.8 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): the Product Manager's instructions gain the section "Waits for Troy" with the waits W1 to W11, and PM7, a ruling at round 3 on the Architect's own review, and PM3 and PM6 answer from the approved documents; the Architect gains AR8, a ruling at round 3, and a `Risky:` line in AR2's report (F18 design sections 4, 5, and 7.2). The changes land with F18's build. |
