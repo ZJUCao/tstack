@@ -14,12 +14,16 @@ F19's planted bug "the engine's subagent_type left" is caught by
 other test that compares a report's ``agent``.
 """
 
+import os
+import re
+import shlex
 import unittest
+from unittest import mock
 
 from flow_helpers import (
     ARCHITECTURE, ARCHITECTURE_ZH, CONFIG, F01, F02, REQUIREMENTS, RULES, WORK_BRANCH, Fakes,
-    FlowCase, Project, base_files, base_step, config_text, design_text, option_value, pack_words,
-    parallel, same_path, split_command, stages, step, troy_check_step,
+    FlowCase, Project, base_files, base_step, config_text, design_text, new_dir, option_value,
+    pack_words, parallel, same_path, split_command, stages, step, troy_check_step,
 )
 
 ROLES = ('[roles.developer]\nmodel = "opus"\n\n[roles.code-reviewer]\neffort = "medium"\n\n'
@@ -104,6 +108,27 @@ def python_rests(install: bool) -> list:
                     ["coverage", "run", "-m", "pytest", "--junitxml=reports/junit.xml", "||",
                      "true"],
                     ["coverage", "xml", "-o", "reports/coverage.xml"]]
+
+
+_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+UV_CACHE_NAME = "troy-mode-uv-cache"
+INSTALL_WORDS = ["uv", "pip", "install", "-e", ".", "--no-deps"]
+
+
+def split_prefix(command: str) -> tuple:
+    """Splits the leading ``NAME=value`` words off a check.
+
+    Args:
+        command: A check line.
+
+    Returns:
+        ``(the NAME=value words, the rest of the line as one string)``.
+    """
+    words = split_command(command)
+    start = 0
+    while start < len(words) and _ASSIGNMENT.match(words[start]):
+        start += 1
+    return words[:start], shlex.join(words[start:])
 
 
 def troy_check_words(title: str, worktree: bool) -> list:
@@ -354,6 +379,7 @@ class PythonChecksTests(FlowCase):
         expected = python_rests(install)
         self.assertEqual(len(checks), len(expected) + 1, checks)
         for command, rest in zip(checks, expected):
+            _, command = split_prefix(command)
             _, target, words = pack_words(command)
             self.assertEqual(target, ["-n", "wordcount"], command)
             self.assertEqual(words, rest, command)
@@ -451,6 +477,133 @@ class CppChecksTests(FlowCase):
         """CR1 in a C/C++ project runs troy-check on the commit, without ``--worktree``."""
         report = self.report_of(brief(shared("cpp"), "CR1"))
         self.assertNotIn("--worktree", troy_check_step(report["checks"]))
+
+
+class UvCacheChecksTests(FlowCase):
+    """uv's variables on the first mock's install and nowhere else (F06 design 5.4, D289).
+
+    ``UV_CACHE_DIR`` is removed from the engine's environment, set empty, or set to a
+    user's folder, and the engine's temp folder is a scratch folder whose name holds a
+    space, so an unquoted folder splits into two words.
+
+    Planted bugs of F06 design 11.2 (D289) caught here: "the variables missing from the
+    first mock's install" and "the variables on another check":
+    ``test_unset_gives_both_variables_before_mamba`` and
+    ``test_the_other_checks_have_no_uv_words``; "a value already set overridden":
+    ``test_set_value_is_passed_on_and_not_written``.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Runs DV1 of the first mock, a later DV1, C/C++, DV2, and CR1 in each state."""
+        for name in ("stage3", "second-mock", "cpp", "stage5"):
+            shared(name)
+        cls.temp = new_dir("temp ")
+        cls.cache = cls.temp / UV_CACHE_NAME
+        cls.user_cache = str(new_dir("user cache") / "uv")
+        temp = {"TMPDIR": str(cls.temp), "TEMP": str(cls.temp), "TMP": str(cls.temp)}
+        cls.states = {"unset": temp, "empty": {**temp, "UV_CACHE_DIR": ""},
+                      "set": {**temp, "UV_CACHE_DIR": cls.user_cache}}
+        cases = [("stage3", "DV1", "F01"), ("second-mock", "DV1", "F02"),
+                 ("cpp", "DV1", "F01"), ("stage5", "DV2", "F01"), ("stage3", "CR1", "F01")]
+        jobs = [(state, case) for state in cls.states for case in cases]
+
+        def run(job):
+            """Runs one brief with the state's environment."""
+            state, (name, task, item) = job
+            return brief(shared(name), task, item, env_extra=cls.states[state])
+
+        with mock.patch.dict(os.environ):
+            os.environ.pop("UV_CACHE_DIR", None)
+            outs = parallel(run, jobs)
+        cls.outs = {(state, case[1], case[0]): out for (state, case), out in zip(jobs, outs)}
+
+    def report(self, state: str, task: str, name: str) -> dict:
+        """The report of one run, which must be a successful brief."""
+        return self.report_of(self.outs[(state, task, name)], 0, "brief")
+
+    def assert_install(self, command: str, prefix: list) -> None:
+        """The install is ``<prefix> <mamba> run -n wordcount uv pip install -e . --no-deps``."""
+        words = split_command(command)
+        self.assertEqual(words[:len(prefix)], prefix, command)
+        _, target, tail = pack_words(shlex.join(words[len(prefix):]))
+        self.assertEqual(target, ["-n", "wordcount"], command)
+        self.assertEqual(tail, INSTALL_WORDS, command)
+
+    def assert_no_uv_words(self, command: str) -> None:
+        """No word of the command sets ``UV_CACHE_DIR`` or ``UV_LINK_MODE``."""
+        self.assertEqual([word for word in split_command(command)
+                          if word.startswith(("UV_CACHE_DIR", "UV_LINK_MODE"))], [], command)
+
+    def cache_words(self, command: str) -> list:
+        """The two prefix words of an install with the engine's folder, checked."""
+        prefix, _ = split_prefix(command)
+        self.assertEqual(len(prefix), 2, command)
+        self.assertEqual(prefix[0], "UV_LINK_MODE=copy", command)
+        name, _, value = prefix[1].partition("=")
+        self.assertEqual(name, "UV_CACHE_DIR", command)
+        self.assertIn(" ", value, "the scratch folder has a space: one quoted word")
+        self.assertTrue(same_path(value, self.cache), f"{value} is not {self.cache}")
+        return prefix
+
+    def test_unset_gives_both_variables_before_mamba(self):
+        """No ``UV_CACHE_DIR``: the first mock's install starts with ``UV_LINK_MODE=copy
+        UV_CACHE_DIR=<temp folder>/troy-mode-uv-cache``, the folder quoted, then mamba run."""
+        install = self.report("unset", "DV1", "stage3")["checks"][0]
+        prefix = self.cache_words(install)
+        self.assert_install(install, prefix)
+        self.assertTrue(install.startswith("UV_LINK_MODE=copy UV_CACHE_DIR="), install)
+        self.assertIn(shlex.quote(prefix[1].partition("=")[2]), install)
+
+    def test_empty_counts_as_unset(self):
+        """An empty ``UV_CACHE_DIR``: the same two words, with the temp folder."""
+        install = self.report("empty", "DV1", "stage3")["checks"][0]
+        self.assert_install(install, self.cache_words(install))
+
+    def test_set_value_is_passed_on_and_not_written(self):
+        """A set ``UV_CACHE_DIR``: ``UV_LINK_MODE=copy`` alone, no cache word, and neither the
+        user's folder nor the temp folder is in the brief."""
+        report = self.report("set", "DV1", "stage3")
+        install = report["checks"][0]
+        self.assert_install(install, ["UV_LINK_MODE=copy"])
+        self.assertEqual([w for w in split_command(install) if w.startswith("UV_CACHE_DIR")],
+                         [], install)
+        self.assertNotIn(UV_CACHE_NAME, report["prompt"])
+        self.assertNotIn(self.user_cache, report["prompt"])
+
+    def test_the_other_checks_have_no_uv_words(self):
+        """Only the install line has the variables: not ruff, mypy, pytest, coverage, or
+        troy-check, and no other line of the prompt."""
+        for state in self.states:
+            report = self.report(state, "DV1", "stage3")
+            checks = report["checks"]
+            self.assertEqual(len(checks), 7, checks)
+            for command in checks[1:]:
+                with self.subTest(state=state, command=command):
+                    self.assert_no_uv_words(command)
+            lines = [line for line in report["prompt"].split("\n") if "UV_" in line]
+            self.assertEqual(lines, [f"- {checks[0]}"], state)
+
+    def test_later_python_briefs_have_no_install_and_no_variables(self):
+        """DV1 of a second feature's mock, DV2, and CR1: no install line and no uv word, in
+        every state."""
+        for state in self.states:
+            for task, name in (("DV1", "second-mock"), ("DV2", "stage5"), ("CR1", "stage3")):
+                with self.subTest(state=state, task=task):
+                    report = self.report(state, task, name)
+                    self.assertNotEqual(report["checks"], [])
+                    self.assertNotIn("UV_", report["prompt"])
+                    self.assertNotIn("uv pip install", report["prompt"])
+
+    def test_cpp_first_mock_has_no_uv_variables(self):
+        """DV1 of a C/C++ project's first mock: cmake first, no ``UV_`` word anywhere."""
+        for state in self.states:
+            with self.subTest(state=state):
+                report = self.report(state, "DV1", "cpp")
+                self.assertEqual(pack_words(report["checks"][0])[2],
+                                 ["cmake", "--preset", "coverage"])
+                self.assertNotIn("UV_", report["prompt"])
+                self.assertNotIn("uv pip", report["prompt"])
 
 
 class RolesTests(FlowCase):

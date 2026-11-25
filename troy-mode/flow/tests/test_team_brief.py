@@ -74,12 +74,14 @@ python -m unittest discover -s troy-mode/flow/tests -p "test_team_brief.py" -v
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import unittest
 import uuid
 from pathlib import Path
 from typing import Optional
+from unittest import mock
 
 from flow_helpers import (
     CONFIG, F01, PLUGIN_ROOT, WORK_BRANCH, Fakes, Feature, FlowCase, Outcome, Project, base_env,
@@ -687,6 +689,118 @@ class FirstMockInstallTests(TeamBriefCase):
             with self.subTest(case=label):
                 _, team, _ = self.pair(label)
                 self.assertNotIn("uv pip install", team["prompt"])
+
+
+class UvCacheTeamTests(FlowCase):
+    """A team's DV1 install keeps the uv variables of F06 design 5.4 (D289).
+
+    Expected: ``PYTHONPATH="..." UV_LINK_MODE=copy UV_CACHE_DIR=<folder> <run> uv pip
+    install -e "<main>" --no-deps`` when ``UV_CACHE_DIR`` is unset or empty, and
+    ``PYTHONPATH="..." UV_LINK_MODE=copy <run> uv pip install -e "<main>" --no-deps`` when
+    it is set. The engine's temp folder is a scratch folder whose name holds a space.
+
+    Planted bug caught: the team rewrite dropping or reordering the uv variables.
+    """
+
+    CASES = (("py3", "DV1"), ("bare3", "DV1"), ("cpp3", "DV1"), ("py3", "CR1"))
+
+    @classmethod
+    def setUpClass(cls):
+        """Runs each brief on the plain clone and the team worktree, in three states."""
+        prepare()
+        cls.temp = new_dir("temp ")
+        cls.cache = cls.temp / "troy-mode-uv-cache"
+        cls.user_cache = str(new_dir("user cache") / "uv")
+        temp = {"TMPDIR": str(cls.temp), "TEMP": str(cls.temp), "TMP": str(cls.temp)}
+        cls.states = {"unset": temp, "empty": {**temp, "UV_CACHE_DIR": ""},
+                      "set": {**temp, "UV_CACHE_DIR": cls.user_cache}}
+        jobs = [(state, name, task, kind) for state in cls.states for name, task in cls.CASES
+                for kind in ("ref", "team")]
+
+        def run(job):
+            """Runs one brief with the state's environment."""
+            state, name, task, kind = job
+            fx = fixture(name)
+            repo = fx.ref.root if kind == "ref" else fx.given
+            args = ["brief", "--task", task, "--item", "F08", "--repo", str(repo), "--json"]
+            return run_engine(args, neutral(), shared_fakes(), cls.states[state])
+
+        for name, _ in cls.CASES:
+            fixture(name)
+        with mock.patch.dict(os.environ):
+            os.environ.pop("UV_CACHE_DIR", None)
+            outs = parallel(run, jobs)
+        cls.outs = dict(zip(jobs, outs))
+
+    def checks(self, state: str, name: str, task: str, kind: str) -> list:
+        """The checks of one successful brief."""
+        out = self.outs[(state, name, task, kind)]
+        return checks_of(self.report_of(out, 0, "brief")["prompt"])
+
+    def test_team_install_keeps_both_variables_in_order(self):
+        """Unset or empty: ``PYTHONPATH`` first, then ``UV_LINK_MODE=copy
+        UV_CACHE_DIR=<quoted folder>``, then the run prefix and the main checkout's install."""
+        for state in ("unset", "empty"):
+            for name in ("py3", "bare3"):
+                with self.subTest(state=state, fixture=name):
+                    fx = fixture(name)
+                    ref = self.checks(state, name, "DV1", "ref")[0]
+                    team = self.checks(state, name, "DV1", "team")[0]
+                    self.assertTrue(ref.startswith("UV_LINK_MODE=copy UV_CACHE_DIR="), ref)
+                    value = shlex.split(ref)[1].partition("=")[2]
+                    self.assertTrue(same_path(value, self.cache), f"{value} is not {self.cache}")
+                    self.assertIn(" ", value)
+                    self.assertTrue(ref.startswith(
+                        f"UV_LINK_MODE=copy UV_CACHE_DIR={shlex.quote(value)} "), ref)
+                    install = f'uv pip install -e "{fx.main}" --no-deps'
+                    self.assertEqual(
+                        team, f'PYTHONPATH="{pythonpath(fx)}" '
+                              + ref.replace(INSTALL, install))
+                    head = (f'PYTHONPATH="{pythonpath(fx)}" UV_LINK_MODE=copy '
+                            f'UV_CACHE_DIR={shlex.quote(value)} ')
+                    self.assertTrue(team.startswith(head), team)
+                    self.assertTrue(team.endswith(f" {install}"), team)
+
+    def test_team_install_with_a_set_value_has_link_mode_alone(self):
+        """Set: ``PYTHONPATH="..." UV_LINK_MODE=copy <run> uv pip install -e "<main>"``, no
+        cache word and no folder of any kind."""
+        for name in ("py3", "bare3"):
+            with self.subTest(fixture=name):
+                fx = fixture(name)
+                ref = self.checks("set", name, "DV1", "ref")[0]
+                team = self.checks("set", name, "DV1", "team")[0]
+                self.assertTrue(ref.startswith("UV_LINK_MODE=copy "), ref)
+                self.assertNotIn("UV_CACHE_DIR", team)
+                self.assertNotIn("troy-mode-uv-cache", team)
+                self.assertNotIn(self.user_cache, team)
+                install = f'uv pip install -e "{fx.main}" --no-deps'
+                self.assertEqual(team, f'PYTHONPATH="{pythonpath(fx)}" '
+                                       + ref.replace(INSTALL, install))
+                self.assertTrue(team.startswith(
+                    f'PYTHONPATH="{pythonpath(fx)}" UV_LINK_MODE=copy '), team)
+                self.assertTrue(team.endswith(f" {install}"), team)
+
+    def test_other_team_checks_have_no_uv_words(self):
+        """Only the install line has them; the team's other checks and a team's C/C++ DV1
+        and CR1 have none, in every state."""
+        for state in self.states:
+            for name, task in self.CASES:
+                checks = self.checks(state, name, task, "team")
+                self.assertTrue(checks)
+                first_is_install = (name, task) in (("py3", "DV1"), ("bare3", "DV1"))
+                for index, check in enumerate(checks):
+                    if index == 0 and first_is_install:
+                        continue
+                    with self.subTest(state=state, fixture=name, task=task, index=index):
+                        self.assertNotIn("UV_", check)
+
+    def test_team_cpp_dv1_has_none(self):
+        """A team's C/C++ DV1 equals the plain clone's brief and has no ``UV_`` word."""
+        for state in self.states:
+            with self.subTest(state=state):
+                team = self.checks(state, "cpp3", "DV1", "team")
+                self.assertEqual(team, self.checks(state, "cpp3", "DV1", "ref"))
+                self.assertNotIn("UV_", "\n".join(team))
 
 
 # ------------------------------------------------------------------ item 7

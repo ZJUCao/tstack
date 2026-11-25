@@ -22,13 +22,16 @@ Planted bugs of design 15.2 caught here:
 - "an unmapped absolute path run": ``SafetyTests.test_unmapped_path_in_a_command_is_not_run``.
 """
 
+import json
 import os
+import shlex
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from flow_helpers import Fakes, new_dir, parallel
+from flow_helpers import Fakes, new_dir, parallel, same_path
 from realrun_helpers import (
     CONSOLE, PROGRAMS, PYTHON_VARIABLES, TABLE_LINES, FakeEnv, RealProject, RealRunCase,
     add_decoy, block, calls, command_of, commands_of, history, new_log, other_checkout,
@@ -348,7 +351,11 @@ class SafetyTests(RealRunCase):
                 or "build/nothing" in str(p.get("message"))]
         self.assertEqual(len(menu), 1, found)
         self.assertEqual(len(gone), 1, found)
-        self.assertEqual(menu[0].get("fix"), "uv pip install -e . --no-deps")
+        # F06 D289: uv's variables come first; UvCacheFixTests pins each state exactly.
+        fix = str(menu[0].get("fix"))
+        self.assertTrue(fix.startswith("UV_LINK_MODE=copy "), fix)
+        self.assertTrue(fix.endswith(" uv pip install -e . --no-deps"), fix)
+        self.assertNotEqual(fix, "uv pip install -e . --no-deps")
         for typed in ("menu say x", "gone say y"):
             with self.subTest(typed=typed):
                 self.assert_not_run(self.cmd(typed, "Missing programs"))
@@ -361,6 +368,122 @@ class SafetyTests(RealRunCase):
         """``[environment] set`` with an unmapped path is a problem of that prototype."""
         self.assertEqual(len(problems_of(self.report, "unmapped-path", ENV_SET)), 1,
                          self.report["problems"])
+
+
+MISSING = "docs/prototypes/F02-missing.md"
+MISSING_TEXT = ("# Missing\n\n## Missing programs\n\n"
+                + block("PS> menu say x", "x", "PS> gone say y", "y"))
+MISSING_RUN = PROGRAMS + 'gone = "build/nothing"\n'
+UV_INSTALL = "uv pip install -e . --no-deps"
+
+
+class UvCacheFixTests(RealRunCase):
+    """The fix and message of ``program-not-found`` for a console script (F06 D289).
+
+    ``UV_CACHE_DIR`` is removed from the engine's environment, set empty, or set to a
+    user's folder, and the engine's temp folder is a scratch folder whose name holds a space.
+    The fix has the real folder, quoted; the message shows ``<uv cache>`` in its place, and
+    never the folder's own path.
+
+    Planted bugs of F06 design 11.2 (D289) caught here: "the fix without the variables",
+    "the folder's own path in the message", and "a value already set overridden".
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Runs a project with one missing console script in each of the three states."""
+        cls.temp = new_dir("temp ")
+        cls.cache = cls.temp / "troy-mode-uv-cache"
+        cls.user_cache = str(new_dir("user cache") / "uv")
+        temp = {"TMPDIR": str(cls.temp), "TEMP": str(cls.temp), "TMP": str(cls.temp)}
+        cls.states = {"unset": temp, "empty": {**temp, "UV_CACHE_DIR": ""},
+                      "set": {**temp, "UV_CACHE_DIR": cls.user_cache}}
+
+        def run(state):
+            """Builds one project and runs the engine in the state's environment."""
+            files = {MISSING: MISSING_TEXT, run_file_path(MISSING): MISSING_RUN}
+            rows = [("F02-missing.md", "F02", MISSING)]
+            project = RealProject(history(project_files(rows=rows, files=files,
+                                                        consoles=(CONSOLE, "menu"))))
+            return project.real_run("--item", "F02", fakes=Fakes(fail=True),
+                                    env_extra=cls.states[state])
+
+        names = list(cls.states)
+        with mock.patch.dict(os.environ):
+            os.environ.pop("UV_CACHE_DIR", None)
+            cls.outs = dict(zip(names, parallel(run, names)))
+
+    def menu_problem(self, state: str) -> dict:
+        """The one ``program-not-found`` problem of the missing ``menu`` script."""
+        report = self.real_report(self.outs[state], 1)
+        found = [p for p in problems_of(report, "program-not-found")
+                 if "menu" in f"{p.get('typed')} {p.get('message')}"]
+        self.assertEqual(len(found), 1, report["problems"])
+        return found[0]
+
+    def assert_cache_fix(self, fix: str) -> str:
+        """The fix is ``UV_LINK_MODE=copy UV_CACHE_DIR=<quoted folder> uv pip install ...``.
+
+        Returns:
+            The folder as the fix spells it.
+        """
+        words = shlex.split(fix)
+        self.assertEqual(words[0], "UV_LINK_MODE=copy", fix)
+        name, _, value = words[1].partition("=")
+        self.assertEqual(name, "UV_CACHE_DIR", fix)
+        self.assertIn(" ", value, "the scratch folder has a space: one quoted word")
+        self.assertTrue(same_path(value, self.cache), f"{value} is not {self.cache}")
+        self.assertEqual(
+            fix, f"UV_LINK_MODE=copy UV_CACHE_DIR={shlex.quote(value)} {UV_INSTALL}")
+        return value
+
+    def test_unset_fix_has_both_variables(self):
+        """No ``UV_CACHE_DIR``: the fix is ``UV_LINK_MODE=copy UV_CACHE_DIR=<quoted temp
+        folder>/troy-mode-uv-cache uv pip install -e . --no-deps``."""
+        self.assert_cache_fix(self.menu_problem("unset").get("fix"))
+
+    def test_empty_fix_counts_as_unset(self):
+        """An empty ``UV_CACHE_DIR`` gives the same fix as an unset one."""
+        self.assert_cache_fix(self.menu_problem("empty").get("fix"))
+
+    def test_set_fix_has_link_mode_alone(self):
+        """A set ``UV_CACHE_DIR``: the fix is ``UV_LINK_MODE=copy uv pip install -e .
+        --no-deps``, with no cache word and no folder."""
+        problem = self.menu_problem("set")
+        self.assertEqual(problem.get("fix"), f"UV_LINK_MODE=copy {UV_INSTALL}")
+        self.assertNotIn(self.user_cache, json.dumps(problem))
+        self.assertNotIn("troy-mode-uv-cache", json.dumps(problem))
+
+    def test_message_shows_the_placeholder_not_the_folder(self):
+        """Unset or empty: the message says to run ``UV_LINK_MODE=copy UV_CACHE_DIR=<uv cache>
+        uv pip install -e . --no-deps`` in the environment, and holds no spelling of the
+        folder."""
+        for state in ("unset", "empty"):
+            with self.subTest(state=state):
+                message = str(self.menu_problem(state).get("message"))
+                self.assertIn(f"UV_LINK_MODE=copy UV_CACHE_DIR=<uv cache> {UV_INSTALL}", message)
+                self.assertNotIn("troy-mode-uv-cache", message)
+                self.assert_no_local_path(message, self.cache, self.temp)
+
+    def test_message_with_a_set_value_has_link_mode_alone(self):
+        """A set ``UV_CACHE_DIR``: the message names ``UV_LINK_MODE=copy uv pip install -e .
+        --no-deps``, with no ``<uv cache>``, no folder, and not the user's value."""
+        message = str(self.menu_problem("set").get("message"))
+        self.assertIn(f"UV_LINK_MODE=copy {UV_INSTALL}", message)
+        self.assertNotIn("UV_CACHE_DIR", message)
+        self.assertNotIn("<uv cache>", message)
+        self.assertNotIn(self.user_cache, message)
+        self.assertNotIn("troy-mode-uv-cache", message)
+
+    def test_only_the_console_script_has_a_fix_with_variables(self):
+        """The missing ``[programs]`` path is a problem without a uv fix."""
+        for state in self.states:
+            with self.subTest(state=state):
+                report = self.real_report(self.outs[state], 1)
+                gone = [p for p in problems_of(report, "program-not-found")
+                        if "menu" not in f"{p.get('typed')} {p.get('message')}"]
+                self.assertEqual(len(gone), 1, report["problems"])
+                self.assertNotIn("UV_", json.dumps(gone[0]))
 
 
 class DirtyTreeTests(RealRunCase):
