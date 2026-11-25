@@ -82,8 +82,19 @@ CR1_PR3_CPP = (
     "does. No other sentence says what only the mock does."
 )
 DV2_TEXT = (
-    "Delete every paragraph of the feature's doc comments that starts with \"The mock\". Change "
-    "the rest of those doc comments only where a sentence is not true of the code you write."
+    "Delete every paragraph of the feature's doc comments that starts with \"The mock\". Then "
+    "check each doc comment of the code you write or change against that code, also the "
+    "sentences you did not change. Fix each sentence that is not true of that code. What the "
+    "code does includes what the functions it calls do, in any file. A sentence is not true "
+    "when it names a call, a file access, or an exception that the code does not make. A full "
+    "list, claimed with words such as \"only\", \"every\", or \"besides\", is also not true when "
+    "it leaves out one that the code makes. Change nothing else in those doc comments."
+)
+# D207's old DV2 sentences, which D288 replaced.
+DV2_OLD_SENTENCES = (
+    "Change the rest of those doc comments only where a sentence is not true of the code you "
+    "write.",
+    "Change the rest of those doc comments only where",
 )
 CR1_PR5 = (
     "Check that no paragraph of the feature's doc comments starts with \"The mock\", and that "
@@ -336,6 +347,44 @@ class StageTextTests(MockNoteCase):
                     self.assertNotIn(sentence, prompt)
                 self.assertNotIn("Check the mock's notes", prompt)
 
+    def test_dv2_text_is_d288s(self):
+        """DV2's Task line holds D288's text, and neither of D207's old sentences."""
+        for label, _, task, _, _, key in WITH_TEXT:
+            if key != "DV2":
+                continue
+            with self.subTest(case=label):
+                line = task_line(self.prompt_of(label, task))
+                self.assertEqual(line.count(DV2_TEXT), 1, line)
+                for old in DV2_OLD_SENTENCES:
+                    self.assertNotIn(old, line)
+                for phrase in ("also the sentences you did not change",
+                               "includes what the functions it calls do, in any file",
+                               "Change nothing else in those doc comments."):
+                    self.assertEqual(line.count(phrase), 1, line)
+
+    def test_dv2_text_is_the_same_for_both_languages(self):
+        """The Python and the C/C++ DV2 briefs at PR 5 hold the identical text, and no other."""
+        lines = {}
+        for label, clone, task, _, _, key in WITH_TEXT:
+            if key == "DV2":
+                lines[clone] = task_line(self.prompt_of(label, task))
+        self.assertEqual(set(lines), {"py5", "cpp5"})
+        for clone, line in lines.items():
+            self.assertEqual(line.count(DV2_TEXT), 1, clone)
+        self.assertEqual(lines["py5"], lines["cpp5"])
+
+    def test_cr1_pr5_text_is_unchanged(self):
+        """CR1 at PR 5 holds D207's text and none of D288's new DV2 sentences."""
+        for label, _, task, _, _, key in WITH_TEXT:
+            if key != "CR1_PR5":
+                continue
+            with self.subTest(case=label):
+                line = task_line(self.prompt_of(label, task))
+                self.assertEqual(line.count(CR1_PR5), 1, line)
+                for phrase in ("Fix each sentence", "also the sentences you did not change",
+                               "Change nothing else"):
+                    self.assertNotIn(phrase, line)
+
     def test_pr3_reviews_do_not_ask_to_delete(self):
         """CR1 at PR 3 checks the notes; it does not check that they are gone."""
         for label, _, task, _, _, key in WITH_TEXT:
@@ -361,6 +410,18 @@ class NoTextTests(MockNoteCase):
                     self.assertNotIn(text, prompt, key)
                 for marker in MARKERS:
                     self.assertNotIn(marker, prompt)
+
+
+    def test_dv2_at_pr4_holds_no_text(self):
+        """DV2 at PR 4 gets no text: the engine refuses it, and nothing of DV2's PR 5 text leaks."""
+        out = brief(("DV2 at PR 4", "py4", "DV2", "F01", None))
+        self.assertEqual(out.code, 1, out.describe())
+        self.assertNotIn(DV2_TEXT, out.describe())
+        self.assertNotIn("starts with \"The mock\"", out.describe())
+        self.assertNotIn("Delete every paragraph", out.describe())
+        for text in TEXTS.values():
+            self.assertNotIn(text, out.describe())
+        self.assertIn("DV2 does not belong to stage 4", out.describe())
 
 
 class HeadConfigTests(FlowCase):
