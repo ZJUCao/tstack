@@ -2,13 +2,16 @@
 
 Each pack step runs in the project's environment through `mamba run`. Authors
 of code and tests also check their own work with `troy-check code --worktree`
-(D60), because they cannot commit.
+(D60), because they cannot commit. uv gets troy-init's cache folder when
+UV_CACHE_DIR is not set (F06 design 5.4, D213, D289).
 """
 
 import os
 import shlex
 import shutil
 from pathlib import Path
+
+from troyinit.env import uv_cache_dir
 
 from .errors import FlowError
 from .stages import feature_stage
@@ -23,6 +26,8 @@ PLATFORM_SKIP = ("A test that the test plan runs only on another platform is ski
                  "troy-check code reports it under R09 or R10; CI checks it, so name it in your "
                  "report and do not count it as a failure.")
 PREFIX_VARIABLE = "TROY_MODE_ENV_PREFIX"
+# The first mock's install, which points the environment at the checkout (F06 design 5.4).
+INSTALL = "uv pip install -e . --no-deps"
 TROY_CHECK = "python .troy-mode/checks/troy_check.py code --base origin/main --title {title} " \
              "--junit reports/junit.xml --coverage reports/coverage.xml"
 
@@ -97,6 +102,24 @@ def run_prefix(config, folder_name: str, notes: list[str]) -> str:
     return f"{mamba} run -n {shlex.quote(environment)}"
 
 
+def uv_variables(shown: str | None = None) -> str:
+    """The variables that a uv command starts with, before `mamba run` (D213, D289).
+
+    Args:
+        shown: A name to write in place of the cache folder, for text that
+            shows no local path; None writes the folder, quoted for the shell.
+
+    Returns:
+        ``UV_LINK_MODE=copy``, followed by ``UV_CACHE_DIR=<folder>`` when the
+        engine's environment has no ``UV_CACHE_DIR``, so the shell passes on a
+        value that is set.
+    """
+    cache = uv_cache_dir()
+    if not cache:
+        return "UV_LINK_MODE=copy"
+    return f"UV_LINK_MODE=copy UV_CACHE_DIR={shown or shlex.quote(cache)}"
+
+
 def first_mock(subjects: list[str]) -> bool:
     """Tells whether no feature has merged a mock on origin/main yet."""
     return not any((feature_stage(s) or ("", 0))[1] == 3 for s in subjects)
@@ -147,10 +170,9 @@ def steps(task: str, config, title: str, subjects: list[str], folder_name: str,
         return []
     run = run_prefix(config, folder_name, notes)
     lang = config.lang.get("name")
-    pack = list(_PYTHON if lang == "python" else _CPP)
+    commands = _commands(run, _PYTHON if lang == "python" else _CPP)
     if lang == "python" and task == "DV1" and first_mock(subjects):
-        pack.insert(0, "uv pip install -e . --no-deps")
-    commands = _commands(run, pack)
+        commands.insert(0, f"{uv_variables()} {run} {INSTALL}")
     rules = TROY_CHECK.format(title=shlex.quote(title))
     if lang != "python":
         rules += " --doc-warnings reports/doxygen.log"

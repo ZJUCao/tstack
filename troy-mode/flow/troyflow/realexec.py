@@ -16,14 +16,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import repo as git
-from .checksteps import PREFIX_VARIABLE, find_mamba
+from .checksteps import INSTALL, PREFIX_VARIABLE, find_mamba, uv_variables
 from .realcompare import PathMap, decode, diff, lines_of, matches, normalize, spellings
 from .runfile import RunFile, RunFileError, Start, check_against, parse_run_file
 from .transcript import Prototype, classify, read_prototype, split_words
 
 TIME_LIMIT = 60
 NOT_RUN = "not run"
-INSTALL_FIX = "uv pip install -e . --no-deps"
+# How the message of a missing console script names uv's cache folder (F06 design D289).
+UV_CACHE_SHOWN = "<uv cache>"
 # Variables that a plain PowerShell does not set and that change how Python writes text.
 PYTHON_VARIABLES = ("PYTHONIOENCODING", "PYTHONUTF8", "PYTHONLEGACYWINDOWSSTDIO", "PYTHONHOME",
                     "PYTHONSTARTUP")
@@ -188,9 +189,10 @@ def _program(run: Run, place: Place, name: str, env: dict) -> list[str] | None:
     folder = prefix / "Scripts" if os.name == "nt" else prefix / "bin"
     found = with_extension(folder / name)
     if found is None:
+        shown = f"{uv_variables(UV_CACHE_SHOWN)} {INSTALL}"
         run.problem("program-not-found", f"{name} is not installed in the environment "
-                                         f"{run.env_name}: run `{INSTALL_FIX}` in it",
-                    program=name, fix=INSTALL_FIX)
+                                         f"{run.env_name}: run `{shown}` in it",
+                    program=name, fix=f"{uv_variables()} {INSTALL}")
         return None
     return [str(found)] if _located(run, place, name, env) else None
 
