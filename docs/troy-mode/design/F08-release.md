@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F08 in [requirements 1.24](../requirements.md#72-feature-list) |
-| Version | 1.8 |
-| Date | 2026-11-24 |
-| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.7 adds each release's security review, from F04's D280 to D283 for tstack issue #75, approved under Troy's standing yes of 2026-11-22 (section 5.9). Version 1.8 records what tstack #75's build and its probe settled (section 5.9). |
+| Version | 1.9 |
+| Date | 2026-11-25 |
+| Status | Approved by Troy on 2026-11-08, with D70 to D78. Version 1.1 records Troy's standing permission for trials (section 11.3). Version 1.2 records the details the build settled and the facts its trial found. Version 1.3 records F07 D201, which Troy approved on 2026-11-18 as tstack issue #46. Version 1.4 records F07 D261 to D263, from tstack issue #73, approved under Troy's standing yes of 2026-11-22. Version 1.5 records F07 D264 to D267, from tstack issue #74, approved the same way. Version 1.6 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.7 adds each release's security review, from F04's D280 to D283 for tstack issue #75, approved under Troy's standing yes of 2026-11-22 (section 5.9). Version 1.8 records what tstack #75's build and its probe settled (section 5.9). Version 1.9 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
 | Source of truth | This English file. [`F08-release.zh-CN.md`](F08-release.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -354,3 +354,4 @@ Requirements 1.24 records the approved changes:
 | 1.6 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): with feature teams, the next version's PR 3 to PR 6 wait for the current version's tag, and `retro` reads every team's log lines (sections 3.3, 5.2, 6, and 7). The changes land with F20's build. |
 | 1.7 | 2026-11-23 | F04's D280 to D283, from tstack issue #75, approved under Troy's standing yes of 2026-11-22: every release, a patch's included, gets CR2's security review of all its changes on a local review branch, before its first release test; a blocking finding goes to the bug flow, and the review runs again after the fixes (sections 3.1, 3.2, 3.3, 5.1, 5.8, 5.9, 6, 11.1, and 11.2). |
 | 1.8 | 2026-11-24 | What tstack #75's build and its probe settled: `next` and `release.review` at the step `security-review`, `release.security`, and the probe of F04's D283 (section 5.9). |
+| 1.9 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): `retro` reports the waits by their IDs, rulings, premise attempts, and overturns; the release's waits are W4 and W5; a feature-loop request's reach goes on through the release's steps up to Troy's device test; with spot checks, the checklist issue gains a box for each sampled PR that Troy has not answered (sections 5 and 7; F18 design sections 4.3, 7.1, and 8). The changes land with F18's build. |

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.4 |
-| Date | 2026-11-24 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). Version 1.4 records where tstack #67's build put the notes line (section 4.2). |
+| Version | 1.5 |
+| Date | 2026-11-25 |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). Version 1.4 records where tstack #67's build put the notes line (section 4.2). Version 1.5 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -561,3 +561,4 @@ Requirements 1.39 records the approved changes:
 | 1.2 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22): every feature that may start has its progress issue, not only the next feature (section 4.1). The change lands with F20's build. |
 | 1.3 | 2026-11-23 | F07's D284 to D287, from tstack issue #67, approved under Troy's standing yes of 2026-11-22: troy-mode's `Note for <ID>` comments on progress issues hold the notes for later features; the target's issue shows a notes line; a note never hides Troy's comment (sections 3.3, 4.2, 4.4, 8.4, 13.1, and 13.2). |
 | 1.4 | 2026-11-24 | tstack #67's build: the notes line comes after the stage lines and before the dependencies (section 4.2). |
+| 1.5 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): the progress issue shows a wait's ID, each ruling, a sampled PR, and a risky mark; Troy's overturn and "risky" comments on it are read as messages in chat (D145), and troy-mode answers an overturn under the new heading `Overturn:` (section 8.4); the device-test checklist gains a box for each sampled PR that Troy has not answered (D144; F18 design sections 5.3, 7.1, and 8). The changes land with F18's build. |
