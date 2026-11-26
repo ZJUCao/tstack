@@ -1,13 +1,13 @@
 # F07 设计：入口技能（troy-mode）
 
-> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.21（2026-11-25）。两者如有出入，以英文版为准。
+> 本文件是 [`F07-entry-skill.md`](F07-entry-skill.md) 的中文镜像，同步自英文版 1.22（2026-11-26）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.20](../requirements.zh-CN.md#72-功能列表) 中的 F07 |
-| 版本 | 1.21 |
-| 日期 | 2026-11-25 |
-| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.15 版为 CR1 的任务简报加上安全审查的检查，并加入 CR2 的任务简报，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 6.5 节）。1.16 版为 tstack issue #67（F11 试点里的一个问题）加入 D284 到 D287：给后续功能的备注保存在 GitHub 上，并送到那些功能的任务简报里；每项都采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.6 节）。1.17 版记录 tstack #75 的构建确定的细节（第 6.5 节），1.18 版记录 tstack #67 的构建和它的试运行确定的细节（第 6.6 和 14.4 节）。1.19 版加入 D288，即用例 dv-impl-notes 上的一步爬坡（F16 设计 8.3）：DV2 的文字说明怎样检查 PR 5 留下的文档注释；它采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.4 节）。1.20 版记下 F18 设计（D171 到 D180，Troy 已于 2026-11-25 批准）带来的改动，这些改动随 F18 的构建落地。 1.21 版把 F18 第 1 部分的改动写进第 4、8.3 到 8.5 和 9 节。 |
+| 版本 | 1.22 |
+| 日期 | 2026-11-26 |
+| 状态 | Troy 已于 2026-11-07 批准，含 D57 到 D68。1.1 版记录第 14.3 节第一部分试运行确认的事实。1.2 版记录 Troy 的 D69 和第二部分确定的细节。1.6 版加入 D201，Troy 已于 2026-11-18 以 tstack issue #46 批准；1.7 版加入 D202，同一天以 issue #47 批准；1.8 版加入 D203，同一天以 issue #52 批准；1.9 版加入 D204，同一天以 issue #68 批准。1.10 版跟随 F05 的 D231，即 Troy 于 2026-11-21 批准的 tstack issue #49（第 6.2 和 7 节）。1.11 版为 tstack issue #73（Troy 于 2026-11-16 接受）加入 D261 到 D263；每项都取推荐答案，依据 Troy 2026-11-22 的长期同意批准。1.12 版为同一天接受的 tstack issue #74 加入 D264 到 D267，同样批准。1.13 版加入 D205 到 D207，即 tstack issue #63 的设计，Troy 已于 2026-11-16 接受这条规则；其中的选择按 Troy 2026-11-22 的长期同意采用推荐选项，Troy 已于 2026-11-22 批准它的需求子句（第 6.4 节）。1.14 版记下 F20 设计（D268 到 D279，Troy 已于 2026-11-22 批准）带来的改动，这些改动随 F20 的构建落地。1.15 版为 CR1 的任务简报加上安全审查的检查，并加入 CR2 的任务简报，来自 F04 为 tstack issue #75 定的 D280 到 D283，依据 Troy 2026-11-22 的长期同意批准（第 6.5 节）。1.16 版为 tstack issue #67（F11 试点里的一个问题）加入 D284 到 D287：给后续功能的备注保存在 GitHub 上，并送到那些功能的任务简报里；每项都采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.6 节）。1.17 版记录 tstack #75 的构建确定的细节（第 6.5 节），1.18 版记录 tstack #67 的构建和它的试运行确定的细节（第 6.6 和 14.4 节）。1.19 版加入 D288，即用例 dv-impl-notes 上的一步爬坡（F16 设计 8.3）：DV2 的文字说明怎样检查 PR 5 留下的文档注释；它采用推荐答案，依据 Troy 2026-11-22 的长期同意批准（第 6.4 节）。1.20 版记下 F18 设计（D171 到 D180，Troy 已于 2026-11-25 批准）带来的改动，这些改动随 F18 的构建落地。 1.21 版把 F18 第 1 部分的改动写进第 4、8.3 到 8.5 和 9 节，1.22 版把 F18 第 2 部分的抽查写进第 3、8.1、8.4 和 8.6 节。 |
 | 事实来源 | 英文版 [`F07-entry-skill.md`](F07-entry-skill.md)。本文件是中文镜像。 |
 
 ## 1. 范围
@@ -69,7 +69,7 @@ common options: [--repo <path>] [--json]
 
 | 命令 | 作用 |
 | --- | --- |
-| `status` | 读取项目的状态（第 5 节），连同下一步一起输出。`--write-progress` 用它重写进度文件。它从 F07 的评论和 PR 推送过的提交的 CI 运行统计每个开着的 PR 的尝试次数（第 8.5 节，D261）。 |
+| `status` | 读取项目的状态（第 5 节），连同下一步一起输出。`--write-progress` 用它重写进度文件。它从 F07 的评论和 PR 推送过的提交的 CI 运行统计每个开着的 PR 的尝试次数（第 8.5 节，D261）。为了抽查，它给出 `spot`、每个 PR 1 和 PR 2 的 `spot` 和 `risky`、动作 `spot-off`，以及在 `ask-approvals` 时或带 `--spot-evidence` 时的 `spot_evidence`（F18 设计第 7 节）。 |
 | `brief` | 输出一次角色运行的任务简报（第 6.1 节），以及 Agent 工具的参数：`subagent_type`、`model` 和 `effort`。`--title` 给出状态推不出标题的 PR：bug 的 PR、旁支 PR（第 8.7 节），或者重做的阶段（第 11.2 节）。 |
 | `snapshot` | 记录一次运行之前的状态（第 7 节），输出这次运行的 ID。 |
 | `check-run` | 把运行之后的状态和快照比较（第 7 节）。输出要暂存的路径、发现的问题，以及每个问题怎样撤销。 |
@@ -368,7 +368,7 @@ Notes for F12 from earlier work, kept on its progress issues:
 
 | PR | 标题 | 产出方 | 审查方 | 每次推送前的本地检查 | 由谁合并 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `[F04 1/6 design] <name>` | IF1，每次修改用 IF2 | AR2 | `troy-check pr` | 前几个功能由 Troy 合并（D61、D62），其余由 F07 |
+| 1 | `[F04 1/6 design] <name>` | IF1，每次修改用 IF2 | AR2 | `troy-check pr` | 前几个功能由 Troy 合并（D61、D62），开启抽查时有风险标记的 PR 也由 Troy（F18 D177），其余由 F07 |
 | 2 | `[F04 2/6 test-plan] <name>` | TM1，问题由 IF3 回答 | 无。接口设计师的回答就是双方的一致意见，提问最多 3 轮。 | `troy-check pr` | 同 PR 1 |
 | 3 | `[F04 3/6 mock] <name>` | DV1 | CR1 | `troy-check pr`、语言包的步骤和 `troy-check code` | F07 |
 | 4 | `[F04 4/6 tests] <name>` | TE1 | TM2 和 CR1，同时进行 | 同 PR 3。`troy-check code` 检查 R09。 | F07 |
@@ -400,7 +400,11 @@ F07 把每次审查、每次失败的尝试、每次升级上报，以及每次�
 - `Developer attempt 2: failed`，后面是失败的检查。CI 失败时，标题行下面第一行是 `Commit: <commit ID>`，即失败的那个推送提交（第 8.5 节，D261）；
 - `Escalation: <trigger>`，下一行是 `Wait: W<n>`，后面是第 9 节的消息；
 - `Waiting for Troy: approve this PR`，下一行是 `Wait: W<n>`（F18 设计 4.2）；
-- `<Ruler> ruling, round 3: merge`、`fix`、`fixed` 或 `not fixed`，后面每条意见一行，带编号（F18 设计 5.3）。
+- `<Ruler> ruling, round 3: merge`、`fix`、`fixed` 或 `not fixed`，后面每条意见一行，带编号（F18 设计 5.3）；
+- `Spot check for Troy: review after the merge`，在抽中的 PR 1 或 PR 2 合并之后马上发在它上面（F18 设计 7.1）；
+- `Test Manager ruling, real run`，后面是 TM8 的裁定，每个不一致一行，带编号，发在验收 PR 或发布 PR 上（F18 设计 7.3，E2）。
+
+架构师对设计的审查最后一行是 AR2 的 `Risky: no` 或 `Risky: <reason>`，由 `status` 读取（F18 设计 7.2）。
 
 GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy 的账号工作，所以由标题行记录是谁做了什么（F04 D29）。没有这些标题行的评论是 Troy 写的。F07 读取 Troy 在开着的 PR 上的评论，把它们作为 Input 交给产出方。F07 发出自己的每条评论之前，都先用 `check-text` 检查。
 
@@ -425,7 +429,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 - 这个阶段的每个审查都以 `approved` 结束；
 - 推送的 commit 通过了本地检查，或者只在本平台跳过的测试上失败（D69，见下）；
 - 用 F07 推送的完整提交 ID 运行 `wait-checks --pr <n> --sha <sha>`（D204），结果是 `passed`：这个头提交的每项检查都已登记并结束，并且每项都通过；
-- 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。其他 PR 都由 F07 合并。
+- 合并权限允许。顺序里前 `troy_approves_first` 个功能的 PR 1 和 PR 2 要等 Troy（D61、D62）。开启抽查时，有风险标记的后续 PR 1 或 PR 2 也要等；推翻让抽查关闭期间，后续的每一个都要等（F18 设计 7.2 和 7.4）。其他 PR 都由 F07 合并；抽中的 PR 1 或 PR 2 合并后，F07 发出抽查评论，并把它的给 Troy 的摘要发给 Troy（F18 设计 7.1）。
 
 然后 F07 运行 `git switch --detach`、`gh pr merge <n> --rebase --delete-branch --match-head-commit <sha>`、`git fetch origin --prune` 和 `status --write-progress`。先 detach，是为了让 `gh` 在删除分支之前不去检出 `main`。每次 fetch 都带 prune：PR 合入之后，同一个分支名可能再用一次，比如更新测试方案时的 `troy-mode/v0.1-test-plan`，而过时的 `origin/<branch>` 会让 `git push --force-with-lease` 拒绝新分支（F08 试运行时发现）。这些命令各自单独运行，在 F07 读过等待的退出码之后：合并永远不和等待写在同一行命令里，不管是用 `;` 还是别的方式连起来（D204）。
 
@@ -449,7 +453,7 @@ GitHub 不允许一个账号批准自己的 PR，而每个角色都通过 Troy �
 
 需求文档和架构也走同样的步骤（第 10 节）。
 
-**前几个功能之后（D62）。** 顺序里前 `troy_approves_first` 个功能中的最后一个验收后，F07 问 Troy 一次，是否继续由 Troy 批准 PR 1 和 PR 2。一个 `[rules] Set the features Troy approves` PR 把回答记进 `[flow] troy_approves_first`，由 F07 合并。
+**前几个功能之后（D62）。** 顺序里前 `troy_approves_first` 个功能中的最后一个验收后，F07 问 Troy 一次：继续由 Troy 批准 PR 1 和 PR 2、开启抽查，还是让 F07 合并它们，同时给出 E1 到 E3（F18 设计 7.3 和 7.4）。一个 `[rules] Set the features Troy approves` PR 把回答记进 `[flow] troy_approves_first`，或 `spot_checks` 和 `spot_check_every`，由 F07 合并。
 
 ### 8.7 旁支 PR（第 2 部分）
 
@@ -736,3 +740,4 @@ F05 的 D231（F05 设计第 6.1 节），Troy 已于 2026-11-21 批准，改动
 | 1.19 | 2026-11-25 | D288，即用例 dv-impl-notes 上的一步爬坡（F16 设计 8.3），依据 Troy 2026-11-22 的长期同意批准：DV2 的文字让开发工程师检查它写或改的代码的每个文档注释，留下的句子也查，并顺着这段代码调用的函数去查；一句话提到代码没有做的事，或一个完整列表漏掉了什么，就改正它。不改需求（第 6.4 和 16 节）。 |
 | 1.20 | 2026-11-25 | F18 设计（D171 到 D180，Troy 已于 2026-11-25 批准）：引擎新增 `waits.py` 和 `status --wait`、裁定和推翻、`brief --premise`、`merged_by` 和 `status` 里的抽查，以及 `retro` 对它们的统计；功能循环请求的范围（D63、D203）延续到版本的设备测试；第 3 轮改为裁定而不是升级上报（第 8.3 节），第 3 次失败的尝试之后先做一次前提尝试（第 8.5 节）；权限新增对产出方文件之外的 CI 失败重跑一次（第 4、8.3、8.5、8.6 和 9 节；F18 设计第 8 节）。这些改动随 F18 的构建落地。 |
 | 1.21 | 2026-11-25 | F18 第 1 部分的构建（F18 设计 D171 到 D175）：功能循环的请求一直做到版本中 Troy 的设备测试，除非 Troy 说在哪里停，这改变了 D63 和 D203（第 4 节）；审查循环的第 3 轮以裁定结束，由 AR8 或 PM7 裁定，评论标题为 `<Ruler> ruling, round 3: <result>`（第 8.3 和 8.4 节）；第三次失败的尝试之后是一次前提尝试，即 `brief --premise`，第四次失败才升级上报（第 8.5 节）；产出方文件之外的 CI 失败先重跑一次，即 `gh run rerun <run ID> --failed`，`ci_failures` 新增 `rerun`（第 8.5 节）；每次等待都用 `Wait: W<n>` 和 `status --wait` 写明编号（第 9 节）。 |
+| 1.22 | 2026-11-26 | F18 第 2 部分的构建（F18 设计 D176 到 D179）：抽查。`status` 给出 `spot`、每个 PR 1 和 PR 2 的 `spot` 和 `risky`，以及 `spot_evidence`（第 3 节）；有风险标记的 PR 等 Troy，推翻让抽查关闭期间，后续的每个 PR 1 和 PR 2 都等，动作为 `spot-off`（第 8.1 和 8.6 节）；评论标题 `Spot check for Troy: review after the merge` 和 `Test Manager ruling, real run`，以及审查评论里 AR2 的 `Risky:` 一行（第 8.4 节）；D62 的问题多了开启抽查这个回答（第 8.6 节）。 |

@@ -9,7 +9,7 @@ import re
 
 from troycheck.frontmatter import version_key
 
-from . import releases, rulestate
+from . import releases, rulestate, spot
 from . import repo as git
 from .nextentry import STILL_FAILS, attempt_flags, make
 from .repo import MAIN
@@ -20,7 +20,7 @@ from .stages import AUTHOR_TASK, KIND_TASK, branch, feature_stage, parse_subject
 from .state import ARCHITECTURE, REQUIREMENTS, SETUP_TITLE, State, is_approved, next_feature, \
     pr_entry
 
-ASK_TITLE = "[rules] Set the features Troy approves"
+ASK_TITLE = spot.ASK_TITLE
 RECORD_REQUIREMENTS = f"[docs] Record Troy's approval of {REQUIREMENTS}"
 _next = make
 PLAN_TITLE = re.compile(r"\[docs\] (?:Add|Update) the (v\d+\.\d+) test plan")
@@ -143,6 +143,15 @@ def _setup_next(state: State) -> dict | None:
     return None
 
 
+def _spot_off(state: State) -> dict | None:
+    """The [rules] PR that turns spot checks off after an overturn (F18 design 7.4), or None."""
+    if state.spot_off is None:
+        return None
+    return _next("spot-off", title=ASK_TITLE, branch=spot.OFF_BRANCH, merged_by="f07",
+                 overturn={"issue": state.spot_off["issue"],
+                           "ruling": state.spot_off["overturn"]})
+
+
 def _change_record(state: State) -> dict | None:
     """The record entry for a requirement change that Troy merged on GitHub, or None.
 
@@ -161,11 +170,28 @@ def _change_record(state: State) -> dict | None:
     return _record(REQUIREMENTS, "requirements")
 
 
+def _merged_index(subjects: list[str], fid: str, stage: int) -> int | None:
+    """The place of a feature stage's newest merge in origin/main's subjects, newest first."""
+    return next((i for i, s in enumerate(subjects) if feature_stage(s) == (fid, stage)), None)
+
+
 def _approval_records(state: State) -> dict | None:
-    """The next entry for a PR 1 or PR 2 that Troy merged on GitHub (design 8.6), or None."""
+    """The next entry for a PR 1 or PR 2 that Troy merged on GitHub (design 8.6), or None.
+
+    Only a merge after the newest [rules] Set the features Troy approves can
+    need a record: that PR changes which features Troy approves, and the PRs
+    that merged before it under the old count were F07's, as spot checks'
+    samples are (F18 design 7.1 and 7.4). An accepted feature needs none.
+    """
+    count_set = next((i for i, s in enumerate(state.subjects) if plain(s).startswith(ASK_TITLE)),
+                     None)
     for stage, name in ((1, "design"), (2, "test-plan")):
         for fid in state.order or []:
-            if not state.troy_approves(fid) or stage not in state.merged.get(fid, set()):
+            merged = state.merged.get(fid, set())
+            if not state.troy_approves(fid) or stage not in merged or 6 in merged:
+                continue
+            place = _merged_index(state.subjects, fid, stage)
+            if count_set is not None and place is not None and place > count_set:
                 continue
             folder = state.feature_folder(fid)
             doc = f"{folder}/{name}.md" if folder else None
@@ -293,8 +319,8 @@ def _decide(state: State, attempts: int = 0) -> tuple[dict, list[str]]:
         return found, notes
     if state.order_problems:
         return _next("order-problem"), notes
-    for rule in (_change_record, _approval_records, releases.record_rule, releases.tag_rule,
-                 _bug_next, _rework_next):
+    for rule in (_change_record, _approval_records, _spot_off, releases.record_rule,
+                 releases.tag_rule, _bug_next, _rework_next):
         found = rule(state)
         if found:
             return found, notes

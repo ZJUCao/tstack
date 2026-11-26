@@ -1,12 +1,12 @@
 # F02 设计：与语言无关的检查
 
-> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.5（2026-11-08）。两者如有出入，以英文版为准。
+> 本文件是 [`F02-checks.md`](F02-checks.md) 的中文镜像，同步自英文版 1.6（2026-11-26）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
 | 功能 | [需求文档 1.3](../requirements.zh-CN.md#72-功能列表) 中的 F02 |
-| 版本 | 1.5 |
-| 日期 | 2026-11-08 |
+| 版本 | 1.6 |
+| 日期 | 2026-11-26 |
 | 状态 | Troy 已于 2026-11-05 批准，含 D7 到 D14 |
 | 事实来源 | 英文版 [`F02-checks.md`](F02-checks.md)。本文件是中文镜像。 |
 
@@ -273,9 +273,11 @@ effort = "high"     # low, medium, high, xhigh, or max
 
 [flow]
 troy_approves_first = 3  # F07 D62: a whole number of 0 or more
+spot_checks = false      # F18 D179: true or false
+spot_check_every = 3     # F18 D176: a whole number of 2 or more
 ```
 
-`[roles.<role>]` 和 `[flow]` 属于 troy-mode 的入口技能（F07 设计第 3.2 节和 D62）。`<role>` 是 `architect`、`interface-designer`、`test-manager`、`developer`、`test-engineer` 或 `code-reviewer`。未知的角色、未知的键、不在列表里的 effort，或小于 0 的数量，都会像其他配置错误一样让工具以退出码 2 停止。
+`[roles.<role>]` 和 `[flow]` 属于 troy-mode 的入口技能（F07 设计第 3.2 节和 D62）。`<role>` 是 `architect`、`interface-designer`、`test-manager`、`developer`、`test-engineer` 或 `code-reviewer`。`spot_checks` 和 `spot_check_every` 用来开启抽查（F18 设计 7.4）；项目通过 troy-init 的升级得到它们，只有 `troy_approves_first` 的 `[flow]` 表仍然有效。未知的角色、未知的键、不在列表里的 effort、小于 0 的数量、不是 true 或 false 的 `spot_checks`，或小于 2 的 `spot_check_every`，都会像其他配置错误一样让工具以退出码 2 停止。
 
 ## 8. GitHub Actions 工作流
 
@@ -392,3 +394,4 @@ F02 的 PR 合并时，F02 的状态改为"已编写"。
 | 1.3 | 2026-11-07 | 第 7 节：配置接受带 `model` 和 `effort` 的 `[roles.<role>]`，以及带 `troy_approves_first` 的 `[flow]`，供 troy-mode 的入口技能使用。来自 F07 设计第 12 节。 |
 | 1.4 | 2026-11-08 | 第 4、5 节：标题类型 `[v<MAJOR>.<MINOR> tests]`，类型 `version-tests`，可以改 `tests` 和 `dependencies` 类别，R03 跳过它；内置的 `tests` 模式加上 `version-tests/**`。来自 F08 设计第 9 节。 |
 | 1.5 | 2026-11-08 | 第 4 节：`test-fix` 标题也接受项目规则的 P 编号，例如 `[P01 test-fix] Apply P01 to tests`，即规则的测试清理 PR，和所有测试修正 PR 一样可以改 `tests` 和 `dependencies`。来自 F09 设计第 8 节。 |
+| 1.6 | 2026-11-26 | 第 7 节：`[flow]` 还接受 `spot_checks`（true 或 false，默认 false）和 `spot_check_every`（不小于 2 的整数，默认 3），供 F18 的抽查使用。来自 F18 设计第 7.4 节（D179）。 |

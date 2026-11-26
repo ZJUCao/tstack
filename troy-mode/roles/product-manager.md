@@ -28,7 +28,7 @@ Once a flow runs, troy-mode stops for Troy only at these steps (requirements 3.3
 | --- | --- | --- |
 | W1 | The requirements, and each change of them | The PR and its summary for Troy; `Waiting for Troy: approve this PR` |
 | W2 | The architecture | The same |
-| W3 | PR 1 and PR 2 of the first features, and the question after them (whether Troy goes on approving) | The same; the question in chat |
+| W3 | PR 1 and PR 2 of the first features, the question after them (whether Troy goes on approving, turns on spot checks, or lets troy-mode merge them), and, with spot checks on, a PR 1 or PR 2 marked risky | The same; the question in chat |
 | W4 | The version: Troy's device test and acceptance, and deferring an open bug | The release PR, `Waiting for Troy: accept <tag>`, and the checklist issue |
 | W5 | Rules: the retrospective's proposals Troy picks, each rule's enforcement and the choice for existing code, and a rule for every project | `Waiting for Troy: <rule question>` in chat, on the release PR or the rule's issue |
 | W6 | A change needs the requirements or the architecture to change | `Escalation: <trigger>` |
@@ -64,7 +64,7 @@ When: project setup (requirements 5.1), or a new version.
 When: Troy asks for a change (requirements 5.4), in chat or in an idea issue that PM6 found to be a requirement change. The idea, with its comments, is your Input, and the change PR's description says `Closes #<n>` for each idea it takes in.
 
 1. Update the requirements in both languages. Write the summary for Troy of the change, as in PM1: what the program will do differently, each point Troy decides with your recommendation, and the risks. It opens the PR's description. Get Troy's approval.
-2. List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark each one that is not yet accepted "Needs rework (<the change>)" in the status table. An accepted feature keeps its status, and the change becomes a new feature with a hard dependency on it (F07 design D65), as troy-mode's skill says in "Requirement change".
+2. Put each new feature in the topological order after every feature that is already accepted, or under way: the first `troy_approves_first` features and the spot check sample are counted by place in the order, so a new feature placed earlier would change which features Troy approves and which are sampled (tstack's F18 design 7.1). List the affected features from the dependency graph: the changed feature and every feature that depends on it. Mark each one that is not yet accepted "Needs rework (<the change>)" in the status table. An accepted feature keeps its status, and the change becomes a new feature with a hard dependency on it (F07 design D65), as troy-mode's skill says in "Requirement change".
 3. Hand the list to the Architect for the change impact (AR4).
 
 ### PM3 Acceptance
@@ -98,7 +98,7 @@ When: `status` gives the `ideas` action, at a natural stop between features, rel
 1. Read each new idea issue with its comments. Troy writes in any language, as much or as little as in a chat message.
 2. Decide what it is: a requirement change, a bug, a rule, a question or something troy-mode will not change, something Troy means for later, or unclear.
 3. Post one comment in the language Troy wrote in, whose first line is the fixed English heading the entry skill gives for that kind (`Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, or `Waiting for Troy: <question>` with one question and a recommended answer). Check it with `check-text` first.
-4. Then go on as the entry skill says: PM2 for a requirement change, the bug flow's label for a bug, the rule change flow for a rule, the answer and closing the issue for a question. Answer a question from the approved requirements, architecture, designs, and test plans; only one that needs one of them changed is a requirement change (W6). Ask Troy nothing more than those flows already do.
+4. Then go on as the entry skill says: PM2 for a requirement change, the bug flow's label for a bug, the rule change flow for a rule, the answer and closing the issue for a question. Answer a question from the approved requirements, architecture, designs, and test plans; only one that needs one of them changed is a requirement change (W6). Ask Troy nothing more than those flows already do. An idea that disagrees with a sampled design or test plan PR of an accepted feature is a requirement change or a bug like any other, and it also counts as an overturn of that sample, which turns spot checks off (tstack's F18 design 7.1).
 
 ### PM7 Ruling
 

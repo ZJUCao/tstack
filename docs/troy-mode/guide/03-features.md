@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.4 |
-| Date | 2026-11-25 |
+| Version | 0.5 |
+| Date | 2026-11-26 |
 | Source of truth | This English file. [`03-features.zh-CN.md`](03-features.zh-CN.md) is the Chinese mirror. |
 
 troy-mode builds features one at a time, in the topological order of the requirements. Each feature takes six PRs, merged in order, each with one commit that holds one stage's output ([requirements section 5.2](../requirements.md#52-feature-loop)). You approve the first two PRs of the first features. troy-mode merges everything else.
@@ -91,6 +91,11 @@ When the last of those features is accepted, troy-mode asks you once whether to 
 | --- | --- |
 | No | `troy_approves_first` stays at the features already done. troy-mode merges every later design and test plan itself, once the Architect approved the design and the test plan's questions are settled. |
 | Yes, for N more features | `troy_approves_first` rises by N. You approve PR 1 and PR 2 of the next N features, and after the last of them troy-mode asks again. |
+| Spot checks | troy-mode merges later designs and test plans too, and you review one feature in three after the merge and before the version ships; a PR marked risky still waits for you. |
+
+The question shows three kinds of evidence for spot checks, E1 to E3: your last 6 approvals of a design or test plan changed nothing, no real-run mismatch of the last version came from a design or test plan, and the role exam's cases of the Architect, the Interface Designer, and the Test Manager pass 4 of 5 runs. troy-mode recommends spot checks only when all three hold ([F18 design section 7](../design/F18-fewer-stops.md)).
+
+**Spot checks.** With them on, troy-mode samples one feature in three (`spot_check_every` in `[flow]`) after the features you approved, by the order. After a sampled feature's design or test plan merges, troy-mode posts `Spot check for Troy: review after the merge` on it and sends you its summary. Doing nothing agrees; to disagree, comment on the feature's progress issue, which works like overturning a ruling ([section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you)). Before a version ships, its checklist has a box for each sample you have not answered. A design or test plan waits for you before its merge when it is risky: the Architect marks it in its review (a stored format or a file you keep changes, your files are deleted or moved, behavior you will see that the prototypes do not show, or network access, a subprocess, or credentials), troy-mode marks it after a ruling, a premise attempt, or a change to an existing interface, or you mark it yourself: "F12 is risky" in chat, or a comment "risky" on its progress issue. You turn spot checks on or off at any time, in chat or on any progress issue; any overturn of a sample turns them off, and every later design and test plan waits for you again.
 
 troy-mode records your answer in `.troy-mode/config.toml`, with a comment line that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merges it. Apart from troy-init's steps and the rule change flow, this is the only config change troy-mode makes.
 

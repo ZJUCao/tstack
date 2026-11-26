@@ -63,6 +63,8 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--waiting", help="what waits on Troy; an empty text clears it")
     cmd.add_argument("--wait", help="the wait's ID, W1 to W11, with --waiting (F18)")
     cmd.add_argument("--note", action="append", help="a note for the progress file")
+    cmd.add_argument("--spot-evidence", action="store_true",
+                     help="also give E1 to E3 for spot checks (F18 design 7.3)")
     cmd = sub.add_parser("brief", help="the brief for one role run")
     cmd.add_argument("--task", required=True)
     cmd.add_argument("--item")
@@ -152,7 +154,8 @@ def _text(report: dict) -> str:
         return f"Agent: {agent}\n\n{report['prompt']}"
     lines = [f"troy-flow {report['command']}: {'ok' if report['ok'] else 'stopped'}"]
     if report["command"] == "status":
-        lines.append(f"next      {status.action_text(report['next'])}")
+        off = (report.get("spot") or {}).get("off_due")
+        lines.append(f"next      {status.action_text(report['next'], off)}")
     if report["command"] == "rule-id" and report.get("ok"):
         lines.append(f"next      {report['next_id']}")
         lines += [f"rule      {r['id']}{' (retired)' if r['retired'] else ''}: "

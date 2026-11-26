@@ -98,3 +98,12 @@ mode = "strict"
 # their design PR and test plan PR approved by Troy. troy-mode merges every
 # other PR once its checks and reviews pass. 0 means none. Default 3.
 # troy_approves_first = 3
+#
+# Spot checks (tstack's F18 design D176 to D179): when true, troy-mode also
+# merges the design PR and test plan PR of the features after those, and Troy
+# reviews one feature in spot_check_every after the merge and before the
+# version ships. A PR marked risky still waits for Troy. Only Troy turns them
+# on; any overturn of a sampled PR turns them off. Defaults false and 3; the
+# number is 2 or more.
+# spot_checks = false
+# spot_check_every = 3

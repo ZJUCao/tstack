@@ -20,7 +20,7 @@ from .errors import FlowError
 from .nextentry import make
 from .nextstep import _pr_next
 from .rework import is_change
-from .stages import AUTHOR_TASK, branch, parse_subject, title
+from .stages import AUTHOR_TASK, branch, feature_stage, parse_subject, title
 
 _AFFECTS = re.compile(r"^\s*Affects:\s*(.+?)\s*$", re.M)
 _ID = re.compile(r"F\d+")
@@ -142,7 +142,10 @@ def _holds(state, fid: str, kept: dict | None) -> list[str]:
 
 
 def waiting(state, kept: dict | None) -> list[dict]:
-    """The PRs that wait for Troy, the one that holds up the most features first (Q23)."""
+    """The PRs that wait for Troy, the one that holds up the most features first (Q23).
+
+    A risky PR 1 or PR 2 waits like an approval and carries its marks (F18 7.5).
+    """
     found = []
     for pr in state.prs:
         if not pr["notes"].waiting:
@@ -150,8 +153,11 @@ def waiting(state, kept: dict | None) -> list[dict]:
         parsed = parse_subject(str(pr.get("title") or ""))
         item = parsed.id if parsed else None
         holds = _holds(state, item, kept) if item else []
+        stage = feature_stage(str(pr.get("title") or ""))
+        risky = list(state.risk.get(stage, [])) if stage and stage[1] in (1, 2) else []
         found.append({"pr": int(pr.get("number", 0)), "title": pr.get("title"), "item": item,
-                      "url": pr.get("url"), "holds": holds, "wait": pr["notes"].wait})
+                      "url": pr.get("url"), "holds": holds, "wait": pr["notes"].wait,
+                      "risky": risky})
     return sorted(found, key=lambda entry: (-len(entry["holds"]), entry["pr"]))
 
 

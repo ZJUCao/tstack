@@ -136,7 +136,7 @@ Troy's reply works as section "Merging" says. "全按推荐", "all as recommende
 
 | PR | Title | Author | Reviewers | Local checks before each push | Merged by |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `[<ID> 1/6 design] <name>` | IF1, then IF2 for each revision | AR2 | `troy-check pr` | Troy for the first features, else you |
+| 1 | `[<ID> 1/6 design] <name>` | IF1, then IF2 for each revision | AR2 | `troy-check pr` | Troy for the first features and, with spot checks on, for a risky PR; else you |
 | 2 | `[<ID> 2/6 test-plan] <name>` | TM1, with IF3 for its questions | None. At most 3 rounds of questions. | `troy-check pr` | As PR 1 |
 | 3 | `[<ID> 3/6 mock] <name>` | DV1 | CR1 | `troy-check pr`, the pack's steps, `troy-check code` | You |
 | 4 | `[<ID> 4/6 tests] <name>` | TE1 | TM2 and CR1, together | As PR 3 | You |
@@ -151,8 +151,8 @@ Troy's reply works as section "Merging" says. "全按推荐", "all as recommende
 2. **Author.** Run the stage's author (section "Running a role"). For PM3, follow section "PR 6: the real run".
 3. **Commit.** `git add -- <path>` for exactly the paths in `stage`. The first run makes the commit, whose subject is the PR title (R01): `git commit -m "<title>"`. Later runs amend it with `git commit --amend --no-edit`, so the PR keeps one commit. The git hooks check R19.
 4. **Local checks**, on the commit (section "Local checks"). A failure goes back to the author as Input and counts as an attempt.
-5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why, which starts with `Progress: #<next.issue>` (PR 6: `Closes #<next.issue>`) and then gives the feature's goal, What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`. Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
-6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input. AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input. When a report says what a later feature, or a later stage of this one, must take, record it as a note (section "Notes for later features").
+5. **PR.** Write the description from `.github/pull_request_template.md`: for PR 1 and PR 2, the author's summary for Troy first (section "The summary for Troy"), then Why, which starts with `Progress: #<next.issue>` (PR 6: `Closes #<next.issue>`) and then gives the feature's goal, What (the stage's output, with IDs), Checks (what ran and the results), and Soft-limit reason (from the Developer's report, or None), with the template comment removed. Check it with `troy_flow.py check-text --file <file>`. Push with `git push --force-with-lease -u origin <branch>`. The first time, as its own command: `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`, then post each attempt recorded before the PR existed as its `<Role> attempt <n>: failed` comment, so the PR shows every attempt (spot checks read them). Later pushes: `gh pr edit <number> --body-file <file>`, with the author's new summary after a revision.
+6. **Reviews.** Run each reviewer on the PR and post its report as a comment (section "Comments"). AR2 gets the design's summary for Troy in Input, and its review comment carries the `Risky:` line from the end of its report's Summary (section "Comments"). AR2 also writes section 4 of the design, so check, commit with `--amend`, check, and push after it as after an author. `changes-requested` sends the findings to the author as the next round. Pass Troy's comments on the PR (`troy_comments` in `status`) to the author as Input. When a report says what a later feature, or a later stage of this one, must take, record it as a note (section "Notes for later features").
 7. **Merge** (section "Merging").
 8. **Progress.** After every step (each role run, commit, push, review, merge, and escalation) run `troy_flow.py status --write-progress`.
 
@@ -178,6 +178,8 @@ PR 6 is yours, as the Product Manager (PM3). Before the feature is accepted, run
    - `later <ID>`: a `later` mark in the run file.
    - `setup`: fix the run file. The description lists every run file change after the first run.
    - `console`: a `skip` mark with the reason.
+
+   Keep each TM8 report: once the PR is open, post its rulings on it as a comment headed `Test Manager ruling, real run`, one numbered line per mismatch, `<k>. <kind>: <prototype>, <section>, <command>: <reason>` with `<kind>` `bug`, `prototype`, `requirement`, `later <ID>`, `setup`, or `console`, one comment per TM8 run (spot checks' evidence E2 reads the `requirement` lines).
 
    Amend the run file and prototype changes into the commit under a new snapshot, and run again (step 3). The PR shows only the last run. A command that still mismatches on its third run gets the premise attempt, as an author's attempts do (section "Rounds and attempts"), and then escalates (W7).
 6. **Problems.** Exit 1 with `problems` only: a run file mistake (`run-file`, `unknown-section`, `unknown-command`, `copy-untracked`, `replace-count`, `unknown-later-feature`, `missing-block`, `unmapped-path`, or `setup-failed`) is yours to fix in the run file; then run again. A problem with the program or its environment (`program-not-found`, `environment`, or `code-location`) escalates (W11), with the problem's `fix` as your recommendation when it gives one.
@@ -216,11 +218,13 @@ Report it to Troy in the shape of Prototype B, with the cost's `line` in Troy's 
 
 Post every review, failed attempt, escalation, and request to Troy as a PR comment whose first line is one of these headings:
 
-- `<Role> review, round <n>: <result>`, for example `Architect review, round 2: changes-requested`, then the findings;
+- `<Role> review, round <n>: <result>`, for example `Architect review, round 2: changes-requested`, then the findings; an Architect review of a design (AR2) ends with AR2's line `Risky: no` or `Risky: <reason>` on a line of its own, which `status` reads (F18 D177);
 - `<Role> attempt <n>: failed`, then the failing checks. For a CI failure, the first line under the heading is `Commit: <full commit ID>`, the pushed commit that failed;
 - `Escalation: <trigger>`, then the line `Wait: W<n>` (W6 to W11), then the escalation message in English;
 - `Waiting for Troy: approve this PR`, with two lines under it, `Wait: W<n>` and "What to decide is in the summary at the top of the description.", or `Waiting for Troy: accept <tag>` on a release PR with `Wait: W4` under it. The `Wait:` line always comes right under a `Waiting for Troy:` or `Escalation:` heading; `status` reads it, and the retrospective lists every wait without one;
 - `<Ruler> ruling, round 3: merge`, `fix`, `fixed`, or `not fixed`, then one numbered line per finding (section "Rounds and attempts");
+- `Spot check for Troy: review after the merge`, with the line "What to decide is in the summary at the top of the description.", on a sampled PR 1 or PR 2 right after you merge it (section "Merging");
+- `Test Manager ruling, real run`, then TM8's rulings, one numbered line per mismatch, on an acceptance PR or a release PR (section "PR 6: the real run");
 - on an acceptance PR: `Real run output, part <n>`, the real output that does not fit the description (section "PR 6: the real run");
 - on a release PR (section "Version release"): `Release test, run <n>: passed` or `failed`, `Release test by Troy, run <n>: accepted`, `failed`, or `not accepted`, `Bug deferred by Troy: #<n>`, and `Retrospective: <tag>`.
 
@@ -253,7 +257,14 @@ Run each step as its own command, and the merge only after you have read the wai
 - **Troy asks for changes.** The author revises, as a round.
 - **Troy merged on GitHub.** The document's approval is not recorded, and `status` gives `record-approval`: on `next.branch`, run `approve --doc <next.doc>`, stage every path in `changed`, commit as `next.title` (`[docs] Record Troy's approval of <document>`), check, open the PR, and merge it yourself.
 
-**After the first features (D62).** When `status` gives `ask-approvals`, ask Troy once whether to go on approving PR 1 and PR 2 of later features, and how many, and run `troy_flow.py status --waiting "Troy decides on later approvals" --wait W3`. Record the answer in `.troy-mode/config.toml`'s `[flow] troy_approves_first`, with a comment line above it that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merge it. Apart from troy-init's steps and the rule change flow (section "Rule change"), this is the only config change you make.
+**After the first features (D62).** When `status` gives `ask-approvals`, ask Troy once, with three answers: go on approving PR 1 and PR 2 of later features (and how many), turn on spot checks, or let you merge every PR 1 and PR 2. Show `spot_evidence`, E1 to E3, in Troy's language, and recommend spot checks only when `spot_evidence.met` is true; else say which evidence is missing. Run `troy_flow.py status --waiting "Troy decides on later approvals" --wait W3`. Record the answer in `.troy-mode/config.toml`'s `[flow]` table, with a comment line above it that names the decision and its date, in a `[rules] Set the features Troy approves` PR, and merge it: `troy_approves_first` for approvals; for spot checks, `[flow] spot_checks = true`, `spot_check_every` when Troy names a number other than 3, and `troy_approves_first` set to the number of features accepted so far. Apart from troy-init's steps and the rule change flow (section "Rule change"), this is the only config change you make.
+
+**Spot checks (F18 D176 to D179).** They are off until Troy turns them on; never turn them on yourself. Troy turns them on or off at any time, in chat or in a comment on any progress issue: record it in the same kind of `[rules] Set the features Troy approves` PR (on: as above; off: `spot_checks = false` and `troy_approves_first` set to the number of features in the order, which brings back every later approval) and merge it. `status` gives `spot`: `on`, `every`, and `sample`, the features in the sample; each PR 1 or PR 2 entry has `spot` (`sample` or `none`) and `risky`, the marks of the engine, the Architect, and Troy. While spot checks are on:
+
+- **A PR without marks** has `merged_by` `f07`: merge it as you merge PR 3 to PR 6, with `wait-checks`, R24's rebase when teams run, and `gh pr merge --rebase --match-head-commit`. Never use GitHub's auto-merge in a project.
+- **A sampled PR** (`spot` `sample`): right after its merge, post `Spot check for Troy: review after the merge` on it, with the line "What to decide is in the summary at the top of the description.", and in your report send Troy its summary for Troy with the link, under the line "Spot checks, after the merge". Troy agrees by doing nothing or by a comment. Each sample of a version that Troy has not answered gets a box on the version's checklist.
+- **A risky PR** (`risky` not empty, `merged_by` `troy`) waits before its merge as an approval does (W3), and your message gives its marks in Troy's language.
+- **`spot-off`.** An overturn of a sampled PR, or of a ruling on a PR 1 or PR 2, turns spot checks off at once: `status` gives `spot.off_due` and every later PR 1 and PR 2 waits for Troy again. When `next.action` is `spot-off`, open `[rules] Set the features Troy approves` on `next.branch` with `spot_checks = false` and `troy_approves_first` set to `spot.off_due.approves_first`, with a comment line that names the overturn, merge it yourself, and tell Troy why.
 
 ## Feature teams
 
@@ -290,6 +301,7 @@ Ready PRs merge in the order they became ready (R24).
 
 - A team that waits for Troy, or escalated, stops. The teams that wait for its feature wait too; the others go on.
 - **An overturn** holds its feature's team after its current stage PR (`held` `overturn`) until it is carried out (section "Issues for Troy"); the other teams go on.
+- **Spot checks.** A risky PR waits like an approval, so it stops only its team and the teams that wait for its feature, and it joins the message below with its `risky` marks. A sampled PR stops no team: after its merge, the report lists it under its own line, "Spot checks, after the merge".
 - Ask Troy in one message about every PR in `waiting`, each with its wait ID (`wait`), the one that holds up the most features first, each with its summary and link. Troy answers them together, "全部批准" or "approve all", which approves each listed PR with every recommendation, or one at a time. An escalation comes in a message of its own.
 - **A requirement change.** Take it in before you start the next team. The change PR's description has a line `Affects: <IDs>`, from PM2's list; `status` then holds those teams (`held` `change`) once their current stage PR merges, and the others go on.
 - **A rule change** runs in this checkout. Every team picks it up at its next stage, and an open PR at its rebase.
@@ -441,7 +453,7 @@ If Troy merges the release PR on GitHub instead, `status` gives `record-acceptan
 
 After bug fixes, when the release test passes again, the issue sync updates the checklist: its `edit` action has `new_run: true`. Post `Device test, run <n>: ready` on the checklist, naming the scenarios to test again, and tell Troy in chat.
 
-- A real run mismatch goes to TM8 with `real-run`'s Markdown report in Input (`brief --task TM8 --item <version> --input-file <files.md>`), and its rulings are acted on as in section "PR 6: the real run", with each bug's issue titled `Real run of <feature ID>: <summary>`.
+- A real run mismatch goes to TM8 with `real-run`'s Markdown report in Input (`brief --task TM8 --item <version> --input-file <files.md>`), and its rulings are acted on as in section "PR 6: the real run", with each bug's issue titled `Real run of <feature ID>: <summary>`, and posted on the release PR as a `Test Manager ruling, real run` comment.
 - A failed test or scenario, in the release test or in Troy's test, or a blocking finding of the security review, goes to TM5 with the report in Input. A bug gets an issue and the bug flow's PR A and PR B (section "Bug fix"). A wrong version test gets TE3's fix. A misunderstood requirement goes to the requirement change flow.
 - `status` gives the step `bugs` with the first open bug issue that Troy has not deferred; the release waits until every open `bug` issue is fixed or deferred.
 - After the fixes, PM4 adds the fixed bugs to the changelog section, rebase the release branch on `origin/main`, amend the commit, and push; `status` then gives `release-test` again, and the release test runs as the next run. It runs every version test; Troy tests again only what failed.
@@ -522,7 +534,7 @@ Each removes its files' baseline lines in the same commit. `check-run` lets a de
 - **A P rule changes** through the same steps, with `[rules] Change <ID>, <summary>` on `troy-mode/rule-<id>-change`. `rule-row` replaces the row, keeps its Since date, and adds the change-log row. Its config and baseline lines change in the same PR.
 - **A P rule is retired** with no AR6 run: show Troy the row and the config and baseline lines the PR removes; Troy's yes approves it. On `troy-mode/rule-<id>-retire`, under `snapshot --role rules`, run `rule-row --id <ID> --rule-file <file> --retire`, with only `change` in the file, remove the rule's config and baseline lines, and commit as `[rules] Retire <ID>, <summary>`. The row stays, starting "Retired on <date>.", and its ID is never used again.
 - **An R rule** is troy-mode's, and troy-init's upgrade replaces the R rows, so never edit one. Where troy-check's config allows an adjustment, such as R03's limits, R11's coverage limits, or R19's attribution mode, a P row records it, for example "In this project, R03's limit is 800 changed lines.", and the same rule PR changes `.troy-mode/config.toml`. Any other change to an R rule is a rule for every project.
-- **`[flow] troy_approves_first`** stays its own `[rules] Set the features Troy approves` PR (section "Merging").
+- **`[flow] troy_approves_first`, `[flow] spot_checks`, and `spot_check_every`** stay in their own `[rules] Set the features Troy approves` PR (section "Merging").
 
 ### A rule for every project (D83)
 
@@ -575,6 +587,8 @@ The sync keeps each one: it replaces Troy's edits to its text and reopens it whe
 
 When they have merged, post `Overturn carried out: <the same link>` on the progress issue, with the PRs, and the feature goes on. After the feature's acceptance, Troy's disagreement is an idea like any other.
 
+**Spot checks on issues (F18 D176, D177).** Troy marks a feature risky with "F12 is risky" in chat or a comment "risky" on a progress issue: record it as a note for that feature (section "Notes for later features") whose text starts with `Risky:` and Troy's words, so `status` marks its PR 1 and PR 2. Troy disagrees with a sampled PR in a comment on its feature's progress issue: answer with `Overturn: <link to the PR's spot check comment>`, which works as an overturn of a ruling (PR 1 as a design, PR 2 as a test plan, in the table above) and turns spot checks off (`spot-off`). After the feature's acceptance, Troy disagrees with an idea issue that names the PR: PM6 takes it in as a requirement change or a bug, and you also post `Overturn: <link to the PR's spot check comment>` on the idea, which turns spot checks off.
+
 ### Ideas (D143)
 
 `issues.ideas` lists Troy's open ideas, each `new` until you answer it and again after Troy writes. When `status` gives `ideas`, at a natural stop (never between two stages, during an open PR, or during an open release), or when Troy names one ("idea #101", "change: #101"), do PM6 (`product-manager.md`) for each idea in `next.ideas`, or the one Troy named: read it with its comments, decide what it is, and post a comment whose first line is the heading below, in the language Troy wrote in:
@@ -622,7 +636,7 @@ Answer questions and investigations here, following `how` or `why` (read their `
 
 ## Continue
 
-Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (section "Routing"): `continue-pr`, `ruling` and `ruled-revision` (section "Rounds and attempts"), `overturn` (section "Issues for Troy"), `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"), `cleanup`, the next cleanup PR of a rule (section "Rule change"), and `ideas`, Troy's new ideas at a natural stop (section "Issues for Troy"). A rule's last cleanup PR finishes that rule change, which is a natural stop too: report, and go on only if the request reaches further. After the last feature of a version is accepted, `release` comes next: a feature-loop request goes on through its steps up to Troy's device test (W4). When `next.escalate` names a wait, escalate with it first.
+Run `status` and report where the project stands. When something waits on Troy, say what. Otherwise go on with `next`, as far as the request reaches (section "Routing"): `continue-pr`, `ruling` and `ruled-revision` (section "Rounds and attempts"), `overturn` (section "Issues for Troy"), `spot-off` (section "Merging"), `stage`, `record-approval`, `bug` (PR B of a bug), `rework` (AR4 after a requirement change), the setup steps, the version release's `version-test-plan`, `release` (with its `next.step`), `record-acceptance`, `tag`, and `retro` (section "Version release"), `cleanup`, the next cleanup PR of a rule (section "Rule change"), and `ideas`, Troy's new ideas at a natural stop (section "Issues for Troy"). A rule's last cleanup PR finishes that rule change, which is a natural stop too: report, and go on only if the request reaches further. After the last feature of a version is accepted, `release` comes next: a feature-loop request goes on through its steps up to Troy's device test (W4). When `next.escalate` names a wait, escalate with it first.
 
 ## Reports
 
