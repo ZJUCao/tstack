@@ -13,13 +13,14 @@ KIND_TASK = {"test": "TE2", "fix": "DV3"}
 # answers questions and AR3 reviews a new dependency in any stage before
 # acceptance; AR4 lists a requirement change's impact. The side flows of
 # stage 5 rule on disputed tests and coverage gaps. In stage 6, TM8 rules on
-# the mismatches of the real run (F12 design 7.1).
+# the mismatches of the real run (F12 design 7.1). The Architect rules at round
+# 3 of every review loop but its own, so AR8 belongs to stages 2 to 5 (F18 5.1).
 STAGE_TASKS = {
     1: ("IF1", "IF2", "AR2", "AR5", "AR3", "AR4"),
-    2: ("TM1", "IF3", "AR5", "AR3", "AR4"),
-    3: ("DV1", "CR1", "AR5", "AR3", "AR4"),
-    4: ("TE1", "TM2", "CR1", "AR5", "AR3", "AR4"),
-    5: ("DV2", "CR1", "AR5", "AR3", "AR4", "TM3", "TM4", "TM6", "IF4", "DV4"),
+    2: ("TM1", "IF3", "AR5", "AR3", "AR4", "AR8"),
+    3: ("DV1", "CR1", "AR5", "AR3", "AR4", "AR8"),
+    4: ("TE1", "TM2", "CR1", "AR5", "AR3", "AR4", "AR8"),
+    5: ("DV2", "CR1", "AR5", "AR3", "AR4", "TM3", "TM4", "TM6", "IF4", "DV4", "AR8"),
     6: ("TM8",),
 }
 STAGE_KINDS = tuple(STAGES.values())

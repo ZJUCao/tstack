@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.2 |
-| Date | 2026-11-18 |
+| Version | 0.3 |
+| Date | 2026-11-25 |
 | Source of truth | This English file. [`08-reference.zh-CN.md`](08-reference.zh-CN.md) is the Chinese mirror. |
 
 Lookup tables for daily use. The entry skill, [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md), is the source for every request, title, and heading here.
@@ -63,8 +63,9 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | --- | --- |
 | `<Role> review, round <n>: <result>` | A reviewer reports, for example `Architect review, round 2: changes-requested`. Findings follow, one numbered line each, starting with the rule ID or checklist item. |
 | `<Role> attempt <n>: failed` | An author's attempt fails. The failing checks follow. For a CI failure, a `Commit:` line first names the pushed commit. |
-| `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). |
-| `Waiting for Troy: approve this PR` | The PR waits for your approval. One line under it points to the summary for you at the top of the description. |
+| `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). The line `Wait: W<n>` under it names the wait. |
+| `Waiting for Troy: approve this PR` | The PR waits for your approval. The line `Wait: W<n>` under it names the wait, and the next line points to the summary for you at the top of the description. |
+| `Architect ruling, round 3: <result>`, or `Product Manager ruling, round 3: <result>` | A review loop still disagreed after round 3, and the ruler decided each finding: `merge`, `fix`, then `fixed` or `not fixed` after the one revision ([section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you)). |
 | `Waiting for Troy: accept <tag>` | The release waits for your test on your devices. |
 | `Real run output, part <n>` | The real output of PR 6's real run, when it does not fit the description. |
 | `Release test, run <n>: passed` or `failed` | The release test's report, with a "Real run" part for `real-run --all`. |
@@ -160,7 +161,7 @@ The full text is in the [rules template](../../../troy-mode/templates/rules.md),
 | R14 | Only interfaces with a performance target get performance tests | Review |
 | R15 | Every fixed bug keeps its reproduction test | Review |
 | R16 | A new third-party dependency needs the Architect's approval | Review |
-| R17 | A review loop stops at 3 rounds and escalates | Process |
+| R17 | At 3 review rounds without agreement, the Architect, or the Product Manager on the Architect's own review, rules; you can overturn the ruling | Process |
 | R18 | You approve PR 1 and PR 2 of the first features; troy-mode merges the rest | Process |
 | R19 | Commits use your email. Commits, PRs, comments, reviews, issues, and release notes carry no Claude attribution, checked before they are posted | Hard |
 | R20 | No template markers or guidance in a merged document or PR description | Hard |

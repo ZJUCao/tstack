@@ -5,19 +5,22 @@ The engine reads GitHub and never writes to it. It rebuilds each body from the
 state, compares it with the issue, writes the bodies that must be posted to
 files, and reports the exact gh command for each change. The main session
 checks each file with check-text and runs the commands (D141).
+
+F18 adds a wait's ID to the "Waiting for you" line, a line per ruled PR, and a
+line per overturn (F18 design 5.3 and 8).
 """
 
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import github, issuedata, notecmd, releases
+from . import github, issuedata, notecmd, releases, stops, waits
 from . import repo as git
 from .errors import FlowError
 from .issuedata import CHECKLIST, IDEA, PROGRESS, Issue, Issues
 from .issuetext import FEATURE_STATES, MAX_BODY, PR_STATES, SKIPPED_MOCK, Box, ChecklistFacts, \
-    ProgressFacts, Scenario, checklist_body, checklist_title, progress_body, progress_title, \
-    review_texts, waiting_texts
+    ProgressFacts, Scenario, checklist_body, checklist_title, overturn_texts, progress_body, \
+    progress_title, review_texts, ruling_texts, waiting_texts
 from .realrun import prototype_table
 from .repo import MAIN
 from .requirements import FEATURE_ID
@@ -182,16 +185,23 @@ def _last_heading(notes: github.Comments) -> dict | None:
 
 
 def _waiting(pr: dict | None) -> tuple[str, str]:
-    """What waits on Troy for the feature, from its open stage PR (design 4.2)."""
+    """What waits on Troy for the feature, from its open stage PR (design 4.2).
+
+    A wait with a listed ID starts with it (F18 design 4.2).
+    """
     if pr is None or not pr["notes"].waiting:
         return waiting_texts("nothing", None)
     number, last = int(pr.get("number", 0)), pr["notes"].last or ""
     if github.ESCALATION.match(last):
-        return waiting_texts("escalation", number, last.split(":", 1)[1].strip())
-    question = last.split(":", 1)[1].strip()
-    if question == "approve this PR":
-        return waiting_texts("approve", number)
-    return waiting_texts("question", number, question)
+        texts = waiting_texts("escalation", number, last.split(":", 1)[1].strip())
+    else:
+        question = last.split(":", 1)[1].strip()
+        texts = (waiting_texts("approve", number) if question == "approve this PR"
+                 else waiting_texts("question", number, question))
+    wait = pr["notes"].wait
+    if waits.is_listed(wait):
+        return f"{wait}，{texts[0]}", f"{wait}, {texts[1]}"
+    return texts
 
 
 def _boxes(sync: Sync, fid: str, prs: dict, open_pr: dict | None) -> list[Box]:
@@ -292,6 +302,9 @@ def _extra(sync: Sync, fid: str, prs: dict) -> list[tuple[str, str]]:
                                             for n, t, s in prs["side"]),
                       "Side PRs: " + "; ".join(f"#{n} {t} ({PR_STATES.get(s, (s, s))[1]})"
                                                for n, t, s in prs["side"])))
+    lines += _ruling_lines(sync, fid)
+    lines += [overturn_texts(entry["ruling"], entry["done"])
+              for entry in stops.from_issues(sync.issues) if entry["item"] == fid]
     bugs = [i for i in sync.issues.items if i.title.startswith(f"Real run of {fid}:")]
     if bugs:
         lines.append(("实际运行发现的 bug：" + "；".join(
@@ -304,6 +317,45 @@ def _extra(sync: Sync, fid: str, prs: dict) -> list[tuple[str, str]]:
     if prs["closed"]:
         lines.append(("关闭未合并的 PR：" + "；".join(f"#{n} {t}" for n, t in prs["closed"]),
                       "Closed without merging: " + "; ".join(f"#{n} {t}" for n, t in prs["closed"])))
+    return lines
+
+
+def _ruled_candidates(sync: Sync, fid: str) -> dict[int, tuple[str, str]]:
+    """The feature's stage and test-fix PRs, open or merged: number to (state, URL)."""
+    found: dict[int, tuple[str, str]] = {}
+    for pr in [*sync.prs, *({**p, "state": "OPEN"} for p in sync.state.prs)]:
+        title = str(pr.get("title") or "")
+        stage = feature_stage(title)
+        parsed = parse_subject(title)
+        if not ((stage and stage[0] == fid)
+                or (parsed and parsed.id == fid and parsed.kind == "test-fix")):
+            continue
+        state = str(pr.get("state") or "").upper()
+        if state in ("OPEN", "MERGED"):
+            found[int(pr.get("number", 0))] = (state, str(pr.get("url") or ""))
+    return found
+
+
+def _ruling_lines(sync: Sync, fid: str) -> list[tuple[str, str]]:
+    """One line per ruled PR of the feature: its newest result and its first ruling (D174)."""
+    candidates = _ruled_candidates(sync, fid)
+    if not candidates:
+        return []
+    opened = {int(pr.get("number", 0)): pr for pr in sync.state.prs}
+    merged = stops.merged_rulings(sync.state.repo, sorted(
+        number for number, (state, _) in candidates.items()
+        if state == "MERGED" and number not in opened))
+    lines = []
+    for number in sorted(candidates):
+        if number in opened:
+            notes = opened[number]["notes"]
+            pairs = list(zip(notes.rulings, notes.ruling_urls))
+        else:
+            pairs = [(entry["ruling"], entry["url"]) for entry in merged.get(number, [])]
+        if pairs:
+            first, url = pairs[0]
+            lines.append(ruling_texts(number, first["ruler"], first["round"],
+                                      pairs[-1][0]["result"], url or candidates[number][1]))
     return lines
 
 

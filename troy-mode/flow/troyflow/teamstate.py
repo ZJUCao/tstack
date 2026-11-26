@@ -14,7 +14,7 @@ import re
 
 from troyhook import records
 
-from . import github, teams
+from . import github, stops, teams
 from . import plan as batchplan
 from .errors import FlowError
 from .nextentry import make
@@ -109,8 +109,14 @@ def _running(git_dir: str) -> list[str]:
             if records.is_open(record)]
 
 
-def team_entry(state, team: tuple[str, str, str], kept: dict | None, changing: set[str]) -> dict:
-    """One team's status entry (F20 design 3.12)."""
+def team_entry(state, team: tuple[str, str, str], kept: dict | None, changing: set[str],
+               overturned: set[str] | None = None) -> dict:
+    """One team's status entry (F20 design 3.12).
+
+    A team stops before its next stage while a requirement change affects its
+    feature (`change`), while an overturn of a ruling on it is carried out
+    (`overturn`, F18 design 5.3), or until the plan's orders are met (`plan`).
+    """
     fid, root, git_dir = team
     prs = _team_prs(state, fid)
     nxt = _pr_next(state, prs[0]) if prs else _stage_entry(state, fid)
@@ -118,6 +124,8 @@ def team_entry(state, team: tuple[str, str, str], kept: dict | None, changing: s
     if nxt["action"] == "stage":
         if fid in changing:
             held = "change"
+        elif fid in (overturned or set()):
+            held = "overturn"
         elif not orders_met(state, kept, fid):
             held = "plan"
     return {"id": fid, "worktree": root, "stage": state.current(fid),
@@ -143,7 +151,7 @@ def waiting(state, kept: dict | None) -> list[dict]:
         item = parsed.id if parsed else None
         holds = _holds(state, item, kept) if item else []
         found.append({"pr": int(pr.get("number", 0)), "title": pr.get("title"), "item": item,
-                      "url": pr.get("url"), "holds": holds})
+                      "url": pr.get("url"), "holds": holds, "wait": pr["notes"].wait})
     return sorted(found, key=lambda entry: (-len(entry["holds"]), entry["pr"]))
 
 
@@ -158,13 +166,14 @@ def compute(state) -> dict:
         return empty
     kept = batchplan.load(state.repo)
     changing = affected(state)
+    overturned = stops.held(state)
     ids = {fid for fid, _, _ in found}
     planned = set((kept or {}).get("features", {}))
     # A feature with a merged stage and no team worktree is under way in the home
     # checkout, which goes on with it there.
     free = [fid for fid in candidates if fid not in ids and not state.merged.get(fid)]
     return {"mode": True,
-            "teams": [team_entry(state, team, kept, changing) for team in found],
+            "teams": [team_entry(state, team, kept, changing, overturned) for team in found],
             "may_start": [fid for fid in free if fid in planned and fid not in changing
                           and orders_met(state, kept, fid)],
             "needs_plan": [fid for fid in free if fid not in planned],

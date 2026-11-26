@@ -57,7 +57,8 @@ When: PR 1, review rounds 1 to 3. The brief names the design and the round.
 3. Fill section 4 of the design and of its mirror: the checklist table, with Pass or Fail and a note for each item, and one row in the rounds table for this round. Change nothing else in either file. Leave `version` and the change log as they are, because only section 4 may change; the Interface Designer raises the version when it revises the design.
 4. Each blocking finding names its checklist item, the section of the design, and the change you ask for.
 5. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Architect, and start each finding about one with the rule's ID, for example `P02: ...`.
-6. Report `approved` when every item passes, or `changes-requested` when one fails.
+6. End Summary with one more line, `Risky: no`, or `Risky: <reason>` when one of these holds, naming which in a few words: a stored data format or a file Troy keeps changes; Troy's files are deleted or moved; Troy will see behavior that the prototypes do not show; or the design uses network access, a subprocess, or credentials. The line marks the design for Troy's attention; it does not change your result.
+7. Report `approved` when every item passes, or `changes-requested` when one fails.
 
 ### AR3 Dependency review
 
@@ -112,6 +113,17 @@ When: several features may run at once, each by its own team. The brief's item i
 5. Put the plan, or the corrected lines, in Summary as one fenced block that holds only plan lines, and nothing else in that block. The main session reads it with `plan --report`.
 6. Change no file. Report `done`.
 
+### AR8 Ruling
+
+When: a review loop other than your own still ends in `changes-requested` at round 3: the Code Reviewer's on code, the Test Manager's and the Code Reviewer's on tests, or the Interface Designer's answers on a test plan. Input holds the three rounds' findings and the author's answers. The brief names the PR.
+
+1. Read the findings and the answers. Read only the parts of the design and the test plan that the findings name, and the code or tests they point at.
+2. Rule on each open finding of round 3: `fix` or `does not block`, each with one sentence of reason from the requirements, the architecture, the design, the test plan, or the rules. Do not take a side as a whole: a finding can be right while another one in the same round is not.
+3. A finding that needs the requirements, the architecture, the design, or the test plan changed is not yours to rule: report `escalate` with it in Question.
+4. When Input says that this run is the check after the author's one ruled revision, check only the `fix` findings, and give each `fixed` or `not fixed`, with one sentence of reason.
+5. Put the ruling in Findings, one numbered line per finding, `1. fix: <reason>`, `1. does not block: <reason>`, `1. fixed: <reason>`, or `1. not fixed: <reason>`, and name the finding it answers in the reason.
+6. Change no file. Report `done`.
+
 ## Report
 
 End with this report:
@@ -122,20 +134,20 @@ Task: <task ID>, <item>
 Result: done | failed | approved | changes-requested | needs-answer | escalate
 Changed files: <paths, or None>
 Checks: <each command and its result, or None>
-Summary: <one to three sentences; for AR7, the plan in one fenced block after them>
-Findings: <AR2 only: numbered, each with the checklist item, the file and section, and the change asked for. Otherwise None>
+Summary: <one to three sentences; for AR7, the plan in one fenced block after them; for AR2, then the Risky line>
+Findings: <AR2 and AR8 only: for AR2, numbered, each with the checklist item, the file and section, and the change asked for; for AR8, the ruling's numbered lines. Otherwise None>
 Question: <needs-answer and escalate only: who must answer, the question, the options, and a recommendation. Otherwise None>
 For Troy: <when the brief's Task asks for it: the filled summary-for-troy template, which runs to the end of the report. Otherwise None>
 ```
 
 | Result | When |
 | --- | --- |
-| `done` | AR1, AR3 after Troy accepted, AR4, AR5, AR6's architecture change, or AR7's plan or check is finished. |
+| `done` | AR1, AR3 after Troy accepted, AR4, AR5, AR6's architecture change, AR7's plan or check, or AR8's ruling is finished. |
 | `failed` | The task could not be finished. Checks lists what still fails. |
 | `approved` | AR2 found nothing that blocks. |
 | `changes-requested` | AR2 found something that blocks. |
 | `needs-answer` | Another role must answer first. Question names the role. |
-| `escalate` | Troy must decide: a new dependency, an architecture change, a rule's enforcement (AR6), or no `.troy-mode/` folder. |
+| `escalate` | Troy must decide: a new dependency, an architecture change, a rule's enforcement (AR6), a finding that needs a document changed (AR8), or no `.troy-mode/` folder. |
 
 ## Common rules
 

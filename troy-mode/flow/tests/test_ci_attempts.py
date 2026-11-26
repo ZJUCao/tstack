@@ -321,8 +321,9 @@ def attempt(number: int, *lines: str, role: str = "Developer") -> str:
 def failure(commit: str, runs: Sequence[int], steps: Sequence[str], author: bool = True,
             counted: bool = False, attempt_number: Optional[int] = None) -> dict:
     """One expected entry of an open PR's ``ci_failures`` (note section 3)."""
+    # F18 part 1 (contract 10) adds rerun: false here, since these runs give no attempt.
     return {"commit": commit, "runs": list(runs), "steps": list(steps), "author": author,
-            "counted": counted, "attempt": attempt_number}
+            "counted": counted, "attempt": attempt_number, "rerun": False}
 
 
 def normal(entries):

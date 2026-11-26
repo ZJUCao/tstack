@@ -155,9 +155,11 @@ class GhCallTests(FlowCase):
         fakes = Fakes(open_prs)
         self.report_of(project.status(fakes=fakes))
         calls = fakes.gh_calls()
+        # F18 part 1 (contract 10) asks for each run's attempt too, to see a re-run.
         runs = [["run", "list", "--branch", p["headRefName"], "--event", "pull_request",
                  "--limit", "100", "--json",
-                 "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName"]
+                 "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName,"
+                 "attempt"]
                 for p in open_prs]
         self.assertEqual(sorted(call["argv"] for call in calls), sorted([
             LIST_ARGS, ["pr", "view", "7", "--json", "comments,reviews"],
@@ -244,7 +246,9 @@ class OriginMainOnlyTests(FlowCase):
             "url": "https://github.com/ZJUCao/wordcount/pull/7", "kind": "mock", "item": "F01",
             "stage": 3, "merged_by": "f07", "reviews": [], "rounds": 0, "attempts": 0,
             "ci_failures": [],
-            "troy_comments": [], "waiting_for_troy": False, "escalated": False}])
+            "troy_comments": [], "waiting_for_troy": False, "escalated": False,
+            # F18 part 1 (contract 2 and 4): each open PR gains its wait's ID and its rulings.
+            "wait": None, "rulings": []}])
         self.assert_next(report, action="continue-pr", pr=7, item="F01", stage=3, task="DV1",
                          title="[F01 3/6 mock] Count words", branch="troy-mode/f01-3-mock",
                          merged_by="f07")
@@ -638,7 +642,9 @@ class CommentTests(FlowCase):
         entry = report["open_prs"][0]
         self.assertEqual((entry["waiting_for_troy"], entry["escalated"]), (True, False))
         self.assertEqual(entry["troy_comments"], [])
-        self.assertEqual(report["waiting_on_troy"], "PR #7: Waiting for Troy: approve this PR")
+        # F18 part 1 (contract 2): a request without a "Wait:" line waits as "unlisted".
+        self.assertEqual(report["waiting_on_troy"],
+                         "unlisted, PR #7: Waiting for Troy: approve this PR")
 
     def test_troys_reply_ends_the_wait(self):
         """A comment of Troy's after the request: no longer waiting, and the reply is passed on."""
@@ -658,8 +664,9 @@ class CommentTests(FlowCase):
         entry = report["open_prs"][0]
         self.assertEqual((entry["waiting_for_troy"], entry["escalated"], entry["rounds"]),
                          (True, True, 3))
+        # F18 part 1 (contract 2): an escalation without a "Wait:" line waits as "unlisted".
         self.assertEqual(report["waiting_on_troy"],
-                         "PR #7: Escalation: three review rounds without agreement")
+                         "unlisted, PR #7: Escalation: three review rounds without agreement")
 
     def test_only_troys_comments(self):
         """Without any comment of F07's, every comment is Troy's and nothing is counted."""

@@ -233,8 +233,9 @@ class RetroTests(FlowCase):
         self.assertEqual(sum(1 for c in calls if c[:2] == ["run", "list"]), 1)
         for argv in calls:
             with self.subTest(argv=argv):
+                # F18 part 1 (contract 9) reads the progress issues for their overturns.
                 self.assertIn(argv[:2], (["pr", "list"], ["pr", "view"], ["issue", "view"],
-                                         ["run", "list"]))
+                                         ["run", "list"], ["issue", "list"]))
                 if argv[:2] == ["pr", "list"]:
                     self.assertEqual(argv, MERGED_ARGS)
         after = (self.project.status_lines(), self.project.head(),

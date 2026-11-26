@@ -120,7 +120,9 @@ class ReviewTests(ReadingCase):
         """Pair: a review older than the request leaves the PR waiting."""
         entry = self.entry("review before")
         self.assertEqual((entry["waiting_for_troy"], entry["troy_comments"]), (True, []))
-        self.assertEqual(self.report("review before")["waiting_on_troy"], f"PR #41: {REQUEST}")
+        # F18 part 1 (contract 2): a request without a "Wait:" line waits as "unlisted".
+        self.assertEqual(self.report("review before")["waiting_on_troy"],
+                         f"unlisted, PR #41: {REQUEST}")
 
     def test_review_without_a_body_does_not(self):
         """Pair: an approval with no text is no reply; the PR still waits."""

@@ -7,7 +7,9 @@ the cleanup PRs (F09 design 5 and 7). CR1's Task says whether to run
 /security-review (F07 design 6.5), and the Input of IF1, IF2, and DV2 adds
 the notes that earlier work left for the feature (6.6). --title names the PR when the state
 cannot: a bug PR, a side PR, the redo of a stage after a requirement change,
-or a fix of a version's tests.
+or a fix of a version's tests. F18 adds AR8, the Architect's ruling at a
+review loop's round 3, and --premise, an author's fourth attempt that tests
+the premise first (F18 design 5 and 6).
 """
 
 import re
@@ -15,8 +17,8 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, mocknotes, notes as later_notes, repo as git, risks, \
-    rulebrief, summary, teambrief
+from . import PLUGIN_PREFIX, checksteps, mocknotes, notes as later_notes, premise, \
+    repo as git, risks, rulebrief, summary, teambrief
 from .errors import FlowError
 from .repo import MAIN
 from .requirements import FEATURE_ID, parse_features
@@ -28,9 +30,9 @@ from .versions import VERSION, parse_plan, plan_path, versions_of
 
 # Every task ID of F04 section 6, written out so that a task added later
 # cannot leave a gap (F08 adds TE5; F09 adds AR6, DV5, and TE6; F12 adds TM8;
-# tstack #75 adds CR2).
-ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5",
-             "AR1", "AR2", "AR3", "AR4", "AR5", "AR6", "AR7",
+# tstack #75 adds CR2; F15 adds PM6; F18 adds AR8 and PM7).
+ALL_TASKS = ("PM1", "PM2", "PM3", "PM4", "PM5", "PM6", "PM7",
+             "AR1", "AR2", "AR3", "AR4", "AR5", "AR6", "AR7", "AR8",
              "IF1", "IF2", "IF3", "IF4",
              "TM1", "TM2", "TM3", "TM4", "TM5", "TM6", "TM7", "TM8",
              "DV1", "DV2", "DV3", "DV4", "DV5",
@@ -44,18 +46,20 @@ ARCHITECTURE_TITLE = "[docs] Add the architecture"
 BUG_ID = re.compile(r"B[1-9]\d*")
 
 # The tasks each context outside a feature's stage allows (design 8.7 and 11.1).
+# AR8 rules where a review loop other than the Architect's own reaches round 3
+# (F18 design 5.1); the Product Manager rules on a [docs] design update (PM7).
 ACCEPTED_TASKS = ("AR4",)
-TEST_FIX_TASKS = ("TE3", "TE4", "TM2", "CR1", "AR3", "AR5")
+TEST_FIX_TASKS = ("TE3", "TE4", "TM2", "CR1", "AR3", "AR5", "AR8")
 DOCS_TASKS = ("TM1", "IF2", "AR2", "IF3", "AR3", "AR4", "AR5")
-BUG_A_TASKS = ("TM5", "AR3", "AR5", "TE2", "TM2", "CR1")
-BUG_TEST_TASKS = ("TE2", "TM2", "CR1", "AR3", "AR5")
-BUG_FIX_TASKS = ("DV3", "CR1", "TM4", "AR3", "AR5")
-BUG_TEST_FIX_TASKS = ("TE3", "TM2", "CR1", "AR3", "AR5")
+BUG_A_TASKS = ("TM5", "AR3", "AR5", "TE2", "TM2", "CR1", "AR8")
+BUG_TEST_TASKS = ("TE2", "TM2", "CR1", "AR3", "AR5", "AR8")
+BUG_FIX_TASKS = ("DV3", "CR1", "TM4", "AR3", "AR5", "AR8")
+BUG_TEST_FIX_TASKS = ("TE3", "TM2", "CR1", "AR3", "AR5", "AR8")
 BUG_DOCS_TASKS = ("AR3", "AR5")
 # The tasks of a version item (F08 design 4 and 5.3): its test plan in a
 # [docs] PR, and its version tests in a [vX.Y tests] PR.
 VERSION_DOCS_TASKS = ("TM7",)
-VERSION_TESTS_TASKS = ("TE5", "TE3", "TM2", "CR1", "TM4", "AR5")
+VERSION_TESTS_TASKS = ("TE5", "TE3", "TM2", "CR1", "TM4", "AR5", "AR8")
 VERSION_TESTS_TITLE = "[{version} tests] End-to-end and stress tests"
 # The release test's real run (F12 design 11): TM8 rules on its mismatches.
 REAL_RUN_TASKS = ("TM8",)
@@ -80,6 +84,13 @@ _SENTENCES = {
            "change in Input changes for {item}, and the earliest stage of {item} that must be "
            "redone. Write an ADR only for an architecture change.",
     "AR5": "answer the question in Input from the architecture, for {item}.",
+    "AR8": "rule on each open finding of round 3 of the review of {title}, which Input gives "
+           "with the author's answers: for each, fix or does not block, with one sentence of "
+           "reason from the requirements, the architecture, the design, the test plan, or the "
+           "rules. Read only the parts of the design and the test plan that the findings name. "
+           "A finding that needs one of those documents changed is an escalation. When Input "
+           "says this is the check after the ruled revision, say for each fix finding whether "
+           "it is fixed or not fixed. Change no file.",
     "IF1": "write the interface design of {item} in {folder}/design.md and its mirror. Section 4 "
            "is the Architect's: write \"Not reviewed yet.\" in each Result and Note cell of its "
            "table and in its rounds log row, so no template marker is left. " + summary.SENTENCE,
@@ -484,6 +495,10 @@ def build(args) -> tuple[dict, int]:
     report = {"command": "brief", "ok": False, "notes": [], "task": args.task,
               "role": ROLE_OF.get(args.task[:2]), "item": args.item, "stage": target.stage}
     report["problems"] = _problems(args.task, target, config)
+    if getattr(args, "premise", False) and args.task not in premise.TASKS:
+        report["problems"].append(f"--premise is for an author's fourth attempt, and "
+                                  f"{args.task} is no author task: "
+                                  f"{', '.join(premise.TASKS)} (F18 design 6).")
     if report["problems"]:
         return report, 1
     if target.feature is not None:
@@ -546,6 +561,11 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
              else f"{s} (the {item} rows and the version plan)" if version
              else f"{s} (the {item} row in section 4)"
              for p, s in zip(report["read_first"], shown)]
+    if getattr(args, "premise", False):
+        # The fourth attempt tests the premise first (F18 design 6, D175).
+        sentence += " " + premise.TEXT
+        report["read_first"].append(premise.card())
+        shown.append(premise.card())
     report["prompt"] = render({"task": f"{task}, {sentence}", "item": item_text,
                                "read_first": shown, "input": text, "round": args.round,
                                "checks": checks})

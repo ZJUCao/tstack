@@ -20,6 +20,29 @@ From troy-mode's requirements, section 4: "Write code or tests."
 - `CHANGELOG*.md`
 - `.troy-mode/progress.md`
 
+## Waits for Troy
+
+Once a flow runs, troy-mode stops for Troy only at these steps (requirements 3.3 and 5.7, tstack's F18 design 4). Every other step goes on, and its PR and your report say what you chose and why.
+
+| ID | Wait | How troy-mode asks |
+| --- | --- | --- |
+| W1 | The requirements, and each change of them | The PR and its summary for Troy; `Waiting for Troy: approve this PR` |
+| W2 | The architecture | The same |
+| W3 | PR 1 and PR 2 of the first features, and the question after them (whether Troy goes on approving) | The same; the question in chat |
+| W4 | The version: Troy's device test and acceptance, and deferring an open bug | The release PR, `Waiting for Troy: accept <tag>`, and the checklist issue |
+| W5 | Rules: the retrospective's proposals Troy picks, each rule's enforcement and the choice for existing code, and a rule for every project | `Waiting for Troy: <rule question>` in chat, on the release PR or the rule's issue |
+| W6 | A change needs the requirements or the architecture to change | `Escalation: <trigger>` |
+| W7 | An author's work still fails after 3 attempts and a premise attempt, or after a ruling it was given | The same |
+| W8 | A new third-party dependency | The same |
+| W9 | An action outside troy-mode's rights | The same |
+| W10 | A refusal troy-mode must not work around: a permission or auto mode refuses a command troy-mode needs | The same |
+| W11 | A fault in troy-mode's own checks that it cannot repair: a run that moved the branch, a write scope broken twice, no report twice, CI that fails twice outside the authors' files | The same |
+
+- **Record each wait with its ID.** Under a `Waiting for Troy:` or `Escalation:` heading, the comment's next line is `Wait: W<n>`. Without a PR, run `troy_flow.py status --waiting "<what>" --wait W<n>`. The engine refuses a wait without a listed ID, and the retrospective lists every wait that has none.
+- **The request's reach.** A feature-loop request reaches every feature of the version not yet accepted, and the release's steps after them up to Troy's device test (W4), unless Troy names where to stop, such as "only F04" or "stop after the mock".
+- **A question no step asks.** Decide it yourself when it can be undone, and say what you chose and why in the PR's description and your report. A choice that changes what Troy will see or keep changes the requirements: W6.
+- **Before a flow starts**, you may still ask one question with a recommended answer when a request fits two flows or none, or the folder is not a troy-mode project. That is not a wait inside a flow.
+
 ## Tasks
 
 ### PM1 Requirements
@@ -51,7 +74,7 @@ When: PR 6 of a feature.
 1. Check the finished feature against its requirement row and its prototypes.
 2. Write or update the run file of each prototype that the real run needs and that has none yet, `docs/prototypes/<name>.run.toml`, from each section's prose: the path map, how each section's data folder starts, the edits that add a section's mistakes, the replaced date words with their reasons, and the `later` and `skip` marks ([F12 design](../../docs/troy-mode/design/F12-real-run.md) section 4). Read [`../../skills/principle-prove-it-works/SKILL.md`](../../skills/principle-prove-it-works/SKILL.md) first. The first PR 6 after F12 reaches a project writes the run files of the earlier features' prototypes too.
 3. Run the real program the way Troy types it, with `troy_flow.py real-run --item <ID>`, as troy-mode's skill says in "One stage". Never compare by eye, and never edit the prototype's output to match.
-4. Hand every mismatch of a run to the Test Manager (TM8), and act on each ruling: a bug goes to the bug flow, a prototype that an approved design changed is updated with its design section, a requirement question goes to Troy, a `later` or `skip` mark or a run file fix goes into the run file. Then run again.
+4. Hand every mismatch of a run to the Test Manager (TM8), and act on each ruling: a bug goes to the bug flow, a prototype that an approved design changed is updated with its design section, a `later` or `skip` mark or a run file fix goes into the run file. Answer a requirement question yourself from the approved requirements, architecture, designs, and test plans, and say how in the PR. Only a question that one of them cannot answer without a change goes to Troy, as a requirement change (W6). Then run again.
 5. When the run passes, set the feature's status from the report's `label` in both languages: "Ran for real on Troy's PC" when all its own commands ran and matched, else "Passes tests on main", with the report's reason in the PR. Its tests become must-pass. Read the real output for hints that name a command or option of a feature not yet accepted, and list each with its feature under "Points at later features" in the PR.
 
 ### PM4 Version
@@ -75,4 +98,14 @@ When: `status` gives the `ideas` action, at a natural stop between features, rel
 1. Read each new idea issue with its comments. Troy writes in any language, as much or as little as in a chat message.
 2. Decide what it is: a requirement change, a bug, a rule, a question or something troy-mode will not change, something Troy means for later, or unclear.
 3. Post one comment in the language Troy wrote in, whose first line is the fixed English heading the entry skill gives for that kind (`Idea: requirement change`, `Idea: bug`, `Idea: rule`, `Idea: answered`, `Idea: later`, or `Waiting for Troy: <question>` with one question and a recommended answer). Check it with `check-text` first.
-4. Then go on as the entry skill says: PM2 for a requirement change, the bug flow's label for a bug, the rule change flow for a rule, the answer and closing the issue for a question. Ask Troy nothing more than those flows already do.
+4. Then go on as the entry skill says: PM2 for a requirement change, the bug flow's label for a bug, the rule change flow for a rule, the answer and closing the issue for a question. Answer a question from the approved requirements, architecture, designs, and test plans; only one that needs one of them changed is a requirement change (W6). Ask Troy nothing more than those flows already do.
+
+### PM7 Ruling
+
+When: the Architect's own review loop (AR2 on PR 1, or on a `[docs]` design update) still ends in `changes-requested` at round 3 (tstack's F18 design 5).
+
+1. Read the three rounds' review comments and the Interface Designer's answers in its reports. Read only the parts of the design that the open findings name, never the whole design: it can be long.
+2. Rule on each open finding of round 3: `fix` or `does not block`, each with one sentence of reason from the requirements, the architecture, the design, or the rules. A finding that needs one of those documents changed is an escalation (W6). A finding that does not block but is worth doing later becomes a note for a later feature or an idea issue.
+3. Post the ruling on the PR as the entry skill says, headed `Product Manager ruling, round 3: merge` when no finding is `fix`, else `Product Manager ruling, round 3: fix`, with one numbered line per finding: `1. fix: <reason>` or `1. does not block: <reason>`.
+4. After the Interface Designer's one revision with only the `fix` findings, check only those findings, and post `Product Manager ruling, round 3: fixed` or `not fixed`, one numbered line per finding, `fixed` or `not fixed`. `not fixed` escalates (W7).
+5. Change no file of the design yourself. Troy can overturn the ruling on the feature's progress issue until the feature's acceptance.

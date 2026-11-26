@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.3 |
-| Date | 2026-11-18 |
+| Version | 0.4 |
+| Date | 2026-11-25 |
 | Source of truth | This English file. [`03-features.zh-CN.md`](03-features.zh-CN.md) is the Chinese mirror. |
 
 troy-mode builds features one at a time, in the topological order of the requirements. Each feature takes six PRs, merged in order, each with one commit that holds one stage's output ([requirements section 5.2](../requirements.md#52-feature-loop)). You approve the first two PRs of the first features. troy-mode merges everything else.
@@ -17,7 +17,7 @@ troy-mode builds features one at a time, in the topological order of the require
 | `/tstack:troy-mode F04 to F06` | F04, F05, and F06, in order |
 | `/tstack:troy-mode Start v0.1` or `/tstack:troy-mode the rest of v0.1` | Every feature of v0.1 not yet accepted, in order |
 
-A request reaches one feature unless it names more, as the last two rows do: several features, or a version. A request that names a version reaches every feature of that version not yet accepted, and stops before the release, which you ask for with `release v0.1` ([F07 design D203](../design/F07-entry-skill.md#16-decisions-for-troy)). Then troy-mode reports and stops ([D63](../design/F07-entry-skill.md#16-decisions-for-troy)). Within that reach it goes from stage to stage and from feature to feature by itself, and stops only where it needs you: an approval of yours, or an escalation. After your approval it goes on. In the pilot, before D203, "Start v0.1" reached only F01, and each later feature needed its own request, such as "Start F02" or "开始做F09" ([issue #52](https://github.com/ZJUCao/tstack/issues/52)).
+A feature-loop request, such as "next feature", "F04", or "continue", reaches every feature of the current version not yet accepted, and then the release's steps up to your test on your devices ([F18 design D172](../design/F18-fewer-stops.md)). To stop earlier, say where, such as "only F04" or "stop after the mock". You can also ask for a release on its own, with `release v0.1`. Within that reach troy-mode goes from stage to stage and from feature to feature by itself, and stops only where it needs you: one of the waits of [section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you), an approval of yours or an escalation. After your answer it goes on. Before F18, a request that named one feature or one stage ended there ([F07 design D63 and D203](../design/F07-entry-skill.md#16-decisions-for-troy)). In the pilot, before D203, "Start v0.1" reached only F01, and each later feature needed its own request, such as "Start F02" or "开始做F09" ([issue #52](https://github.com/ZJUCao/tstack/issues/52)).
 
 What a feature takes: in the pilot, each of the 13 features of `ZJUCao/recipe-menu` took 3 to 16 hours from its design PR to its acceptance, while you approved its design and test plan. Each took 14 to 24 role runs and $45 to $103 at the API's list prices, most of it in the roles that run on opus and in the main session.
 
@@ -96,8 +96,8 @@ troy-mode records your answer in `.troy-mode/config.toml`, with a comment line t
 
 ## 3.5 Reviews, rounds, and attempts
 
-- **Rounds (R17).** A round is one run of the stage's reviewers. A review that asks for changes sends the findings back to the author, and the next round starts. After 3 rounds without approval, troy-mode escalates to you. On PR 4, a change request from either reviewer fails the round.
-- **Attempts (D64).** An attempt is an author's run that fails, whose local checks fail, or whose CI fails in the author's files. Each stage allows 3. After the third, troy-mode escalates ([F07 design section 8.5](../design/F07-entry-skill.md#85-attempts-d64)). troy-mode counts a CI failure even when nobody posted a comment for it: each pushed commit that failed a check in CI counts once, and a failure in the checkout or the setup counts nothing. When it finds a failure without a comment, it posts the comment, with a `Commit:` line that names the commit.
+- **Rounds (R17).** A round is one run of the stage's reviewers. A review that asks for changes sends the findings back to the author, and the next round starts. After 3 rounds without approval, a ruling decides, not you: the Architect, or the Product Manager when the loop is the Architect's own review, rules on each open finding and writes the reason in the PR, and you can overturn the ruling until the feature's acceptance ([section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you)). On PR 4, a change request from either reviewer fails the round.
+- **Attempts (D64).** An attempt is an author's run that fails, whose local checks fail, or whose CI fails in the author's files. Each stage allows 3. After the third, the author runs once more and first tests what the three attempts assumed; only when that fourth attempt fails too does troy-mode escalate, with what the test showed ([F07 design section 8.5](../design/F07-entry-skill.md#85-attempts-d64), [F18 design section 6](../design/F18-fewer-stops.md)). troy-mode counts a CI failure even when nobody posted a comment for it: each pushed commit that failed a check in CI counts once, and a failure in the checkout or the setup counts nothing. When it finds a failure without a comment, it posts the comment, with a `Commit:` line that names the commit.
 - **Comments.** Every review and failed attempt is a PR comment with a heading such as `Test Manager review, round 1: changes-requested` or `Developer attempt 2: failed`. Every role acts through your GitHub account, so a comment without one of troy-mode's headings counts as yours ([reference: comment headings](08-reference.md#83-comment-headings)). troy-mode passes your comments on a PR to its author.
 
 In the trial's PR [#10](https://github.com/ZJUCao/troy-mode-trial/pull/10), F01's tests, both reviewers asked for changes in round 1 because one test's input differed from the plan, and both approved in round 2.

@@ -15,7 +15,8 @@ from dataclasses import dataclass, field
 from . import github
 from .repo import Repo
 
-RUN_FIELDS = "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName"
+RUN_FIELDS = ("databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName,"
+              "attempt")
 # The steps that run a check on the repository's files (D262): troy-check's job
 # (F02 section 8) and each step of a language pack's job after "Install from
 # the lock" (F03). Any other failed step lies outside the author's files.
@@ -48,6 +49,9 @@ class Failure:
         failed_at: When the first of its failed runs finished.
         counted: An attempt comment counts it.
         attempt: The attempt number an author failure not counted takes.
+        rerun: One of its failed runs is a re-run that failed again (gh's `attempt`
+            2 or more), so a failure outside the authors' files is not re-run
+            twice (F18 design 4.3).
     """
 
     commit: str
@@ -58,11 +62,13 @@ class Failure:
     failed_at: datetime.datetime | None = None
     counted: bool = False
     attempt: int | None = None
+    rerun: bool = False
 
     def entry(self) -> dict:
         """The report's ci_failures entry."""
         return {"commit": self.commit, "runs": self.runs, "steps": self.steps,
-                "author": self.author, "counted": self.counted, "attempt": self.attempt}
+                "author": self.author, "counted": self.counted, "attempt": self.attempt,
+                "rerun": self.rerun}
 
 
 @dataclass
@@ -163,6 +169,14 @@ def _failed_steps(repo: Repo, run_id: int) -> tuple[list[str], bool]:
     return steps, author
 
 
+def _attempt(run: dict) -> int:
+    """A run's attempt number, 1 when gh gives none."""
+    try:
+        return int(run.get("attempt") or 1)
+    except (TypeError, ValueError):
+        return 1
+
+
 def failures(repo: Repo, runs: list[dict]) -> tuple[list[tuple[str, datetime.datetime]],
                                                        list[Failure]]:
     """Finds the PR's failed commits among its runs.
@@ -185,6 +199,7 @@ def failures(repo: Repo, runs: list[dict]) -> tuple[list[tuple[str, datetime.dat
             steps, author = _failed_steps(repo, int(run["databaseId"]))
             failure.runs.append(int(run["databaseId"]))
             failure.steps += steps
+            failure.rerun = failure.rerun or _attempt(run) >= 2
             if author:
                 failure.author = True
                 author_ends.append(when(run.get("updatedAt")))
