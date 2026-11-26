@@ -7,6 +7,10 @@ or more PRs is a repeated problem. It changes nothing.
 
 F07 D261 to D263 add each commit that failed CI in the author's files with no
 attempt comment counting it, in its role's attempt group (ci.py).
+
+F18 adds the waits by ID with how long each waited, the waits without a
+listed ID, the rulings at round 3, the premise attempts, and Troy's
+overturns (F18 design 4.2 and 8).
 """
 
 import datetime
@@ -14,13 +18,14 @@ import json
 import os
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
-from . import ci, github, teams
+from . import ci, github, issuedata, stops, teams, waits
 from . import repo as git
 from .errors import FlowError
 from .nextstep import title_task
 from .repo import MAIN, Repo
-from .stages import parse_subject, plain
+from .stages import feature_stage, parse_subject, plain
 from .versions import is_patch, parse_tag, release_tag
 
 RULE_ID = re.compile(r"\b([RP]\d{2})\b")
@@ -223,6 +228,7 @@ def run_retro(args) -> tuple[dict, int]:
     loose = []
     runs = _ci_runs(repo, [merged[p["number"]] for p in prs], report["notes"]) if prs else None
     ci_attempts, ci_other = [], []
+    found = {"waits": [], "rulings": [], "premise_attempts": []}
     for pr in prs:
         timed = github.timed_comments(repo, pr["number"])
         for _, body in timed:
@@ -231,6 +237,7 @@ def run_retro(args) -> tuple[dict, int]:
             for entry in entries:
                 _group(groups, entry, pr, heading)
             loose += [{"pr": pr["number"], "heading": heading, "text": t} for t in unkeyed]
+        _stops(pr, merged[pr["number"]], timed, found)
         if runs is not None:
             _ci_evidence(repo, pr, merged[pr["number"]], runs, timed, groups,
                          (ci_attempts, ci_other), report["notes"])
@@ -242,8 +249,91 @@ def run_retro(args) -> tuple[dict, int]:
     report.update(ok=True, previous=previous, prs=prs, groups=ordered,
                   repeated=[g["key"] for g in ordered if g["repeated"]], ungrouped=loose,
                   bugs=_bugs(repo, [s for _, s in commits]), ci_attempts=ci_attempts,
-                  ci_other=ci_other)
+                  ci_other=ci_other, **_wait_totals(found["waits"]),
+                  rulings=found["rulings"], premise_attempts=found["premise_attempts"],
+                  overturns=_overturns(repo, prs, report["notes"]))
     return report, 0
+
+
+def _hours(start: str, end: str | None) -> float | None:
+    """The hours from one of gh's times to another, rounded to 2 places, or None."""
+    begin, finish = ci.when(start), ci.when(end) if end else None
+    if begin is None or finish is None:
+        return None
+    return round((finish - begin).total_seconds() / 3600, 2)
+
+
+def _stops(pr: dict, merged: dict, timed: list[tuple[str, str]], found: dict) -> None:
+    """Adds one merged PR's waits, rulings, and premise attempt (F18 design 8)."""
+    attempts = []
+    for index, (moment, body) in enumerate(timed):
+        wait = waits.wait_of(body)
+        if wait is not None:
+            end = timed[index + 1][0] if index + 1 < len(timed) else merged.get("mergedAt")
+            found["waits"].append({"wait": wait, "pr": pr["number"], "url": pr.get("url"),
+                                   "heading": github.heading(body), "hours": _hours(moment, end)})
+        ruling = github.read_ruling(body)
+        if ruling:
+            found["rulings"].append({"pr": pr["number"], "url": pr.get("url"), **ruling})
+        number = github.attempt_number(body)
+        if number:
+            attempts.append((index, number, body))
+    third = next((index for index, number, _ in attempts if number == 3), None)
+    if third is None:
+        return
+    fourth = next((body for _, number, body in attempts if number >= 4), None)
+    escalation = next((body for index, (_, body) in enumerate(timed)
+                       if index > third and github.ESCALATION.match(github.heading(body))), None)
+    lines = _premise_lines(fourth or escalation or "")
+    found["premise_attempts"].append({
+        "pr": pr["number"], "url": pr.get("url"),
+        "role": github.ATTEMPT.match(github.heading(attempts[0][2])).group(1),
+        "outcome": "escalated" if fourth or escalation else "fixed", **lines})
+
+
+def _premise_lines(body: str) -> dict:
+    """The texts after Premise:, Check:, and Result: in a comment, each None when missing."""
+    found = {"premise": None, "check": None, "result": None}
+    for line in body.replace("\r\n", "\n").split("\n"):
+        word, sep, rest = line.strip().partition(":")
+        key = word.strip().lower()
+        if sep and key in found and found[key] is None and rest.strip():
+            found[key] = rest.strip()
+    return found
+
+
+def _wait_totals(entries: list[dict]) -> dict:
+    """The waits by listed ID, with count, hours, and PRs, and the unlisted ones."""
+    totals: dict = {}
+    for entry in entries:
+        if entry["wait"] == waits.UNLISTED:
+            continue
+        total = totals.setdefault(entry["wait"], {"count": 0, "hours": 0.0, "prs": []})
+        total["count"] += 1
+        total["hours"] = round(total["hours"] + (entry["hours"] or 0.0), 2)
+        if entry["pr"] not in total["prs"]:
+            total["prs"].append(entry["pr"])
+    for total in totals.values():
+        total["prs"].sort()
+    ordered = {key: totals[key] for key in waits.WAITS if key in totals}
+    unlisted = [{key: entry[key] for key in ("pr", "url", "heading", "hours")}
+                for entry in entries if entry["wait"] == waits.UNLISTED]
+    return {"waits": ordered, "unlisted": unlisted}
+
+
+def _overturns(repo: Repo, prs: list[dict], notes: list[str]) -> list[dict]:
+    """Troy's overturns on the progress issues of the features the range's stage PRs built."""
+    features = {found[0] for found in (feature_stage(str(pr.get("title") or "")) for pr in prs)
+                if found}
+    if not features:
+        return []
+    issues = issuedata.read_issues(repo)
+    if not issues.readable:
+        notes.append(f"The issues could not be read ({issues.error or issuedata.TURNED_OFF}); "
+                     "overturns are not listed.")
+        return []
+    return [entry for entry in stops.overturns(SimpleNamespace(issues=issues))
+            if entry["item"] in features]
 
 
 def _ci_runs(repo: Repo, prs: list[dict], notes: list[str]) -> list[dict] | None:

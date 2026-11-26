@@ -163,8 +163,10 @@ def _read_prs(state: State, with_ci: bool) -> None:
     """Reads the open PRs and their comments through gh, and with_ci their CI runs."""
     for pr in github.open_prs(state.repo):
         number = int(pr.get("number", 0))
-        timed = github.timed_comments(state.repo, number)
-        pr["notes"] = github.read_comments([body for _, body in timed])
+        items = github.comment_items(state.repo, number)
+        timed = [(item["time"], item["body"]) for item in items]
+        pr["notes"] = github.read_comments([item["body"] for item in items],
+                                           [item["url"] for item in items])
         pr["ci"] = _read_ci(state, pr, timed) if with_ci else None
         state.prs.append(pr)
 
@@ -267,7 +269,8 @@ def pr_entry(state: State, pr: dict) -> dict:
         "attempts": counted.attempts if counted else notes.attempts,
         "ci_failures": [f.entry() for f in counted.failures] if counted else [],
         "troy_comments": notes.troy, "waiting_for_troy": notes.waiting,
-        "escalated": notes.escalated,
+        "escalated": notes.escalated, "wait": notes.wait if notes.waiting else None,
+        "rulings": notes.rulings,
     }
 
 

@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F15 in [requirements 1.39](../requirements.md#72-feature-list) |
-| Version | 1.5 |
+| Version | 1.6 |
 | Date | 2026-11-25 |
-| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). Version 1.4 records where tstack #67's build put the notes line (section 4.2). Version 1.5 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
+| Status | Approved by Troy on 2026-11-16, with D141 to D150. Version 1.1 records the facts the build and its trial settled. Version 1.2 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.3 follows F07's D284 to D287 for tstack issue #67, approved under Troy's standing yes of 2026-11-22: notes for later features are troy-mode's comments on progress issues (sections 3.3, 4.2, 4.4, and 8.4). Version 1.4 records where tstack #67's build put the notes line (section 4.2). Version 1.5 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. Version 1.6 adds F18 part 1's lines and headings (sections 4.2, 5.3, and 8.4). |
 | Source of truth | This English file. [`F15-issues.zh-CN.md`](F15-issues.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -146,7 +146,8 @@ troy-mode keeps this text and replaces edits to it. To reach troy-mode, write a 
 
 - **The boxes** are troy-mode's: a stage is ticked when its PR has merged. A mock that the requirement change flow skips (F07 D65) is ticked with "skipped: no new interface".
 - **The stage line** names the stage's PR and its state. For the open PR, it adds the last review or attempt heading, translated into fixed words, such as "Code Reviewer, round 1: changes requested".
-- **"Waiting for you"** says what waits on Troy, from `status`: "approve #41; what to decide is at the top of its description", or an escalation with its link.
+- **"Waiting for you"** says what waits on Troy, from `status`: "approve #41; what to decide is at the top of its description", or an escalation with its link. Since F18, it starts with the wait's ID when the comment names a listed one: "W3, approve #41; ..." (F18 design 4.2).
+- **Rulings and overturns (F18 design 5.3).** After the side PRs line, one line per ruled PR of the feature, open or merged, with its newest result and a link to the ruling: "Ruling: #41 Architect, round 3: merge (ruling)"; and one line per overturn: "Overturn: <link> (being carried out)" or "(carried out)". A merged PR's rulings are read once per checkout and kept in the common git folder, `troy-mode/rulings.json`.
 - **The status** is the feature's Status cell in the requirements and its mirror, shown when it says more than "Not started": "Needs rework (<the change>)" during a rework, and the new status at acceptance.
 - **Other lines,** when they exist: side PRs whose title names the feature, such as `[F04 test-fix]`; bug issues titled `Real run of F04: ...` (F12 design D107); a stage PR closed unmerged; "Needs rework" with the change that caused it; and the notes that earlier work left for the feature, "备注：2 条（#31、#40）" and "Notes from earlier work: 2 (#31, #40)", each number linking its `Note for` comment (F07 design 6.6, D284). The line comes after the stage lines and before the dependencies.
 - **The links** go to the documents on `main` and to the dependencies' progress issues. The issue never holds a document's text or the summary for Troy (section 8.3).
@@ -158,7 +159,7 @@ The Why section of every stage PR's description starts with `Progress: #<n>`, an
 
 ### 4.4 Kept up to date
 
-The sync runs at every start and after every step, and edits the body only when it differs. troy-mode writes no comment on a progress issue except a reply to Troy (section 7) and a note for a later feature (F07 design 6.6), which it never edits or deletes. When Troy edits the body or the title, the next sync puts troy-mode's text back. When Troy closes the issue while the feature is not accepted, the next sync reopens it. To say something to troy-mode, Troy writes a comment.
+The sync runs at every start and after every step, and edits the body only when it differs. troy-mode writes no comment on a progress issue except a reply to Troy (section 7), a note for a later feature (F07 design 6.6), which it never edits or deletes, and an overturn's two comments (F18 design 5.3). When Troy edits the body or the title, the next sync puts troy-mode's text back. When Troy closes the issue while the feature is not accepted, the next sync reopens it. To say something to troy-mode, Troy writes a comment.
 
 ### 4.5 Closed at acceptance
 
@@ -203,7 +204,7 @@ Triage asks Troy nothing more than the flows already do: a requirement change wa
 - **A bug:** PR B's `Fixes #<n>` closes it (F07 design 11.1).
 - **A rule:** the rule PR's description says `Closes #<n>`.
 - **Answered:** closed with the answer.
-- **Closed by Troy:** troy-mode does nothing more with it. If a change PR for it is open, troy-mode asks Troy whether to close that PR too.
+- **Closed by Troy:** troy-mode does nothing more with it. If a change PR for it is open, troy-mode closes that PR without merging it, which Troy can reopen, and says so in its report (F18 design 4.3, D172).
 
 ### 5.5 Ideas from chat that wait
 
@@ -337,7 +338,8 @@ Each starts the comment's first line, so `status` can tell troy-mode's comments 
 - `Waiting for Troy: <question>` (F07's heading);
 - `Reply to Troy`;
 - `Device test, run <n>: ready` (section 6.3);
-- `Note for <feature ID>, from <source>`, on progress issues, in English, since roles read it (F07 design 6.6).
+- `Note for <feature ID>, from <source>`, on progress issues, in English, since roles read it (F07 design 6.6);
+- `Overturn: <link to the ruling>`, troy-mode's answer to Troy's overturn of a ruling, and `Overturn carried out: <link to the ruling>`, once the PRs that carry it out have merged, on progress issues (F18 design 5.3).
 
 ## 9. When gh or the network fails (D147)
 
@@ -562,3 +564,4 @@ Requirements 1.39 records the approved changes:
 | 1.3 | 2026-11-23 | F07's D284 to D287, from tstack issue #67, approved under Troy's standing yes of 2026-11-22: troy-mode's `Note for <ID>` comments on progress issues hold the notes for later features; the target's issue shows a notes line; a note never hides Troy's comment (sections 3.3, 4.2, 4.4, 8.4, 13.1, and 13.2). |
 | 1.4 | 2026-11-24 | tstack #67's build: the notes line comes after the stage lines and before the dependencies (section 4.2). |
 | 1.5 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): the progress issue shows a wait's ID, each ruling, a sampled PR, and a risky mark; Troy's overturn and "risky" comments on it are read as messages in chat (D145), and troy-mode answers an overturn under the new heading `Overturn:` (section 8.4); the device-test checklist gains a box for each sampled PR that Troy has not answered (D144; F18 design sections 5.3, 7.1, and 8). The changes land with F18's build. |
+| 1.6 | 2026-11-25 | F18 part 1's build (F18 design 4.2, 4.3, and 5.3): the "Waiting for you" line starts with the wait's ID; a progress issue gains a line per ruled PR of the feature and a line per overturn; troy-mode answers Troy's overturn with `Overturn: <link to the ruling>` and ends it with `Overturn carried out: <link>`; a change PR whose idea Troy closed is closed (sections 4.2, 5.3, and 8.4). |

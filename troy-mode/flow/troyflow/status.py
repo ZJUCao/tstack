@@ -4,9 +4,12 @@ F08 adds the versions, the release state, and the release's next actions
 (F08 design 3.2 and 3.3). F09 adds the P rules and the cleanup action (F09
 design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
 F07 D261 to D263 count each open PR's attempts from its CI runs too (ci.py).
+F18 adds the wait IDs, the rulings at round 3, the premise attempt, and
+Troy's overturns (F18 design 4.2, 5, 6, and 8).
 """
 
-from . import github, issuesync, nextstep, notecmd, progress, releases, teamstate
+from . import github, issuesync, nextstep, notecmd, progress, releases, stops, teamstate, waits
+from .nextentry import STILL_FAILS, make
 from .progress import View
 from .requirements import approved
 from .stages import stage_name
@@ -43,6 +46,16 @@ def action_text(entry: dict) -> str:
     action = entry["action"]
     if action == "continue-pr":
         return f"Continue PR #{entry['pr']} {entry['title']}."
+    if action == "ruling":
+        return (f"Rule on round 3 of PR #{entry['pr']} as the {entry['ruling']['ruler']} "
+                f"({entry['task']}): fix or does not block, finding by finding.")
+    if action == "ruled-revision":
+        return (f"Run the author of PR #{entry['pr']} once more with the ruling's fix findings, "
+                f"then the {entry['ruling']['ruler']}'s check ({entry['ruling']['task']}).")
+    if action == "overturn":
+        return (f"Carry out Troy's overturn of {entry['overturn']['ruling']} for "
+                f"{entry['item']} before its next stage (progress issue "
+                f"#{entry['overturn']['issue']}).")
     if action == "record-approval":
         return f"Record Troy's approval of {entry['doc']} in {entry['title']}."
     if action == "stage":
@@ -102,8 +115,10 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
     stage = entry.get("stage")
     if entry["action"] == "rework":
         return f"{stage} of 6. Needs rework after a requirement change."
+    if entry["action"] == "overturn":
+        return f"{stage} of 6. Held until Troy's overturn is carried out."
     if stage is None:
-        if entry["action"] == "continue-pr":
+        if entry["action"] in ("continue-pr", "ruling", "ruled-revision"):
             return f"none. PR #{entry['pr']} is open."
         if entry["action"] in ("bug", "version-test-plan", "release", "record-acceptance",
                                "tag", "retro", "cleanup", "ideas"):
@@ -160,15 +175,31 @@ def _waiting(args, state: State, entry: dict, carried: View | None) -> str | Non
     """Finds what waits on Troy: --waiting, the current PR, or the carried text.
 
     While the current work has an open PR, its comments alone say whether it
-    waits on Troy, so a reply of Troy's on the PR ends the wait.
+    waits on Troy, so a reply of Troy's on the PR ends the wait. The text starts
+    with the wait's ID, or "unlisted" (F18 D171).
     """
     if args.waiting is not None:
-        return args.waiting or None
+        return f"{args.wait}, {args.waiting}" if args.waiting else None
     pr = next((p for p in state.prs if p.get("number") == entry.get("pr")), None)
     if pr is not None:
-        return f"PR #{entry['pr']}: {pr['notes'].last}" if pr["notes"].waiting else None
+        notes = pr["notes"]
+        return f"{notes.wait}, PR #{entry['pr']}: {notes.last}" if notes.waiting else None
     text = carried.values.get("Waiting on Troy") if carried else None
     return text if text and text != "Nothing" else None
+
+
+def wait_problem(args) -> str | None:
+    """Why --waiting and --wait cannot be recorded, or None (F18 design 4.2)."""
+    wait, text = getattr(args, "wait", None), args.waiting
+    if wait is not None and not text:
+        return "--wait needs --waiting with the text of what waits on Troy."
+    if text and wait is None:
+        return ("--waiting needs --wait <ID>: the wait's ID from the Product Manager's list, "
+                "W1 to W11.")
+    if text and not waits.is_listed(wait):
+        return (f"--wait {wait!r} is not a listed wait: W1 to W11 from the Product Manager's "
+                "list. A stop that fits none of them is not a wait for Troy.")
+    return None
 
 
 def _progress(args, state: State, entry: dict, prs: list[dict], report: dict,
@@ -182,6 +213,8 @@ def _progress(args, state: State, entry: dict, prs: list[dict], report: dict,
     entry["attempts"] = max(entry["attempts"], attempts)
     waiting = _waiting(args, state, entry, carried)
     report["waiting_on_troy"] = waiting
+    report["wait"] = waits.carried(waiting)
+    _final_flags(state, entry, waiting)
     view = build_view(state, entry, prs, waiting, part)
     view.notes = notes
     stale = old is None or not progress.is_current(old, view)
@@ -193,6 +226,32 @@ def _progress(args, state: State, entry: dict, prs: list[dict], report: dict,
     if stale:
         why = "it was missing" if old is None else "it was out of date"
         report["notes"].append(f"Rebuilt {progress.PATH} from git and GitHub: {why}.")
+
+
+def _final_flags(state: State, entry: dict, waiting: str | None) -> None:
+    """Sets `premise` and `escalate` once the attempts count the progress file's notes (D175).
+
+    With a PR, an escalation comment after the newest attempt answers it;
+    before a PR exists, a recorded wait does.
+    """
+    entry["premise"] = entry["attempts"] == 3
+    if entry["attempts"] < 4 or entry.get("escalate"):
+        return
+    pr = next((p for p in state.prs if p.get("number") == entry.get("pr")), None)
+    escalated = pr["notes"].escalated_since_attempt if pr is not None else waiting is not None
+    if not escalated:
+        entry["escalate"] = STILL_FAILS
+
+
+def _overturned(state: State, entry: dict, found: list[dict]) -> dict:
+    """Holds a feature whose ruling Troy overturned before its next stage (F18 design 5.3)."""
+    if entry.get("action") != "stage":
+        return entry
+    overturn = stops.open_overturn(found, entry.get("item"))
+    if overturn is None:
+        return entry
+    return make("overturn", item=entry["item"], stage=entry["stage"], issue=overturn["issue"],
+                overturn={"issue": overturn["issue"], "ruling": overturn["ruling"]})
 
 
 def _doc(state: State, path: str) -> dict:
@@ -212,20 +271,27 @@ def run_status(args) -> tuple[dict, int]:
     """Reads the state, decides the next action, and keeps the progress file.
 
     Args:
-        args: Parsed options: repo, write_progress, waiting, and note.
+        args: Parsed options: repo, write_progress, waiting, wait, and note.
 
     Returns:
-        The report and the exit code, 0 whenever the state could be read.
+        The report and the exit code, 0 whenever the state could be read, and
+        1 when --waiting and --wait name no listed wait (F18 D171).
     """
+    problem = wait_problem(args)
+    if problem:
+        return {"command": "status", "ok": False, "notes": [],
+                "problems": [{"kind": "wait", "message": problem}]}, 1
     state = read_state(args.repo, with_ci=True)
     if state.repo is not None and state.origin:
         issuesync.load(state)
+    found = stops.overturns(state)
     part = teamstate.compute(state)
     if part["mode"]:
         entry, notes = nextstep.decide(teamstate.without_teams(state, part))
         entry = teamstate.home_next(entry, part, state)
     else:
         entry, notes = nextstep.decide(state)
+    entry = _overturned(state, entry, found)
     notes.extend(state.notes)
     prs = [pr_entry(state, pr) for pr in state.prs]
     report = {
@@ -240,7 +306,7 @@ def run_status(args) -> tuple[dict, int]:
         "versions": releases.version_entries(state) if state.origin else [],
         "release": releases.release_entry(state) if state.origin else None,
         "issues": issuesync.status_part(state),
-        "waiting_on_troy": None,
+        "waiting_on_troy": None, "wait": None, "overturns": found,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
         "teams": part["teams"], "may_start": part["may_start"],
         "needs_plan": part["needs_plan"], "waiting": part["waiting"],

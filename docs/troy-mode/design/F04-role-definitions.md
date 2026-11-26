@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F04 in [requirements 1.13](../requirements.md#72-feature-list) |
-| Version | 1.8 |
+| Version | 1.9 |
 | Date | 2026-11-25 |
-| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). Version 1.6 adds AR7 to section 6.2's table, from F20 part 2's build. Version 1.7 records the probe of D283, run by tstack #75's build (section 6.8). Version 1.8 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
+| Status | Approved by Troy on 2026-11-06, with D27 to D38. Version 1.3 follows F07's D205 to D207, the design of tstack issue #63 (section 6). Version 1.4 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.5 adds D280 to D283 for tstack issue #75, which Troy accepted on 2026-11-16 as the pilot report's candidate T3; each takes the recommended answer, approved under Troy's standing yes of 2026-11-22 (section 6.8). Version 1.6 adds AR7 to section 6.2's table, from F20 part 2's build. Version 1.7 records the probe of D283, run by tstack #75's build (section 6.8). Version 1.8 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. Version 1.9 adds PM7 and AR8 to section 6's tables and the Product Manager's waits, from F18 part 1's build. |
 | Source of truth | This English file. [`F04-role-definitions.zh-CN.md`](F04-role-definitions.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -143,6 +143,9 @@ The entry skill (F07) reads `troy-mode/roles/product-manager.md` at the start of
 | PM3 Acceptance | PR 6 | Check the finished feature against its requirement row and prototypes. Set its status to "Passes tests on main". |
 | PM4 Version | Release (5.5) | When the release starts, write the version's changelog section in English and Chinese. After Troy accepts the version on Troy's own devices, and only then, set its features to "Usable on Troy's devices". |
 | PM5 Status | Always | Every status label says how far a feature really goes (R13). Never write "done" when only part of it exists. |
+| PM7 Ruling | The Architect's own review loop still ends in `changes-requested` at round 3 (F18) | Read only the parts of the design that the open findings name. Rule on each finding `fix` or `does not block`, with one sentence of reason; a finding that needs a document changed escalates (W6). After the one ruled revision, check only the `fix` findings: `fixed` or `not fixed`, which escalates (W7). Change no file (F18 design 5, D173). |
+
+The file also lists, in a section "Waits for Troy" before its tasks, the only steps where troy-mode stops for Troy: W1 to W11 (F18 design 4.1, D171). PM3 and PM6 answer a question from the approved requirements, architecture, designs, and test plans; only one that needs one of them changed waits for Troy (W6).
 
 ### 6.2 Architect
 
@@ -151,11 +154,12 @@ Owns: the architecture, coding rules, module dependency rules, ADRs, and approva
 | Task | When | Steps |
 | --- | --- | --- |
 | AR1 Architecture | Setup (5.1.3) | Read the requirements. Fill the `architecture` template. The module table lists path patterns in backticks in its Owns and External interfaces columns, so troy-check can check R07 (F03 D19). Record each significant choice as an ADR. |
-| AR2 Design review | PR 1, rounds 1 to 3 | Check the design against the six checklist items. Fill section 4 of the design, the checklist table and one rounds-log row, in English and Chinese, and change nothing else in it (D37). Each blocking finding names its checklist item. |
+| AR2 Design review | PR 1, rounds 1 to 3 | Check the design against the six checklist items. Fill section 4 of the design, the checklist table and one rounds-log row, in English and Chinese, and change nothing else in it (D37). Each blocking finding names its checklist item. Summary ends with `Risky: no` or `Risky: <reason>` from a fixed list: a stored data format or a file Troy keeps changes, Troy's files are deleted or moved, behavior Troy will see that the prototypes do not show, or network access, a subprocess, or credentials (F18 design 7.2, D177). |
 | AR3 Dependency review | A role asks for a new dependency (R16) | Check the license, maintenance, size, security record, and the option of no dependency. Report `escalate` with a recommendation, because Troy decides (5.7). After Troy accepts, add it to the architecture's dependency table with an ADR. |
 | AR4 Change impact | Change flow (5.4.3) | List the interfaces, tests, and parts of the architecture that change. Write an ADR for an architecture change. |
 | AR5 Answer | Another role asks | Answer from the architecture. If the answer needs the architecture to change, report `escalate`. |
 | AR6 Rule enforcement | The rule change flow (F09) | Pick the strongest enforcement that works for a rule Troy states, give the rule's cells and the exact config, and find the existing code that breaks it by running the tool with the rule turned on in a command-line option. Change no file, and report `escalate` with the proposal. After Troy approves an architecture change, write it with an ADR. |
+| AR8 Ruling | A review loop other than the Architect's own still ends in `changes-requested` at round 3 (F18) | Rule on each open finding of round 3 `fix` or `does not block`, with one sentence of reason from the requirements, the architecture, the design, the test plan, or the rules, in Findings; a finding that needs a document changed is `escalate`. In the check after the one ruled revision, give each `fix` finding `fixed` or `not fixed`. Change no file (F18 design 5, D173). |
 | AR7 Batch plan | Several features may run at once (F20) | For a version: give each feature that may start its modules, external interfaces, and shared documents, and order two features that change the same interface, in the plan's fixed form in Summary. For a feature: check its approved design against the plan and the running teams' designs, and give new orders. Change no file (F20 design 3.4, D271). |
 
 ### 6.3 Interface Designer
@@ -440,3 +444,4 @@ D280 to D283 change no requirement (section 6.8).
 | 1.6 | 2026-11-23 | From F20 design 3.4 and D271: the Architect's AR7, Batch plan, joins section 6.2's table (F20 part 2's build). |
 | 1.7 | 2026-11-24 | tstack #75's build: the probe of D283 showed that `/security-review` on a review branch reviews every change since the previous release (section 6.8). |
 | 1.8 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): the Product Manager's instructions gain the section "Waits for Troy" with the waits W1 to W11, and PM7, a ruling at round 3 on the Architect's own review, and PM3 and PM6 answer from the approved documents; the Architect gains AR8, a ruling at round 3, and a `Risky:` line in AR2's report (F18 design sections 4, 5, and 7.2). The changes land with F18's build. |
+| 1.9 | 2026-11-25 | From F18 design sections 4, 5, and 7.2 (F18 part 1's build): the Product Manager's instructions hold the waits W1 to W11 in a section "Waits for Troy", and gain PM7, the ruling at round 3 of the Architect's own review; PM3 and PM6 answer a question from the approved documents; the Architect gains AR8, the ruling at round 3 of every other review loop, and AR2's Summary ends with a `Risky:` line. The report fields stay as they are, so the premise attempt's three lines open the author's Summary (section 6). |

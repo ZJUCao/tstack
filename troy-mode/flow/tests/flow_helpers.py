@@ -69,8 +69,10 @@ GITIGNORE = ".troy-mode/progress.md\nreports/\n__pycache__/\n"
 SETUP_TITLE = "[rules] Set up troy-mode"
 STAGE_NAMES = {1: "design", 2: "test-plan", 3: "mock", 4: "tests", 5: "impl", 6: "accept"}
 STAGE_TASKS = {1: "IF1", 2: "TM1", 3: "DV1", 4: "TE1", 5: "DV2", 6: "PM3"}
+# F18 part 1 (contract 4, 5, 7) adds premise, escalate, ruling, and overturn, always present.
 NEXT_KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc",
-             "rounds", "attempts", "step", "tag", "commit", "issue", "ideas")
+             "rounds", "attempts", "step", "tag", "commit", "issue", "ideas", "premise",
+             "escalate", "ruling", "overturn")
 REPO_URL = f"https://github.com/{LOGIN}/{PROJECT}"
 # The read calls F15 adds (F15 interface note, section 1).
 ALL_ISSUES_ARGS = ["issue", "list", "--state", "all", "--limit", "300", "--json",
@@ -1573,7 +1575,8 @@ class Fakes:
             runs: What ``gh run list`` prints (tstack issue #73): each a dict
                 with ``databaseId``, ``headBranch``, ``headSha``, ``status``,
                 ``conclusion``, ``createdAt``, ``updatedAt``, and
-                ``workflowName``. A call with ``--branch`` gets only the runs
+                ``workflowName``, and for F18 part 1 (contract 10) maybe
+                ``attempt``. A call with ``--branch`` gets only the runs
                 of that ``headBranch``, and a call with ``--limit`` at most
                 that many, in the order given here.
             run_views: Run ID mapped to what ``gh run view <id> --json jobs``
@@ -2122,7 +2125,8 @@ class FlowCase(unittest.TestCase):
         """Asserts ``next``: the named keys equal the values, the others are null.
 
         Keys a row of the note's table does not name are null, except
-        ``rounds`` and ``attempts``, which are 0. Pass ``ANY`` to skip a key.
+        ``rounds`` and ``attempts``, which are 0, and ``premise``, which is false.
+        Pass ``ANY`` to skip a key.
 
         Args:
             report: The status report.
@@ -2130,8 +2134,10 @@ class FlowCase(unittest.TestCase):
         """
         nxt = report.get("next")
         self.assertIsInstance(nxt, dict, json.dumps(report, indent=1)[:4000])
+        # F18 part 1 (contract 5): premise is false unless the attempts are exactly 3.
+        defaults = {"rounds": 0, "attempts": 0, "premise": False}
         for key in NEXT_KEYS:
-            want = expected.get(key, 0 if key in ("rounds", "attempts") else None)
+            want = expected.get(key, defaults.get(key))
             if want is ANY:
                 continue
             self.assertEqual(nxt.get(key), want, f"next.{key} in {json.dumps(nxt)}")

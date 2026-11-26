@@ -439,7 +439,9 @@ class ReleasePrTests(FlowCase):
         """Run 1 passed and F08 asked Troy: Troy's test, and status waits on Troy."""
         report = self.report("passed")
         self.assert_next(report, step="troy-test", **RELEASE_PR_NEXT)
-        self.assertEqual(report["waiting_on_troy"], "PR #30: Waiting for Troy: accept v0.1.0")
+        # F18 part 1 (contract 2): a request without a "Wait:" line waits as "unlisted".
+        self.assertEqual(report["waiting_on_troy"],
+                         "unlisted, PR #30: Waiting for Troy: accept v0.1.0")
         entry = report["open_prs"][0]
         self.assertEqual((entry["waiting_for_troy"], entry["troy_comments"]), (True, []))
         self.assertEqual(report["release"]["runs"],
@@ -810,9 +812,11 @@ class GhCallTests(FlowCase):
     def test_open_release_pr_reads_its_comments_and_the_bugs(self):
         """The open release PR: its comments and reviews, the open bugs, F15's two lists, and
         the CI runs of its head branch (F07 D261)."""
+        # F18 part 1 (contract 10) asks for each run's attempt too, to see a re-run.
         runs = ["run", "list", "--branch", release_pr(30, TAG)["headRefName"], "--event",
                 "pull_request", "--limit", "100", "--json",
-                "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName"]
+                "databaseId,headBranch,headSha,status,conclusion,createdAt,updatedAt,workflowName,"
+                "attempt"]
         self.assertEqual(self.calls("release PR"),
                          sorted([LIST_ARGS, ["pr", "view", "30", "--json", "comments,reviews"],
                                  ISSUE_ARGS, ALL_ISSUES_ARGS, ALL_PRS_ARGS, runs]))

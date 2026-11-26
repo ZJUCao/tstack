@@ -174,12 +174,12 @@ class Role(NamedTuple):
 AGENT_ROLES = (
     # AR6 "Rule enforcement", DV5 "Cleanup", and TE6 "Test cleanup" are F09's
     # (F09 design section 7, interface note section 0); AR7 "Batch plan" is F20's
-    # (F20 design 3.4).
+    # (F20 design 3.4); AR8 "Ruling" is F18's (F18 design 5.1, part 1 contract 11).
     Role(name="Architect", stem="troy-architect", model="opus",
          tools=("Read", "Grep", "Glob", "Write", "Edit", "Bash", "WebSearch", "WebFetch"),
          tasks=(("AR1", "Architecture"), ("AR2", "Design review"),
                 ("AR3", "Dependency review"), ("AR4", "Change impact"), ("AR5", "Answer"),
-                ("AR6", "Rule enforcement"), ("AR7", "Batch plan")),
+                ("AR6", "Rule enforcement"), ("AR7", "Batch plan"), ("AR8", "Ruling")),
          results=RESULTS["Architect"],
          scope=((PATTERN, "docs/architecture*.md"), (PATTERN, "docs/adr/**"),
                 (PATTERN, "docs/features/*/design*.md"))),
@@ -219,8 +219,9 @@ AGENT_ROLES = (
 )
 
 PM_NAME = "Product Manager"
+# PM6: F15 design 11. PM7 "Ruling": F18 design 5.1 (part 1 contract 11).
 PM_TASKS = (("PM1", "Requirements"), ("PM2", "Change request"), ("PM3", "Acceptance"),
-            ("PM4", "Version"), ("PM5", "Status"), ("PM6", "Ideas"))  # PM6: F15 design 11
+            ("PM4", "Version"), ("PM5", "Status"), ("PM6", "Ideas"), ("PM7", "Ruling"))
 
 # Every role in the requirements section 4 table.
 REQUIREMENT_ROLES = (PM_NAME,) + tuple(role.name for role in AGENT_ROLES)
@@ -928,8 +929,10 @@ class ProductManagerTests(RoleFileCase):
         self.assertNotEqual("---", text.split("\n")[0], f"{PM_WHERE}: must have no frontmatter")
 
     def test_task_headings_are_pm1_to_pm6(self) -> None:
-        """The only headings with task IDs are PM1 to PM5 of design section 6.1 and F15's PM6."""
-        self.assertEqual(6, len(PM_TASKS), "test_roles.py: PM_TASKS")
+        """The only headings with task IDs are PM1 to PM5 of design section 6.1, F15's PM6,
+        and F18's PM7."""
+        # F18 (part 1 contract 11) adds PM7 Ruling, so PM_TASKS holds seven tasks.
+        self.assertEqual(7, len(PM_TASKS), "test_roles.py: PM_TASKS")
         expected = [(3, f"{task_id} {title}") for task_id, title in PM_TASKS]
         found = [heading for heading in self.doc()[1].headings() if TASK_ID.match(heading[1])]
         self.assertEqual(expected, found, f"{PM_WHERE}: headings with task IDs")

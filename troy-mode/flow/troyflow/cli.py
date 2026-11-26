@@ -4,6 +4,7 @@ F07 D204 adds wait-checks, the wait for a pushed head's CI checks before a merge
 F07 D264 to D267 add costs, a feature's or a version's role runs and their cost.
 F20 adds team start and team end, a feature team's worktree.
 tstack #67 adds note, a note for a later feature (F07 design 6.6).
+F18 adds status --wait and brief --premise (F18 design 4.2 and 6).
 """
 
 import argparse
@@ -60,6 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd = sub.add_parser("status", help="the state, the next action, and the progress file")
     cmd.add_argument("--write-progress", action="store_true")
     cmd.add_argument("--waiting", help="what waits on Troy; an empty text clears it")
+    cmd.add_argument("--wait", help="the wait's ID, W1 to W11, with --waiting (F18)")
     cmd.add_argument("--note", action="append", help="a note for the progress file")
     cmd = sub.add_parser("brief", help="the brief for one role run")
     cmd.add_argument("--task", required=True)
@@ -67,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--title", help="the PR title, for a bug PR, a side PR, or a redo")
     cmd.add_argument("--round", type=_positive)
     cmd.add_argument("--input-file")
+    cmd.add_argument("--premise", action="store_true",
+                     help="an author's fourth attempt, which tests the premise first (F18)")
     cmd = sub.add_parser("snapshot", help="record the state before a role run")
     cmd.add_argument("--role", action="append", required=True, choices=runs.ROLES)
     cmd = sub.add_parser("check-run", help="check a role run against its snapshot")

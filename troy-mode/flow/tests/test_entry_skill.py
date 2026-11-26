@@ -298,12 +298,13 @@ class VersionReachTests(unittest.TestCase):
         self.assertRegex(bullet, r"(?i)\bafter Troy approves, (go|goes) on\b")
 
     def test_how_far_ends_the_reach_before_the_release(self):
-        """The How far bullet says the reach ends before the release and names "release v0.1"
-        as its own request."""
+        """The How far bullet takes the reach through the release's steps up to Troy's device
+        test, and no longer ends it before the release."""
+        # F18 part 1 (design 4.3, D172; contract 11): the reach goes on past the release's
+        # start, up to Troy's device test (W4), so "ends before the release" is gone.
         bullet = self.how_far()
-        self.assertRegex(bullet, r"(?i)\bends before\b[^.]*\brelease\b")
-        self.assertRegex(bullet, r"(?i)own request|request of its own")
-        self.assertIn('"release v0.1"', bullet)
+        self.assertRegex(bullet, r"(?i)\bdevice test\b")
+        self.assertNotRegex(bullet, r"(?i)\bends before\b[^.]*\brelease\b")
 
 
 def section(body: str, heading: str) -> str:

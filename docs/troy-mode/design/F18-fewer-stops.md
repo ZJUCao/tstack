@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F18 in [requirements 1.63](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-25 |
-| Status | Approved by Troy on 2026-11-25 ("全按推荐"), with D171 to D180, every recommended answer, and the requirement text proposals P1 to P7 of section 12 as written. Requirements 1.64 records the decisions with P1, P2, P5, and P7; P3, P4, and P6 land with F18's builds. The build's costs, about $135 and up to about $195, still wait for Troy's own yes. |
+| Status | Approved by Troy on 2026-11-25 ("全按推荐"), with D171 to D180, every recommended answer, and the requirement text proposals P1 to P7 of section 12 as written. Requirements 1.64 records the decisions with P1, P2, P5, and P7; P3, P4, and P6 land with F18's builds. The build's costs, about $135 and up to about $195, still wait for Troy's own yes. Version 1.1 records what part 1's build chose and its checks (section 13.5). |
 | Source of truth | This English file. [`F18-fewer-stops.zh-CN.md`](F18-fewer-stops.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -375,6 +375,27 @@ Part 1 changes the instruction set, so it waits until no other PR that changes i
 
 Each part's PR updates F18's status itself, since its tests, planted bugs, and trial run before it opens.
 
+### 13.5 What part 1's build chose
+
+Part 1's build fixed these points, which the sections above leave open. Its tests and trial check them.
+
+- **The wait's line.** `Wait: W<n>` is the first line that is not blank under a `Waiting for Troy:` or `Escalation:` heading. A missing line, or an ID outside W1 to W11, reads as `unlisted`. `status --waiting` needs `--wait <ID>` and is refused otherwise (exit 1, problem `wait`). `status` gives the ID in `wait`, and `waiting_on_troy` starts with it: "W3, approve PR #41", or "W3, PR #7: Waiting for Troy: approve this PR".
+- **`next`.** Four new keys: `premise`, true at exactly 3 attempts; `escalate`, the wait to escalate with, W7 from 4 attempts on or after a `not fixed` ruling, until an escalation is recorded; `ruling`, with the ruler, its task, and the newest result; and `overturn`. Three new actions: `ruling`, `ruled-revision`, and `overturn`.
+- **The end of an overturn.** The engine cannot tell the PRs that carry an overturn out from the feature's other PRs, so troy-mode records the end with a second heading on the progress issue, `Overturn carried out: <link to the ruling>`, once they have merged.
+- **Rulings of merged PRs.** The progress issue shows the rulings of the feature's merged PRs too. Reading every merged stage PR's comments at every sync would cost about half a second per PR, so a merged PR's rulings are read once per checkout and kept in the common git folder, `troy-mode/rulings.json`.
+- **Report fields.** Role reports have no Notes field (F04 section 5.2), so the premise attempt's three lines open its Summary, and AR2's `Risky:` line ends its Summary. Part 1 adds the line; part 2 reads it.
+- **The re-run.** `ci_failures` gains `rerun`, from the runs' `attempt` field, so a failure outside the authors' files is re-run only once, also across sessions.
+- **Where AR8 and `--premise` apply.** AR8 is briefed at a feature's stages 2 to 5, and on test fixes, bug PRs, version tests PRs, and a rule's cleanup PRs. `brief --premise` takes the author tasks IF1, IF2, TM1, TM7, DV1 to DV5, TE1 to TE6, and AR1, and adds the card's absolute path in the plugin to Read first.
+- **The environment in a premise attempt.** In the trial's first premise attempt, the Test Engineer found the cause, a wrong `MAMBA_ROOT_PREFIX`, and then set the variable on its own check commands instead of escalating. The premise text now says that a cause in the environment is outside the write scope even when the role's own commands could get around it, and the next premise attempt escalated (W7) with its evidence.
+- **Templates.** No template changes, since a template change puts every exam case in play. The rules template's R17 row and two template comments still say that the loop escalates, until the next PR that changes the templates.
+
+The checks of part 1:
+
+- **Tests.** A separate agent wrote 104 tests from this design and the build's contract before the code, in seven new modules. 99 of them failed on the old engine, each for a missing part of the feature; the other 5 cover behavior that does not change. The agent also updated the existing tests whose expected output the contract changes. After the planted bugs, the build added 4 tests of a team's `premise` and `escalate`. The suites pass: flow 1,468, hooks 436, init 282, checks 751, dev 324, and exam 420.
+- **Planted bugs.** 29 planted one at a time: 27 caught, and 2 equivalent, where the code refuses or drops the case by another path.
+- **Trial.** On `ZJUCao/troy-mode-trial`, for $36.72 in 12 nested sessions: the requirement change adding F07 waited with `Wait: W1`; F07's design and test plan waited with `Wait: W3`; PM7 ruled the design loop's round 3 `merge`; Troy's overturn on the progress issue held F07 until a `[docs]` design update, reviewed by AR2, merged, and `Overturn carried out:` was posted; AR8 ruled the mock loop's round 3 `merge`, both findings `does not block`, so the ruled revision ran in the tests only; after F07's acceptance, a plain "continue" went on into v0.3's release steps; and the premise attempt escalated (W7) with its premise, check, and result. Every wait comment of the trial named a listed ID. A stop at W9 came from the trial's own Python environment, installed from an older clone.
+- **Role exam.** Exam 2026-11-25-3 on the instruction hash `02dec4115317`: passed. The two Architect cases, the only ones the change affects, ran five times on each side: ar-design-review 0 of 5 before and after, and ar-error-review 1 of 5 before and 0 of 5 after, both "not worse" by the exam's rule. 20 runs cost $67.87 against the $59.78 estimate, in 9 h 51 min with two pauses at usage limits. Both cases fail most runs before the change too.
+
 ## 14. Not in F18
 
 - A hook that stops the main session from ending its turn while nothing waits (D171 option B). A later issue can add it if the retrospectives find unlisted stops.
@@ -407,3 +428,4 @@ F16 design keeps D171 to D180 for F18. Troy approved every decision on 2026-11-2
 | --- | --- | --- |
 | 0.1 | 2026-11-25 | First draft, with D171 to D180 and the requirement text proposals P1 to P7, for Troy. |
 | 1.0 | 2026-11-25 | Approved by Troy with D171 to D180, every recommended answer ("全按推荐"), and the requirement text proposals P1 to P7 as written. Requirements 1.64 records them with P1, P2, P5, and P7. The build's costs still wait for Troy's yes (sections 10, 12, and 15). |
+| 1.1 | 2026-11-25 | Part 1's build (plugin 0.18.0): section 13.5 records what it chose, its tests, planted bugs, trial, and role exam; the premise text says, from the trial, that a cause in the environment escalates. |

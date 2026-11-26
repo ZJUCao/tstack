@@ -69,6 +69,22 @@ def review_texts(heading: dict) -> tuple[str, str]:
     return f"{ROLES.get(role, role)}第 {heading['round']} 轮：{zh}", f"{role}, round {heading['round']}: {en}"
 
 
+RULINGS = {"merge": "合并", "fix": "要改", "fixed": "已改", "not fixed": "未改好"}
+
+
+def ruling_texts(pr: int, ruler: str, round_: int, result: str, url: str) -> tuple[str, str]:
+    """A ruled PR's line: its newest result and a link to the ruling (F18 design 5.3)."""
+    return (f"裁定：#{pr} {ROLES.get(ruler, ruler)}第 {round_} 轮：{RULINGS.get(result, result)}"
+            f"（{link('裁定', url)}）",
+            f"Ruling: #{pr} {ruler}, round {round_}: {result} ({link('ruling', url)})")
+
+
+def overturn_texts(ruling: str, done: bool) -> tuple[str, str]:
+    """Troy's overturn of a ruling, being carried out or carried out (F18 design 5.3)."""
+    return (f"推翻：{ruling}（{'已完成' if done else '进行中'}）",
+            f"Overturn: {ruling} ({'carried out' if done else 'being carried out'})")
+
+
 @dataclass
 class Box:
     """One stage of a progress issue: its number, whether it is ticked, and its text after the name."""

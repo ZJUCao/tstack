@@ -103,9 +103,10 @@ class EnglishGuideTests(GuideCase, unittest.TestCase):
                                   self.section)
         self.assertEqual(repositories, ["tstack"], repositories)
 
-    def test_header_version_is_0_3(self):
-        """The header table's Version is exactly 0.3."""
-        self.assertEqual(header_cell(self.text, "Version"), "0.3")
+    def test_header_version_is_0_4(self):
+        """The header table's Version is exactly 0.4."""
+        # F18 part 1 (D172) moves the reach to Troy's device test: guide 0.4.
+        self.assertEqual(header_cell(self.text, "Version"), "0.4")
 
 
 class ChineseGuideTests(GuideCase, unittest.TestCase):
@@ -116,14 +117,16 @@ class ChineseGuideTests(GuideCase, unittest.TestCase):
     NOT_YET = "还没验收"
     D203_TARGET = ZH_D203
 
-    def test_sync_note_says_english_0_3(self):
-        """The mirror note before section 3.1 says it syncs from English version 0.3."""
+    def test_sync_note_says_english_0_4(self):
+        """The mirror note before section 3.1 says it syncs from English version 0.4."""
+        # F18 part 1 (D172): guide 0.4.
         head = self.text.split("\n## 3.1", 1)[0]
-        self.assertRegex(head, r"同步自英文版 0\.3(?![\d.])")
+        self.assertRegex(head, r"同步自英文版 0\.4(?![\d.])")
 
-    def test_header_version_is_0_3(self):
-        """The header table's 版本 is exactly 0.3."""
-        self.assertEqual(header_cell(self.text, "版本"), "0.3")
+    def test_header_version_is_0_4(self):
+        """The header table's 版本 is exactly 0.4."""
+        # F18 part 1 (D172): guide 0.4.
+        self.assertEqual(header_cell(self.text, "版本"), "0.4")
 
 
 if __name__ == "__main__":

@@ -169,8 +169,10 @@ class CarryTests(FlowCase):
     def test_waiting_text_is_set_carried_and_cleared(self):
         """``--waiting`` sets the text, a later status keeps it, and ``--waiting ""`` clears it."""
         project = stage_three_project()
-        text = "Approve the F01 design in chat"
-        first = self.report_of(project.status("--waiting", text))
+        # F18 part 1 (contract 2): --waiting needs --wait <ID>, and the ID leads the text.
+        text = "W3, Approve the F01 design in chat"
+        first = self.report_of(project.status("--waiting", "Approve the F01 design in chat",
+                                              "--wait", "W3"))
         self.assertEqual(first["waiting_on_troy"], text)
         self.assertEqual(progress_fields(project.read(PROGRESS))["Waiting on Troy"], text)
         second = self.report_of(project.status())
@@ -191,7 +193,9 @@ class CarryTests(FlowCase):
                   "Waiting for Troy: approve this PR")
         first = self.report_of(project.status("--write-progress", prs=[stage_pr(7, F01, 3)],
                                               comments_by_pr={7: comments(*bodies)}))
-        self.assertEqual(first["waiting_on_troy"], "PR #7: Waiting for Troy: approve this PR")
+        # F18 part 1 (contract 2): a request without a "Wait:" line waits as "unlisted".
+        self.assertEqual(first["waiting_on_troy"],
+                         "unlisted, PR #7: Waiting for Troy: approve this PR")
         self.assertIn("Waiting for Troy", progress_fields(project.read(PROGRESS))["Waiting on Troy"])
         replied = comments(*bodies, "Looks good, go on.")
         second = self.report_of(project.status(prs=[stage_pr(7, F01, 3)],

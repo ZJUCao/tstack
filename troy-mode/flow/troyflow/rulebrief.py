@@ -20,8 +20,8 @@ PLUGIN_FILES = ("docs/troy-mode/requirements.md", "troy-mode/templates/rules.md"
                 "troy-mode/checks/troycheck/", "agents/")
 FIRST_TASKS = ("AR6",)
 DOCS_TASKS = ("AR6", "AR5")
-REFACTOR_TASKS = ("DV5", "CR1", "AR5")
-TEST_FIX_TASKS = ("TE6", "TM2", "CR1", "AR5")
+REFACTOR_TASKS = ("DV5", "CR1", "AR5", "AR8")
+TEST_FIX_TASKS = ("TE6", "TM2", "CR1", "AR5", "AR8")
 
 _PROPOSAL = (
     "Name the strongest level that works and why no stronger one does: the architecture, a "

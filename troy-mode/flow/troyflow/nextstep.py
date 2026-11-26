@@ -11,7 +11,7 @@ from troycheck.frontmatter import version_key
 
 from . import releases, rulestate
 from . import repo as git
-from .nextentry import make
+from .nextentry import STILL_FAILS, attempt_flags, make
 from .repo import MAIN
 from .requirements import FEATURE_ID
 from .requirements import approved, doc_version
@@ -74,12 +74,36 @@ def title_task(title: str) -> tuple[str | None, str | None]:
 
 
 def _pr_next(state: State, pr: dict) -> dict:
-    """The next entry for continuing an open PR."""
+    """The next entry for continuing an open PR, with its ruling and attempt flags (F18)."""
     entry = pr_entry(state, pr)
     task, item = title_task(entry["title"] or "")
-    return _next("continue-pr", pr=entry["number"], title=entry["title"], branch=entry["branch"],
-                 item=item, stage=entry["stage"], task=task,
-                 merged_by=entry["merged_by"], rounds=entry["rounds"], attempts=entry["attempts"])
+    found = _next("continue-pr", pr=entry["number"], title=entry["title"],
+                  branch=entry["branch"], item=item, stage=entry["stage"], task=task,
+                  merged_by=entry["merged_by"], rounds=entry["rounds"],
+                  attempts=entry["attempts"])
+    notes = pr["notes"]
+    _ruled(found, notes)
+    return attempt_flags(found, notes.escalated_since_attempt)
+
+
+def _ruled(entry: dict, notes) -> None:
+    """Gives a PR whose review loop's round 3 requested changes its ruling step (F18 5.2).
+
+    No ruling yet: the ruler rules (`ruling`). A `fix` ruling: the author runs
+    once more (`ruled-revision`), then the ruler checks. `not fixed`: the
+    author's work still fails, so it escalates (W7) until an escalation is
+    recorded. `merge` and `fixed` let the stage go on to its merge.
+    """
+    ruling = notes.ruling
+    if ruling is None:
+        return
+    entry["ruling"] = dict(ruling)
+    if ruling["result"] is None:
+        entry.update(action="ruling", task=ruling["task"])
+    elif ruling["result"] == "fix":
+        entry["action"] = "ruled-revision"
+    elif ruling["result"] == "not fixed" and not notes.escalated_since_ruling:
+        entry["escalate"] = STILL_FAILS
 
 
 def _stale_rework(state: State, pr: dict) -> dict | None:

@@ -1,11 +1,11 @@
 # 8. 参考
 
-> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.2（2026-11-18）。两者如有出入，以英文版为准。
+> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.3（2026-11-25）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 0.2 |
-| 日期 | 2026-11-18 |
+| 版本 | 0.3 |
+| 日期 | 2026-11-25 |
 | 事实来源 | 英文版 [`08-reference.md`](08-reference.md)。本文件是中文镜像。 |
 
 日常查阅用的表。这里的每个请求、标题和评论标题，都以入口技能 [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) 为准。
@@ -65,8 +65,9 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | --- | --- |
 | `<Role> review, round <n>: <result>` | 某个审查方报告时，例如 `Architect review, round 2: changes-requested`。后面是审查意见，每条一行、带编号，以规则编号或检查项开头。 |
 | `<Role> attempt <n>: failed` | 产出方的一次尝试失败时。后面是失败的检查。CI 失败时，先用 `Commit:` 一行写明是哪个推送提交。 |
-| `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。 |
-| `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行指向描述开头给你的摘要。 |
+| `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。下面一行 `Wait: W<n>` 写明是哪个等待。 |
+| `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行 `Wait: W<n>` 写明是哪个等待，再下一行指向描述开头给你的摘要。 |
+| `Architect ruling, round 3: <result>` 或 `Product Manager ruling, round 3: <result>` | 审查循环到第 3 轮仍有分歧，裁定方逐条意见做了决定：`merge`、`fix`，改过一次之后是 `fixed` 或 `not fixed`（[第 7.1 节](07-taking-part.zh-CN.md#71-等你处理的步骤)）。 |
 | `Waiting for Troy: accept <tag>` | 发布等你在自己的设备上测试时。 |
 | `Real run output, part <n>` | PR 6 真跑的真实输出放不进描述时，放在这里。 |
 | `Release test, run <n>: passed` 或 `failed` | 发布测试的报告；跑了 `real-run --all` 时带一段 “Real run”。 |
@@ -162,7 +163,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | R14 | 只有带性能指标的接口才写性能测试 | 审查 |
 | R15 | 每个修过的 bug 都保留它的重现测试 | 审查 |
 | R16 | 引入新的第三方依赖需要架构师批准 | 审查 |
-| R17 | 审查循环最多 3 轮，之后升级上报 | 流程 |
+| R17 | 审查循环到 3 轮仍未达成一致时，由架构师裁定（架构师自己的审查由产品经理裁定），你可以推翻裁定 | 流程 |
 | R18 | 前几个功能的 PR 1 和 PR 2 由你批准；其余由 troy-mode 合并 | 流程 |
 | R19 | commit 使用你的邮箱。commit、PR、评论、评审、issue 和发布说明不带 Claude 署名，发出前检查 | 硬 |
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明 | 硬 |

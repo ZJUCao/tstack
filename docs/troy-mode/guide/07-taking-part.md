@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.2 |
-| Date | 2026-11-17 |
+| Version | 0.3 |
+| Date | 2026-11-25 |
 | Source of truth | This English file. [`07-taking-part.zh-CN.md`](07-taking-part.zh-CN.md) is the Chinese mirror. |
 
 troy-mode is built so that you appear only for decisions. This page lists the steps that wait for you, what troy-mode does alone, what the status labels mean, and how to pick up work in a new session.
@@ -28,6 +28,10 @@ You approve steps 1 to 3 in chat or by merging the PR on GitHub:
 
 Two more answers of yours start or stop work: a rule proposal ([section 6.1](06-rules.md#61-add-a-rule-for-this-project)), and the question after the first features. A step that waits for you is written in the progress file as "Waiting on Troy", so any session knows it.
 
+The Product Manager's instructions keep these steps and the escalations of section 7.3 as the waits W1 to W11 ([F18 design section 4](../design/F18-fewer-stops.md)). Each wait carries its ID: a `Wait: W<n>` line under the comment's heading, and the same ID in the progress file and on the feature's progress issue. troy-mode stops nowhere else: a question that no step asks it decides itself, and says what it chose and why in the PR and its report. The retrospective lists any stop without an ID.
+
+**Overturning a ruling.** When a review loop still disagrees after round 3, the Architect, or the Product Manager on the Architect's own review, rules on each finding and writes the reason in the PR; troy-mode tells you in its report, and the feature's progress issue shows a line for it. Until the feature's acceptance, you overturn a ruling with a comment on that progress issue, or in chat, saying which side wins. troy-mode answers there with `Overturn: <link to the ruling>`, holds the feature, carries your decision out through the usual PRs, a design update, a test fix, or a bug fix, and posts `Overturn carried out:` when they have merged ([F18 design section 5](../design/F18-fewer-stops.md)).
+
 ## 7.2 What troy-mode does alone
 
 troy-mode merges every PR except those that wait for you, once every review approved and every check passed (R18). Its other rights ([F07 design section 9](../design/F07-entry-skill.md#9-escalation-57)):
@@ -46,11 +50,11 @@ Anything else asks you first. In particular, nothing outside the project happens
 
 troy-mode stops and asks you when ([requirements section 5.7](../requirements.md#57-escalation)):
 
-- a review loop reaches 3 rounds without agreement;
 - a change needs the requirements or the architecture to change;
-- an author's work still fails its checks after 3 attempts;
+- an author's work still fails its checks after 3 attempts and one more that tests what they assumed, or after a ruling it was given;
 - a new third-party dependency is needed;
-- a role moved `HEAD` or the branch, or wrote outside its scope twice;
+- a role moved `HEAD` or the branch, or wrote outside its scope twice, or CI failed twice outside the authors' files;
+- a permission or auto mode refuses a step troy-mode needs, which it never works around;
 - an action is irreversible and outside its rights, such as a force push or deleting data.
 
 The message, in your language, says where it stopped, why, the facts with links, the options, and a recommendation, in the shape of requirements Prototype C. It is also posted in English on the open PR as `Escalation: <trigger>`, or on the bug's issue when no PR is open yet. This one is from the trial's issue [#13](https://github.com/ZJUCao/troy-mode-trial/issues/13), shortened:
