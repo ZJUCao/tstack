@@ -70,9 +70,10 @@ SETUP_TITLE = "[rules] Set up troy-mode"
 STAGE_NAMES = {1: "design", 2: "test-plan", 3: "mock", 4: "tests", 5: "impl", 6: "accept"}
 STAGE_TASKS = {1: "IF1", 2: "TM1", 3: "DV1", 4: "TE1", 5: "DV2", 6: "PM3"}
 # F18 part 1 (contract 4, 5, 7) adds premise, escalate, ruling, and overturn, always present.
+# F18 part 2 (contract 5) adds spot and risky, always present.
 NEXT_KEYS = ("action", "item", "stage", "task", "title", "branch", "pr", "merged_by", "doc",
              "rounds", "attempts", "step", "tag", "commit", "issue", "ideas", "premise",
-             "escalate", "ruling", "overturn")
+             "escalate", "ruling", "overturn", "spot", "risky")
 REPO_URL = f"https://github.com/{LOGIN}/{PROJECT}"
 # The read calls F15 adds (F15 interface note, section 1).
 ALL_ISSUES_ARGS = ["issue", "list", "--state", "all", "--limit", "300", "--json",
@@ -2125,8 +2126,8 @@ class FlowCase(unittest.TestCase):
         """Asserts ``next``: the named keys equal the values, the others are null.
 
         Keys a row of the note's table does not name are null, except
-        ``rounds`` and ``attempts``, which are 0, and ``premise``, which is false.
-        Pass ``ANY`` to skip a key.
+        ``rounds`` and ``attempts``, which are 0, ``premise``, which is false,
+        and ``risky``, which is empty. Pass ``ANY`` to skip a key.
 
         Args:
             report: The status report.
@@ -2135,7 +2136,8 @@ class FlowCase(unittest.TestCase):
         nxt = report.get("next")
         self.assertIsInstance(nxt, dict, json.dumps(report, indent=1)[:4000])
         # F18 part 1 (contract 5): premise is false unless the attempts are exactly 3.
-        defaults = {"rounds": 0, "attempts": 0, "premise": False}
+        # F18 part 2 (contract 5): risky is [] unless a stage 1 or 2 entry has marks.
+        defaults = {"rounds": 0, "attempts": 0, "premise": False, "risky": []}
         for key in NEXT_KEYS:
             want = expected.get(key, defaults.get(key))
             if want is ANY:

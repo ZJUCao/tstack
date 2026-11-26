@@ -3,7 +3,9 @@
 F15 adds the headings troy-mode writes on issues, Troy's PR reviews, and the
 generic list and object reads its issue module uses (F15 design 3.3 and 8.4).
 F18 adds a wait's ID, the rulings at a review loop's round 3, and Troy's
-overturns (F18 design 4.2 and 5.3).
+overturns (F18 design 4.2 and 5.3), and for spot checks the comment after a
+sampled PR's merge, the Architect's Risky line, and TM8's rulings on a real
+run (F18 design 7).
 
 The engine only reads GitHub. Every call here is read-only.
 """
@@ -47,9 +49,16 @@ RULING_LINE = re.compile(r"^\s*(\d+)\.\s+(fix|does not block|fixed|not fixed):\s
 OVERTURN = re.compile(r"^Overturn: (\S.*)$")
 OVERTURN_DONE = re.compile(r"^Overturn carried out: (\S.*)$")
 RULER_TASK = {"Architect": "AR8", "Product Manager": "PM7"}
+# F18 part 2: F07's comment on a sampled PR after its merge, TM8's rulings on a
+# real run with one numbered line per mismatch, and AR2's Risky line (D176 to D178).
+SPOT = re.compile(r"^Spot check for Troy: review after the merge$")
+TM_RULING = re.compile(r"^Test Manager ruling, real run$")
+TM_LINE = re.compile(r"^\s*(\d+)\.\s+(bug|prototype|requirement|later F\d{2,3}|setup|console):"
+                     r"\s*(.*?)\s*$")
+RISKY = re.compile(r"^\s*Risky:\s*(.*?)\s*$")
 _COMMIT = re.compile(r"^Commit tested: ([0-9a-f]{7,40})\s*$", re.M)
 _OWN = (REVIEW, ATTEMPT, ESCALATION, WAITING, RELEASE_RUN, TROY_RUN, RETROSPECTIVE, DEFERRED,
-        SECURITY, IDEA, REPLY, DEVICE_RUN, RULING, OVERTURN_DONE, OVERTURN)
+        SECURITY, IDEA, REPLY, DEVICE_RUN, RULING, OVERTURN_DONE, OVERTURN, SPOT, TM_RULING)
 
 
 @dataclass
@@ -80,6 +89,16 @@ class Comments:
             (F18 design 5.1). None for any other loop.
         escalated_since_attempt: An escalation comes after the newest attempt comment.
         escalated_since_ruling: An escalation comes after the newest ruling.
+        risky: The Risky line of the newest Architect review that has one, as
+            written ("no" or a reason), else None (F18 D177).
+        risky_url: That review comment's URL, when known.
+        spot: A spot check comment was posted after the merge (F18 D176).
+        troy_after_spot: Troy's comments after the first spot check comment.
+        tm_rulings: TM8's rulings on real runs, oldest first: number, kind
+            (bug, prototype, requirement, later, setup, or console), and text.
+        waited: A comment asks Troy to approve the PR (F18 D178, E1).
+        changed: After the first such comment, a review, an attempt, or a
+            ruling followed: Troy's answer changed the PR.
     """
 
     reviews: list[dict] = field(default_factory=list)
@@ -101,6 +120,13 @@ class Comments:
     ruling: dict | None = None
     escalated_since_attempt: bool = False
     escalated_since_ruling: bool = False
+    risky: str | None = None
+    risky_url: str | None = None
+    spot: bool = False
+    troy_after_spot: list[str] = field(default_factory=list)
+    tm_rulings: list[dict] = field(default_factory=list)
+    waited: bool = False
+    changed: bool = False
 
 
 def heading(body: str) -> str:
@@ -136,6 +162,32 @@ def read_ruling(body: str) -> dict | None:
             "findings": findings}
 
 
+def _lines(body: str) -> list[str]:
+    """A comment's lines after its heading."""
+    return (body or "").replace("\r\n", "\n").split("\n")[1:]
+
+
+def _read_spot(result: Comments, first: str, body: str, url: str | None) -> None:
+    """Records AR2's Risky line, TM8's rulings, and Troy's approval waits (F18 design 7)."""
+    if first.startswith("Architect review, round "):
+        found = [m.group(1) for m in map(RISKY.match, _lines(body)) if m]
+        if found:
+            result.risky, result.risky_url = found[-1], url
+    if TM_RULING.match(first):
+        for line in _lines(body):
+            item = TM_LINE.match(line)
+            if item:
+                result.tm_rulings.append({"number": int(item.group(1)),
+                                          "kind": item.group(2).split(" ")[0],
+                                          "text": item.group(3)})
+    if first == "Waiting for Troy: approve this PR":
+        result.waited = True
+    elif result.waited and (REVIEW.match(first) or ATTEMPT.match(first) or RULING.match(first)):
+        result.changed = True
+    if SPOT.match(first):
+        result.spot = True
+
+
 def read_comments(bodies: list[str], urls: list[str | None] | None = None) -> Comments:
     """Counts rounds and attempts, and finds what waits on Troy, from a PR's comments.
 
@@ -155,7 +207,10 @@ def read_comments(bodies: list[str], urls: list[str | None] | None = None) -> Co
             continue
         if not is_f07(body):
             result.troy.append(body)
+            if result.spot:
+                result.troy_after_spot.append(body)
             continue
+        _read_spot(result, first, body, urls[index] if urls and index < len(urls) else None)
         result.troy, result.last = [], first
         result.wait = waits.wait_of(body)
         review = REVIEW.match(first)

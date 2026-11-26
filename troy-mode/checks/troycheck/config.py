@@ -30,6 +30,8 @@ ROLES = ("architect", "interface-designer", "test-manager", "developer", "test-e
 ROLE_KEYS = ("model", "effort")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 APPROVES_FIRST_DEFAULT = 3
+# F18 D176, D179: one feature in this many after the approved ones is a spot check.
+SPOT_CHECK_EVERY_DEFAULT = 3
 # R22: the most characters in each language of the summary for Troy (F14 design 3.3).
 SUMMARY_MAX_CHARS_DEFAULT = 2000
 # How many days hooks.log keeps its lines (F05 design D219).
@@ -79,6 +81,10 @@ class Config:
             role, for troy-mode's entry skill (F07 design 3.2).
         troy_approves_first: [flow] troy_approves_first, the number of
             features whose PR 1 and PR 2 Troy approves (F07 design D62).
+        spot_checks: [flow] spot_checks, whether spot checks replace Troy's
+            approvals of later PR 1 and PR 2 (F18 design D179).
+        spot_check_every: [flow] spot_check_every, one feature in this many
+            after the approved ones is sampled (F18 design D176).
         summary_max_chars: [summary] max_chars, R22's limit on each language
             of the summary for Troy (F14 design 3.3).
         hooks_log_days: [hooks] log_days, how many days the hooks' log keeps
@@ -95,6 +101,8 @@ class Config:
     lang: dict = field(default_factory=dict)
     roles: dict[str, dict[str, str]] = field(default_factory=dict)
     troy_approves_first: int = APPROVES_FIRST_DEFAULT
+    spot_checks: bool = False
+    spot_check_every: int = SPOT_CHECK_EVERY_DEFAULT
     summary_max_chars: int = SUMMARY_MAX_CHARS_DEFAULT
     hooks_log_days: int = HOOKS_LOG_DAYS_DEFAULT
 
@@ -129,15 +137,27 @@ def _validate_roles(roles) -> None:
             raise ConfigError(f"[roles.{role}] effort must be one of {', '.join(EFFORTS)}")
 
 
+def _whole(value) -> bool:
+    """Tells whether a TOML value is a whole number, not a boolean."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _validate_flow(flow) -> None:
-    """Raises ConfigError for a [flow] table that breaks F07 design D62."""
+    """Raises ConfigError for a [flow] table that breaks F07 design D62 or F18 design D179."""
     if not isinstance(flow, dict):
         raise ConfigError("[flow] must be a table")
     for key, value in flow.items():
-        if key != "troy_approves_first":
+        if key == "troy_approves_first":
+            if not _whole(value) or value < 0:
+                raise ConfigError("[flow] troy_approves_first must be a whole number of 0 or more")
+        elif key == "spot_checks":
+            if not isinstance(value, bool):
+                raise ConfigError("[flow] spot_checks must be true or false")
+        elif key == "spot_check_every":
+            if not _whole(value) or value < 2:
+                raise ConfigError("[flow] spot_check_every must be a whole number of 2 or more")
+        else:
             raise ConfigError(f"unknown key {key!r} in [flow]")
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise ConfigError("[flow] troy_approves_first must be a whole number of 0 or more")
 
 
 def _validate(data: dict) -> None:
@@ -184,6 +204,7 @@ def parse_config(text: str | None) -> Config:
         raise ConfigError(f"{CONFIG_PATH} is not valid TOML: {exc}") from exc
     _validate(data)
     extra = data.get("paths", {})
+    flow = data.get("flow", {})
     paths = {key: BUILTIN_PATHS[key] + list(extra.get(key, [])) for key in BUILTIN_PATHS}
     limits = {**LIMIT_DEFAULTS, **data.get("limits", {})}
     return Config(
@@ -196,8 +217,9 @@ def parse_config(text: str | None) -> Config:
         legacy_tests=list(data.get("tests", {}).get("legacy", [])),
         lang=dict(data.get("lang", {})),
         roles={role: dict(values) for role, values in data.get("roles", {}).items()},
-        troy_approves_first=data.get("flow", {}).get("troy_approves_first",
-                                                     APPROVES_FIRST_DEFAULT),
+        troy_approves_first=flow.get("troy_approves_first", APPROVES_FIRST_DEFAULT),
+        spot_checks=flow.get("spot_checks", False),
+        spot_check_every=flow.get("spot_check_every", SPOT_CHECK_EVERY_DEFAULT),
         summary_max_chars=data.get("summary", {}).get("max_chars", SUMMARY_MAX_CHARS_DEFAULT),
         hooks_log_days=data.get("hooks", {}).get("log_days", HOOKS_LOG_DAYS_DEFAULT),
     )

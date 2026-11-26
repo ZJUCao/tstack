@@ -185,6 +185,7 @@ class ChecklistFacts:
     accept: bool = False
     named: list[str] | None = None
     short: bool = False
+    samples: list[tuple[int, str, bool]] = field(default_factory=list)
 
 
 def checklist_title(tag: str) -> str:
@@ -217,6 +218,12 @@ def checklist_body(facts: ChecklistFacts) -> str:
                f"  设备：{scenario.devices[0]}。", f"  步骤：{steps_zh}", f"  预期：{scenario.expected[0]}"]
         en += ["", f"{scenario.id} {scenario.title[1]}",
                f"Device: {scenario.devices[1]}. Steps: {steps_en} Expected: {scenario.expected[1]}"]
+    for number, title, ticked in facts.samples:
+        box = "x" if ticked else " "
+        zh.append(f"- [{box}] **抽查 #{number} {title}**：已合并、没等你批准的抽查。"
+                  "看过它的摘要就勾上；不同意就在这个功能的进度 issue 上评论。")
+        en += ["", f"Spot check #{number} {title}: merged without your approval. Tick it once you "
+               "have read its summary; to disagree, comment on the feature's progress issue."]
     zh += [f"- [{'x' if facts.accept else ' '}] **我接受 {facts.tag}。**", "",
            "<details><summary>English</summary>", ""]
     en += ["", "</details>"]

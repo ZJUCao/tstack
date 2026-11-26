@@ -207,8 +207,11 @@ class RulingStatusTests(FlowCase):
     def test_pm7_result(self):
         """``Product Manager ruling, round 3: merge`` on the design: ``continue-pr``, Troy
         merges, the ruling PM7's."""
+        # F18 part 2 (contract 4 and 5): the ruling marks this PR 1 as risky.
         self.assert_stage_next("design merge", 1, action="continue-pr", task="IF1", rounds=3,
-                               ruling={**PM7, "result": "merge"})
+                               ruling={**PM7, "result": "merge"},
+                               risky=[{"by": "engine", "reason": "ruling", "pr": 41,
+                                       "url": None}])
 
     def test_troys_comments_are_not_rulings(self):
         """Planted bug "a Troy comment read as a ruling": six comments that only look like

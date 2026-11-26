@@ -1,11 +1,11 @@
 # 8. 参考
 
-> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.3（2026-11-25）。两者如有出入，以英文版为准。
+> 本文件是 [`08-reference.md`](08-reference.md) 的中文镜像，同步自英文版 0.4（2026-11-26）。两者如有出入，以英文版为准。
 
 | | |
 | --- | --- |
-| 版本 | 0.3 |
-| 日期 | 2026-11-25 |
+| 版本 | 0.4 |
+| 日期 | 2026-11-26 |
 | 事实来源 | 英文版 [`08-reference.md`](08-reference.md)。本文件是中文镜像。 |
 
 日常查阅用的表。这里的每个请求、标题和评论标题，都以入口技能 [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md) 为准。
@@ -68,6 +68,8 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `Escalation: <trigger>` | troy-mode 停下来等你时（[第 7.3 节](07-taking-part.zh-CN.md#73-回答升级上报)）。下面一行 `Wait: W<n>` 写明是哪个等待。 |
 | `Waiting for Troy: approve this PR` | PR 等你批准时。下面一行 `Wait: W<n>` 写明是哪个等待，再下一行指向描述开头给你的摘要。 |
 | `Architect ruling, round 3: <result>` 或 `Product Manager ruling, round 3: <result>` | 审查循环到第 3 轮仍有分歧，裁定方逐条意见做了决定：`merge`、`fix`，改过一次之后是 `fixed` 或 `not fixed`（[第 7.1 节](07-taking-part.zh-CN.md#71-等你处理的步骤)）。 |
+| `Spot check for Troy: review after the merge` | troy-mode 没等你就合并了抽中的设计或测试方案；给你的摘要在描述顶部（[第 3.4 节](03-features.zh-CN.md#34-前几个功能之后)）。 |
+| `Test Manager ruling, real run` | 测试经理对实际运行中各处不一致的裁定，每处一行，带编号，例如 `1. bug: ...` 或 `2. requirement: ...`。 |
 | `Waiting for Troy: accept <tag>` | 发布等你在自己的设备上测试时。 |
 | `Real run output, part <n>` | PR 6 真跑的真实输出放不进描述时，放在这里。 |
 | `Release test, run <n>: passed` 或 `failed` | 发布测试的报告；跑了 `real-run --all` 时带一段 “Real run”。 |
@@ -120,6 +122,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | `[attribution]` | `mode` | R19：`strict`（默认），或 `trailers`，用于关于 Claude 本身的项目。 |
 | `[roles.<role>]` | `model`、`effort` | 一个角色在这个项目里的模型和 effort（[第 1.5 节](01-install.zh-CN.md#15-模型和-effort)）。 |
 | `[flow]` | `troy_approves_first` | 顺序里排在最前面的多少个功能的 PR 1 和 PR 2 由你批准。默认 3；0 表示一个都没有。 |
+| `[flow]` | `spot_checks`、`spot_check_every` | 抽查开或关，默认关；每多少个功能抽一个，默认 3，至少 2（[第 3.4 节](03-features.zh-CN.md#34-前几个功能之后)）。只有你能开启。 |
 | `[summary]` | `max_chars` | R22：设计、测试计划、需求和架构 PR 开头给你的摘要，每种语言最多多少个字符。默认 2000。 |
 | `[hooks]` | `log_days` | `hooks.log` 保留日志行的天数。每次会话开始时删除更早的行，版本回顾按整个版本读取它们，所以要大于你最长的版本。默认 30（[F05 设计 D219](../design/F05-hooks.zh-CN.md#10-错误速度和日志)）。 |
 
@@ -164,7 +167,7 @@ troy-mode 把每次审查、每次失败的尝试、每次升级上报，以及�
 | R15 | 每个修过的 bug 都保留它的重现测试 | 审查 |
 | R16 | 引入新的第三方依赖需要架构师批准 | 审查 |
 | R17 | 审查循环到 3 轮仍未达成一致时，由架构师裁定（架构师自己的审查由产品经理裁定），你可以推翻裁定 | 流程 |
-| R18 | 前几个功能的 PR 1 和 PR 2 由你批准；其余由 troy-mode 合并 | 流程 |
+| R18 | 前几个功能的 PR 1 和 PR 2 由你批准，开启抽查时有风险标记的也由你批准；其余由 troy-mode 合并 | 流程 |
 | R19 | commit 使用你的邮箱。commit、PR、评论、评审、issue 和发布说明不带 Claude 署名，发出前检查 | 硬 |
 | R20 | 合并的文档和 PR 描述里没有模板标记或填写说明 | 硬 |
 | R21 | 每个改动都通过从单独分支发起的 PR 进入 `main` | 硬 |

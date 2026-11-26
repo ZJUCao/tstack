@@ -25,6 +25,8 @@ PR_FIELDS = "number,title,state,url,createdAt"
 _BOX = re.compile(r"^- \[([ xX])\] \*\*(.+?)\*\*")
 _RUN = re.compile(r"第 ([1-9][0-9]*) 轮")
 _ACCEPT = "我接受 "
+# A spot check's box on a checklist: "**抽查 #<n> <title>**" (F18 design 7.1).
+_SAMPLE = re.compile(r"^抽查 #([1-9][0-9]*)")
 
 
 @dataclass
@@ -206,12 +208,15 @@ class Ticks:
         accept: Whether the accept box is ticked.
         run: The run number in the Chinese header, or None.
         named: The scenario list of a patch release's marker line, or None.
+        samples: Each spot check box's PR number and whether it is ticked, in
+            body order (F18 design 7.1).
     """
 
     scenarios: dict[str, bool] = field(default_factory=dict)
     accept: bool = False
     run: int | None = None
     named: list[str] | None = None
+    samples: dict[int, bool] = field(default_factory=dict)
 
 
 def read_ticks(body: str) -> Ticks:
@@ -234,6 +239,10 @@ def read_ticks(body: str) -> Ticks:
         if text.startswith(_ACCEPT):
             ticks.accept = ticked
             continue
+        sample = _SAMPLE.match(text)
+        if sample:
+            ticks.samples[int(sample.group(1))] = ticked
+            continue
         sid = text.split(" ", 1)[0]
         if SCENARIO_ID.fullmatch(sid):
             ticks.scenarios[sid] = ticked
@@ -241,8 +250,8 @@ def read_ticks(body: str) -> Ticks:
 
 
 def device_result(ticks: Ticks) -> str:
-    """waiting, ticked, or incomplete (design 3.3)."""
-    every = all(ticks.scenarios.values())
+    """waiting, ticked, or incomplete (design 3.3); every spot check box counts (F18 7.1)."""
+    every = all(ticks.scenarios.values()) and all(ticks.samples.values())
     if ticks.accept and every:
         return "ticked"
     if ticks.accept:

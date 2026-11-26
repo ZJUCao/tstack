@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.3 |
-| Date | 2026-11-25 |
+| Version | 0.4 |
+| Date | 2026-11-26 |
 | Source of truth | This English file. [`07-taking-part.zh-CN.md`](07-taking-part.zh-CN.md) is the Chinese mirror. |
 
 troy-mode is built so that you appear only for decisions. This page lists the steps that wait for you, what troy-mode does alone, what the status labels mean, and how to pick up work in a new session.
@@ -14,7 +14,7 @@ Only these steps wait for your approval ([requirements section 3.3](../requireme
 
 1. Each project's requirements, and each requirement change.
 2. Each project's architecture.
-3. PR 1 (the design) and PR 2 (the test plan) of the first features, 3 by default ([section 3.4](03-features.md#34-after-the-first-features)).
+3. PR 1 (the design) and PR 2 (the test plan) of the first features, 3 by default, and with spot checks on, a later one marked risky ([section 3.4](03-features.md#34-after-the-first-features)).
 4. Each version, by testing it on your own devices ([section 5.4](05-release.md#54-your-test-on-your-devices)).
 5. Every escalation (section 7.3).
 
@@ -31,6 +31,8 @@ Two more answers of yours start or stop work: a rule proposal ([section 6.1](06-
 The Product Manager's instructions keep these steps and the escalations of section 7.3 as the waits W1 to W11 ([F18 design section 4](../design/F18-fewer-stops.md)). Each wait carries its ID: a `Wait: W<n>` line under the comment's heading, and the same ID in the progress file and on the feature's progress issue. troy-mode stops nowhere else: a question that no step asks it decides itself, and says what it chose and why in the PR and its report. The retrospective lists any stop without an ID.
 
 **Overturning a ruling.** When a review loop still disagrees after round 3, the Architect, or the Product Manager on the Architect's own review, rules on each finding and writes the reason in the PR; troy-mode tells you in its report, and the feature's progress issue shows a line for it. Until the feature's acceptance, you overturn a ruling with a comment on that progress issue, or in chat, saying which side wins. troy-mode answers there with `Overturn: <link to the ruling>`, holds the feature, carries your decision out through the usual PRs, a design update, a test fix, or a bug fix, and posts `Overturn carried out:` when they have merged ([F18 design section 5](../design/F18-fewer-stops.md)).
+
+**Spot checks.** With spot checks on, troy-mode merges a sampled design or test plan without you, posts `Spot check for Troy: review after the merge` on it, and sends you its summary under "Spot checks, after the merge". To disagree, comment on the feature's progress issue as for a ruling; after the feature's acceptance, open an idea that names the PR. Either is an overturn of the sample, and it turns spot checks off at once ([F18 design section 7](../design/F18-fewer-stops.md)).
 
 ## 7.2 What troy-mode does alone
 

@@ -6,7 +6,7 @@ them. The progress file is only a view of it (progress.py).
 
 from dataclasses import dataclass, field
 
-from . import ci, github, plugincheck, repo as git, rulestate
+from . import ci, github, plugincheck, repo as git, rulestate, spot
 from .errors import FlowError
 from .repo import MAIN, Repo
 from .requirements import Feature, approved, doc_version, order_problems, parse_features, \
@@ -38,6 +38,13 @@ class State:
         docs: Version of the requirements and the architecture on origin/main.
         checks: The comparison of the project's troy-check with the plugin's.
         approves_first: [flow] troy_approves_first on origin/main.
+        spot_checks: [flow] spot_checks on origin/main (F18 design 7.4).
+        spot_every: [flow] spot_check_every on origin/main.
+        spot_off: While spot checks are set but an overturn turned them off:
+            the issue, the overturn's link, and the troy_approves_first that
+            brings back every later approval; else None (F18 design 7.4).
+        risk: The risky marks of each feature's stage 1 and 2, by (ID, stage),
+            once spot.load has read them (F18 design 7.2).
         features: The features table, or None.
         order: The order line's IDs, or None.
         order_problems: What breaks the order (design 5.1).
@@ -66,6 +73,10 @@ class State:
     docs: dict[str, str | None] = field(default_factory=dict)
     checks: dict = field(default_factory=lambda: {"outdated": False, "differs": []})
     approves_first: int = 3
+    spot_checks: bool = False
+    spot_every: int = 3
+    spot_off: dict | None = None
+    risk: dict[tuple[str, int], list[dict]] = field(default_factory=dict)
     features: list[Feature] | None = None
     order: list[str] | None = None
     order_problems: list[str] = field(default_factory=list)
@@ -92,14 +103,40 @@ class State:
         order = self.order or []
         return fid in order and order.index(fid) < self.approves_first
 
+    @property
+    def spot_on(self) -> bool:
+        """Tells whether spot checks are on: set, and no overturn turned them off (F18 7.4)."""
+        return self.spot_checks and self.spot_off is None
+
     def merged_by(self, title: str | None) -> str:
-        """Says who merges a PR with this title: "troy" or "f07" (design 8.6)."""
+        """Says who merges a PR with this title: "troy" or "f07" (design 8.6).
+
+        With spot checks on, a later feature's PR 1 or PR 2 waits for Troy only
+        when it is marked risky; while an overturn turns them off, every one
+        waits again (F18 design 7.1, 7.2, and 7.4).
+        """
         if title in TROY_DOCS_TITLES or is_change(title or ""):
             return "troy"
         found = feature_stage(title or "")
-        if found and found[1] in TROY_STAGES and self.troy_approves(found[0]):
+        if not found or found[1] not in TROY_STAGES:
+            return "f07"
+        if self.troy_approves(found[0]):
+            return "troy"
+        if self.spot_checks and (self.spot_off is not None or self.risk.get(found)):
             return "troy"
         return "f07"
+
+    def spot_of(self, fid: str | None) -> str | None:
+        """A feature's place under spot checks: "sample", "none", or None (F18 7.1).
+
+        None while spot checks are not on, and for the first features, whose
+        PR 1 and PR 2 Troy approves.
+        """
+        if not self.spot_on or fid is None or self.troy_approves(fid):
+            return None
+        order = self.order or []
+        return "sample" if fid in spot.sample(order, self.approves_first, self.spot_every) \
+            else "none"
 
     def feature_folder(self, fid: str) -> str | None:
         """Returns docs/features/<ID>-<slug> on origin/main, or None."""
@@ -241,7 +278,9 @@ def read_state(path: str | None, with_ci: bool = False) -> State:
     if not state.origin:
         return state
     _read_install(state)
-    state.approves_first = git.config_at(state.repo, MAIN).troy_approves_first
+    config = git.config_at(state.repo, MAIN)
+    state.approves_first = config.troy_approves_first
+    state.spot_checks, state.spot_every = config.spot_checks, config.spot_check_every
     state.log = git.log(state.repo, MAIN)
     state.subjects = [subject for _, subject in state.log]
     state.merged = merged_stages(state.subjects)
@@ -270,8 +309,15 @@ def pr_entry(state: State, pr: dict) -> dict:
         "ci_failures": [f.entry() for f in counted.failures] if counted else [],
         "troy_comments": notes.troy, "waiting_for_troy": notes.waiting,
         "escalated": notes.escalated, "wait": notes.wait if notes.waiting else None,
-        "rulings": notes.rulings,
+        "rulings": notes.rulings, **spot_keys(state, found),
     }
+
+
+def spot_keys(state: State, found: tuple[str, int] | None) -> dict:
+    """The spot and risky keys of a PR 1 or PR 2 entry, null and [] for others (F18 7)."""
+    if not found or found[1] not in TROY_STAGES:
+        return {"spot": None, "risky": []}
+    return {"spot": state.spot_of(found[0]), "risky": list(state.risk.get(found, []))}
 
 
 def feature_entry(state: State, feature: Feature) -> dict:
@@ -279,7 +325,8 @@ def feature_entry(state: State, feature: Feature) -> dict:
     merged = sorted(state.merged.get(feature.id, set()))
     return {"id": feature.id, "name": feature.name, "hard": feature.hard, "soft": feature.soft,
             "version": feature.version, "status": feature.status, "merged": merged,
-            "accepted": 6 in merged, "troy_approves": state.troy_approves(feature.id)}
+            "accepted": 6 in merged, "troy_approves": state.troy_approves(feature.id),
+            "spot": state.spot_of(feature.id)}
 
 
 def next_feature(state: State) -> str | None:

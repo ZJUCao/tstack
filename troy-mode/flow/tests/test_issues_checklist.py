@@ -231,12 +231,13 @@ class TickTests(ChecklistCase):
         }
         for name, (ticks, accept, result) in expected.items():
             with self.subTest(case=name):
+                # F18 part 2 (contract 7): device_test gains samples, [] without sample boxes.
                 self.assertEqual(self.device_test(name), {
                     "number": 9, "tag": TAG, "run": 1,
                     "scenarios": [{"id": scenario, "ticked": done}
                                   for scenario, done in zip(("v0.1-S02", "v0.1-S04",
                                                              "v0.1-S05"), ticks)],
-                    "accept": accept, "result": result})
+                    "samples": [], "accept": accept, "result": result})
 
     def test_release_entry_names_the_checklist(self):
         """``next.issue`` on the ``troy-test`` release entry is checklist #9."""

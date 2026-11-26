@@ -5,10 +5,12 @@ F08 adds the versions, the release state, and the release's next actions
 design 3.2). F15 adds the issues part and the ideas action (F15 design 3.3).
 F07 D261 to D263 count each open PR's attempts from its CI runs too (ci.py).
 F18 adds the wait IDs, the rulings at round 3, the premise attempt, and
-Troy's overturns (F18 design 4.2, 5, 6, and 8).
+Troy's overturns (F18 design 4.2, 5, 6, and 8), and spot checks: the sample,
+risky marks, the overturn that turns them off, and the evidence (F18 design 7).
 """
 
-from . import github, issuesync, nextstep, notecmd, progress, releases, stops, teamstate, waits
+from . import github, issuesync, nextstep, notecmd, progress, releases, spot, stops, teamstate, \
+    waits
 from .nextentry import STILL_FAILS, make
 from .progress import View
 from .requirements import approved
@@ -41,8 +43,13 @@ _STEPS = {
 }
 
 
-def action_text(entry: dict) -> str:
-    """Says the next action in one line, for the progress file and the text report."""
+def action_text(entry: dict, off: dict | None = None) -> str:
+    """Says the next action in one line, for the progress file and the text report.
+
+    Args:
+        entry: The next entry.
+        off: The report's spot.off_due, for `spot-off` (F18 design 7.4).
+    """
     action = entry["action"]
     if action == "continue-pr":
         return f"Continue PR #{entry['pr']} {entry['title']}."
@@ -56,6 +63,11 @@ def action_text(entry: dict) -> str:
         return (f"Carry out Troy's overturn of {entry['overturn']['ruling']} for "
                 f"{entry['item']} before its next stage (progress issue "
                 f"#{entry['overturn']['issue']}).")
+    if action == "spot-off":
+        return ("An overturn turned spot checks off: open [rules] Set the features Troy approves "
+                f"with spot_checks = false and troy_approves_first = "
+                f"{(off or {}).get('approves_first')}, "
+                "and merge it.")
     if action == "record-approval":
         return f"Record Troy's approval of {entry['doc']} in {entry['title']}."
     if action == "stage":
@@ -110,7 +122,7 @@ def _current_feature(state: State, entry: dict):
     return None
 
 
-def _stage_text(entry: dict, prs: list[dict]) -> str:
+def _stage_text(entry: dict, prs: list[dict], off: dict | None = None) -> str:
     """Builds the Stage line: the stage number first, then what is happening."""
     stage = entry.get("stage")
     if entry["action"] == "rework":
@@ -121,9 +133,9 @@ def _stage_text(entry: dict, prs: list[dict]) -> str:
         if entry["action"] in ("continue-pr", "ruling", "ruled-revision"):
             return f"none. PR #{entry['pr']} is open."
         if entry["action"] in ("bug", "version-test-plan", "release", "record-acceptance",
-                               "tag", "retro", "cleanup", "ideas"):
-            return f"none. {action_text(entry)}"
-        return f"setup. {action_text(entry)}"
+                               "tag", "retro", "cleanup", "ideas", "spot-off"):
+            return f"none. {action_text(entry, off)}"
+        return f"setup. {action_text(entry, off)}"
     text = f"{stage} of 6. {stage_name(stage).capitalize()}"
     pr = next((p for p in prs if p["number"] == entry.get("pr")), None)
     if pr is None:
@@ -147,10 +159,10 @@ def build_view(state: State, entry: dict, prs: list[dict], waiting: str | None,
     view = View({
         "Current version": version,
         "Current feature": f"{feature.id} {feature.name}" if feature else "None",
-        "Stage": _stage_text(entry, prs),
+        "Stage": _stage_text(entry, prs, state.spot_off),
         "Open PRs": open_prs,
         "Waiting on Troy": waiting or "Nothing",
-        "Next action": action_text(entry),
+        "Next action": action_text(entry, state.spot_off),
     })
     if part and part["mode"]:
         _team_view(state, view, part)
@@ -284,6 +296,7 @@ def run_status(args) -> tuple[dict, int]:
     state = read_state(args.repo, with_ci=True)
     if state.repo is not None and state.origin:
         issuesync.load(state)
+        spot.load(state, state.notes)
     found = stops.overturns(state)
     part = teamstate.compute(state)
     if part["mode"]:
@@ -292,6 +305,13 @@ def run_status(args) -> tuple[dict, int]:
     else:
         entry, notes = nextstep.decide(state)
     entry = _overturned(state, entry, found)
+    spot.decorate(state, entry)
+    for team in part["teams"]:
+        spot.decorate(state, team["next"])
+    evidence = None
+    if state.repo is not None and state.origin and (
+            entry["action"] == "ask-approvals" or getattr(args, "spot_evidence", False)):
+        evidence = spot.evidence(state, state.notes)
     notes.extend(state.notes)
     prs = [pr_entry(state, pr) for pr in state.prs]
     report = {
@@ -307,6 +327,7 @@ def run_status(args) -> tuple[dict, int]:
         "release": releases.release_entry(state) if state.origin else None,
         "issues": issuesync.status_part(state),
         "waiting_on_troy": None, "wait": None, "overturns": found,
+        "spot": spot.report(state), "spot_evidence": evidence,
         "next": entry, "progress": {"path": progress.PATH, "written": False, "rebuilt": False},
         "teams": part["teams"], "may_start": part["may_start"],
         "needs_plan": part["needs_plan"], "waiting": part["waiting"],

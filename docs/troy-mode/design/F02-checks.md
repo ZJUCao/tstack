@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Feature | F02 in [requirements 1.3](../requirements.md#72-feature-list) |
-| Version | 1.5 |
-| Date | 2026-11-08 |
+| Version | 1.6 |
+| Date | 2026-11-26 |
 | Status | Approved by Troy on 2026-11-05, with D7 to D14 |
 | Source of truth | This English file. [`F02-checks.zh-CN.md`](F02-checks.zh-CN.md) is the Chinese mirror. |
 
@@ -271,9 +271,11 @@ effort = "high"     # low, medium, high, xhigh, or max
 
 [flow]
 troy_approves_first = 3  # F07 D62: a whole number of 0 or more
+spot_checks = false      # F18 D179: true or false
+spot_check_every = 3     # F18 D176: a whole number of 2 or more
 ```
 
-`[roles.<role>]` and `[flow]` belong to troy-mode's entry skill (F07 design 3.2 and D62). `<role>` is `architect`, `interface-designer`, `test-manager`, `developer`, `test-engineer`, or `code-reviewer`. An unknown role, an unknown key, an effort outside the list, or a count below 0 stops the tool with exit code 2, like any other config error.
+`[roles.<role>]` and `[flow]` belong to troy-mode's entry skill (F07 design 3.2 and D62). `<role>` is `architect`, `interface-designer`, `test-manager`, `developer`, `test-engineer`, or `code-reviewer`. `spot_checks` and `spot_check_every` turn on spot checks (F18 design 7.4); a project gets them through troy-init's upgrade, and an `[flow]` table with only `troy_approves_first` stays valid. An unknown role, an unknown key, an effort outside the list, a count below 0, a `spot_checks` that is not true or false, or a `spot_check_every` below 2 stops the tool with exit code 2, like any other config error.
 
 ## 8. GitHub Actions workflow
 
@@ -390,3 +392,4 @@ F02's status becomes "Written" when the F02 PR merges.
 | 1.3 | 2026-11-07 | Section 7: the config accepts `[roles.<role>]` with `model` and `effort`, and `[flow]` with `troy_approves_first`, for troy-mode's entry skill. From F07 design section 12. |
 | 1.4 | 2026-11-08 | Sections 4 and 5: the title kind `[v<MAJOR>.<MINOR> tests]`, kind `version-tests`, which may change the `tests` and `dependencies` classes and which R03 skips, and `version-tests/**` among the built-in `tests` patterns. From F08 design section 9. |
 | 1.5 | 2026-11-08 | Section 4: the `test-fix` title also takes a project rule's P ID, as in `[P01 test-fix] Apply P01 to tests`, a rule's test cleanup PR, which may change `tests` and `dependencies` as every test-fix PR does. From F09 design section 8. |
+| 1.6 | 2026-11-26 | Section 7: `[flow]` also accepts `spot_checks` (true or false, default false) and `spot_check_every` (a whole number of 2 or more, default 3), for F18's spot checks. From F18 design section 7.4 (D179). |

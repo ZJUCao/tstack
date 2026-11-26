@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Version | 0.3 |
-| Date | 2026-11-25 |
+| Version | 0.4 |
+| Date | 2026-11-26 |
 | Source of truth | This English file. [`08-reference.zh-CN.md`](08-reference.zh-CN.md) is the Chinese mirror. |
 
 Lookup tables for daily use. The entry skill, [`skills/troy-mode/SKILL.md`](../../../skills/troy-mode/SKILL.md), is the source for every request, title, and heading here.
@@ -66,6 +66,8 @@ troy-mode posts every review, failed attempt, escalation, and request to you as 
 | `Escalation: <trigger>` | troy-mode stops for you ([section 7.3](07-taking-part.md#73-answer-an-escalation)). The line `Wait: W<n>` under it names the wait. |
 | `Waiting for Troy: approve this PR` | The PR waits for your approval. The line `Wait: W<n>` under it names the wait, and the next line points to the summary for you at the top of the description. |
 | `Architect ruling, round 3: <result>`, or `Product Manager ruling, round 3: <result>` | A review loop still disagreed after round 3, and the ruler decided each finding: `merge`, `fix`, then `fixed` or `not fixed` after the one revision ([section 7.1](07-taking-part.md#71-the-steps-that-wait-for-you)). |
+| `Spot check for Troy: review after the merge` | troy-mode merged a sampled design or test plan without you; its summary for you is at the top of the description ([section 3.4](03-features.md#34-after-the-first-features)). |
+| `Test Manager ruling, real run` | The Test Manager's rulings on a real run's mismatches, one numbered line each, such as `1. bug: ...` or `2. requirement: ...`. |
 | `Waiting for Troy: accept <tag>` | The release waits for your test on your devices. |
 | `Real run output, part <n>` | The real output of PR 6's real run, when it does not fit the description. |
 | `Release test, run <n>: passed` or `failed` | The release test's report, with a "Real run" part for `real-run --all`. |
@@ -118,6 +120,7 @@ Each role's write scope is enforced by hooks while it runs, and checked again af
 | `[attribution]` | `mode` | R19: `strict` (default) or `trailers`, for a project about Claude. |
 | `[roles.<role>]` | `model`, `effort` | A role's model and effort in this project ([section 1.5](01-install.md#15-models-and-effort)). |
 | `[flow]` | `troy_approves_first` | How many features, first in the order, have PR 1 and PR 2 approved by you. Default 3; 0 means none. |
+| `[flow]` | `spot_checks`, `spot_check_every` | Spot checks on or off, default off, and one feature in how many is sampled, default 3, at least 2 ([section 3.4](03-features.md#34-after-the-first-features)). Only you turn them on. |
 | `[summary]` | `max_chars` | R22: the most characters in each language of the summary for you that opens a design, test plan, requirements, or architecture PR. Default 2000. |
 | `[hooks]` | `log_days` | How many days `hooks.log` keeps its lines. Each session start removes older lines, and the retrospective reads them for a whole version, so keep it above your longest version. Default 30 ([F05 design D219](../design/F05-hooks.md#10-errors-speed-and-the-log)). |
 
@@ -162,7 +165,7 @@ The full text is in the [rules template](../../../troy-mode/templates/rules.md),
 | R15 | Every fixed bug keeps its reproduction test | Review |
 | R16 | A new third-party dependency needs the Architect's approval | Review |
 | R17 | At 3 review rounds without agreement, the Architect, or the Product Manager on the Architect's own review, rules; you can overturn the ruling | Process |
-| R18 | You approve PR 1 and PR 2 of the first features; troy-mode merges the rest | Process |
+| R18 | You approve PR 1 and PR 2 of the first features, and with spot checks on, a risky one; troy-mode merges the rest | Process |
 | R19 | Commits use your email. Commits, PRs, comments, reviews, issues, and release notes carry no Claude attribution, checked before they are posted | Hard |
 | R20 | No template markers or guidance in a merged document or PR description | Hard |
 | R21 | Every change reaches `main` through a PR from its own branch | Hard |

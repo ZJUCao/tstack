@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import github, issuedata, notecmd, releases, stops, waits
+from . import github, issuedata, notecmd, releases, spot, stops, waits
 from . import repo as git
 from .errors import FlowError
 from .issuedata import CHECKLIST, IDEA, PROGRESS, Issue, Issues
@@ -305,6 +305,7 @@ def _extra(sync: Sync, fid: str, prs: dict) -> list[tuple[str, str]]:
     lines += _ruling_lines(sync, fid)
     lines += [overturn_texts(entry["ruling"], entry["done"])
               for entry in stops.from_issues(sync.issues) if entry["item"] == fid]
+    lines += spot.progress_lines(sync.state, fid)
     bugs = [i for i in sync.issues.items if i.title.startswith(f"Real run of {fid}:")]
     if bugs:
         lines.append(("实际运行发现的 bug：" + "；".join(
@@ -550,7 +551,16 @@ def checklist_facts(sync: Sync, tag: str, pr: dict, issue: Issue | None) -> tupl
                            (sync.blob(plan_zh), sync.blob(plan_en)), _features_line(sync, version),
                            _scenarios(sync, version, named, ticks),
                            bool(ticks and ticks.accept), named)
+    facts.samples = _sample_boxes(sync, version, ticks)
     return facts, new_run
+
+
+def _sample_boxes(sync: Sync, version: str, ticks: issuedata.Ticks | None) -> list:
+    """One box for each sample Troy has not answered, or whose box Troy ticked (F18 7.1)."""
+    ticked = ticks.samples if ticks else {}
+    return [(entry["number"], entry["title"], bool(ticked.get(entry["number"])))
+            for entry in spot.samples(sync.state, version, sync.issues)
+            if ticked.get(entry["number"]) or not entry["answered"]]
 
 
 def wanted_checklists(sync: Sync) -> list[Wanted]:
@@ -715,6 +725,8 @@ def run_issues(args) -> tuple[dict, int]:
         state.repo, "label", "list", "--limit", "100", "--json", "name")}
     sync = Sync(state, issues, issuedata.read_prs(state.repo), report["repository"] or "",
                 _scenario_list(getattr(args, "device_test_scenarios", None)))
+    state.issues, state.all_prs = issues, sync.prs
+    spot.load(state, report["notes"])
     report["labels"] = label_entries(existing)
     report["actions"] = finish(plan(sync), state.repo.state_dir() / "flow" / "issues")
     report["problems"] = sync.problems
@@ -797,6 +809,7 @@ def device_test(state: State, issues: Issues) -> dict | None:
     ticks = issuedata.read_ticks(issue.body)
     return {"number": issue.number, "tag": issue.mark()[1], "run": ticks.run,
             "scenarios": [{"id": sid, "ticked": on} for sid, on in ticks.scenarios.items()],
+            "samples": [{"pr": number, "ticked": on} for number, on in ticks.samples.items()],
             "accept": ticks.accept, "result": issuedata.device_result(ticks)}
 
 

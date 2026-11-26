@@ -205,12 +205,14 @@ class MergedStageTests(FlowCase):
 
     def test_feature_entries_follow_the_table(self):
         """Each feature row is read with its dependencies, version, status, and merge rights."""
+        # F18 part 2 (contract 5): each feature gains spot, null while spot checks are off.
         self.assertEqual(self.report["features"], [
             {"id": "F01", "name": "Count words", "hard": [], "soft": [], "version": "v0.1",
              "status": "Not started", "merged": [1, 2, 3], "accepted": False,
-             "troy_approves": True},
+             "troy_approves": True, "spot": None},
             {"id": "F02", "name": "Count lines", "hard": ["F01"], "soft": [], "version": "v0.1",
-             "status": "Not started", "merged": [], "accepted": False, "troy_approves": True},
+             "status": "Not started", "merged": [], "accepted": False, "troy_approves": True,
+             "spot": None},
         ])
 
     def test_project_state_comes_from_origin_main(self):
@@ -248,7 +250,9 @@ class OriginMainOnlyTests(FlowCase):
             "ci_failures": [],
             "troy_comments": [], "waiting_for_troy": False, "escalated": False,
             # F18 part 1 (contract 2 and 4): each open PR gains its wait's ID and its rulings.
-            "wait": None, "rulings": []}])
+            "wait": None, "rulings": [],
+            # F18 part 2 (contract 5): and spot and risky, null and [] for a PR 3.
+            "spot": None, "risky": []}])
         self.assert_next(report, action="continue-pr", pr=7, item="F01", stage=3, task="DV1",
                          title="[F01 3/6 mock] Count words", branch="troy-mode/f01-3-mock",
                          merged_by="f07")
