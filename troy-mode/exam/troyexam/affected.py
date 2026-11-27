@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from .cases import Case
-from .instructions import GitTree, glob_match, named_skills
+from .instructions import glob_match, skills_in
 from .paths import Layout
 from .project import build_project, copy_plugin, ensure_mirror, git, new_run_folder
 from .runner import cleanup
@@ -21,7 +21,11 @@ CASES = "troy-mode/exam/cases"
 
 
 def role_inputs(case: Case, plugin: Path, project: Path, env: Mapping[str, str]) -> dict[str, str]:
-    """What the role would get from one plugin copy: the brief, its agent file, and the plugin files it reads."""
+    """What the role would get from one plugin copy: the brief, its agent file, and the plugin files it reads.
+
+    The skills compared are only those that the role's agent file, common.md, or its own
+    brief names, so a skill's change affects only the cases that read it (F17 design D163).
+    """
     input_file = write_input(case, project)
     report = flow(sys.executable, plugin, project, env, *brief_args(case, input_file))
     if input_file is not None:
@@ -29,31 +33,15 @@ def role_inputs(case: Case, plugin: Path, project: Path, env: Mapping[str, str])
     inputs = {"brief": report.get("prompt") if report.get("ok") else f"problems: {report.get('problems')}"}
     agent = plugin / "agents" / f"troy-{case.role}.md"
     inputs["agent"] = agent.read_text(encoding="utf-8") if agent.is_file() else ""
-    folders = ["troy-mode/templates/"] + named_skills(_Folder(plugin))
+    common = plugin / "troy-mode" / "roles" / "common.md"
+    common_text = common.read_text(encoding="utf-8") if common.is_file() else ""
+    folders = ["troy-mode/templates/"] + skills_in(inputs["agent"], common_text,
+                                                   report.get("prompt") or "")
     for path in sorted(p for p in plugin.rglob("*") if p.is_file()):
         rel = path.relative_to(plugin).as_posix()
         if any(rel.startswith(folder) for folder in folders):
             inputs[rel] = path.read_bytes().replace(b"\r\n", b"\n").decode("utf-8", errors="replace")
     return inputs
-
-
-class _Folder:
-    """A plugin copy as a tree for named_skills."""
-
-    def __init__(self, root: Path):
-        """Reads files under root."""
-        self.root = root
-
-    def files(self) -> list[str]:
-        """The agent files and common.md, the only files named_skills reads."""
-        found = [p.relative_to(self.root).as_posix() for p in (self.root / "agents").glob("troy-*.md")]
-        common = self.root / "troy-mode" / "roles" / "common.md"
-        return found + (["troy-mode/roles/common.md"] if common.is_file() else [])
-
-    def read(self, path: str) -> bytes | None:
-        """The file's bytes."""
-        full = self.root / path
-        return full.read_bytes() if full.is_file() else None
 
 
 def _changed(repo: Path, base: str, head: str) -> list[str]:

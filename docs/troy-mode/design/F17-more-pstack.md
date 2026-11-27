@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F17 in [requirements 1.65](../requirements.md#72-feature-list) |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-11-26 |
-| Status | Approved by Troy on 2026-11-26 ("全按推荐"), with D161 to D170, every recommended answer, and the requirement text proposals P1 to P5 of section 11 as written. Requirements 1.67 records the decisions with P1 and P2; P3, P4, and P5 land with the PRs that section 11 names. The build's costs, about $213 to $251 for the first rounds and up to about $446, still wait for Troy's own yes, step by step (section 12.4). |
+| Status | Approved by Troy on 2026-11-26 ("全按推荐"), with D161 to D170, every recommended answer, and the requirement text proposals P1 to P5 of section 11 as written. Requirements 1.67 records the decisions with P1 and P2; P3, P4, and P5 land with the PRs that section 11 names. The build's costs, about $213 to $251 for the first rounds and up to about $446, still wait for Troy's own yes, step by step (section 12.4). Troy approved steps 1 and 2 on 2026-11-26 ("同意前两步"), at about $257; version 1.1 records what step 1's build chose and its checks (section 12.5). |
 | Source of truth | This English file. [`F17-more-pstack.zh-CN.md`](F17-more-pstack.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -305,6 +305,22 @@ A PR whose target is not fixed does not merge its card, and the status says so (
 - **PRs 2 and 3 change the instruction set**, so each waits until no other PR that changes it is open, as every such PR does. Each exam above $60 waits for Troy's yes to its whole (F16 D158): PR 2 at $216.79 and PR 3 at $144.60.
 - **PR 4 and the probe** change no file of the instruction set, so they can run beside PRs 2 and 3, each in its own session. Each costs more than $10, so each asks Troy first.
 - **The design's approval does not approve these costs**: each step asks Troy with its figures when it is ready.
+- **Troy's yes, 2026-11-26.** Troy approved steps 1 and 2, PR 1 and PR 2, at about $257 for both ("同意前两步"). PR 3, PR 4, and the `interrogate` replay wait until after recipe-menu v0.2. F17's status moves in a status PR after PR 2.
+
+### 12.5 What step 1 chose
+
+Step 1's build, PR 1 (plugin 0.20.0), fixed these points, which the sections above leave open:
+
+- **The table's form.** `Row(task, path, line)` in `troyflow/cards.py`, with `path` written as `skills/<name>/SKILL.md`, so that the exam finds each card in the module's own text. `ROWS` is empty until PR 2.
+- **Problems.** A row whose card the plugin lacks adds a `card:` problem to any other problem of the brief, and the brief is refused.
+- **Order.** A card's sentence follows every sentence the engine adds today (a team's, the mock notes, CR1's risks, the platform skip) and comes before the premise text; its path follows the brief's own Read first entries and comes before the premise card. A team brief keeps the plugin's path.
+- **The exam's view.** `instructions.skills_in` finds the skills that texts name. `named_skills` also reads the brief's modules, so the premise card joined the instruction set, and `main`'s instruction hash moves from `02dec4115317` to `093511c2898f`. `affected.role_inputs` compares the skills that the case's agent file, `common.md`, and its rendered prompt name. An unused import left `affected.py`.
+
+The checks of step 1:
+
+- **Tests.** A separate agent wrote 37 new or updated tests from this design and the step's contract before the code, in `test_cards.py`, `test_exam_instructions.py`, and `test_exam_affected.py`. On `main` (`ed51f81`), 32 failed for a missing part and 5 passed by design: four of `affected`'s kept behavior, and the comparison of 25 author and reviewer briefs with the engine of `origin/main`, which matched byte for byte. The build then made that comparison use a copy of the same engine with its table emptied, so that a later change to a brief's text for another reason does not break it. The suites pass: flow 1,596, exam 436, checks 760, hooks 436, init 282, and dev 324.
+- **Planted bugs.** 14 planted one at a time, and all 14 caught: a card in every task's brief, rows sorted, a relative path, a missing card accepted, the line twice, the sentence before the task's text, the path before the brief's own entries, card problems never checked, `named_skills` skipping the brief's modules, the premise card left out, `skills_in` keeping `troy-mode`, and `affected` back to every case's skills, without the brief, or without `common.md`.
+- **Role exam.** `troy_exam.py affected` found all 12 cases affected, since the harness changed, so exam 2026-11-26-2 proved every case's anchors on the step's commit: passed, 21 judge passes, $12.40 against the $40.00 estimate. One pass of cr-test-review returned a verdict that lacked a criterion; the exam stopped, `resume` went on (F16 design 11.4), and the next pass graded both anchors right.
 
 ## 13. Later additions (D170)
 
@@ -370,3 +386,4 @@ F16 design keeps D161 to D170 for F17. Troy approved every decision on 2026-11-2
 | --- | --- | --- |
 | 0.1 | 2026-11-26 | First draft, with D161 to D170 and the requirement text proposals P1 to P5, for Troy. |
 | 1.0 | 2026-11-26 | Approved by Troy with D161 to D170, every recommended answer ("全按推荐"), and the requirement text proposals P1 to P5 as written. Requirements 1.67 records them with P1 and P2. The build's costs still wait for Troy's yes, step by step (sections 12.4 and 17). |
+| 1.1 | 2026-11-26 | Step 1's build (PR 1, plugin 0.20.0): section 12.4 records Troy's yes to steps 1 and 2, and section 12.5 what step 1 chose, its tests, planted bugs, and role exam. |
