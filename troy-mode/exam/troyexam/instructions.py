@@ -176,14 +176,24 @@ def brief_modules(tree) -> list[str]:
     return sorted(found)
 
 
-def named_skills(tree) -> list[str]:
-    """The skills/<name>/ folders that an agent file or common.md names, other than troy-mode's."""
+def skills_in(*texts: str) -> list[str]:
+    """The skills/<name>/ folders that the texts name, other than troy-mode's, sorted once each."""
     names = set()
-    for path in tree.files():
-        if any(glob_match(path, pattern) for pattern in _NAMERS):
-            names.update(_SKILL_NAME.findall(_text(tree.read(path))))
+    for text in texts:
+        names.update(_SKILL_NAME.findall(text))
     names.discard("troy-mode")
     return sorted(f"skills/{name}/" for name in names)
+
+
+def named_skills(tree) -> list[str]:
+    """The skills/<name>/ folders that an agent file, common.md, or a module of the brief names.
+
+    The brief's modules name the cards it adds to Read first, such as the premise card and
+    the card table's (F17 design 5, D163).
+    """
+    paths = [p for p in tree.files() if any(glob_match(p, pattern) for pattern in _NAMERS)]
+    paths += brief_modules(tree)
+    return skills_in(*(_text(tree.read(path)) for path in paths))
 
 
 def instruction_files(tree) -> list[str]:

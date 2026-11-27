@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from troycheck.titles import parse_title
 
-from . import PLUGIN_PREFIX, checksteps, mocknotes, notes as later_notes, premise, \
+from . import PLUGIN_PREFIX, cards, checksteps, mocknotes, notes as later_notes, premise, \
     repo as git, risks, rulebrief, summary, teambrief
 from .errors import FlowError
 from .repo import MAIN
@@ -499,6 +499,7 @@ def build(args) -> tuple[dict, int]:
         report["problems"].append(f"--premise is for an author's fourth attempt, and "
                                   f"{args.task} is no author task: "
                                   f"{', '.join(premise.TASKS)} (F18 design 6).")
+    report["problems"] += cards.problems(args.task)
     if report["problems"]:
         return report, 1
     if target.feature is not None:
@@ -561,6 +562,11 @@ def _fill(report: dict, args, repo, config, features, subjects, text, target: Ta
              else f"{s} (the {item} rows and the version plan)" if version
              else f"{s} (the {item} row in section 4)"
              for p, s in zip(report["read_first"], shown)]
+    for row in cards.rows_for(task):
+        # A pstack card the task reads, from tstack's copy, never copied (F17 design 4).
+        sentence += " " + cards.sentence(row)
+        report["read_first"].append(cards.absolute(row))
+        shown.append(cards.absolute(row))
     if getattr(args, "premise", False):
         # The fourth attempt tests the premise first (F18 design 6, D175).
         sentence += " " + premise.TEXT

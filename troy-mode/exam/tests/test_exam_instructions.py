@@ -6,11 +6,25 @@ not change it; a folder and its git commit hash the same. ``affected``
 finding no case for a refactor that renders the same briefs runs end to end
 in test_exam_cli.AffectedTests.
 
+F17 (design 5, step 1 contract 3) adds ``skills_in`` and widens ``named_skills`` to every
+``skills/<name>/`` that a module of ``brief_modules`` names, so the premise card and each card
+of the card table join the set. ``SkillsInTests``, ``ListTests.test_a_skill_only_a_brief_module_
+names``, ``test_this_repository_has_the_premise_card``, the updated ``test_this_repository``,
+and ``HashTests.test_a_brief_named_skill_changes_the_hash`` fail on ``origin/main`` (``ed51f81``),
+where ``skills_in`` is missing and ``named_skills`` reads only the agent files and
+``common.md``.
+
 Planted bug of design 14.2 caught here:
 
 - "the hash leaving out the templates": ListTests.test_instruction_files and
   HashTests.test_each_listed_file_changes_the_hash (the troy-mode/templates/ subtests)
   and test_a_new_template_changes_the_hash.
+
+Planted bugs of F17 design 12.2 (PR 1) caught here:
+
+- "``named_skills`` skipping the brief's modules": ListTests.test_a_skill_only_a_brief_module_
+  names and test_this_repository.
+- "the premise card left out": ListTests.test_this_repository_has_the_premise_card.
 """
 
 import ast
@@ -18,11 +32,25 @@ import re
 import unittest
 
 from exam_helpers import REPO, git, make_repo, new_dir, write_file
+from troyexam import instructions
 from troyexam.instructions import (BRIEF, FIXED, SKILL, SKILL_SECTIONS, FolderTree, GitTree,
                                    brief_modules, instruction_files, instruction_hash,
                                    named_skills, short_hash, skill_sections)
 
 FLOW = "troy-mode/flow/troyflow"
+PREMISE_CARD = "skills/principle-attack-the-premise/"
+# The contract's pattern of a skill folder (contract 3), kept apart from the code's.
+SKILL_NAME = re.compile(r"skills/([A-Za-z0-9_.-]+)/")
+# Skills that only modules of brief.py's closure name: checksteps.py directly, and
+# sections.py through summary.py. unrelated.py names skills/other/ but is not imported.
+CARD_FILES = {
+    f"{FLOW}/checksteps.py": "import os\n\nCARD = 'skills/card-only/SKILL.md'\n",
+    f"{FLOW}/sections.py": "X = 1\n# Read D:/x/tstack/skills/deep-card/SKILL.md first.\n",
+    f"{FLOW}/unrelated.py": "from .sections import cut\n# skills/other/SKILL.md\n",
+    "skills/card-only/SKILL.md": "# Card only\n",
+    "skills/card-only/reference/more.md": "# More\n",
+    "skills/deep-card/SKILL.md": "# Deep card\n",
+}
 SKILL_TEXT = ("---\nname: troy-mode\n---\n\n# troy-mode\n\n## Start\n\nStart text.\n\n"
               "## Running a role\n\nRole text.\n\n### The report\n\nReport text.\n\n"
               "## The summary for Troy\n\nSummary text.\n\n## Feature loop\n\nLoop text.\n\n"
@@ -196,8 +224,34 @@ class ListTests(unittest.TestCase):
                                         + "from .unrelated import cut\n"}))
         self.assertIn(f"{FLOW}/unrelated.py", found)
 
+    def test_a_skill_only_a_brief_module_names(self):
+        """A skill that a module of brief.py's closure names, at any depth and by an absolute
+        path too, joins named_skills and its files the list; a module outside the closure
+        names none (F17 design 5)."""
+        folder = tree(CARD_FILES)
+        named = set(named_skills(folder))
+        self.assertLessEqual({"skills/card-only/", "skills/deep-card/"}, named)
+        self.assertNotIn("skills/other/", named)
+        self.assertEqual(named, {"skills/technical-writing/", "skills/benchmark-checklist/",
+                                 "skills/card-only/", "skills/deep-card/"})
+        found = instruction_files(folder)
+        for path in ("skills/card-only/SKILL.md", "skills/card-only/reference/more.md",
+                     "skills/deep-card/SKILL.md"):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+        self.assertNotIn("skills/other/SKILL.md", found)
+
+    def test_this_repository_has_the_premise_card(self):
+        """premise.py names the attack-the-premise card, so it is in named_skills and its
+        SKILL.md in the instruction files (F17 design 5, gap 1)."""
+        head = GitTree(REPO, "HEAD")
+        self.assertIn(PREMISE_CARD, named_skills(head))
+        self.assertIn(f"{PREMISE_CARD}SKILL.md", instruction_files(head))
+
     def test_this_repository(self):
-        """tstack's own set: the parts design 9.1 names, and none it does not."""
+        """tstack's own set: the parts design 9.1 names, and none it does not. The named
+        skills are those that the agent files, common.md, and the brief's modules name (F17
+        design 5)."""
         head = GitTree(REPO, "HEAD")
         found = set(instruction_files(head))
         files = set(head.files())
@@ -205,14 +259,14 @@ class ListTests(unittest.TestCase):
         templates = {f for f in files if f.startswith("troy-mode/templates/")}
         self.assertEqual(len(agents), 6)
         self.assertLessEqual(agents | templates | {"troy-mode/roles/common.md"}, found)
-        self.assertEqual(set(brief_modules(head)),
-                         ast_closure(lambda p: (head.read(p) or b"").decode("utf-8")))
+        modules = set(brief_modules(head))
+        self.assertEqual(modules, ast_closure(lambda p: (head.read(p) or b"").decode("utf-8")))
         self.assertLessEqual({f"{FLOW}/brief.py", f"{FLOW}/summary.py", f"{FLOW}/checksteps.py",
-                              f"{FLOW}/rulebrief.py"}, found)
+                              f"{FLOW}/rulebrief.py", f"{FLOW}/premise.py"}, found)
         texts = "".join((head.read(f) or b"").decode("utf-8")
-                        for f in sorted(agents) + ["troy-mode/roles/common.md"])
-        named = {f"skills/{n}/" for n in re.findall(r"skills/([A-Za-z0-9_-]+)/", texts)
-                 if n != "troy-mode"}
+                        for f in sorted(agents) + ["troy-mode/roles/common.md"] + sorted(modules))
+        named = {f"skills/{n}/" for n in SKILL_NAME.findall(texts) if n != "troy-mode"}
+        self.assertIn(PREMISE_CARD, named)
         self.assertEqual(set(named_skills(head)), named)
         self.assertLessEqual({"skills/technical-writing/", "skills/benchmark-checklist/"}, named)
         self.assertIn("skills/technical-writing/SKILL.md", found)
@@ -312,6 +366,61 @@ class HashTests(unittest.TestCase):
     def test_crlf_does_not_change_the_hash(self):
         """A CRLF checkout hashes like its LF commit."""
         self.assertEqual(instruction_hash(tree(crlf=True)), self.base)
+
+    def test_a_brief_named_skill_changes_the_hash(self):
+        """A change to a file of a skill that only a brief module names, or a new file in its
+        folder, gives another hash (F17 design 5, step 1 contract 3)."""
+        named = instruction_hash(tree(CARD_FILES))
+        for rel, content in (("skills/card-only/SKILL.md", "# Card only, changed\n"),
+                             ("skills/card-only/reference/more.md", "# More, changed\n"),
+                             ("skills/deep-card/SKILL.md", "# Deep card, changed\n"),
+                             ("skills/card-only/new.md", "x\n")):
+            with self.subTest(file=rel):
+                self.assertNotEqual(instruction_hash(tree({**CARD_FILES, rel: content})), named)
+
+
+class SkillsInTests(unittest.TestCase):
+    """skills_in: every skills/<name>/ that the texts name, troy-mode's left out, sorted and
+    unique (step 1 contract 3)."""
+
+    def skills_in(self):
+        """instructions.skills_in, or a failure that names why it is missing."""
+        found = getattr(instructions, "skills_in", None)
+        if found is None:
+            self.fail("troyexam.instructions has no skills_in (F17 step 1 contract 3)")
+        return found
+
+    def test_the_names_in_one_text(self):
+        """A plugin-root path and a bare folder name, as the agent files write them."""
+        text = ("Write by ${CLAUDE_PLUGIN_ROOT}/skills/technical-writing/SKILL.md and read "
+                "skills/benchmark-checklist/ first.")
+        self.assertEqual(self.skills_in()(text),
+                         ["skills/benchmark-checklist/", "skills/technical-writing/"])
+
+    def test_absolute_paths_count(self):
+        """A Windows path in POSIX form and a Linux path each name their skill."""
+        self.assertEqual(self.skills_in()("- D:/x/tstack/skills/principle-x/SKILL.md\n",
+                                          "- /home/u/tstack/skills/principle-y/SKILL.md\n"),
+                         ["skills/principle-x/", "skills/principle-y/"])
+
+    def test_troy_mode_is_left_out(self):
+        """skills/troy-mode/ is not named, even beside another skill."""
+        self.assertEqual(self.skills_in()("See skills/troy-mode/SKILL.md and skills/tdd/SKILL.md."),
+                         ["skills/tdd/"])
+        self.assertEqual(self.skills_in()("skills/troy-mode/SKILL.md"), [])
+
+    def test_sorted_and_unique_across_texts(self):
+        """Names from several texts, repeated within and across them: once each, sorted; the
+        pattern's dots and underscores are part of a name."""
+        found = self.skills_in()("skills/zeta/ skills/alpha/SKILL.md skills/zeta/x.md",
+                                 "skills/alpha/", "skills/mid.v2_x/SKILL.md")
+        self.assertEqual(found, ["skills/alpha/", "skills/mid.v2_x/", "skills/zeta/"])
+        self.assertIsInstance(found, list)
+
+    def test_no_name(self):
+        """No text, or texts that name no skill folder: an empty list."""
+        self.assertEqual(self.skills_in()(), [])
+        self.assertEqual(self.skills_in()("", "No skill is named here."), [])
 
 
 if __name__ == "__main__":

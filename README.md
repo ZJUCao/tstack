@@ -175,4 +175,5 @@ Lauren's README says it best: `poteto-mode` is her style. troy-mode is Troy's ow
 1. Sparse-clone `cursor/plugins` with `harness/pstack` checked out.
 2. Diff `harness/pstack/claude-code` between commit `bb68f23` (0.15.36) and the new release.
 3. Apply that diff here, then rerun the checks in [How the port works](#how-the-port-works): new Cursor-only steps get an adaptation or a `**Not ported to Claude Code:**` marker, and new model slugs are covered by the adapter.
-4. Raise `version` in `.claude-plugin/plugin.json`.
+4. Run `python troy-mode/exam/troy_exam.py affected --base origin/main` on the merge. When the diff changes a skill that a troy-mode role reads, such as a principle card in a brief, the merge PR carries the role exam of the cases it affects, as every PR that changes the role instructions does ([F16 design](docs/troy-mode/design/F16-role-exam.md) 9.4, [F17 design](docs/troy-mode/design/F17-more-pstack.md) D168). troy-mode never edits a pstack file to fit; its own words stay in the card table and the entry skill.
+5. Raise `version` in `.claude-plugin/plugin.json`.

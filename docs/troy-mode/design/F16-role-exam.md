@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.12 |
+| Version | 1.13 |
 | Date | 2026-11-25 |
-| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. Version 1.11 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.12 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. |
+| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. Version 1.11 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.12 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. Version 1.13 carries F17 step 1's view of the cards into sections 9.1 and 9.2. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -343,7 +343,7 @@ These files make up a role's instructions. A PR that changes any of them must ca
 | The common rules | `troy-mode/roles/common.md` |
 | The briefs | `troy-mode/flow/troyflow/brief.py` and the modules of `troyflow` that it imports, such as `summary.py`, `checksteps.py`, and `rulebrief.py`, and later `mocknotes.py` (troy-pstack#63) |
 | The templates that roles fill | `troy-mode/templates/**` |
-| The skills that roles read | Each `skills/<name>/` folder that an agent file or `common.md` names, such as `technical-writing` and `benchmark-checklist`, and F17's principle cards once named |
+| The skills that roles read | Each `skills/<name>/` folder that an agent file, `common.md`, or a module of the brief names, such as `technical-writing`, `benchmark-checklist`, the premise card of `premise.py`, and the cards of F17's card table, `cards.py` (F17 design D163) |
 | The entry skill's role sections | The sections "Running a role" (with "The report") and "The summary for Troy" of `skills/troy-mode/SKILL.md`, which say what Input a role gets |
 | The exam itself | `troy-mode/exam/cases/**` and `troy-mode/exam/troyexam/**`, the frozen harness |
 
@@ -351,7 +351,7 @@ The exam's own code holds this list in one place, and both the runner and the CI
 
 ### 9.2 Affected cases
 
-The set is wide, so the exam first works out which cases a PR affects, without any model call. `troy_exam.py affected --base <ref> --head <ref>` builds each case's project, renders its brief with each version's engine, and compares what the role would get: the brief, the agent file, and the files the role reads from the plugin. A case whose inputs are the same in both versions is not affected and needs no run. A pure refactor of `brief.py` then costs nothing. A change to the cases or to the harness affects the cases it changes, which `prove` runs again, and a harness change proves every case's anchors again (section 4.5).
+The set is wide, so the exam first works out which cases a PR affects, without any model call. `troy_exam.py affected --base <ref> --head <ref>` builds each case's project, renders its brief with each version's engine, and compares what the role would get: the brief, the agent file, and the files the role reads from the plugin: the templates, and the skills that the role's agent file, `common.md`, or its own brief names, so a skill's change affects only the cases that read it (F17 design D163). A case whose inputs are the same in both versions is not affected and needs no run. A pure refactor of `brief.py` then costs nothing. A change to the cases or to the harness affects the cases it changes, which `prove` runs again, and a harness change proves every case's anchors again (section 4.5).
 
 A change to the entry skill's role sections cannot change a case's brief, because the case's Input is a fixed file. Such a PR also updates every case's `input.md` that the new section would write differently, and those cases then run. If no `input.md` changes, the exam records that no case is affected.
 
@@ -779,3 +779,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.10 | 2026-11-22 | tstack issue #63's design, F07 design 6.4 and D205 to D207: its build changes the DV1, DV2, and CR1 briefs and the Developer's agent file, not the Code Reviewer's, so its exam runs dv-mock-notes as the target, and dv-impl-notes and cr-mock-review, and not cr-test-review (section 13). F07's D205 settles the constructor sentence (section 14.6). |
 | 1.11 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22; F20 design section 6): its build changes the Architect's agent file, so ar-design-review and ar-error-review run, an estimated $62.80 for the first round and $125.60 with second rounds, to which Troy said yes on 2026-11-22; the briefs change only in a team's worktree, so no other case is affected. The exam runs with F20's build. |
 | 1.12 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): its build changes the Architect's agent file, so ar-design-review and ar-error-review run, $59.78 for the first round and up to $119.55; the AR8 and premise texts of the briefs and the entry skill's role sections affect no case. F18's spot checks read the cases' pass counts from their logs, as section 13 foresaw (F18 design sections 7.3 and 10). The changes land with F18's build. |
+| 1.13 | 2026-11-26 | F17 step 1 (F17 design D163, plugin 0.20.0): the skills that roles read include those that a module of the brief names, the premise card among them (9.1), and `affected` compares, per case, only the skills that its role's agent file, `common.md`, or its own brief names (9.2). |
