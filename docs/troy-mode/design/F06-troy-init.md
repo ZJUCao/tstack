@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F06 in [requirements 1.16](../requirements.md#72-feature-list) |
-| Version | 1.6 |
-| Date | 2026-11-24 |
-| Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. Version 1.5 adds D213, which Troy approved on 2026-11-18 as tstack issue #48. Version 1.6 adds D289, the follow-up of D213 for the engine's other uv commands, approved under Troy's standing yes of 2026-11-22. |
+| Version | 1.7 |
+| Date | 2026-11-28 |
+| Status | Approved by Troy on 2026-11-06, with D47 to D56. Troy approved the R12 change of section 8 on 2026-11-07. Version 1.5 adds D213, which Troy approved on 2026-11-18 as tstack issue #48. Version 1.6 adds D289, the follow-up of D213 for the engine's other uv commands, approved under Troy's standing yes of 2026-11-22. Version 1.7 adds D291 to D295, R21's branch rule on GitHub (requirements 1.71), which Troy approved on 2026-11-28: D293 as B, R21's ruleset only, and the others as recommended. |
 | Source of truth | This English file. [`F06-troy-init.zh-CN.md`](F06-troy-init.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -16,7 +16,7 @@ F06 turns a folder into a troy-mode project and keeps troy-mode's files in it cu
 2. **Language step** (5.1 step 4), after Troy approves the architecture: the language pack from F03 and its CI job.
 3. **Upgrade** (F02 D8): troy-mode's own files brought to the plugin's current version.
 
-Each step lands as one `[rules]` PR with one commit. troy-init opens it and merges it once its checks pass (D53).
+Each step lands as one `[rules]` PR with one commit. troy-init opens it and merges it once its checks pass (D53). Before setup's PR, and before an upgrade's when it is missing, troy-init also adds R21's branch rule on GitHub where GitHub allows it (section 4.7).
 
 F06 does not write requirements, architecture, or any other project document (the roles, F04). It does not start roles or run the feature loop (F07). It writes no permission rule for the plugin's files, because F05's hook allows those reads (F05 D45).
 
@@ -47,7 +47,7 @@ troy-mode/
 | `/troy-pstack:troy-init lang python` or `lang cpp` | Language step |
 | `/troy-pstack:troy-init upgrade` | Upgrade |
 
-The skill runs the engine with `--dry-run --json` first. Every step stops on `main` (sections 4.1 and 5.1), so for the language step and upgrade the skill creates the step's branch (section 7, step 2) before the dry run, and deletes it again when upgrade has nothing to change. At setup in a folder without `origin`, the dry run's problems name the missing `origin` and the branch; section 7's first two steps clear them. It asks Troy, in one message and in Troy's language, only what has no clear default: whether to create the GitHub repository (D52), whether to replace a file troy-init did not write (D48), and the environment's series for the language step. It then runs the engine, takes the result through the PR flow of section 7, and reports what it did and what it did not do.
+The skill runs the engine with `--dry-run --json` first. Every step stops on `main` (sections 4.1 and 5.1), so for the language step and upgrade the skill creates the step's branch (section 7, step 2) before the dry run, and deletes it again when upgrade has nothing to change. At setup in a folder without `origin`, the dry run's problems name the missing `origin` and the branch; section 7's first two steps clear them. It asks Troy, in one message and in Troy's language, only what has no clear default: whether to create the private GitHub repository, with R21's branch rule where Troy's plan allows it (D52, D292), whether to add R21's branch rule to a repository that already exists (D291), whether to replace a file troy-init did not write (D48), and the environment's series for the language step. It then runs the engine, takes the result through the PR flow of section 7, and reports what it did and what it did not do.
 
 ### 3.2 The engine
 
@@ -57,6 +57,7 @@ python troy_init.py lang    (python | cpp) [--project-name <name>] [--environmen
                             [--series <folder>]... [--package <name>] [--mamba <path>]
                             [--env-prefix <path>] [--no-env] [common options]
 python troy_init.py upgrade [common options]
+python troy_init.py branch-rule [--rules <file>] [--rulesets <file>] [--repo <path>] [--json]
 
 common options: [--repo <path>] [--date <YYYY-MM-DD>] [--replace <path>]... [--dry-run] [--json]
 ```
@@ -74,8 +75,10 @@ common options: [--repo <path>] [--date <YYYY-MM-DD>] [--replace <path>]... [--d
 | `--replace` | A path troy-init may overwrite although it did not write it (D48). |
 | `--dry-run` | Check and plan only. Nothing changes. |
 | `--json` | Print the report as JSON. |
+| `--rules` | `branch-rule` only: a file with GitHub's answer about the rules in force on `main` (section 4.7). Without it, no rule is on yet. |
+| `--rulesets` | `branch-rule` only: a file with GitHub's list of the repository's rulesets (section 4.7). Without it, the repository has none. |
 
-The engine changes files and the repository's git config only. It never commits, pushes, or calls GitHub: the main session does that (F04 D29).
+The engine changes files and the repository's git config only. It never commits, pushes, or calls GitHub: the main session does that (F04 D29). `branch-rule` changes nothing: it reads GitHub's answer from a file the skill saved, and says which rulesets the skill should add (section 4.7).
 
 ### 3.3 Report and exit codes
 
@@ -147,13 +150,59 @@ Setup fills in the project's name and the date, and removes every template comme
 ### 4.5 git and GitHub settings
 
 - **Git hooks.** Setup sets `core.hooksPath` to `.troy-mode/checks/git-hooks` when that folder exists (F05 D44). In other clones, F05's `SessionStart` hook sets it.
-- **Required checks.** F02 D14 asks troy-init to mark `troy-mode checks` as required where the repository allows it. Setup asks GitHub whether the repository can use branch protection, which a private repository on a free plan cannot. Only if it can, the skill asks Troy and then marks the check required. On Troy's current plan it says the check stays optional.
+- **Branch rule.** Before the setup PR, the skill adds R21's ruleset on `main` where GitHub allows it (section 4.7).
+- **No required check (D293).** troy-init no longer marks `troy-mode checks` as required on GitHub. The step that version 1.6 ran after the setup PR merged, which asked GitHub whether classic branch protection was available and then offered to mark the check required (F02 D14), goes. troy-mode's merge step still merges a PR only when its checks pass (R18, F02 D14).
 
 Nothing else in git or GitHub changes.
 
 ### 4.6 The install record
 
 `.troy-mode/install.toml` records the troy-pstack version from `.claude-plugin/plugin.json`, the troy-pstack commit when the plugin folder is a git checkout, the date of each step, the language pack, and a `[files]` table with the SHA-256 hash of every file troy-init owns. troy-init owns the files it copies whole: troy-check, the templates, the PR template, the workflow, and the pack's whole files. Upgrade uses the hashes to tell an unchanged file from one someone edited (D54). `config.toml`, the rules table, `.gitignore`, and the build files belong to the project once written.
+
+### 4.7 R21's branch rule (D291 to D293)
+
+R21 says every change reaches `main` through a PR. The git hooks refuse a commit on `main` and a push of `main` in every clone where they are on (F05 D44). On GitHub, Troy decided on 2026-11-28 that a branch rule, not a CI check, enforces it, because a CI check runs only on PRs and cannot see a direct push (requirements 1.71).
+
+**What GitHub gets.** One repository ruleset, the same as the one Troy's session added by hand to `ZJUCao/recipe-menu` on 2026-11-28 (id 28299856) (D293):
+
+| Field | Value |
+| --- | --- |
+| Name | `R21: main only through PRs` |
+| Target and enforcement | `branch`, `active` |
+| Bypass actors | None |
+| Condition | `~DEFAULT_BRANCH`, so it follows `main` |
+| Rules | `deletion`; `non_fast_forward`; `pull_request` with 0 approvals, and no code owner review, last-push approval, stale-review dismissal, or required thread resolution |
+
+- The body is a plugin file, `troy-mode/init/rulesets/r21.json`. It is not copied into the project.
+- With no bypass actor, Troy cannot push `main` either, although Troy is the repository's admin. Only Troy changes or removes a ruleset, in GitHub's settings.
+- Every merge method stays allowed. troy-mode merges by rebase (section 7, step 8), and Troy may merge on GitHub.
+- It requires no status check (section 4.5).
+- GitHub fills in the parameters a body leaves out with its defaults. recipe-menu's ruleset shows `require_extra_approval_for_unattributed_changes` as true, which was not in the request that created it.
+
+**Where GitHub allows it (D292).** GitHub enforces rulesets on public repositories on every plan, and on private ones only with a paid plan such as Pro, which the GitHub Education pack includes. Classic branch protection comes with the same plans. troy-init cannot read the plan, because gh's token lacks the `user` scope, and the plan can change: on 2026-11-07 the then-private `ZJUCao/troy-mode-trial` answered the probe below with 403 (F10 guide, `02-start.md`), and on 2026-11-28 two of Troy's private repositories answered it with 404. So the skill asks GitHub for each repository: `gh api repos/<owner>/<project>/branches/main/protection` answers 403 with a message that names the plan, such as "Upgrade to GitHub Pro or make this repository public", where the plan has no branch protection, and 404 "Branch not protected" or 200 where it has.
+
+**A repository that already has rulesets.** troy-init adds its ruleset beside them, and never changes or deletes one. GitHub applies every active ruleset together, so a stricter rule that is already there still holds: one that requires an approval, for example, makes troy-mode's merges wait for that approval. A ruleset that is not in force, such as one with enforcement `disabled`, changes nothing and stays as it is. On 2026-11-28, `ZJUCao/troy-voice` had such a ruleset, "protect", created on 2026-11-06. The skill's question lists the repository's rulesets.
+
+**The engine's part.** `troy_init.py branch-rule --rules <file> --rulesets <file> --json` reads two answers of GitHub: `gh api repos/<owner>/<project>/rules/branches/main`, the rules in force on `main` from every active ruleset, and `gh api repos/<owner>/<project>/rulesets`, every ruleset of the repository with its name and enforcement. It reports:
+
+- `r21`: true when the rules in force hold `deletion`, `non_fast_forward`, and `pull_request`, from any ruleset, so a rule Troy added by hand counts;
+- `existing`: the repository's rulesets, each with its ID, name, and enforcement;
+- `add`: when `r21` is false, R21's ruleset, with its name and its body's absolute path;
+- `held`: when `r21` is false and a ruleset of the repository already has R21's name, for example one that Troy turned off, R21's ruleset goes here and not to `add`. troy-init never adds a second ruleset of that name and never turns the existing one on; the report names it for Troy.
+
+Without `--rules`, `r21` is false, and without `--rulesets`, `existing` is empty. A file that is not a JSON list is exit code 2. The engine calls no one; the skill runs `gh`.
+
+**The skill's part.** At setup and at upgrade, in step 1 of the PR flow (section 7), before the step's branch and PR:
+
+1. **Probe.** `gh api repos/<owner>/<project>/branches/main/protection`. A 403 whose message names the plan ends this part, with no question: the skill says that GitHub's plan has no branch rules for this private repository, so R21 rests on the local hooks. On any answer other than 404 or 200, it reports GitHub's message and goes on without the rule.
+2. **Read.** Both answers of the engine's part, saved to files in the git dir, then `branch-rule --rules <file> --rulesets <file> --json`. When `add` is empty, the rule is already on: report that, name any `held` ruleset, and skip the rest. When a read fails, report GitHub's message and go on without the rule.
+3. **Ask.** Troy's yes comes from the one message of section 3.1. For a new repository, D52's question covers it (D292). For an existing one, the skill asks whether to add R21's ruleset to `main` of `<owner>/<project>`, says what it does, and lists `existing`, which stay as they are. On no, it goes on without the rule.
+4. **Add.** For the entry of `add`: `gh api -X POST repos/<owner>/<project>/rulesets --input <body>`, with the body named by its absolute path, so that F05's hook can read it before the call (F05 D200). A 403 that names the plan ends this part with item 1's message. On any other error, it reports GitHub's message and goes on without the rule.
+5. **Check.** It reads the rules again, as in item 2, and reports the rule as on only when `add` is now empty. When GitHub accepted a ruleset that is not in force, it reports that with the ruleset's link and leaves it to Troy.
+
+When the agent's permissions refuse a call, for example when auto mode denies the POST, the skill stops and asks Troy. It never works around a refusal: no other API call, no settings page, no `--admin` merge. troy-init never changes or deletes a ruleset, never adds a bypass actor, and never uses classic branch protection. The language step does not look at the rules.
+
+**F05's hook.** In the main session, the hook lets a `gh api` call that changes GitHub through when the text it sends passes R19's check (F05 D200). With `--input <file>`, that text is the file, here a JSON body with no attribution. At setup the project has no `.troy-mode/` yet, so the hook does nothing. Subagents may run only read-only `gh` commands, and no role runs this step.
 
 ## 5. Language step
 
@@ -225,6 +274,7 @@ Upgrade brings troy-mode's files in a project to the plugin's current version, i
 | `docs/rules.md` and its mirror | Every R row is replaced by the template's. Existing rows keep their "Since" date and new rows get today's. P rows stay. `version` rises by one minor step in both, and `updated` changes. |
 | `config.toml`, appended `pyproject.toml` tables, `environment.yml`, `CMakeLists.txt` | Never changed. The report lists where they differ from the plugin's current pack files, for Troy to take into a rules PR. |
 | `.troy-mode/install.toml` | Rewritten. |
+| R21's branch rule on GitHub | Not a file. When GitHub lists a ruleset of section 4.7 as missing on `main`, the skill asks Troy in upgrade's one message and adds it before the upgrade's PR (D291). recipe-menu's hand-made ruleset counts as R21's, so it gets nothing. |
 
 Every path upgrade changes is in the `config` or `dependencies` class, so its PR is a valid `[rules]` PR.
 
@@ -232,7 +282,7 @@ Every path upgrade changes is in the `config` or `dependencies` class, so its PR
 
 The skill runs these steps around the engine. F07 runs the same steps when it runs the engine itself.
 
-1. **Repository.** If the folder is not a git repository, `git init -b main`. If it has no `origin`, the skill asks Troy once whether to create a private GitHub repository under Troy's account, named after the project. On yes: `gh repo create <owner>/<name> --private --add-readme`, then `git remote add origin` and `git fetch origin`. GitHub makes the first commit on `main`, so nobody commits on `main` locally (R21, D52).
+1. **Repository and branch rule.** If the folder is not a git repository, `git init -b main`. If it has no `origin`, the skill asks Troy once whether to create a private GitHub repository under Troy's account, named after the project, with R21's branch rule where Troy's plan allows it (D292). On yes: `gh repo create <owner>/<name> --private --add-readme`, then `git remote add origin` and `git fetch origin`. GitHub makes the first commit on `main`, so nobody commits on `main` locally (R21, D52). Then, at setup and at upgrade, R21's branch rule (section 4.7, D291).
 2. **Branch.** `git switch -c troy-mode/init origin/main`, or `troy-mode/lang-<name>`, or `troy-mode/upgrade-<version>`. The language step and upgrade create it before their dry run (section 3.1).
 3. **Engine.** Run the step.
 4. **Stage.** `git add` exactly the paths the engine's report lists, with `--chmod=+x` for the git hooks. Never `git add -A`.
@@ -243,11 +293,14 @@ The skill runs these steps around the engine. F07 runs the same steps when it ru
 
 ```text
 Troy:  /troy-pstack:troy-init
-Claude: This folder has no GitHub repository. Create the private repository ZJUCao/habit-tracker?
+Claude: This folder has no GitHub repository. Create the private repository
+  ZJUCao/habit-tracker, with R21's branch rule on main where your GitHub plan allows it
+  (changes only through PRs, no force push or deletion)?
 Troy:  Yes.
 Claude: Setup is done.
+  Repository: created ZJUCao/habit-tracker (private). R21's branch rule is on main.
   PR #1 "[rules] Set up troy-mode": troy-check passed (R01, R02, R12, R19, R20), merged.
-  Git hooks are on. Branch protection is not available on your plan, so the check stays optional.
+  Git hooks are on.
   Next: the requirements (Product Manager).
 ```
 
@@ -262,6 +315,13 @@ When F06 is built, it also changes:
 
 F01, F04, and F05 do not change.
 
+R21's branch rule (version 1.7) changes:
+
+- **The rules template and two others (F01, D294).** In `troy-mode/templates/rules.md` and its mirror, R21's Enforced by takes the requirements' cell of 1.71. R17 and R18 take the meaning that F18 gave them in the requirements: the Architect rules at round 3, and spot checks. R24, which F20 added to the requirements, gets its row, and the comment and the change log name R01 to R24. The guidance comments of `feature-design.md` and `test-plan.md` and their mirrors say that the Architect rules after round 3 (R17). Upgrade then carries the new rows into each project (section 6).
+- **The role exam (F16, D294).** `troy_exam.py affected` counts a plugin template as a case's input only when the case's project has no file of that name under `.troy-mode/templates/`, or when the case's brief names the template's path. Roles fill templates from the project's copy (F04 common rule 7), which the case's start commit fixes. The instruction set and its hash keep every template (F16 design 9.1), so a template PR still carries the exam's section. This lands first, in its own PR with its own tests, and F16's design records it.
+- **The entry skill (F07).** Its project setup names R21's branch rule among troy-init's questions, and its upgrade adds the rule when it is missing, through troy-init's PR flow. Neither is a role section, so no exam case is affected.
+- **The guide (F10).** `02-start.md` shows the new question and report in place of the required-check step. `06-rules.md` and `README.md` count R01 to R24, and `08-reference.md` gets R24's row.
+
 ## 9. How F06 maps to the requirements
 
 | Requirement | Where F06 covers it |
@@ -270,10 +330,11 @@ F01, F04, and F05 do not change.
 | F06 row: after the architecture is approved, the language pack and the CI workflow | Section 5. troy-check's job arrives earlier, at setup (section 4.2, D48), so the requirements and architecture PRs are checked too |
 | 5.1 steps 2 and 4 | Sections 4 and 5 |
 | F02 D8: copy the checks, record the version, upgrade by rerunning troy-init in a `[rules]` PR | Sections 4.2, 4.6, and 6 |
-| F02 D14: mark the check required when the repository allows it | Section 4.5 |
+| F02 D14: mark the check required when the repository allows it | Section 4.5. Dropped by D293: troy-init no longer marks the check required, and troy-mode's merge step still waits for it (R18). |
 | R01, R02, R12, R19, R20 on troy-init's own PRs | Sections 4.2, 4.4, and 7 |
 | R18: Claude merges what is not PR 1 or PR 2 of the first features | Section 7, step 8 |
 | R21: no commit on `main` | Section 7, steps 1 and 2 |
+| R21's Enforced by (requirements 1.71): a branch rule on `main` that troy-init adds where GitHub allows it | Section 4.7 (D291 to D293) |
 | Q6: old code is fixed when touched | Section 5.5 |
 | Q8: the progress file is local | Section 4.2 |
 | Section 8, Python environments | Section 5.4 |
@@ -304,11 +365,14 @@ Tests use `unittest` and the standard library. A separate agent writes them from
 | Language step | Python and C/C++ files. Tables appended to an existing `pyproject.toml`, or a new one created. A table that already exists stops the step. A `CMakeLists.txt` without the include stops it. The `[lang]` table is filled and a filled one stops the step. Existing tests are listed as legacy. The workflow gets the pack's job under `jobs:`. |
 | Environment | With a fake `mamba` on the PATH that records its arguments: the environment is created only when missing, the lock is compiled from every member's manifest, and `--env-prefix` and `--no-env` work. uv's cache folder (D213): every call gets `troy-mode-uv-cache` in the temp folder when `UV_CACHE_DIR` is unset or empty, and a value already set unchanged; `series` puts the folder in both commands only when the variable is unset or empty. D289: the first mock's install in a Python DV1 brief, a team's brief included, and a real run's `program-not-found` fix start with the same variables, and the problem's message shows `<uv cache>` in place of the folder. No test uses the network. |
 | Upgrade | An unchanged owned file is replaced, and an edited one stops the step. A new template is created. R rows are replaced, P rows and "Since" dates are kept, and the version rises in both languages. The config is never changed. |
-| Skill | `SKILL.md`'s front matter has `name: troy-init` and `disable-model-invocation: true`. Its text names the three steps and the PR flow's steps. |
+| Skill | `SKILL.md`'s front matter has `name: troy-init` and `disable-model-invocation: true`. Its text names the three steps and the PR flow's steps. D291 to D293: it names the protection probe and its 403 that names the plan, `branch-rule` with both files, the POST with `--input`, the second read after it, the private repository question with the rule, that existing rulesets stay as they are, and that a refused call goes to Troy; it no longer marks `troy-mode checks` required. |
+| Branch rule | `branch-rule` without `--rules` adds R21's ruleset, with its body's absolute path. A list that holds `deletion`, `non_fast_forward`, and `pull_request`, from one ruleset or from two, keeps it out of `add`; without any one of them, it is added. `existing` lists every ruleset of `--rulesets` with its ID, name, and enforcement, a `disabled` one included. When a listed ruleset, in force or not, already has R21's name, R21's ruleset goes to `held` and not to `add`. A file that is not a JSON list is exit code 2. The body holds exactly what section 4.7 gives: the name, target `branch`, enforcement `active`, an empty bypass list, `~DEFAULT_BRANCH`, and the three rules with their parameters, and no `required_status_checks` rule. No test uses the network. |
+| Templates (D294) | Every R row of the rules template has the ID, type, and Enforced by of an R row of requirements section 6, in the same language, and every R row of the requirements has its row in the template. No template comment says that round 3 escalates. |
+| Exam (D294, F16's suite) | `affected`: a changed template that every case's project holds affects no case; one that a case's project lacks affects that case; one whose path a case's brief names affects that case. |
 
 ### 11.2 Planted bugs
 
-After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: an existing file overwritten, a marker left in the rules table, mirrors with different versions, one pack's pattern missing from the config, the `[lang]` table not filled, existing tests not listed, the architecture approval not checked, git hooks without the executable bit, a P row dropped by upgrade, an edited owned file replaced by upgrade, and the pack's job not added. D213's change adds: a value already set overridden, the folder missing from `series`' install command, and a folder outside the temp folder. D289 adds: the variables missing from the first mock's install, put after `mamba run`, given to another check or to a C/C++ brief, a value already set overridden there, a team's brief that loses them, and the folder shown in a real run's message or missing from its fix. The counts go in the PR description.
+After the code passes, bugs are planted one at a time in a scratch copy, and each must make a test fail. They include: an existing file overwritten, a marker left in the rules table, mirrors with different versions, one pack's pattern missing from the config, the `[lang]` table not filled, existing tests not listed, the architecture approval not checked, git hooks without the executable bit, a P row dropped by upgrade, an edited owned file replaced by upgrade, and the pack's job not added. D213's change adds: a value already set overridden, the folder missing from `series`' install command, and a folder outside the temp folder. D289 adds: the variables missing from the first mock's install, put after `mamba run`, given to another check or to a C/C++ brief, a value already set overridden there, a team's brief that loses them, and the folder shown in a real run's message or missing from its fix. R21's branch rule adds: a bypass actor in the body, a required status check in the body, `r21` true without `deletion`, a relative path in `add`, a `held` ruleset put into `add`, and a `disabled` ruleset left out of `existing`. The exam's change adds: a template counted although the project holds it, a template the project lacks not counted, and a template that the brief names not counted. The counts go in the PR description.
 
 ### 11.3 Sample projects in CI
 
@@ -326,6 +390,13 @@ Before the language step's PR opens, troy-init runs in nested `claude -p` sessio
 
 The repository is private and stays for later trials (F07, F11). Deleting it is Troy's call. The trial uses a few minutes of the private repository's free Actions minutes.
 
+**R21's branch rule (D295).** `ZJUCao/troy-mode-trial` is public now and has no branch rule on purpose. Before the branch rule's PR merges, two nested `claude -p` trials run with tstack from the PR branch:
+
+1. **Upgrade** on a clone of `ZJUCao/troy-mode-trial`. troy-init finds R21's ruleset missing, the trial's answers say yes, and it adds it. The upgrade's PR, which carries the new template rows, then merges by rebase under it. The ruleset stays on the repository afterwards.
+2. **Setup** in a fresh clone of the new public repository `ZJUCao/troy-init-trial`, which the build's session creates with `gh repo create --public --add-readme` once Troy approves it with this design. troy-init takes the path of a repository that already exists: the probe answers 404, the trial's answers say yes, the rule is on before PR 1, and PR 1 merges under it. Keeping or deleting that repository afterwards is Troy's call.
+
+Each trial checks the rulesets that GitHub lists against section 4.7. No trial uses a private repository, because GitHub Actions did not run on Troy's private repositories on 2026-11-28, so no check would report there. A new repository's path through D52's question, and the 403 of a plan without branch rules, are checked by tests only.
+
 ### 11.5 Status
 
 | When | F06's status in requirements 7.2 |
@@ -333,6 +404,7 @@ The repository is private and stays for later trials (F07, F11). Deleting it is 
 | Part 1 merges | Written, part 1 of 2: setup and upgrade. Its unit tests pass on Troy's PC. |
 | Part 2 merges after a passing trial | Runs on a sample project: troy-init set up a scratch GitHub project, whose setup and language PRs passed CI and merged. Not yet used on a real project. |
 | The pilot (F11) starts with troy-init | Used on a real project |
+| R21's branch rule's PR merges after both trials of 11.4 | The F06 row adds: troy-init adds R21's branch rule at setup and upgrade, which runs on a sample project (the two trials), and is not yet used on a real project. |
 
 F06 lands in two PRs (D55), each with one commit and its tests written first:
 
@@ -341,6 +413,13 @@ F06 lands in two PRs (D55), each with one commit and its tests written first:
 
 Each status update is its own PR.
 
+R21's branch rule lands in two PRs, each with one commit and its tests written first:
+
+1. **The exam's change** (section 8, D294): `affected` and its tests, and F16's design. A harness change proves every case's anchors again, about $12 to $40.
+2. **The branch rule:** `branch-rule`, the body, the skill, the entry skill's lines, the templates, the guide, and the plugin's next minor version, after both trials of 11.4. With the exam's change merged, its templates affect no case.
+
+Then the status PR, with F06's status only, as requirements 1.72 or the next free version. Requirements 1.71 (PR #137) already holds R21's new Enforced by cell, which the rules template takes, and the F06 row's sentence about the rule.
+
 ## 12. Not in F06
 
 - Writing the requirements and the architecture, opening their PRs, and running troy-init from the flows (F04 roles and F07).
@@ -348,7 +427,9 @@ Each status update is its own PR.
 - A project's own rules (F09). Upgrade brings only troy-mode's R rules.
 - The TypeScript/JavaScript pack (later, Q1).
 - A permission rule for the plugin's files (F05 D45).
-- Deleting the trial repository.
+- Deleting the trial repositories.
+- Changing or deleting a ruleset, a bypass actor, classic branch protection, and rulesets of an organization (section 4.7).
+- Marking `troy-mode checks` as required on GitHub (D293).
 
 ## 13. Decisions for Troy
 
@@ -369,6 +450,12 @@ F05 ends at D46, so F06 continues from D47.
 | D213 | Which cache folder does uv get when `UV_CACHE_DIR` is not set? In the desktop app's sandbox, the pilot's first lock compile failed because uv could not write its default cache, and passed when troy-mode ran the step again with the cache in the session's temporary folder. From tstack issue #48. Its ID comes from the range D213 to D218 kept for this batch of pilot fixes. | A: the folder `troy-mode-uv-cache` in the system temp folder, as Python's `tempfile.gettempdir()` finds it. B: a folder under the project's git dir, such as `<git dir>/troy-mode/uv-cache`. Both only when `UV_CACHE_DIR` is not set, for the language step and `series` (section 5.4). C, not taken by Troy: only a guide note that says to set `UV_CACHE_DIR`. | A. `gettempdir()` takes the first of `TMPDIR`, `TEMP`, `TMP`, and the platform's usual folders in which it can create a file, so the folder is writable when the step starts, and a sandbox that points these variables at its own folder is followed. uv moves files by renaming them, and Windows cannot rename a file to another drive: that was the pilot's error ("cannot move the file to a different disk drive"), and the cache in the temporary folder fixed it. A folder under the git dir sits on the project's drive, which on Troy's PC is D:, while the temporary folder is on C:. It would also put a cache of hundreds of megabytes inside the project, and an emptied temp folder costs only a new download. Troy approved setting the variable when it is not set on 2026-11-18 (issue #48), and left the folder to this design. |
 | D289 | D213 left the pack's checks in F07's feature loop on uv's default cache. Two uv commands that the engine gives still call uv without `UV_CACHE_DIR`: the first mock's `uv pip install -e . --no-deps` in DV1's checks (`troyflow/checksteps.py`), and the same install as the fix of a real run's `program-not-found` problem (`troyflow/realexec.py`). On Windows uv can then fail as the pilot's first lock compile did, when it cannot rename into its cache across drives (tstack issue #48's follow-up). How do they get the cache? | A: `series`' rule (D213): when `UV_CACHE_DIR` is not set, or is empty, in the engine's environment, the command starts with `UV_LINK_MODE=copy UV_CACHE_DIR=<folder>`, the folder from `uv_cache_dir()` and quoted for the shell; otherwise with `UV_LINK_MODE=copy` alone. The real run's message shows the folder as `<uv cache>`, and its fix holds it (section 5.4). B: `UV_CACHE_DIR` only, without `UV_LINK_MODE`. C: a guide note that asks Troy to set `UV_CACHE_DIR` before Claude Code starts. | A, approved under Troy's standing yes of 2026-11-22. Every uv command that troy-mode gives then runs the way troy-init's own runs uv, so a fix that worked for the lock works for the install. B leaves out the copy mode that troy-init and `series` give uv, and C keeps the pilot's failure on each new PC. The real run hides the folder because the message goes into PR 6's description, whose evidence holds no folder of Troy's PC (F12 design 8). |
 
+| D291 | When does troy-init add R21's branch rule? Troy asked on 2026-11-28 for it at the repository's creation ("最好是troy-init在建仓库的时候就直接加上ruleset"), and requirements 1.71 says at setup, before its first PR. | A: at setup, right after `gh repo create`, or at the same point for a repository that already has `origin`, before the step's branch and PR. Upgrade adds it when GitHub lists it missing, after asking. The language step does not look (section 4.7). B: as A, without upgrade, so projects set up earlier keep what they have. C: after the setup PR merges, where the required-check step is today. | A, approved by Troy on 2026-11-28 ("其余按照推荐"). The rule is on before any PR, so PR 1 already merges under it, as Troy asked. Upgrade is how every existing project gets troy-mode's changes (F02 D8): recipe-menu already has the rule, and other projects get it. It asks only when the rule is missing. C leaves PR 1 unprotected and asks a second question after the repository's. |
+| D292 | D52 creates a private repository. GitHub enforces branch rules on a private repository only with a paid plan. On 2026-11-28 Troy's private repositories answered the protection probe with 404, not the 403 of 2026-11-07, so Troy's plan now has them; Troy believes it is the GitHub Education pack, which includes Pro. A free or lapsed plan still answers 403. What does the repository question offer, and what happens on a 403? | A: keep D52's private repository. One yes covers the repository and the rule "where your plan allows it". The skill probes each repository (section 4.7): on 404 or 200 it adds the rule, and on a 403 that names the plan it adds none, says that R21 rests on the local hooks, and goes on. No plan is written into troy-mode. B: ask public or private each time, with the trade. C: always public. | A, approved by Troy on 2026-11-28 ("education套餐在私有仓库上应该也可以创建ruleset"). On Troy's plan a private repository gets the rule, so nothing needs to change in D52, and a plan that lapses only costs the rule, with a clear message. B adds a question with no reason on Troy's plan, and C decides privacy for Troy. The requirements' F06 row keeps "creates a private one". |
+| D293 | What does the rule hold? F02 D14 also asks troy-init to make `troy-mode checks` required, which version 1.6 does after the setup PR merges, through classic branch protection, only when GitHub has it. R24 wants a PR to merge only on the latest `main`, which GitHub's "up to date" setting would enforce. | A: two rulesets on the default branch, R21's, the same as recipe-menu's, and "troy-mode checks must pass", with the check required and "up to date" off, in place of the classic-protection step. B: R21's ruleset only; troy-init no longer marks the check required, and the classic-protection step goes (sections 4.5 and 4.7). C: one ruleset with both, "up to date" on. A was proposed. | B, chosen by Troy on 2026-11-28 ("只保留R21的ruleset"), with the question whether a required check would keep a test PR whose new tests fail from merging. troy-mode's merge step still merges a PR only when its checks pass (R18, F02 D14), so troy-mode's own merges do not change. What B leaves out: GitHub does not hold back Troy's own merges on GitHub when a check fails, and a PR merged while Actions cannot run is not stopped. |
+| D294 | The rules template still says "Hook and CI" for R21, still has R17 escalate at round 3 and R18 without spot checks, both left over from F18, and lacks R24, left over from F20. The design and test plan templates' comments still say that round 3 escalates. The role exam counts every template as an input of all 12 cases, so the fix runs all twelve, about $250 to $400 for the first round (F16 design 10.1), and up to about twice that with second rounds. Yet every case's project has its own `.troy-mode/templates/`, which roles fill from (F04 common rule 7), so those runs would see the same inputs as before. | A: first narrow `affected`: a plugin template counts for a case only when the case's project has no copy of it, or the case's brief names its path (section 8). That harness change proves every case's anchors again: $40 by the exam's estimate, and $12.40 when F17 step 1 did the same (F17 design 12.5). Then the template rows, R17's comments among them, land with the branch rule and affect no case. B: the template rows with the full exam, about $250 to $400, and up to about twice that. C: leave the templates until a change that needs the exam anyway, while upgrade keeps carrying the old rows into projects. | A, approved by Troy on 2026-11-28 ("其余按照推荐"). The exam then measures only what reaches a role, and the fix costs a tenth. The only brief that names a plugin template, the rule change brief with `troy-mode/templates/rules.md` (F09), is used by no case today, so a later case that uses it still counts the template. |
+| D295 | How is the branch rule tried? Nested `claude -p` trials that act only on `ZJUCao/troy-mode-trial` are pre-approved, and that repository has no rule on purpose. Creating or deleting a repository needs Troy's yes. | A: two trials (section 11.4): upgrade on troy-mode-trial, which adds R21's ruleset and merges its PR under it, and setup in a clone of a new public repository `ZJUCao/troy-init-trial`, which the build's session creates once Troy approves it with this design. The ruleset on troy-mode-trial stays. No trial uses a private repository, since Actions did not run on Troy's private repositories on 2026-11-28. B: the upgrade trial only, and setup's path by tests only. C: no trial, and the status says "Written". | A, approved by Troy on 2026-11-28 ("其余按照推荐"), with the new public repository. Only GitHub shows that troy-mode's rebase merge passes R21's ruleset, at setup and at upgrade. recipe-menu shows neither yet: its ruleset was added at 17:15 UTC on 2026-11-28, after its last merge, PR 127. A private repository's path waits for real use. |
+
 Requirements 1.16 records the approved changes:
 
 - The F06 row: setup brings troy-check's CI job, the language step brings the pack's job, upgrade is listed, each step lands as one `[rules]` PR that troy-init merges, and troy-init creates a private GitHub repository when there is none (D48, D52, D53, D54).
@@ -387,3 +474,4 @@ Requirements 1.16 records the approved changes:
 | 1.4 | 2026-11-09 | Section 4.2: a file troy-init edits in place keeps its line endings, and only the files it creates get LF. Upgrade also reads a rules table with CRLF line endings, as a Windows checkout with `core.autocrlf` has it. Found by F09's trial, where upgrade left the R rows alone on such a checkout because it found no version in the table's header. |
 | 1.5 | 2026-11-18 | D213, from tstack issue #48, approved by Troy on 2026-11-18: when `UV_CACHE_DIR` is not set, the language step and `series` give uv the cache folder `troy-mode-uv-cache` in the system temp folder (sections 5.4, 11.1, 11.2, and 13). |
 | 1.6 | 2026-11-24 | D289, the follow-up of D213, approved under Troy's standing yes of 2026-11-22: the first mock's `uv pip install -e . --no-deps` in DV1's checks and a real run's install fix start with `series`' uv variables, and the real run's message shows the folder as `<uv cache>` (sections 5.4, 11.1, 11.2, and 13). No requirement changes. |
+| 1.7 | 2026-11-28 | D291 to D295, approved by Troy on 2026-11-28, from requirements 1.71 and Troy's request of the same day: before setup's PR, and before an upgrade's when it is missing, troy-init adds R21's ruleset on `main` where GitHub allows it, and no longer marks `troy-mode checks` required (D293 B) (new section 4.7, sections 1, 3, 4.5, 6, 7, 8, 9, 11, 12, and 13). The repository stays private; a probe tells whether the plan allows the rule, and existing rulesets stay as they are. The rules template's stale rows and the role exam's view of templates change with it. |
