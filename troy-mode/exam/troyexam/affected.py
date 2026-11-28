@@ -18,6 +18,20 @@ from .runrole import brief_args, flow, write_input
 
 HARNESS = "troy-mode/exam/troyexam/**"
 CASES = "troy-mode/exam/cases"
+TEMPLATES = "troy-mode/templates/"
+PROJECT_TEMPLATES = ".troy-mode/templates"
+
+
+def reads_template(rel: str, plugin: Path, project: Path, prompt: str) -> bool:
+    """Tells whether a role reads the plugin's copy of a template (design 9.2, F06 design D294).
+
+    Roles fill templates from the project's copy (F04 common rule 7), so the plugin's
+    copy counts only when the project has none of that file, or when the brief names
+    the plugin's copy by its path, as the rule change brief does.
+    """
+    if not (project / PROJECT_TEMPLATES / rel.removeprefix(TEMPLATES)).is_file():
+        return True
+    return (plugin / rel).as_posix() in prompt
 
 
 def role_inputs(case: Case, plugin: Path, project: Path, env: Mapping[str, str]) -> dict[str, str]:
@@ -25,6 +39,7 @@ def role_inputs(case: Case, plugin: Path, project: Path, env: Mapping[str, str])
 
     The skills compared are only those that the role's agent file, common.md, or its own
     brief names, so a skill's change affects only the cases that read it (F17 design D163).
+    The templates compared are only those the role reads from the plugin (reads_template).
     """
     input_file = write_input(case, project)
     report = flow(sys.executable, plugin, project, env, *brief_args(case, input_file))
@@ -35,10 +50,12 @@ def role_inputs(case: Case, plugin: Path, project: Path, env: Mapping[str, str])
     inputs["agent"] = agent.read_text(encoding="utf-8") if agent.is_file() else ""
     common = plugin / "troy-mode" / "roles" / "common.md"
     common_text = common.read_text(encoding="utf-8") if common.is_file() else ""
-    folders = ["troy-mode/templates/"] + skills_in(inputs["agent"], common_text,
-                                                   report.get("prompt") or "")
+    prompt = report.get("prompt") or ""
+    folders = [TEMPLATES] + skills_in(inputs["agent"], common_text, prompt)
     for path in sorted(p for p in plugin.rglob("*") if p.is_file()):
         rel = path.relative_to(plugin).as_posix()
+        if rel.startswith(TEMPLATES) and not reads_template(rel, plugin, project, prompt):
+            continue
         if any(rel.startswith(folder) for folder in folders):
             inputs[rel] = path.read_bytes().replace(b"\r\n", b"\n").decode("utf-8", errors="replace")
     return inputs
