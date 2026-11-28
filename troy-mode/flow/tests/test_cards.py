@@ -33,6 +33,29 @@ Planted bugs of design 12.2 (PR 1) caught here:
 On the engine before step 1 (``origin/main``, ``ed51f81``) every test failed because
 ``troyflow.cards`` was missing, except the comparison of briefs, which step 1's build first ran
 against ``origin/main``'s engine and which passed there by design.
+
+Step 2 (F17 design 1.1, 7.2 H2, and 12.2 PR 2; the step 2 contract 2, 2a, and 3), written
+before its code. ``ArchitectCardTests`` checks this repository's table as the contract fixes it:
+one row, which gives AR2 ``principle-prove-it-works`` with the contract's whole line, word for
+word: H2's sentence (run each check CI runs on the design file and give each command and its
+output in Checks), then H3's (run them on the working tree as it is, with no git command that
+changes anything, and leave a check that needs a commit, such as troy-check's ``pr``, to CI).
+The contract's line wins over the older wording of design 7.2. AR2's brief, round 1 of F02's
+design PR on ``brief_project()``, ends its Read first with the card's absolute path and its
+Task field with ``Apply `principle-prove-it-works`: <line>``, both sentences, once, and is
+otherwise the brief that a copy of the engine with an empty table gives; AR5's and AR8's briefs
+name no ``principle-prove-it-works``. With AR2 in this repository's table, ``CardBriefTests``
+compares AR5, which has no row in either table, where step 1 compared AR2. Planted bugs of
+design 12.2 (PR 2) caught here:
+
+- "The card given to AR8 or AR5": ``ArchitectCardTests.test_only_ar2_names_the_card`` and
+  ``EmptyTableBriefTests.test_briefs_equal_an_empty_table``.
+- "the line missing": ``ArchitectCardTests.test_table_is_the_contracts_one_row`` and
+  ``test_sentence_ends_the_task_field_once``; both also fail on a row that keeps H2's sentence
+  without H3's.
+
+On step 1's code (``5b92ff4``, ``ROWS`` empty) every test of ``ArchitectCardTests`` fails
+because AR2 has no row.
 """
 
 import ast
@@ -93,9 +116,10 @@ CARD_BRIEFS = {
     "DV2 premise": ("briefs", "DV2", "F01", None, True),
     "TE3": ("briefs", "TE3", "F01", TEST_FIX, False),
     "TM1": ("briefs", "TM1", "F03", None, False),
-    "AR2": ("briefs", "AR2", "F02", None, False),
+    "AR5": ("briefs", "AR5", "F01", None, False),
 }
-NO_ROWS = ("DV2", "DV2 premise", "TE3", "TM1", "AR2")
+# Tasks without a row in TEST_ROWS or in this repository's table (AR2 has one since step 2).
+NO_ROWS = ("DV2", "DV2 premise", "TE3", "TM1", "AR5")
 # Every author and reviewer brief of the premise tests, and two with --premise, for the
 # comparison with an empty table.
 MAIN_BRIEFS = (
@@ -474,7 +498,7 @@ class CardBriefTests(FlowCase):
             self.assertEqual(field.count(sentence), 1)
 
     def test_other_tasks_are_unchanged(self):
-        """DV2 (with and without ``--premise``), TE3, TM1, and AR2 have no row: the copy's
+        """DV2 (with and without ``--premise``), TE3, TM1, and AR5 have no row: the copy's
         report, its prompt included, equals this repository's."""
         for name in NO_ROWS:
             with self.subTest(brief=name):
@@ -585,6 +609,143 @@ class EmptyTableBriefTests(FlowCase):
                 self.assertIsInstance(new.report, dict, new.describe())
                 self.assertEqual(new.code, old.code, new.describe())
                 self.assertEqual(new.report, as_real(old.report, self.empty))
+
+
+# ------------------------------------------------------------------ the Architect's card
+
+PROVE = "skills/principle-prove-it-works/SKILL.md"
+# The row's whole line, word for word from the step 2 contract (sections 2 and 2a): H2's
+# sentence, then H3's, which keeps the checks on the working tree and leaves a check that needs
+# a commit to CI. The Task field's sentence is the line after the card's name.
+PROVE_LINE = ("run each check that the project's CI runs on the design file, with the project's "
+              "settings, such as `ruff format --check` on its python blocks when CI formats "
+              "them, and give each command and its output in Checks. Run them on the working "
+              "tree as it is, with no git command that changes anything, in the project or in "
+              "a copy of it; a check that needs a commit, such as troy-check's `pr`, runs in CI "
+              "on the PR.")
+PROVE_SENTENCE = "Apply `principle-prove-it-works`: " + PROVE_LINE
+# The Architect's briefs on brief_project(): a name mapped to (task, item, round). AR2 is
+# round 1 of F02's design PR; AR5 and AR8 are those of MAIN_BRIEFS.
+ARCHITECT_BRIEFS = {"AR2": ("AR2", "F02", 1), "AR5": ("AR5", "F01", None),
+                    "AR8": ("AR8", "F01", None)}
+
+
+def architect_args(spec: tuple) -> list:
+    """The options of one Architect brief on the briefs clone: ``(task, item, round)``."""
+    task, item, number = spec
+    args = ["brief", "--task", task, "--item", item]
+    args += ["--round", str(number)] if number is not None else []
+    return args + ["--repo", str(brief_project().root), "--json"]
+
+
+def with_card(prompt: str, card: str, sentence: str) -> str:
+    """A brief's prompt with a sentence at the end of its Task field and a last Read first
+    entry, as one row adds them."""
+    head, rest = prompt.split("\nItem: ", 1)
+    lines = f"{head} {sentence}\nItem: {rest}".split("\n")
+    end = lines.index("Read first:") + 1
+    while end < len(lines) and lines[end].startswith("- "):
+        end += 1
+    lines.insert(end, f"- {card}")
+    return "\n".join(lines)
+
+
+class ArchitectCardTests(CardsCase):
+    """This repository's table as the step 2 contract fixes it: one row, which gives AR2
+    ``principle-prove-it-works`` with H2's and H3's sentences as its line (design 7.2 H2,
+    12.2 PR 2; step 2 contract 2, 2a, 3).
+
+    AR2, AR5, and AR8 are briefed on ``brief_project()`` by this repository's engine and by a
+    copy of it whose table is empty, so each brief is compared with the one it had before.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Imports the module, builds the empty-table copy, and runs the three briefs with both
+        engines, side by side."""
+        cls.load_cards()
+        cls.empty = empty_copy()
+        project = brief_project()
+        jobs = [(engine, name) for engine in (PLUGIN_ROOT / ENGINE, cls.empty / ENGINE)
+                for name in ARCHITECT_BRIEFS]
+        outs = parallel(lambda job: run_with(job[0], architect_args(ARCHITECT_BRIEFS[job[1]]),
+                                             project.tmp), jobs)
+        count = len(ARCHITECT_BRIEFS)
+        cls.real = dict(zip(ARCHITECT_BRIEFS, outs[:count]))
+        cls.old = dict(zip(ARCHITECT_BRIEFS, outs[count:]))
+
+    def card(self) -> str:
+        """The card's absolute POSIX path in this repository."""
+        return posix(PLUGIN_ROOT / PROVE)
+
+    def brief(self, name: str) -> dict:
+        """This repository's report of one brief, checked."""
+        return self.report_of(self.real[name], 0, "brief")
+
+    def before(self, name: str) -> dict:
+        """The empty-table copy's report of one brief, checked, with this repository's paths."""
+        return as_real(self.report_of(self.old[name], 0, "brief"), self.empty)
+
+    def test_table_is_the_contracts_one_row(self):
+        """ROWS is exactly one Row: AR2, ``skills/principle-prove-it-works/SKILL.md``, and the
+        contract's whole line, both sentences, word for word."""
+        cards = self.cards()
+        self.assertEqual(cards.ROWS, (cards.Row(task="AR2", path=PROVE, line=PROVE_LINE),))
+
+    def test_the_rows_card_is_in_the_plugin(self):
+        """AR2's one row names a ``SKILL.md`` that tstack ships, so AR2 has no ``card:``
+        problem, and its absolute path is the card's in this repository."""
+        cards = self.cards()
+        rows = cards.rows_for("AR2")
+        self.assertEqual([row.path for row in rows], [PROVE])
+        self.assertTrue((PLUGIN_ROOT / rows[0].path).is_file(), rows[0].path)
+        self.assertEqual(cards.problems("AR2"), [])
+        self.assertTrue(same_path(cards.absolute(rows[0]), PLUGIN_ROOT / PROVE),
+                        cards.absolute(rows[0]))
+
+    def test_card_is_read_last(self):
+        """Round 1 of F02's design PR: AR2's Read first ends with the card's absolute POSIX path
+        in the plugin, once, in the report and in the prompt."""
+        report = self.brief("AR2")
+        self.assertTrue(report["read_first"], report)
+        last = report["read_first"][-1]
+        self.assertTrue(same_path(last, PLUGIN_ROOT / PROVE), f"{last} is not {PROVE}")
+        self.assertNotIn("\\", last)
+        self.assertTrue(os.path.isabs(last), last)
+        self.assertEqual(report["read_first"].count(last), 1)
+        self.assertEqual(read_first_items(report["prompt"])[-1], last)
+
+    def test_sentence_ends_the_task_field_once(self):
+        """Round 1 of F02's design PR: AR2's Task field is the task's own text, then
+        ``Apply `principle-prove-it-works`: <line>`` with the contract's whole line, H2's and
+        H3's sentences, once."""
+        prompt = self.brief("AR2")["prompt"]
+        field = task_field(prompt)
+        self.assertTrue(field.startswith("AR2, review the interface design of F02 in "), field)
+        self.assertTrue(field.endswith(" " + PROVE_SENTENCE), field[-500:])
+        self.assertEqual(prompt.count(PROVE_SENTENCE), 1)
+        self.assertEqual(prompt.count("principle-prove-it-works"), 2, prompt)
+
+    def test_brief_is_the_empty_tables_with_the_card(self):
+        """AR2's report is the empty table's with the card last in Read first and the sentence
+        last in the Task field: nothing else of the brief changes."""
+        old, card = self.before("AR2"), self.card()
+        expected = dict(old, read_first=old["read_first"] + [card],
+                        prompt=with_card(old["prompt"], card, PROVE_SENTENCE))
+        self.assertEqual(self.brief("AR2"), expected)
+
+    def test_only_ar2_names_the_card(self):
+        """Planted bug "the card given to AR8 or AR5": of AR2, AR5, and AR8, only AR2's brief
+        names ``principle-prove-it-works``, and AR5's and AR8's equal the empty table's."""
+        named = {}
+        for name in ARCHITECT_BRIEFS:
+            report = self.brief(name)
+            named[name] = "principle-prove-it-works" in (" ".join(report["read_first"])
+                                                         + report["prompt"])
+        self.assertEqual(named, {"AR2": True, "AR5": False, "AR8": False})
+        for name in ("AR5", "AR8"):
+            with self.subTest(brief=name):
+                self.assertEqual(self.brief(name), self.before(name))
 
 
 if __name__ == "__main__":
