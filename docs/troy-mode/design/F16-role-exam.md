@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F16 in [requirements 1.42](../requirements.md#72-feature-list) |
-| Version | 1.13 |
-| Date | 2026-11-25 |
-| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. Version 1.11 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.12 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. Version 1.13 carries F17 step 1's view of the cards into sections 9.1 and 9.2. |
+| Version | 1.14 |
+| Date | 2026-11-27 |
+| Status | Approved by Troy on 2026-11-16, with D151 to D160; D152 refined by Troy on 2026-11-18 (section 4.3). Version 1.5 makes U4 a must, as D152 says, in the PR that lands troy-pstack#64's hook. Version 1.6 adds D233, which Troy approved on 2026-11-21 as tstack issue #49: U5 stays a note. Version 1.8 adds D241 to D243, which Troy approved on 2026-11-22 as tstack issue #92: the estimate counts the second round. Version 1.11 notes the changes of F20's design (D268 to D279, approved by Troy on 2026-11-22), which land with F20's build. Version 1.12 notes the changes of F18's design (D171 to D180, approved by Troy on 2026-11-25), which land with F18's build. Version 1.13 carries F17 step 1's view of the cards into sections 9.1 and 9.2, and 1.14 notes F17 step 2's hillclimb of the Architect. |
 | Source of truth | This English file. [`F16-role-exam.zh-CN.md`](F16-role-exam.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -780,3 +780,4 @@ F16 uses D151 to D160. D161 on is kept for F17, and D171 on for F18. Troy accept
 | 1.11 | 2026-11-22 | F20's design (D268 to D279, approved by Troy on 2026-11-22; F20 design section 6): its build changes the Architect's agent file, so ar-design-review and ar-error-review run, an estimated $62.80 for the first round and $125.60 with second rounds, to which Troy said yes on 2026-11-22; the briefs change only in a team's worktree, so no other case is affected. The exam runs with F20's build. |
 | 1.12 | 2026-11-25 | F18's design (D171 to D180, approved by Troy on 2026-11-25): its build changes the Architect's agent file, so ar-design-review and ar-error-review run, $59.78 for the first round and up to $119.55; the AR8 and premise texts of the briefs and the entry skill's role sections affect no case. F18's spot checks read the cases' pass counts from their logs, as section 13 foresaw (F18 design sections 7.3 and 10). The changes land with F18's build. |
 | 1.13 | 2026-11-26 | F17 step 1 (F17 design D163, plugin 0.20.0): the skills that roles read include those that a module of the brief names, the premise card among them (9.1), and `affected` compares, per case, only the skills that its role's agent file, `common.md`, or its own brief names (9.2). |
+| 1.14 | 2026-11-27 | F17 step 2 (F17 design D165, plugin 0.20.1): the Architect's hillclimb logs its attempts in `climb/ar-review/decision.tsv` (section 8.3). H1, H2, and H3 were kept, and the exam of the last against `main` is the PR's own (F17 design 12.6). |

@@ -24,6 +24,7 @@ from flow_helpers import (
     option_value, pack_words, parallel, rework, split_command, stage_step, stages,
     troy_check_step,
 )
+from stops_helpers import engine_module
 
 D69 = ("A test that the test plan runs only on another platform is skipped here, and "
        "troy-check code reports it under R09 or R10; CI checks it, so name it in your report "
@@ -146,6 +147,13 @@ def line_of(report: dict, prefix: str) -> str:
 def problems_text(report: dict) -> str:
     """The report's problems as one text, for searching."""
     return json.dumps(report.get("problems"), ensure_ascii=False)
+
+
+def cards_of(task: str) -> list:
+    """The absolute paths of a task's cards in this repository's card table, in table order,
+    which its brief reads after its own entries (F17 design 4.1)."""
+    cards = engine_module("cards")
+    return [cards.absolute(row) for row in cards.rows_for(task)]
 
 
 # (label, clone, item, title, allowed tasks, refused tasks, stage, title in the report)
@@ -313,11 +321,14 @@ class AllowedTasksTests(FlowCase):
         self.each_allowed(check, lambda label, item, task: item.startswith("B"))
 
     def test_feature_side_pr_reads_the_feature_documents(self):
-        """A feature's test-fix or docs brief reads as part 1 says for the feature."""
+        """A feature's test-fix or docs brief reads as part 1 says for the feature, then the
+        cards of the task's rows in the card table (F17 design 4.1), such as AR2's since F17
+        step 2."""
         def check(label, item, task, stage, want_title, report):
             """Asserts a feature side PR's Read first."""
             self.assertEqual(report["read_first"],
-                             [RULES, REQUIREMENTS, ARCHITECTURE, F01.design, F01.plan])
+                             [RULES, REQUIREMENTS, ARCHITECTURE, F01.design, F01.plan]
+                             + cards_of(task))
             self.assertTrue(any(line.startswith(f"- {REQUIREMENTS}") and "F01" in line
                                 for line in report["prompt"].split("\n")), report["prompt"])
         self.each_allowed(check, lambda label, item, task: label in ("feature test-fix",

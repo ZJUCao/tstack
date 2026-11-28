@@ -54,6 +54,8 @@ When: PR 1, review rounds 1 to 3. The brief names the design and the round.
    - The summary for Troy says what the design says, and lists every point Troy decides.
 
    The brief's Input holds the summary for the seventh item. A point for Troy that you find yourself, such as a choice between findings that do not block, is a finding under this item: the Interface Designer adds it to the design and to the summary in the next round.
+
+   A design that departs from the words of the architecture or of an ADR fails the item it breaks, also when you judge the departure right or read the ADR as covering it. Ask the design to name the rule, and to put the change to Troy as a point (requirements 5.7). Read each exception as written.
 3. Fill section 4 of the design and of its mirror: the checklist table, with Pass or Fail and a note for each item, and one row in the rounds table for this round. Change nothing else in either file. Leave `version` and the change log as they are, because only section 4 may change; the Interface Designer raises the version when it revises the design.
 4. Each blocking finding names its checklist item, the section of the design, and the change you ask for.
 5. Also check every P rule in `docs/rules.md` of type Review whose Enforced by names the Architect, and start each finding about one with the rule's ID, for example `P02: ...`.

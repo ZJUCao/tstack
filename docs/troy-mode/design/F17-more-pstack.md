@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F17 in [requirements 1.65](../requirements.md#72-feature-list) |
-| Version | 1.1 |
-| Date | 2026-11-26 |
-| Status | Approved by Troy on 2026-11-26 ("全按推荐"), with D161 to D170, every recommended answer, and the requirement text proposals P1 to P5 of section 11 as written. Requirements 1.67 records the decisions with P1 and P2; P3, P4, and P5 land with the PRs that section 11 names. The build's costs, about $213 to $251 for the first rounds and up to about $446, still wait for Troy's own yes, step by step (section 12.4). Troy approved steps 1 and 2 on 2026-11-26 ("同意前两步"), at about $257; version 1.1 records what step 1's build chose and its checks (section 12.5). |
+| Version | 1.2 |
+| Date | 2026-11-27 |
+| Status | Approved by Troy on 2026-11-26 ("全按推荐"), with D161 to D170, every recommended answer, and the requirement text proposals P1 to P5 of section 11 as written. Requirements 1.67 records the decisions with P1 and P2; P3, P4, and P5 land with the PRs that section 11 names. The build's costs, about $213 to $251 for the first rounds and up to about $446, still wait for Troy's own yes, step by step (section 12.4). Troy approved steps 1 and 2 on 2026-11-26 ("同意前两步"), at about $257; version 1.1 records what step 1's build chose and its checks (section 12.5). Version 1.2 adds H3 to section 7.2, a third attempt that Troy approved on 2026-11-27 ("先试 H3"), and records in section 12.6 what step 2 chose, its tests, planted bugs, and hillclimb. |
 | Source of truth | This English file. [`F17-more-pstack.zh-CN.md`](F17-more-pstack.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -184,8 +184,9 @@ F16 design 8.3, with the two cases as the frozen harness and the decision log `c
 | --- | --- | --- | --- | --- |
 | H1 | The Architect reads an exception wider than written and keeps a departure as a note, because nothing says that a departure blocks whatever its merit. | AR2 step 2 gains: "A design that departs from the words of the architecture or of an ADR fails the item it breaks, also when you judge the departure right or read the ADR as covering it. Ask the design to name the rule, and to put the change to Troy as a point (requirements 5.7). Read each exception as written." | `run --base origin/main --head <H1>` | ar-error-review passes the target rule, and ar-design-review is not worse |
 | H2 | The Architect checks a design's examples by running them, not by running the checks that CI runs on the design file. | A card table row gives AR2 `principle-prove-it-works`, with the line: "Apply it to the design file: run each check that the project's CI runs on it, with the project's settings, such as `ruff format --check` on its python blocks when CI formats them, and give each command and its output in Checks." | `run --base origin/main --head <H1+H2>`, the base runs reused | ar-design-review passes the target rule, and ar-error-review is not worse |
+| H3 | The card's "run each check that the project's CI runs" leads the Architect to copy the project and commit there, to run a check that needs a commit, and the run fails U7 (exam 2026-11-27-2). | The card's line gains a second sentence: "Run them on the working tree as it is, with no git command that changes anything, in the project or in a copy of it; a check that needs a commit, such as troy-check's `pr`, runs in CI on the PR." | `run --base origin/main --head <H1+H2+H3>`, the base runs reused | ar-error-review passes the target rule, and ar-design-review is not worse |
 
-H1 goes first: ar-error-review can pass on H1 alone, while ar-design-review needs both (K2 and K4). An attempt that misses its rule is reverted in full and logged, and the PR holds the kept attempts. When H2 is kept, its measurement against `main` is the PR's own exam (F16 design 8.3, step 4).
+H1 goes first: ar-error-review can pass on H1 alone, while ar-design-review needs both (K2 and K4). An attempt that misses its rule is reverted in full and logged, and the PR holds the kept attempts. The last kept attempt's measurement against `main` is the PR's own exam (F16 design 8.3, step 4). H3 came after H2's exam, with Troy's yes on 2026-11-27 ("先试 H3"); section 12.6 gives the results.
 
 ### 7.3 K4 and new projects
 
@@ -322,6 +323,29 @@ The checks of step 1:
 - **Planted bugs.** 14 planted one at a time, and all 14 caught: a card in every task's brief, rows sorted, a relative path, a missing card accepted, the line twice, the sentence before the task's text, the path before the brief's own entries, card problems never checked, `named_skills` skipping the brief's modules, the premise card left out, `skills_in` keeping `troy-mode`, and `affected` back to every case's skills, without the brief, or without `common.md`.
 - **Role exam.** `troy_exam.py affected` found all 12 cases affected, since the harness changed, so exam 2026-11-26-2 proved every case's anchors on the step's commit: passed, 21 judge passes, $12.40 against the $40.00 estimate. One pass of cr-test-review returned a verdict that lacked a criterion; the exam stopped, `resume` went on (F16 design 11.4), and the next pass graded both anchors right.
 
+### 12.6 What step 2 chose
+
+Step 2's build, PR 2 (plugin 0.20.1), ran the hillclimb of section 7.2 and fixed these points:
+
+- **H1's place.** The paragraph ends AR2's step 2, after the checklist and the paragraph about the summary in the Input, indented as that paragraph is, so that it stays inside step 2.
+- **H2's line.** The row's line starts "run each check that the project's CI runs on the design file", not section 7.2's "Apply it to the design file: ... runs on it", so that the brief does not read "Apply `principle-prove-it-works`: Apply it". The meaning is the same.
+- **H3, a third attempt.** H2's exam kept the card, but every failed head run failed U7: the Architect cloned the project into a temp folder, amended a commit there with the edited design, and ran `troy_check.py pr` as CI does. One run of H1's exam had done the same. Troy approved a third attempt on 2026-11-27 ("先试 H3"): the line's second sentence in section 7.2.
+- **Tests that named AR2.** `CardBriefTests` compares AR5's brief where it compared AR2's, and the Read first test of an AR2 side PR in `test_part2_brief.py` reads the task's cards from the table, since AR2 now has a row.
+
+The checks of step 2:
+
+- **Tests.** A separate agent wrote 8 new tests from this design and the step's contract before the change: 6 in `test_cards.py` for this repository's table (AR2's brief names the card once, at the end of Read first and of the Task field; AR5's and AR8's briefs do not; the card is in the plugin), and 2 in `test_f17_files.py` (H1's paragraph word for word, in its place, once). It also updated the two tests that named AR2. All 8 failed on step 1's code. For H3, the same agent brought the line's test up to both sentences, and it failed on H2's code. The suites pass: flow 1,602, exam 436, checks 760, hooks 436, init 282, and dev 326.
+- **Planted bugs.** 15 planted one at a time, and all 15 caught: the card given to AR8 too, or to AR5 instead of AR2; section 7.2's longer line; the row twice; a card that is not in the plugin; the line without its Checks clause, without H3's sentence, without the copy of the project, or allowing a copy; H1 unindented, joined to the Input paragraph, with a word changed, twice, or after step 3; and the agent file's Common rules changed.
+- **The hillclimb.** Logged in `climb/ar-review/decision.tsv` (F16 design 8.3). Each attempt was measured against `main` (`efec3fe`, instruction hash `093511c2898f`): exam 2026-11-27-1 ran its 10 base runs, and the later exams reused them.
+
+| Attempt | Exam | ar-error-review | ar-design-review | Cost | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| H1 | 2026-11-27-1 | 0 of 5 to 4 of 5: fixed | 0 of 5 to 0 of 5: not worse | $58.88 | Kept |
+| H1 and H2 | 2026-11-27-2 | 0 of 5 to 2 of 5: not worse | 0 of 5 to 4 of 5: fixed | $36.04 | Kept |
+| H1 to H3 | 2026-11-27-3 | 0 of 5 to 5 of 5: fixed | 0 of 5 to 3 of 5: not worse | $37.03 | Kept |
+
+Exam 2026-11-27-1 paused twice at the usage limit, and `resume` finished it each time. In that exam the judge failed criterion 3, K4, in every ar-design-review run, base and head; H2 is what fixed it. With H3, no run failed U7, and ar-error-review passed 5 of 5. ar-design-review passed 3 of 5, one run missing K4 and one K2, so H2's 4 of 5 became 3 of 5, which still passes the not-worse rule against `main`. Exam 2026-11-27-3, H1 to H3 against `main`, is the PR's own exam (section 7.2). F18's E3 asks for 4 of 5 in both Architect cases, so ar-design-review is one run short of it. Steps 1 and 2 cost $144.35 in all, within Troy's line of about $257.
+
 ## 13. Later additions (D170)
 
 F17's build ends with section 12, but the row says "where the pilot shows the need", and the pilot goes on. A candidate dropped here, or a new one, comes back when the evidence shows its mistake twice: in a retrospective, which with `reflect` reads the sessions too, in a second project, or in F16's case runs. troy-mode then proposes it as a rule for every project, a tstack issue (F09 D83), and it lands as its own PR in the way of this design: a live case first, then the card table row, then the exam with the case as its target. A card whose target stays at the base's level is not added (F16 design 13).
@@ -387,3 +411,4 @@ F16 design keeps D161 to D170 for F17. Troy approved every decision on 2026-11-2
 | 0.1 | 2026-11-26 | First draft, with D161 to D170 and the requirement text proposals P1 to P5, for Troy. |
 | 1.0 | 2026-11-26 | Approved by Troy with D161 to D170, every recommended answer ("全按推荐"), and the requirement text proposals P1 to P5 as written. Requirements 1.67 records them with P1 and P2. The build's costs still wait for Troy's yes, step by step (sections 12.4 and 17). |
 | 1.1 | 2026-11-26 | Step 1's build (PR 1, plugin 0.20.0): section 12.4 records Troy's yes to steps 1 and 2, and section 12.5 what step 1 chose, its tests, planted bugs, and role exam. |
+| 1.2 | 2026-11-27 | Step 2's build (PR 2, plugin 0.20.1): section 7.2 gains H3, the card line's second sentence, which Troy approved on 2026-11-27 ("先试 H3"), and section 12.6 records what step 2 chose, its tests, planted bugs, and hillclimb. |

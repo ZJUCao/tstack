@@ -27,7 +27,20 @@ class Row:
     line: str
 
 
-ROWS: tuple[Row, ...] = ()
+ROWS: tuple[Row, ...] = (
+    Row(
+        task="AR2",
+        path="skills/principle-prove-it-works/SKILL.md",
+        line=(
+            "run each check that the project's CI runs on the design file, with the"
+            " project's settings, such as `ruff format --check` on its python blocks"
+            " when CI formats them, and give each command and its output in Checks."
+            " Run them on the working tree as it is, with no git command that changes"
+            " anything, in the project or in a copy of it; a check that needs a commit,"
+            " such as troy-check's `pr`, runs in CI on the PR."
+        ),
+    ),
+)
 
 
 def name(row: Row) -> str:

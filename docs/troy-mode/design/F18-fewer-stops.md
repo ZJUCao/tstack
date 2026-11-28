@@ -3,9 +3,9 @@
 | | |
 | --- | --- |
 | Feature | F18 in [requirements 1.63](../requirements.md#72-feature-list) |
-| Version | 1.2 |
-| Date | 2026-11-26 |
-| Status | Approved by Troy on 2026-11-25 ("全按推荐"), with D171 to D180, every recommended answer, and the requirement text proposals P1 to P7 of section 12 as written. Requirements 1.64 records the decisions with P1, P2, P5, and P7; P3, P4, and P6 land with F18's builds. The build's costs, about $135 and up to about $195, still wait for Troy's own yes. Version 1.1 records what part 1's build chose and its checks (section 13.5), and 1.2 part 2's (section 13.6). |
+| Version | 1.3 |
+| Date | 2026-11-27 |
+| Status | Approved by Troy on 2026-11-25 ("全按推荐"), with D171 to D180, every recommended answer, and the requirement text proposals P1 to P7 of section 12 as written. Requirements 1.64 records the decisions with P1, P2, P5, and P7; P3, P4, and P6 land with F18's builds. The build's costs, about $135 and up to about $195, still wait for Troy's own yes. Version 1.1 records what part 1's build chose and its checks (section 13.5), and 1.2 part 2's (section 13.6). Version 1.3 notes in section 7.3 what F17's PR 2 did for step 2. |
 | Source of truth | This English file. [`F18-fewer-stops.zh-CN.md`](F18-fewer-stops.zh-CN.md) is the Chinese mirror. |
 
 ## 1. Scope
@@ -227,7 +227,7 @@ troy-mode recommends spot checks in a project only when all three of these hold,
 So spot checks are not recommended now. The earliest is after three steps, none of which is part of F18's build:
 
 1. Base runs of the three author cases on `main`, about $51 by `troy_exam`'s budget code: if-example-format and if-error-rules $18.95 each, tm-plan-expected $13.05. It waits for Troy's yes when its time comes.
-2. A hillclimb of the Architect's AR2 (F16 design 8.3) that lifts both Architect cases to 4 of 5. Its cost is unknown until it is designed; one round of both cases costs about $60.
+2. A hillclimb of the Architect's AR2 (F16 design 8.3) that lifts both Architect cases to 4 of 5. Its cost is unknown until it is designed; one round of both cases costs about $60. F17's PR 2 ran it (F17 design D165 and 12.6, plugin 0.20.1): ar-error-review from 0 of 5 to 5 of 5, and ar-design-review from 0 of 5 to 3 of 5, one run short of E3's bar.
 3. E1 and E2 measured again at the end of recipe-menu's v0.2.
 
 Troy can still turn spot checks on at any time; troy-mode then says which evidence is missing.
@@ -450,3 +450,4 @@ F16 design keeps D171 to D180 for F18. Troy approved every decision on 2026-11-2
 | 1.0 | 2026-11-25 | Approved by Troy with D171 to D180, every recommended answer ("全按推荐"), and the requirement text proposals P1 to P7 as written. Requirements 1.64 records them with P1, P2, P5, and P7. The build's costs still wait for Troy's yes (sections 10, 12, and 15). |
 | 1.1 | 2026-11-25 | Part 1's build (plugin 0.18.0): section 13.5 records what it chose, its tests, planted bugs, trial, and role exam; the premise text says, from the trial, that a cause in the environment escalates. |
 | 1.2 | 2026-11-26 | Part 2's build (plugin 0.19.0): section 13.6 records what it chose, its tests, planted bugs, trial, and role exam; from the trial, approval records skip PRs merged before the count changed, a section 3 of "None." with an explanation lists no change, and new features go after the accepted ones in the order. |
+| 1.3 | 2026-11-27 | Section 7.3 notes the result of step 2, the Architect's hillclimb, which F17's PR 2 ran (plugin 0.20.1). |
